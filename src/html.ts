@@ -214,12 +214,25 @@ export function getAppHTML(): string {
     .tc-num { font-size:20px; font-weight:800; color:var(--ocean-900); }
     .tc-label { font-size:11px; color:var(--ocean-400); }
 
-    /* ── SHIFTS ── */
-    .shift-day-card { background:white; border-radius:var(--radius); padding:14px; margin-bottom:10px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
-    .shift-day-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-    .shift-day-name { font-weight:700; font-size:15px; color:var(--ocean-900); }
-    .shift-chip { display:inline-flex; align-items:center; gap:6px; background:var(--ocean-50); border-radius:8px; padding:6px 10px; font-size:13px; font-weight:600; color:var(--ocean-700); margin:3px; }
-    .shift-chip .shift-time { font-size:11px; color:var(--ocean-400); }
+    /* ── SHIFTS GANTT ── */
+    .gantt-wrap { background:white; border-radius:var(--radius); border:1px solid var(--ocean-100); box-shadow:var(--shadow); overflow:hidden; margin-bottom:12px; }
+    .gantt-day-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 8px; border-bottom:1px solid var(--ocean-50); }
+    .gantt-day-name { font-weight:700; font-size:14px; color:var(--ocean-900); }
+    .gantt-day-date { font-size:11px; color:var(--ocean-400); margin-top:1px; }
+    .gantt-timeline { position:relative; padding:0 14px 10px; }
+    .gantt-hours { display:flex; border-bottom:1px solid var(--ocean-100); margin-bottom:6px; padding-bottom:4px; }
+    .gantt-hour-label { flex:1; font-size:9px; font-weight:700; color:var(--ocean-300); text-align:left; white-space:nowrap; }
+    .gantt-rows { position:relative; }
+    .gantt-grid-lines { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; pointer-events:none; }
+    .gantt-grid-line { flex:1; border-left:1px dashed var(--ocean-100); }
+    .gantt-row { position:relative; height:28px; margin-bottom:5px; display:flex; align-items:center; }
+    .gantt-emp-label { width:60px; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ocean-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:6px; }
+    .gantt-track { flex:1; position:relative; height:22px; border-radius:4px; background:var(--ocean-50); overflow:visible; }
+    .gantt-bar { position:absolute; top:0; height:100%; border-radius:6px; display:flex; align-items:center; padding:0 6px; font-size:10px; font-weight:700; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; transition:filter .15s; box-shadow:0 1px 4px rgba(0,0,0,.15); min-width:4px; }
+    .gantt-bar:active { filter:brightness(1.1); }
+    .gantt-empty { font-size:12px; color:var(--ocean-300); font-style:italic; padding:6px 0 4px; }
+    .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:#ef4444; z-index:10; pointer-events:none; }
+    .gantt-now-dot { position:absolute; top:-4px; left:-4px; width:10px; height:10px; border-radius:50%; background:#ef4444; }
     .shift-empty { font-size:13px; color:var(--ocean-300); font-style:italic; }
 
     /* ── BLACK BOX ── */
@@ -504,7 +517,7 @@ export function getAppHTML(): string {
 
   <!-- ═══ SHIFTS ═══ -->
   <section id="section-shifts" class="page-section">
-    <div class="section-header">
+    <div class="section-header" style="margin-bottom:10px">
       <div>
         <div style="font-weight:700;font-size:17px;color:var(--ocean-900)">Employee Shifts</div>
         <div style="font-size:12px;color:var(--ocean-400)" id="shifts-week-label"></div>
@@ -514,6 +527,14 @@ export function getAppHTML(): string {
         <button class="btn btn-secondary btn-sm" id="btn-shifts-next-week"><i class="fas fa-chevron-right"></i></button>
         <button class="btn btn-gold btn-sm" id="btn-add-shift" style="display:none"><i class="fas fa-plus"></i> Add</button>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);margin-bottom:12px;font-size:11px;color:var(--ocean-400);flex-wrap:wrap">
+      <i class="fas fa-circle-info" style="color:var(--ocean-300)"></i>
+      Timeline: 07:00 – 24:00 &nbsp;·&nbsp;
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#0ea5e9;display:inline-block"></span> Morning</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block"></span> Afternoon</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#8b5cf6;display:inline-block"></span> Evening</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#374151;display:inline-block"></span> Night</span>
     </div>
     <div id="shifts-list"></div>
   </section>
@@ -1821,34 +1842,135 @@ function renderTasks(){
 }
 
 // ================================================
-// SHIFTS
+// SHIFTS GANTT
 // ================================================
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+// Gantt config: 07:00 to 24:00 = 17 hours
+var GANTT_START = 7;   // 07:00
+var GANTT_END   = 24;  // 24:00
+var GANTT_SPAN  = GANTT_END - GANTT_START; // 17 hours
+
+// Hour labels shown on the ruler (every 2h to fit mobile)
+var GANTT_HOUR_MARKS = [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24];
+
+// Color palette per employee (cycles through)
+var GANTT_COLORS = [
+  '#0ea5e9','#f59e0b','#8b5cf6','#22c55e','#ef4444',
+  '#06b6d4','#f97316','#a855f7','#14b8a6','#ec4899'
+];
+
+function timeToMins(t) {
+  if (!t) return 0;
+  var parts = t.split(':');
+  return parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
+}
+
+function ganttShiftColor(employee, db) {
+  // Consistent color per employee name
+  var emps = db.employees || [];
+  var idx = emps.indexOf(employee);
+  if (idx === -1) idx = Math.abs(employee.split('').reduce(function(a,c){return a+c.charCodeAt(0);},0)) % GANTT_COLORS.length;
+  return GANTT_COLORS[idx % GANTT_COLORS.length];
+}
+
 function renderShifts(){
-  var ws=getWeekStart(shiftsWeekOffset);
-  var we=new Date(ws); we.setDate(we.getDate()+6);
+  var ws = getWeekStart(shiftsWeekOffset);
+  var we = new Date(ws); we.setDate(we.getDate()+6);
   var mnames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  document.getElementById('shifts-week-label').textContent=mnames[ws.getMonth()]+' '+ws.getDate()+' - '+mnames[we.getMonth()]+' '+we.getDate()+', '+we.getFullYear();
-  var db=getDB();
-  var addBtn=document.getElementById('btn-add-shift');
-  if(addBtn) addBtn.style.display=isAdmin?'flex':'none';
-  var el=document.getElementById('shifts-list'); if(!el) return;
-  el.innerHTML=DAYS.map(function(day,di){
-    var dayDate=new Date(ws); dayDate.setDate(dayDate.getDate()+di);
-    var dateStr=toDateStr(dayDate);
-    var dayShifts=db.shifts.filter(function(s){return s.day===day&&s.weekStart===toDateStr(ws);});
-    return '<div class="shift-day-card">'
-      +'<div class="shift-day-header">'
-        +'<div><div class="shift-day-name">'+day+'</div><div style="font-size:11px;color:var(--ocean-400)">'+dateStr+'</div></div>'
-        +(isAdmin?'<button class="btn btn-secondary btn-sm" data-add-shift-day="'+esc(day)+'"><i class="fas fa-plus"></i></button>':'')
+  document.getElementById('shifts-week-label').textContent =
+    mnames[ws.getMonth()]+' '+ws.getDate()+' – '+mnames[we.getMonth()]+' '+we.getDate()+', '+we.getFullYear();
+
+  var db = getDB();
+  var addBtn = document.getElementById('btn-add-shift');
+  if (addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
+  var el = document.getElementById('shifts-list'); if (!el) return;
+
+  // Current time marker (only relevant for today)
+  var now = new Date();
+  var todayStr = toDateStr(now);
+  var nowMins = now.getHours()*60 + now.getMinutes();
+  var nowPct = ((nowMins/60 - GANTT_START) / GANTT_SPAN) * 100;
+  var nowInRange = nowMins/60 >= GANTT_START && nowMins/60 <= GANTT_END;
+
+  el.innerHTML = DAYS.map(function(day, di) {
+    var dayDate = new Date(ws); dayDate.setDate(dayDate.getDate()+di);
+    var dateStr = toDateStr(dayDate);
+    var isToday = dateStr === todayStr;
+    var wsStr = toDateStr(ws);
+    var dayShifts = db.shifts.filter(function(s){
+      return s.day === day && s.weekStart === wsStr;
+    });
+
+    // Build hour ruler HTML
+    var rulerHTML = '<div class="gantt-hours">';
+    // Show label every 2 hours for readability on mobile
+    for (var h = GANTT_START; h <= GANTT_END; h++) {
+      var showLabel = (h % 2 === 1) || h === GANTT_START || h === GANTT_END;
+      rulerHTML += '<div class="gantt-hour-label" style="min-width:0;flex:1">'
+        + (showLabel ? h+':00' : '')
+        +'</div>';
+    }
+    rulerHTML += '</div>';
+
+    // Grid lines (one per hour)
+    var gridHTML = '<div class="gantt-grid-lines">';
+    for (var g = 0; g <= GANTT_SPAN; g++) {
+      gridHTML += '<div class="gantt-grid-line"></div>';
+    }
+    gridHTML += '</div>';
+
+    // Now-line for today
+    var nowLineHTML = (isToday && nowInRange)
+      ? '<div class="gantt-now-line" style="left:'+nowPct.toFixed(2)+'%"><div class="gantt-now-dot"></div></div>'
+      : '';
+
+    // Shift bars
+    var rowsHTML = '';
+    if (dayShifts.length === 0) {
+      rowsHTML = '<div class="gantt-empty">No shifts scheduled</div>';
+    } else {
+      rowsHTML = dayShifts.map(function(s) {
+        var startMins = timeToMins(s.start);
+        var endMins   = timeToMins(s.end);
+        // Handle overnight (end < start means next day)
+        if (endMins <= startMins) endMins += 24*60;
+        // Clamp to gantt range
+        var clampStart = Math.max(startMins, GANTT_START*60);
+        var clampEnd   = Math.min(endMins,   GANTT_END*60);
+        var leftPct  = ((clampStart/60 - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
+        var widthPct = Math.max(((clampEnd - clampStart)/60 / GANTT_SPAN * 100), 0.5).toFixed(2);
+        var color = ganttShiftColor(s.employee, db);
+        var label = esc(s.employee) + ' ' + esc(s.start) + '–' + esc(s.end) + (s.role ? ' · '+esc(s.role) : '');
+        return '<div class="gantt-row">'
+          +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
+          +'<div class="gantt-track">'
+            +'<div class="gantt-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'" title="'+label+'"'
+              +(isAdmin?' data-delete-shift="'+esc(s.id)+'"':'')+'>'  
+              + label
+            +'</div>'
+          +'</div>'
+        +'</div>';
+      }).join('');
+    }
+
+    return '<div class="gantt-wrap"'
+        +(isToday?' style="border-left:3px solid var(--ocean-400)"':'')+'>' 
+      +'<div class="gantt-day-header">'
+        +'<div>'
+          +'<div class="gantt-day-name">'+day+(isToday?' <span class="badge badge-blue" style="font-size:10px;vertical-align:middle">Today</span>':'')+'</div>'
+          +'<div class="gantt-day-date">'+dateStr+'</div>'
+        +'</div>'
+        +(isAdmin?'<button class="btn btn-secondary btn-sm" data-add-shift-day="'+esc(day)+'"><i class="fas fa-plus"></i> Add</button>':'')
       +'</div>'
-      +(dayShifts.length===0?'<div class="shift-empty">No shifts scheduled</div>'
-        :dayShifts.map(function(s){
-          return '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px">'
-            +'<span class="shift-chip"><i class="fas fa-user" style="color:var(--ocean-400);font-size:11px"></i>'+esc(s.employee)+'<span class="shift-time">'+esc(s.start)+'-'+esc(s.end)+'</span>'+(s.role?'<span class="badge badge-blue" style="font-size:9px">'+esc(s.role)+'</span>':'')+'</span>'
-            +(isAdmin?'<button class="btn btn-danger btn-sm btn-icon" style="width:26px;height:26px;border-radius:7px" data-delete-shift="'+esc(s.id)+'"><i class="fas fa-times"></i></button>':'')
-          +'</div>';
-        }).join(''))
+      +'<div class="gantt-timeline">'
+        + rulerHTML
+        +'<div class="gantt-rows" style="position:relative">'
+          + gridHTML
+          + nowLineHTML
+          + rowsHTML
+        +'</div>'
+      +'</div>'
     +'</div>';
   }).join('');
 }
