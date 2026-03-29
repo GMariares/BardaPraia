@@ -6,6 +6,12 @@ const app = new Hono()
 
 app.use('*', cors())
 
+// ─── Favicon ─────────────────────────────────────────────────
+app.get('/favicon.ico', (c) => {
+  // Simple inline SVG favicon as data response
+  return new Response('', { status: 204 })
+})
+
 // ─── Serve main SPA ──────────────────────────────────────────
 app.get('/', (c) => {
   return c.html(getAppHTML())
