@@ -394,6 +394,10 @@ export function getAppHTML(): string {
         <div class="kpi-sub"></div>
       </div>
     </div>
+    <div class="dash-panel" id="dash-orders-panel" style="display:none">
+      <h3><i class="fas fa-truck" style="color:#f59e0b"></i> Pending Orders <span class="badge badge-orange" id="dash-orders-badge"></span></h3>
+      <div id="dash-pending-orders"></div>
+    </div>
     <div class="dash-panel">
       <h3><i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Low Stock Alerts</h3>
       <div id="dash-low-stock"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#22c55e;font-size:22px"></i><p>All good!</p></div></div>
@@ -410,7 +414,7 @@ export function getAppHTML(): string {
       <div class="tab-row" style="margin-bottom:0">
         <button class="tab-btn active" id="inv-tab-stock" data-inv-tab="stock"><i class="fas fa-warehouse"></i> Stock</button>
         <button class="tab-btn" id="inv-tab-log" data-inv-tab="log"><i class="fas fa-clock-rotate-left"></i> Log</button>
-        <button class="tab-btn" id="inv-tab-orders" data-inv-tab="orders"><i class="fas fa-truck"></i> Orders</button>
+        <button class="tab-btn" id="inv-tab-orders" data-inv-tab="orders"><i class="fas fa-truck"></i> Orders <span id="orders-standby-badge" style="display:none;background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" id="btn-open-order"><i class="fas fa-cart-shopping"></i> Order</button>
@@ -1330,18 +1334,24 @@ function renderInvLog(){
     return '<div class="log-item"><div class="log-icon">'+(icons[l.action]||'📝')+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ocean-900)">'+esc(l.item)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(l.action)+' · '+esc(l.employee||'System')+'</div></div><div style="font-size:11px;color:var(--ocean-400)">'+fmtDate(l.timestamp)+'</div></div>';
   }).join('');
 }
+function updateOrdersBadge(){
+  var db=getDB();
+  var standbyCount=db.orders.filter(function(o){return o.status==='standby';}).length;
+  var badge=document.getElementById('orders-standby-badge');
+  if(badge){ badge.textContent=standbyCount>0?standbyCount:''; badge.style.display=standbyCount>0?'inline':'none'; }
+}
 function renderOrderHistory(){
   var db=getDB(); var el=document.getElementById('inv-orders-list'); if(!el) return;
+  updateOrdersBadge();
   if(db.orders.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-truck"></i><p>No orders yet.</p></div>';return;}
   el.innerHTML=db.orders.slice().reverse().map(function(o){
     var isStandby=o.status==='standby';
-    var isAdmin2=isAdmin;
     return '<div class="'+(isStandby?'order-standby':'order-confirmed')+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
         +'<span style="font-weight:700;color:var(--ocean-800)">Order #'+o.id.slice(-6).toUpperCase()+'</span>'
         +'<div style="display:flex;gap:6px;align-items:center">'
-          +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'">'+(isStandby?'⏳ Standby':'✓ Confirmed')+'</span>'
-          +(isStandby&&isAdmin2?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
+          +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'">'+(isStandby?'⏳ Standby':'✓ Approved')+'</span>'
+          +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':isStandby?'<span style="font-size:11px;color:#92400e;font-style:italic">Awaiting admin</span>':'')
         +'</div>'
       +'</div>'
       +'<div style="font-size:11px;color:var(--ocean-400);margin-bottom:8px">'+fmtDate(o.date)+'</div>'
@@ -1368,12 +1378,12 @@ function confirmOrder(){
   });
   // Always Standby - admin must approve
   db.orders.push({id:uid(),date:new Date().toISOString(),items:orderItems,status:'standby'});
-  saveDB(db); closeModal('modal-order'); renderInventory(); toast('Order submitted — awaiting admin approval.','gold');
+  saveDB(db); closeModal('modal-order'); renderInventory(); renderDashboard(); updateOrdersBadge(); toast('Order submitted — awaiting admin approval.','gold');
 }
 function approveOrder(orderId){
   var db=getDB(); var idx=db.orders.findIndex(function(o){return o.id===orderId;});
   if(idx!==-1) db.orders[idx].status='confirmed';
-  saveDB(db); renderOrderHistory(); toast('Order approved!','gold');
+  saveDB(db); renderOrderHistory(); renderDashboard(); toast('Order approved!','gold');
 }
 
 // ================================================
@@ -1866,6 +1876,28 @@ function renderDashboard(){
   document.getElementById('dash-task-badge').className='badge '+(openTasks.length>0?'badge-yellow':'badge-green');
   document.getElementById('dash-task-badge').textContent=openTasks.length>0?'Open':'All Done';
   document.getElementById('dash-tables').textContent=db.tables.length;
+
+  // Pending orders panel — visible to everyone
+  var standbyOrders=db.orders.filter(function(o){return o.status==='standby';});
+  var ordersPanel=document.getElementById('dash-orders-panel');
+  var ordersBadge=document.getElementById('dash-orders-badge');
+  var pendingEl=document.getElementById('dash-pending-orders');
+  if(ordersPanel){
+    ordersPanel.style.display=standbyOrders.length>0?'block':'none';
+    if(ordersBadge) ordersBadge.textContent=standbyOrders.length;
+    if(pendingEl){
+      pendingEl.innerHTML=standbyOrders.slice().reverse().map(function(o){
+        return '<div class="order-standby" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+          +'<div style="flex:1">'
+            +'<div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:#92400e">· '+fmtDate(o.date)+'</span></div>'
+            +'<div>'+o.items.map(function(i){return '<span style="font-size:12px;color:var(--ocean-700);margin-right:8px">'+esc(i.name)+' ('+i.orderQty+(i.unit?' '+esc(i.unit):'')+')  </span>';}).join('')+'</div>'
+          +'</div>'
+          +(isAdmin?'<button class="btn btn-sm btn-gold" style="flex-shrink:0" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'<span class="badge badge-orange" style="flex-shrink:0;align-self:center">⏳ Standby</span>')
+        +'</div>';
+      }).join('');
+    }
+  }
+  updateOrdersBadge();
 }
 
 // ================================================
@@ -2016,6 +2048,7 @@ selectedCalendarDay = toDateStr(new Date());
 updateAllDropdowns();
 updateAdminUI();
 showSection('dashboard');
+updateOrdersBadge();
 
 })();
 <\/script>
