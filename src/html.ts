@@ -6,6 +6,7 @@ export function getAppHTML(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Bar da Praia</title>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -621,13 +622,13 @@ export function getAppHTML(): string {
       <!-- Supabase -->
       <div class="settings-card">
         <h3><i class="fas fa-database" style="color:var(--ocean-500)"></i> Supabase Connection</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Connect for cloud sync.</p>
-        <div class="form-row"><label class="label">Project URL</label><input type="text" id="sb-url" class="input-field" placeholder="https://xxx.supabase.co" /></div>
-        <div class="form-row"><label class="label">Anon Key</label><input type="text" id="sb-key" class="input-field" placeholder="eyJh..." /></div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-save-supabase"><i class="fas fa-plug"></i> Connect Supabase</button>
-        <div class="sb-status" id="sb-status-box" style="background:#f0fdf4">
-          <span class="pulse-dot green"></span>
-          <span style="font-size:13px;color:#16a34a" id="sb-status-text">Using local storage</span>
+        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Cloud database — all data syncs across devices in real time.</p>
+        <div class="form-row"><label class="label">Project URL</label><input type="text" id="sb-url" class="input-field" readonly style="background:var(--ocean-50);color:var(--ocean-600);font-size:13px" /></div>
+        <div class="form-row"><label class="label">Anon Key</label><input type="text" id="sb-key" class="input-field" readonly style="background:var(--ocean-50);color:var(--ocean-600);font-size:13px" /></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-save-supabase"><i class="fas fa-rotate"></i> Re-sync from Supabase</button>
+        <div class="sb-status" id="sb-status-box" style="background:#fefce8">
+          <span class="pulse-dot yellow"></span>
+          <span style="font-size:13px;color:#ca8a04" id="sb-status-text">Connecting...</span>
         </div>
       </div>
     </div>
@@ -896,14 +897,53 @@ export function getAppHTML(): string {
 'use strict';
 
 // ================================================
-// DB
+// SUPABASE CONFIG
 // ================================================
-var DB_KEY = 'bardapraia_v5';
+var SB_URL = 'https://eurcdnyhwqofnddhxrpf.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1cmNkbnlod3FvZm5kZGh4cnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIyNDMsImV4cCI6MjA5MDM1ODI0M30.sqap9onVY3z8AJO9bATT8jXShOxe7h6g0uXWTUN4kK0';
+var sb = null;
+var sbReady = false;
+
+function initSupabase() {
+  try {
+    sb = window.supabase.createClient(SB_URL, SB_KEY);
+    sbReady = true;
+  } catch(e) {
+    console.warn('Supabase init failed:', e);
+    sbReady = false;
+  }
+}
+
+// REST helper (no supabase-js needed, works as fallback too)
+function sbFetch(method, table, body, params) {
+  var url = SB_URL + '/rest/v1/' + table;
+  if (params) url += '?' + params;
+  return fetch(url, {
+    method: method,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : (method === 'PATCH' ? 'return=representation' : '')
+    },
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e){ throw e; });
+    var ct = r.headers.get('content-type') || '';
+    if (ct.indexOf('json') !== -1) return r.json();
+    return null;
+  });
+}
+
+// ================================================
+// LOCAL CACHE DB (fast render layer)
+// ================================================
+var DB_KEY = 'bardapraia_v6';
 function loadDB() { try { return JSON.parse(localStorage.getItem(DB_KEY) || '{}'); } catch(e) { return {}; } }
 function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
 function getDB() {
   var db = loadDB();
-  if (!db.employees)    db.employees = ['Ana', 'Bruno', 'Carla', 'David', 'Eva'];
+  if (!db.employees)    db.employees = [];
   if (!db.tables)       db.tables = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10'];
   if (!db.inventory)    db.inventory = [];
   if (!db.invLogs)      db.invLogs = [];
@@ -911,21 +951,110 @@ function getDB() {
   if (!db.reservations) db.reservations = [];
   if (!db.tasks)        db.tasks = [];
   if (!db.shifts)       db.shifts = [];
-  if (!db.bbMenu)       db.bbMenu = [
-    {id:uid(),name:'Beer',price:3.50,category:'beer'},
-    {id:uid(),name:'Wine Glass',price:4.00,category:'wine'},
-    {id:uid(),name:'Sangria',price:5.50,category:'cocktails'},
-    {id:uid(),name:'Soft Drink',price:2.00,category:'beverages'},
-    {id:uid(),name:'Water',price:1.50,category:'beverages'},
-    {id:uid(),name:'Burger',price:9.00,category:'food'},
-    {id:uid(),name:'Fries',price:3.50,category:'food'},
-    {id:uid(),name:'Gin Tonic',price:7.00,category:'cocktails'},
-    {id:uid(),name:'Mojito',price:7.50,category:'cocktails'},
-    {id:uid(),name:'Vodka Shot',price:3.00,category:'spirits'}
-  ];
+  if (!db.bbMenu)       db.bbMenu = [];
   if (!db.bbEntries)    db.bbEntries = [];
   if (!db.adminPin)     db.adminPin = '1234';
   return db;
+}
+
+// ================================================
+// SUPABASE SYNC - Load all data from Supabase into local cache
+// ================================================
+function setSbStatus(ok, msg) {
+  var box = document.getElementById('sb-status-box');
+  var txt = document.getElementById('sb-status-text');
+  if (!box || !txt) return;
+  if (ok === true) {
+    box.style.background = '#eff6ff';
+    box.querySelector('.pulse-dot').className = 'pulse-dot green';
+    txt.style.color = '#1d4ed8';
+    txt.textContent = msg || 'Connected to Supabase';
+  } else if (ok === false) {
+    box.style.background = '#fff5f5';
+    box.querySelector('.pulse-dot').className = 'pulse-dot red';
+    txt.style.color = '#dc2626';
+    txt.textContent = msg || 'Connection error';
+  } else {
+    box.style.background = '#fefce8';
+    box.querySelector('.pulse-dot').className = 'pulse-dot yellow';
+    txt.style.color = '#ca8a04';
+    txt.textContent = msg || 'Syncing...';
+  }
+}
+
+function syncFromSupabase() {
+  setSbStatus(null, 'Syncing...');
+  var db = getDB();
+  var promises = [
+    sbFetch('GET', 'settings', null, 'id=eq.config').then(function(rows) {
+      if (rows && rows[0]) {
+        db.adminPin = rows[0].admin_pin || '1234';
+        db.tables = rows[0].tables || db.tables;
+      }
+    }),
+    sbFetch('GET', 'employees', null, 'order=name.asc').then(function(rows) {
+      if (rows) db.employees = rows.map(function(r){ return r.name; });
+    }),
+    sbFetch('GET', 'inventory', null, 'order=name.asc').then(function(rows) {
+      if (rows) db.inventory = rows.map(function(r){ return {
+        id: r.id, name: r.name, category: r.category, unit: r.unit||'',
+        qtyBar: r.qty_bar, qtyStorage: r.qty_storage, minimum: r.minimum,
+        lastEmployee: r.last_employee||'', createdAt: r.created_at, updatedAt: r.updated_at
+      }; });
+    }),
+    sbFetch('GET', 'inv_logs', null, 'order=timestamp.desc&limit=300').then(function(rows) {
+      if (rows) db.invLogs = rows.map(function(r){ return {
+        id: r.id, action: r.action, item: r.item, employee: r.employee,
+        qtyBar: r.qty_bar, qtyStorage: r.qty_storage, timestamp: r.timestamp
+      }; });
+    }),
+    sbFetch('GET', 'orders', null, 'order=created_at.desc').then(function(rows) {
+      if (rows) db.orders = rows.map(function(r){ return {
+        id: r.id, date: r.date, items: r.items||[], status: r.status, createdAt: r.created_at
+      }; });
+    }),
+    sbFetch('GET', 'reservations', null, 'order=date.asc,time.asc').then(function(rows) {
+      if (rows) db.reservations = rows.map(function(r){ return {
+        id: r.id, guestName: r.guest_name, phone: r.phone||'', date: r.date,
+        time: r.time ? r.time.slice(0,5) : '', guests: r.guests,
+        tables: r.tables||[], notes: r.notes||'', status: r.status, createdAt: r.created_at
+      }; });
+    }),
+    sbFetch('GET', 'tasks', null, 'order=created_at.desc').then(function(rows) {
+      if (rows) db.tasks = rows.map(function(r){ return {
+        id: r.id, title: r.title, description: r.description||'', category: r.category,
+        priority: r.priority, status: r.status, assignedTo: r.assigned_to||'',
+        deadline: r.deadline||'', doneAt: r.done_at||'', createdAt: r.created_at
+      }; });
+    }),
+    sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc').then(function(rows) {
+      if (rows) db.shifts = rows.map(function(r){ return {
+        id: r.id, employee: r.employee, day: r.day, weekStart: r.week_start,
+        start: r.start_time ? r.start_time.slice(0,5) : '',
+        end: r.end_time ? r.end_time.slice(0,5) : '',
+        role: r.role||'', createdAt: r.created_at
+      }; });
+    }),
+    sbFetch('GET', 'bb_menu', null, 'order=category.asc,name.asc').then(function(rows) {
+      if (rows) db.bbMenu = rows.map(function(r){ return {
+        id: r.id, name: r.name, price: parseFloat(r.price)||0, category: r.category
+      }; });
+    }),
+    sbFetch('GET', 'bb_entries', null, 'order=date.desc&limit=90').then(function(rows) {
+      if (rows) db.bbEntries = rows.map(function(r){ return {
+        id: r.id, date: r.date, items: r.items||[], total: parseFloat(r.total)||0, savedAt: r.saved_at
+      }; });
+    })
+  ];
+  return Promise.all(promises).then(function() {
+    saveDB(db);
+    setSbStatus(true, 'Synced · ' + SB_URL.replace('https://',''));
+    return db;
+  }).catch(function(err) {
+    console.error('Sync error:', err);
+    setSbStatus(false, 'Sync failed — using local cache');
+    return db;
+  });
 }
 
 // ================================================
@@ -1089,13 +1218,19 @@ function addEmployee() {
   var inp = document.getElementById('new-employee-name');
   var name = inp.value.trim(); if (!name) return;
   var db = getDB();
-  if (db.employees.indexOf(name) === -1) { db.employees.push(name); saveDB(db); inp.value=''; renderSettings(); updateAllDropdowns(); toast('Employee added!'); }
-  else toast('Already exists!','error');
+  if (db.employees.indexOf(name) !== -1) { toast('Already exists!','error'); return; }
+  db.employees.push(name); saveDB(db); inp.value=''; renderSettings(); updateAllDropdowns(); toast('Adding...');
+  sbFetch('POST','employees',{name:name}).then(function(){
+    toast('Employee added!');
+  }).catch(function(){ toast('Saved locally (sync later)','error'); });
 }
 function removeEmployee(name) {
   if (!confirm('Remove '+name+'?')) return;
   var db=getDB(); db.employees=db.employees.filter(function(e){return e!==name;}); saveDB(db);
-  renderSettings(); updateAllDropdowns(); toast('Removed.');
+  renderSettings(); updateAllDropdowns();
+  sbFetch('DELETE','employees',null,'name=eq.'+encodeURIComponent(name)).then(function(){
+    toast('Removed.');
+  }).catch(function(){ toast('Removed locally','error'); });
 }
 function updateAllDropdowns() {
   var emp = getEmployees();
@@ -1112,16 +1247,21 @@ function updateAllDropdowns() {
 // TABLE MANAGEMENT
 // ================================================
 function getTables() { return getDB().tables || []; }
+function saveTablesToSb(tables) {
+  sbFetch('PATCH','settings',{tables:tables},'id=eq.config').catch(function(e){ console.warn('Table sync err',e); });
+}
 function addTableNum() {
   var inp = document.getElementById('new-table-num');
   var val = inp.value.trim(); if (!val) return;
   var db = getDB();
-  if (db.tables.indexOf(val) === -1) { db.tables.push(val); saveDB(db); inp.value=''; renderSettings(); toast('Table added!'); }
-  else toast('Already exists!','error');
+  if (db.tables.indexOf(val) !== -1) { toast('Already exists!','error'); return; }
+  db.tables.push(val); saveDB(db); inp.value=''; renderSettings(); toast('Table added!');
+  saveTablesToSb(db.tables);
 }
 function removeTableNum(val) {
   var db = getDB(); db.tables = db.tables.filter(function(t){return t!==val;}); saveDB(db);
   renderSettings(); toast('Table removed.');
+  saveTablesToSb(db.tables);
 }
 function renderTableGrid(gridId, selectedArr) {
   var tables = getTables();
@@ -1165,8 +1305,8 @@ function renderSettings() {
     return '<div class="table-num-chip">'+esc(t)+'<button class="del-chip" data-del-table="'+esc(t)+'">&times;</button></div>';
   }).join('');
 
-  document.getElementById('sb-url').value = localStorage.getItem('sb_url')||'';
-  document.getElementById('sb-key').value = localStorage.getItem('sb_key')||'';
+  document.getElementById('sb-url').value = SB_URL;
+  document.getElementById('sb-key').value = SB_KEY.slice(0,30) + '...';
   updateSupabaseStatus();
   updateAllDropdowns();
 }
@@ -1178,21 +1318,21 @@ function changePin() {
   if (np !== cp) { toast('PINs do not match','error'); return; }
   var db = getDB(); db.adminPin = np; saveDB(db);
   document.getElementById('new-pin').value=''; document.getElementById('confirm-pin').value='';
-  toast('PIN updated!','gold');
+  sbFetch('PATCH','settings',{admin_pin:np},'id=eq.config').then(function(){
+    toast('PIN updated!','gold');
+  }).catch(function(){ toast('PIN updated locally','gold'); });
 }
 
 function saveSupabase() {
-  var url=document.getElementById('sb-url').value.trim();
-  var key=document.getElementById('sb-key').value.trim();
-  if(!url||!key){toast('Fill both fields.','error');return;}
-  localStorage.setItem('sb_url',url); localStorage.setItem('sb_key',key);
-  updateSupabaseStatus(); toast('Supabase connected!');
+  // Re-sync from Supabase on demand
+  toast('Syncing with Supabase...','gold');
+  syncFromSupabase().then(function(){
+    renderDashboard(); renderInventory(); renderAllReservations(); renderTasks(); renderShifts();
+    updateAllDropdowns(); toast('Synced successfully!','gold');
+  });
 }
 function updateSupabaseStatus() {
-  var url=localStorage.getItem('sb_url');
-  var box=document.getElementById('sb-status-box'); var txt=document.getElementById('sb-status-text'); if(!box||!txt) return;
-  if(url){box.style.background='#eff6ff'; box.querySelector('.pulse-dot').className='pulse-dot green'; txt.textContent='Connected: '+url; txt.style.color='#1d4ed8';}
-  else{box.style.background='#f0fdf4'; box.querySelector('.pulse-dot').className='pulse-dot green'; txt.textContent='Using local storage'; txt.style.color='#16a34a';}
+  setSbStatus(true, 'Connected · ' + SB_URL.replace('https://',''));
 }
 
 // ================================================
@@ -1241,22 +1381,39 @@ function saveInventoryItem() {
   var min=parseInt(document.getElementById('inv-minimum').value)||0;
   var cat=document.getElementById('inv-category').value;
   var unit=document.getElementById('inv-unit').value.trim();
-  if(editInventoryId){
-    var idx=db.inventory.findIndex(function(i){return i.id===editInventoryId;});
-    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:min,lastEmployee:emp,updatedAt:new Date().toISOString()}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
+  var now=new Date().toISOString();
+  var eid=editInventoryId;
+  if(eid){
+    var idx=db.inventory.findIndex(function(i){return i.id===eid;});
+    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:min,lastEmployee:emp,updatedAt:now}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
+    saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Updating...'); editInventoryId=null;
+    sbFetch('PATCH','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,minimum:min,last_employee:emp,updated_at:now},'id=eq.'+eid)
+      .then(function(){ sbAddInvLog({action:'update',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Updated!'); })
+      .catch(function(){ toast('Saved locally','error'); });
   } else {
-    db.inventory.push({id:uid(),name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:min,lastEmployee:emp,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    var newId=uid();
+    db.inventory.push({id:newId,name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:min,lastEmployee:emp,createdAt:now,updatedAt:now});
     addInvLog(db,{action:'add',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});
+    saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Adding...'); editInventoryId=null;
+    sbFetch('POST','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,minimum:min,last_employee:emp})
+      .then(function(rows){
+        if(rows&&rows[0]){var oid=db.inventory.findIndex(function(i){return i.id===newId;}); if(oid!==-1) db.inventory[oid].id=rows[0].id; saveDB(db);}
+        sbAddInvLog({action:'add',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Item added!');
+      }).catch(function(){ toast('Saved locally','error'); });
   }
-  saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast(editInventoryId?'Updated!':'Item added!'); editInventoryId=null;
 }
 function addInvLog(db,entry){db.invLogs.unshift(Object.assign({},entry,{timestamp:new Date().toISOString(),id:uid()})); if(db.invLogs.length>300) db.invLogs=db.invLogs.slice(0,300);}
+function sbAddInvLog(entry){ sbFetch('POST','inv_logs',Object.assign({timestamp:new Date().toISOString()},entry)).catch(function(){}); }
 function deleteInventoryItem(id){
   if(!confirm('Delete this item?')) return;
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;});
   db.inventory=db.inventory.filter(function(i){return i.id!==id;});
   addInvLog(db,{action:'delete',item:item?item.name:'?',employee:'System'});
-  saveDB(db); renderInventory(); renderDashboard(); toast('Deleted.');
+  saveDB(db); renderInventory(); renderDashboard(); toast('Deleting...');
+  sbFetch('DELETE','inventory',null,'id=eq.'+id).then(function(){
+    if(item) sbAddInvLog({action:'delete',item:item.name,employee:'System',qty_bar:0,qty_storage:0});
+    toast('Deleted.');
+  }).catch(function(){ toast('Deleted locally','error'); });
 }
 function openUpdateQtyModal(id){
   updateAllDropdowns();
@@ -1273,9 +1430,14 @@ function saveQtyUpdate(){
   var emp=document.getElementById('update-qty-employee').value;
   var qb=parseInt(document.getElementById('update-qty-bar').value)||0;
   var qs=parseInt(document.getElementById('update-qty-storage').value)||0;
+  var now=new Date().toISOString();
   var db=getDB(); var idx=db.inventory.findIndex(function(i){return i.id===id;});
-  if(idx!==-1){var item=db.inventory[idx]; db.inventory[idx]=Object.assign({},item,{qtyBar:qb,qtyStorage:qs,lastEmployee:emp,updatedAt:new Date().toISOString()}); addInvLog(db,{action:'update',item:item.name,employee:emp,qtyBar:qb,qtyStorage:qs});}
-  saveDB(db); closeModal('modal-update-qty'); renderInventory(); renderDashboard(); toast('Stock updated!');
+  var iname='';
+  if(idx!==-1){var item=db.inventory[idx]; iname=item.name; db.inventory[idx]=Object.assign({},item,{qtyBar:qb,qtyStorage:qs,lastEmployee:emp,updatedAt:now}); addInvLog(db,{action:'update',item:item.name,employee:emp,qtyBar:qb,qtyStorage:qs});}
+  saveDB(db); closeModal('modal-update-qty'); renderInventory(); renderDashboard(); toast('Updating...');
+  sbFetch('PATCH','inventory',{qty_bar:qb,qty_storage:qs,last_employee:emp,updated_at:now},'id=eq.'+id)
+    .then(function(){ sbAddInvLog({action:'update',item:iname,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Stock updated!'); })
+    .catch(function(){ toast('Updated locally','error'); });
 }
 function openEditMinimumModal(id){
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;}); if(!item) return;
@@ -1290,7 +1452,8 @@ function saveMinimum(){
   var val=parseInt(document.getElementById('edit-min-value').value)||0;
   var db=getDB(); var idx=db.inventory.findIndex(function(i){return i.id===id;});
   if(idx!==-1) db.inventory[idx].minimum=val;
-  saveDB(db); closeModal('modal-edit-minimum'); renderInventory(); toast('Minimum updated!');
+  saveDB(db); closeModal('modal-edit-minimum'); renderInventory(); toast('Updating...');
+  sbFetch('PATCH','inventory',{minimum:val},'id=eq.'+id).then(function(){ toast('Minimum updated!'); }).catch(function(){ toast('Updated locally','error'); });
 }
 function renderInventory(){
   var db=getDB(); var items=db.inventory.slice();
@@ -1376,14 +1539,21 @@ function confirmOrder(){
     var qEl=document.getElementById('order-qty-'+item.id);
     return{id:item.id,name:item.name,unit:item.unit,orderQty:qEl?(parseInt(qEl.value)||(item.minimum-item.qtyBar-item.qtyStorage)):item.minimum-item.qtyBar-item.qtyStorage};
   });
-  // Always Standby - admin must approve
-  db.orders.push({id:uid(),date:new Date().toISOString(),items:orderItems,status:'standby'});
-  saveDB(db); closeModal('modal-order'); renderInventory(); renderDashboard(); updateOrdersBadge(); toast('Order submitted — awaiting admin approval.','gold');
+  var newOrder={id:uid(),date:new Date().toISOString(),items:orderItems,status:'standby'};
+  db.orders.unshift(newOrder);
+  saveDB(db); closeModal('modal-order'); renderInventory(); renderDashboard(); updateOrdersBadge(); toast('Submitting order...','gold');
+  sbFetch('POST','orders',{items:orderItems,status:'standby'}).then(function(rows){
+    if(rows&&rows[0]){var oi=db.orders.findIndex(function(o){return o.id===newOrder.id;}); if(oi!==-1) db.orders[oi].id=rows[0].id; saveDB(db);}
+    renderOrderHistory(); updateOrdersBadge(); toast('Order submitted — awaiting admin approval.','gold');
+  }).catch(function(){ toast('Order saved locally','error'); });
 }
 function approveOrder(orderId){
   var db=getDB(); var idx=db.orders.findIndex(function(o){return o.id===orderId;});
   if(idx!==-1) db.orders[idx].status='confirmed';
-  saveDB(db); renderOrderHistory(); renderDashboard(); toast('Order approved!','gold');
+  saveDB(db); renderOrderHistory(); renderDashboard(); toast('Approving...','gold');
+  sbFetch('PATCH','orders',{status:'confirmed'},'id=eq.'+orderId).then(function(){
+    toast('Order approved!','gold');
+  }).catch(function(){ toast('Approved locally','error'); });
 }
 
 // ================================================
@@ -1474,6 +1644,7 @@ function setResStatus(id,status){
   var db=getDB(); var idx=db.reservations.findIndex(function(r){return r.id===id;});
   if(idx!==-1){db.reservations[idx].status=status;saveDB(db);}
   closeModal('modal-res-detail'); renderCalendar(); renderAllReservations(); renderDashboard(); toast('Status: '+status+'!');
+  sbFetch('PATCH','reservations',{status:status},'id=eq.'+id).catch(function(){});
 }
 function openAddReservationModal(){
   selectedTables=[];
@@ -1508,15 +1679,31 @@ function saveReservation(){
   if(!date||!time){toast('Date and time required!','error');return;}
   if(selectedTables.length===0){toast('Select at least one table!','error');return;}
   var db=getDB(); var editId=document.getElementById('res-edit-id').value;
-  var res={guestName:guestName,phone:document.getElementById('res-phone').value.trim(),date:date,time:time,guests:parseInt(document.getElementById('res-guests').value)||1,tables:selectedTables.slice(),notes:document.getElementById('res-notes').value.trim(),status:'pending'};
-  if(editId){var idx=db.reservations.findIndex(function(r){return r.id===editId;});if(idx!==-1) db.reservations[idx]=Object.assign({},db.reservations[idx],res);}
-  else db.reservations.push(Object.assign({},res,{id:uid(),createdAt:new Date().toISOString()}));
-  saveDB(db); closeModal('modal-add-reservation'); renderCalendar(); renderAllReservations(); renderDashboard(); toast(editId?'Updated!':'Reservation saved!');
+  var phone=document.getElementById('res-phone').value.trim();
+  var guests=parseInt(document.getElementById('res-guests').value)||1;
+  var notes=document.getElementById('res-notes').value.trim();
+  var res={guestName:guestName,phone:phone,date:date,time:time,guests:guests,tables:selectedTables.slice(),notes:notes,status:'pending'};
+  var sbRes={guest_name:guestName,phone:phone,date:date,time:time,guests:guests,tables:selectedTables.slice(),notes:notes,status:'pending'};
+  if(editId){
+    var idx=db.reservations.findIndex(function(r){return r.id===editId;});
+    if(idx!==-1) db.reservations[idx]=Object.assign({},db.reservations[idx],res);
+    saveDB(db); closeModal('modal-add-reservation'); renderCalendar(); renderAllReservations(); renderDashboard(); toast('Updating...');
+    sbFetch('PATCH','reservations',sbRes,'id=eq.'+editId).then(function(){ toast('Updated!'); }).catch(function(){ toast('Updated locally','error'); });
+  } else {
+    var newId=uid();
+    db.reservations.push(Object.assign({},res,{id:newId,createdAt:new Date().toISOString()}));
+    saveDB(db); closeModal('modal-add-reservation'); renderCalendar(); renderAllReservations(); renderDashboard(); toast('Saving...');
+    sbFetch('POST','reservations',sbRes).then(function(rows){
+      if(rows&&rows[0]){var ri=db.reservations.findIndex(function(r){return r.id===newId;}); if(ri!==-1) db.reservations[ri].id=rows[0].id; saveDB(db);}
+      toast('Reservation saved!');
+    }).catch(function(){ toast('Saved locally','error'); });
+  }
 }
 function deleteReservation(id){
   if(!confirm('Delete reservation?')) return;
   var db=getDB(); db.reservations=db.reservations.filter(function(r){return r.id!==id;}); saveDB(db);
-  closeModal('modal-res-detail'); renderCalendar(); renderAllReservations(); renderDashboard(); toast('Deleted.');
+  closeModal('modal-res-detail'); renderCalendar(); renderAllReservations(); renderDashboard(); toast('Deleting...');
+  sbFetch('DELETE','reservations',null,'id=eq.'+id).then(function(){ toast('Deleted.'); }).catch(function(){ toast('Deleted locally','error'); });
 }
 function renderAllReservations(){
   var db=getDB();
@@ -1568,20 +1755,40 @@ function openAddTaskModal(editId){
 function saveTask(){
   var title=document.getElementById('task-title').value.trim(); if(!title){toast('Title required!','error');return;}
   var db=getDB(); var editId=document.getElementById('task-edit-id').value;
-  var task={title:title,description:document.getElementById('task-description').value.trim(),category:document.getElementById('task-category').value,priority:document.getElementById('task-priority').value,assignedTo:document.getElementById('task-assigned').value,deadline:document.getElementById('task-deadline').value};
-  if(editId){var idx=db.tasks.findIndex(function(t){return t.id===editId;});if(idx!==-1) db.tasks[idx]=Object.assign({},db.tasks[idx],task);}
-  else db.tasks.push(Object.assign({},task,{id:uid(),status:'pending',createdAt:new Date().toISOString()}));
-  saveDB(db); closeModal('modal-add-task'); renderTasks(); renderDashboard(); toast(editId?'Updated!':'Task created!');
+  var desc=document.getElementById('task-description').value.trim();
+  var cat=document.getElementById('task-category').value;
+  var pri=document.getElementById('task-priority').value;
+  var asn=document.getElementById('task-assigned').value;
+  var dl=document.getElementById('task-deadline').value;
+  var task={title:title,description:desc,category:cat,priority:pri,assignedTo:asn,deadline:dl};
+  var sbTask={title:title,description:desc,category:cat,priority:pri,assigned_to:asn,deadline:dl||null};
+  if(editId){
+    var idx=db.tasks.findIndex(function(t){return t.id===editId;});if(idx!==-1) db.tasks[idx]=Object.assign({},db.tasks[idx],task);
+    saveDB(db); closeModal('modal-add-task'); renderTasks(); renderDashboard(); toast('Updating...');
+    sbFetch('PATCH','tasks',sbTask,'id=eq.'+editId).then(function(){ toast('Updated!'); }).catch(function(){ toast('Updated locally','error'); });
+  } else {
+    var newId=uid();
+    db.tasks.push(Object.assign({},task,{id:newId,status:'pending',createdAt:new Date().toISOString()}));
+    saveDB(db); closeModal('modal-add-task'); renderTasks(); renderDashboard(); toast('Creating...');
+    sbFetch('POST','tasks',Object.assign({},sbTask,{status:'pending'})).then(function(rows){
+      if(rows&&rows[0]){var ti=db.tasks.findIndex(function(t){return t.id===newId;}); if(ti!==-1) db.tasks[ti].id=rows[0].id; saveDB(db);}
+      toast('Task created!');
+    }).catch(function(){ toast('Saved locally','error'); });
+  }
 }
 function setTaskStatus(id,status){
   var db=getDB(); var idx=db.tasks.findIndex(function(t){return t.id===id;});
-  if(idx!==-1){db.tasks[idx].status=status;if(status==='done') db.tasks[idx].doneAt=new Date().toISOString();saveDB(db);}
+  var doneAt=status==='done'?new Date().toISOString():null;
+  if(idx!==-1){db.tasks[idx].status=status;if(doneAt) db.tasks[idx].doneAt=doneAt;saveDB(db);}
   renderTasks(); renderDashboard(); toast('Marked as '+status+'!');
+  var patch={status:status}; if(doneAt) patch.done_at=doneAt;
+  sbFetch('PATCH','tasks',patch,'id=eq.'+id).catch(function(){});
 }
 function deleteTask(id){
   if(!confirm('Delete task?')) return;
   var db=getDB(); db.tasks=db.tasks.filter(function(t){return t.id!==id;}); saveDB(db);
-  renderTasks(); renderDashboard(); toast('Deleted.');
+  renderTasks(); renderDashboard(); toast('Deleting...');
+  sbFetch('DELETE','tasks',null,'id=eq.'+id).then(function(){ toast('Deleted.'); }).catch(function(){ toast('Deleted locally','error'); });
 }
 function renderTasks(){
   var db=getDB();
@@ -1664,13 +1871,19 @@ function saveShift(){
   var role=document.getElementById('shift-role').value.trim();
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
-  db.shifts.push({id:uid(),employee:emp,day:day,start:start,end:end,role:role,weekStart:ws,createdAt:new Date().toISOString()});
-  saveDB(db); closeModal('modal-add-shift'); renderShifts(); toast('Shift added!');
+  var newId=uid();
+  db.shifts.push({id:newId,employee:emp,day:day,start:start,end:end,role:role,weekStart:ws,createdAt:new Date().toISOString()});
+  saveDB(db); closeModal('modal-add-shift'); renderShifts(); toast('Adding shift...');
+  sbFetch('POST','shifts',{employee:emp,day:day,start_time:start,end_time:end,role:role,week_start:ws}).then(function(rows){
+    if(rows&&rows[0]){var si=db.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1) db.shifts[si].id=rows[0].id; saveDB(db);}
+    toast('Shift added!');
+  }).catch(function(){ toast('Saved locally','error'); });
 }
 function deleteShift(id){
   if(!confirm('Remove shift?')) return;
   var db=getDB(); db.shifts=db.shifts.filter(function(s){return s.id!==id;}); saveDB(db);
-  renderShifts(); toast('Shift removed.');
+  renderShifts(); toast('Removing...');
+  sbFetch('DELETE','shifts',null,'id=eq.'+id).then(function(){ toast('Shift removed.'); }).catch(function(){ toast('Removed locally','error'); });
 }
 
 // ================================================
@@ -1757,12 +1970,22 @@ function saveDailyEntry(){
   });
   var total=items.reduce(function(s,i){return s+i.subtotal;},0);
   var today=toDateStr(new Date());
-  // Overwrite today's entry or add new
   var idx=db.bbEntries.findIndex(function(e){return e.date===today;});
   var entry={id:uid(),date:today,items:items,total:total,savedAt:new Date().toISOString()};
   if(idx!==-1) db.bbEntries[idx]=entry; else db.bbEntries.push(entry);
-  saveDB(db); toast('Daily entry saved! '+fmtEur(total),'gold');
+  saveDB(db); toast('Saving...','gold');
   bbSelectedItems={}; renderBbDaily(); renderBbRecords();
+  // Upsert in Supabase (unique on date)
+  sbFetch('POST','bb_entries',{date:today,items:items,total:total},null).catch(function(){
+    // If conflict (date exists), update instead
+    sbFetch('PATCH','bb_entries',{items:items,total:total,saved_at:new Date().toISOString()},'date=eq.'+today).catch(function(){});
+  });
+  // Use proper upsert header
+  fetch(SB_URL+'/rest/v1/bb_entries', {
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
+    body:JSON.stringify({date:today,items:items,total:total,saved_at:new Date().toISOString()})
+  }).then(function(){ toast('Daily entry saved! '+fmtEur(total),'gold'); }).catch(function(){});
 }
 function clearDailyEntry(){ bbSelectedItems={}; renderBbDaily(); toast('Cleared.'); }
 function renderBbRecords(){
@@ -1831,19 +2054,27 @@ function saveBbItem(){
   var name=document.getElementById('bb-item-name').value.trim(); if(!name){toast('Name required!','error');return;}
   var price=parseFloat(document.getElementById('bb-item-price').value); if(isNaN(price)||price<0){toast('Valid price required!','error');return;}
   var cat=document.getElementById('bb-item-category').value;
-  var db=getDB();
-  if(editBbItemId){
-    var idx=db.bbMenu.findIndex(function(i){return i.id===editBbItemId;});
+  var db=getDB(); var eid=editBbItemId;
+  if(eid){
+    var idx=db.bbMenu.findIndex(function(i){return i.id===eid;});
     if(idx!==-1) db.bbMenu[idx]=Object.assign({},db.bbMenu[idx],{name:name,price:price,category:cat});
+    saveDB(db); closeModal('modal-add-bb-item'); renderBbMenuManage(); toast('Updating...'); editBbItemId=null;
+    sbFetch('PATCH','bb_menu',{name:name,price:price,category:cat},'id=eq.'+eid).then(function(){ toast('Updated!'); }).catch(function(){ toast('Updated locally','error'); });
   } else {
-    db.bbMenu.push({id:uid(),name:name,price:price,category:cat});
+    var newId=uid();
+    db.bbMenu.push({id:newId,name:name,price:price,category:cat});
+    saveDB(db); closeModal('modal-add-bb-item'); renderBbMenuManage(); toast('Adding...'); editBbItemId=null;
+    sbFetch('POST','bb_menu',{name:name,price:price,category:cat}).then(function(rows){
+      if(rows&&rows[0]){var bi=db.bbMenu.findIndex(function(i){return i.id===newId;}); if(bi!==-1) db.bbMenu[bi].id=rows[0].id; saveDB(db);}
+      toast('Item added!');
+    }).catch(function(){ toast('Saved locally','error'); });
   }
-  saveDB(db); closeModal('modal-add-bb-item'); renderBbMenuManage(); toast(editBbItemId?'Updated!':'Item added!'); editBbItemId=null;
 }
 function deleteBbItem(id){
   if(!confirm('Remove this menu item?')) return;
   var db=getDB(); db.bbMenu=db.bbMenu.filter(function(i){return i.id!==id;}); saveDB(db);
-  renderBbMenuManage(); toast('Removed.');
+  renderBbMenuManage(); toast('Removing...');
+  sbFetch('DELETE','bb_menu',null,'id=eq.'+id).then(function(){ toast('Removed.'); }).catch(function(){ toast('Removed locally','error'); });
 }
 
 // ================================================
@@ -2045,10 +2276,18 @@ document.addEventListener('change', function(e) {
 // INIT
 // ================================================
 selectedCalendarDay = toDateStr(new Date());
+initSupabase();
+// Show cached data immediately for instant load
 updateAllDropdowns();
 updateAdminUI();
 showSection('dashboard');
 updateOrdersBadge();
+// Then sync from Supabase and refresh all views
+syncFromSupabase().then(function() {
+  updateAllDropdowns();
+  showSection(currentSection);
+  updateOrdersBadge();
+});
 
 })();
 <\/script>
