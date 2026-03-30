@@ -592,7 +592,10 @@ export function getAppHTML(): string {
         <div class="fin-total-box">
           <div class="fin-total-label">TOTAL OF THE DAY</div>
           <div class="fin-total-num" id="fin-day-total">€0.00</div>
-          <div style="font-size:12px;opacity:.7;margin-top:4px" id="fin-entry-date"></div>
+          <div style="margin-top:10px;display:flex;align-items:center;justify-content:center">
+            <input type="date" id="fin-entry-date"
+              style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.35);border-radius:9px;color:white;font-size:14px;font-weight:600;padding:6px 12px;outline:none;cursor:pointer;text-align:center;-webkit-appearance:none;color-scheme:dark" />
+          </div>
         </div>
 
         <!-- Invoiced FIRST -->
@@ -1318,6 +1321,7 @@ var editBbItemId = null;
 var shiftsWeekOffset = 0;
 var pinBuffer = '';
 var finPinBuffer = '';
+var finSelectedDate = '';
 var bbSelectedItems = {}; // {id: qty}
 var bbItemSearchVal = '';
 var currentBbTab = 'daily';
@@ -1680,18 +1684,24 @@ function renderFinance() {
   }
   locked.style.display = 'none';
   content.style.display = 'block';
-  // Set today's date label
-  var today = toDateStr(new Date());
-  var el = document.getElementById('fin-entry-date');
-  if (el) el.textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  // Check if there's already an entry for today and pre-fill
+  // Set date picker — default to today if not already selected
+  var datePicker = document.getElementById('fin-entry-date');
+  if (!finSelectedDate) finSelectedDate = toDateStr(new Date());
+  if (datePicker) datePicker.value = finSelectedDate;
+  loadFinEntryForDate(finSelectedDate);
+  if (currentFinTab === 'records') renderFinRecords();
+}
+
+function loadFinEntryForDate(dateStr) {
+  finSelectedDate = dateStr;
   var db = getDB();
-  var existing = (db.finEntries||[]).find(function(e){ return e.date === today; });
+  var existing = (db.finEntries||[]).find(function(e){ return e.date === dateStr; });
   if (existing) {
     setFinForm(existing);
+  } else {
+    clearFinanceFields();
   }
   updateFinDayTotal();
-  if (currentFinTab === 'records') renderFinRecords();
 }
 
 function setFinForm(entry) {
@@ -1765,13 +1775,13 @@ function updateFinDayTotal() {
 
 function saveFinanceEntry() {
   var v = getFinFormValues();
-  var today = toDateStr(new Date());
+  var saveDate = finSelectedDate || toDateStr(new Date());
   var db = getDB();
   if (!db.finEntries) db.finEntries = [];
-  var idx = db.finEntries.findIndex(function(e){ return e.date === today; });
+  var idx = db.finEntries.findIndex(function(e){ return e.date === saveDate; });
   var entry = {
     id: idx !== -1 ? db.finEntries[idx].id : uid(),
-    date: today,
+    date: saveDate,
     t51: v.t51, multibanco: v.multibanco, totalDay: v.totalDay,
     invoiced: v.invoiced, genExpenses: v.genExpenses,
     tips: v.tips, entregar: v.entregar,
@@ -1792,10 +1802,13 @@ function saveFinanceEntry() {
   ).catch(function(){ /* saved locally */ });
 }
 
-function clearFinanceEntry() {
+function clearFinanceFields() {
   ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-gen-expenses','fin-cash-notes','fin-coins','fin-surf'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.value='';
   });
+}
+function clearFinanceEntry() {
+  clearFinanceFields();
   updateFinDayTotal();
 }
 
@@ -2903,12 +2916,15 @@ document.addEventListener('input', function(e) {
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
   // Finance live total update
   if (['fin-t51','fin-multibanco','fin-invoiced','fin-gen-expenses','fin-cash-notes','fin-coins'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
+  // Finance date picker
+  if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
 });
 document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'inv-cat-filter') { invCatFilter=t.value; renderInventory(); }
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.id === 'topbar-emp') { document.getElementById('drawer-user-name').textContent=t.value||'Staff'; }
+  if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
 });
 
 // ================================================
