@@ -595,9 +595,18 @@ export function getAppHTML(): string {
           <div style="font-size:12px;opacity:.7;margin-top:4px" id="fin-entry-date"></div>
         </div>
 
+        <!-- Invoiced FIRST -->
         <div class="fin-card">
-          <h3><i class="fas fa-money-bill-wave" style="color:#10b981"></i> Revenue</h3>
-          <div class="fin-section-title"><i class="fas fa-cash-register"></i> Day Breakdown</div>
+          <h3><i class="fas fa-file-invoice-dollar" style="color:#10b981"></i> Invoiced</h3>
+          <div class="fin-input-row" style="margin-bottom:0">
+            <label>Total Invoiced</label>
+            <input type="number" id="fin-invoiced" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          </div>
+        </div>
+
+        <!-- Revenue -->
+        <div class="fin-card">
+          <h3><i class="fas fa-money-bill-wave" style="color:var(--ocean-500)"></i> Revenue</h3>
           <div class="fin-input-row">
             <label>T 51</label>
             <input type="number" id="fin-t51" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
@@ -607,16 +616,12 @@ export function getAppHTML(): string {
             <input type="number" id="fin-multibanco" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
           <div class="fin-derived">
-            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> Total of Day (T51 + MB)</span>
+            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> Total of Day (Invoiced + T51)</span>
             <span class="fin-derived-val" id="fin-total-day-calc">€0.00</span>
-          </div>
-          <div class="fin-section-title"><i class="fas fa-file-invoice-dollar"></i> Invoiced</div>
-          <div class="fin-input-row">
-            <label>Total Invoiced</label>
-            <input type="number" id="fin-invoiced" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
         </div>
 
+        <!-- Expenses -->
         <div class="fin-card">
           <h3><i class="fas fa-arrow-down" style="color:#ef4444"></i> Expenses</h3>
           <div class="fin-input-row">
@@ -624,23 +629,36 @@ export function getAppHTML(): string {
             <input type="number" id="fin-tips" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
           <div class="fin-input-row">
-            <label>€ Entregar</label>
-            <input type="number" id="fin-entregar" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <label>General Expenses</label>
+            <input type="number" id="fin-gen-expenses" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
+          <div class="fin-derived">
+            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> € Entregar (Day − MB − Gen.Exp)</span>
+            <span class="fin-derived-val" id="fin-entregar-calc">€0.00</span>
+          </div>
+          <input type="hidden" id="fin-entregar" value="0" />
         </div>
 
+        <!-- Cash Details -->
         <div class="fin-card">
           <h3><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Details</h3>
           <div class="fin-input-row">
             <label>Notes</label>
             <input type="number" id="fin-cash-notes" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
-          <div class="fin-input-row" style="margin-bottom:0">
+          <div class="fin-input-row">
             <label>Coins</label>
             <input type="number" id="fin-coins" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
+          <div class="fin-derived" style="margin-top:6px">
+            <span class="fin-derived-label"><i class="fas fa-sigma" style="color:var(--ocean-400)"></i> Total Cash (Notes + Coins)</span>
+            <span class="fin-derived-val" id="fin-cash-total-calc">€0.00</span>
+          </div>
+          <!-- Balance indicator -->
+          <div id="fin-cash-balance" style="margin-top:10px;padding:12px 14px;border-radius:10px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px"></div>
         </div>
 
+        <!-- Surf -->
         <div class="fin-card">
           <h3><i class="fas fa-umbrella-beach" style="color:#0ea5e9"></i> Surf</h3>
           <div class="fin-input-row" style="margin-bottom:0">
@@ -759,6 +777,16 @@ export function getAppHTML(): string {
           <div><label class="label">Confirm PIN</label><input type="password" id="confirm-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
         </div>
         <button class="btn btn-gold" id="btn-change-pin"><i class="fas fa-save"></i> Update PIN</button>
+      </div>
+      <!-- Fundo de Caixa -->
+      <div class="settings-card">
+        <h3><i class="fas fa-vault" style="color:#10b981"></i> Fundo de Caixa</h3>
+        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Set the base cash fund amount used in Finance calculations.</p>
+        <div class="fin-input-row" style="margin-bottom:12px">
+          <label style="min-width:130px">Fundo de Caixa (€)</label>
+          <input type="number" id="settings-fundo" class="input-field" placeholder="0.00" step="0.01" min="0" inputmode="decimal" style="text-align:right;font-weight:700;font-size:16px" />
+        </div>
+        <button class="btn btn-primary" id="btn-save-fundo"><i class="fas fa-save"></i> Save</button>
       </div>
       <!-- Finance PIN -->
       <div class="settings-card">
@@ -1155,6 +1183,7 @@ function getDB() {
   if (!db.adminPin)     db.adminPin = '1234';
   if (!db.financePin)   db.financePin = '0000';
   if (!db.finEntries)   db.finEntries = [];
+  if (db.fundoCaixa === undefined) db.fundoCaixa = 0;
   return db;
 }
 
@@ -1191,6 +1220,7 @@ function syncFromSupabase() {
       if (rows && rows[0]) {
         db.adminPin = rows[0].admin_pin || '1234';
         db.financePin = rows[0].finance_pin || db.financePin || '0000';
+        db.fundoCaixa = parseFloat(rows[0].fundo_caixa)||0;
         db.tables = rows[0].tables || db.tables;
       }
     }),
@@ -1253,8 +1283,9 @@ function syncFromSupabase() {
         t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
         totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
         tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
-        cashNotes: parseFloat(r.cash_notes)||0,
-        coins: parseFloat(r.coins)||0, surf: parseFloat(r.surf)||0, savedAt: r.saved_at
+        cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
+        genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
+        entregar: parseFloat(r.entregar)||0, savedAt: r.saved_at
       }; });
     }).catch(function(){ /* table may not exist yet */ })
   ];
@@ -1563,6 +1594,12 @@ function renderTableGrid(gridId, selectedArr) {
 // ================================================
 // SETTINGS
 // ================================================
+function saveFundoCaixa() {
+  var val = parseFloat(document.getElementById('settings-fundo').value) || 0;
+  var db = getDB(); db.fundoCaixa = val; saveDB(db);
+  toast('Fundo de Caixa saved!', 'gold');
+  sbFetch('PATCH','settings',{fundo_caixa:val},'id=eq.config').catch(function(){});
+}
 function renderSettings() {
   var settingsLocked = document.getElementById('settings-locked');
   var settingsContent = document.getElementById('settings-content');
@@ -1591,6 +1628,8 @@ function renderSettings() {
 
   document.getElementById('sb-url').value = SB_URL;
   document.getElementById('sb-key').value = SB_KEY.slice(0,30) + '...';
+  var fundoEl = document.getElementById('settings-fundo');
+  if (fundoEl) fundoEl.value = db.fundoCaixa || '';
   updateSupabaseStatus();
   updateAllDropdowns();
 }
@@ -1660,7 +1699,7 @@ function setFinForm(entry) {
   document.getElementById('fin-multibanco').value = entry.multibanco || '';
   document.getElementById('fin-invoiced').value = entry.invoiced || '';
   document.getElementById('fin-tips').value = entry.tips || '';
-  document.getElementById('fin-entregar').value = entry.entregar || '';
+  document.getElementById('fin-gen-expenses').value = entry.genExpenses || '';
   document.getElementById('fin-cash-notes').value = entry.cashNotes || '';
   document.getElementById('fin-coins').value = entry.coins || '';
   document.getElementById('fin-surf').value = entry.surf || '';
@@ -1668,30 +1707,64 @@ function setFinForm(entry) {
 }
 
 function getFinFormValues() {
+  var t51        = parseFloat(document.getElementById('fin-t51').value) || 0;
+  var multibanco = parseFloat(document.getElementById('fin-multibanco').value) || 0;
+  var invoiced   = parseFloat(document.getElementById('fin-invoiced').value) || 0;
+  var genExpenses= parseFloat(document.getElementById('fin-gen-expenses').value) || 0;
+  var totalDay   = invoiced + t51;
+  var entregar   = Math.max(0, totalDay - multibanco - genExpenses);
   return {
-    t51:        parseFloat(document.getElementById('fin-t51').value) || 0,
-    multibanco: parseFloat(document.getElementById('fin-multibanco').value) || 0,
-    invoiced:   parseFloat(document.getElementById('fin-invoiced').value) || 0,
-    tips:       parseFloat(document.getElementById('fin-tips').value) || 0,
-    entregar:   parseFloat(document.getElementById('fin-entregar').value) || 0,
-    cashNotes:  parseFloat(document.getElementById('fin-cash-notes').value) || 0,
-    coins:      parseFloat(document.getElementById('fin-coins').value) || 0,
-    surf:       parseFloat(document.getElementById('fin-surf').value) || 0
+    t51:         t51,
+    multibanco:  multibanco,
+    invoiced:    invoiced,
+    totalDay:    totalDay,
+    genExpenses: genExpenses,
+    entregar:    entregar,
+    tips:        parseFloat(document.getElementById('fin-tips').value) || 0,
+    cashNotes:   parseFloat(document.getElementById('fin-cash-notes').value) || 0,
+    coins:       parseFloat(document.getElementById('fin-coins').value) || 0,
+    surf:        parseFloat(document.getElementById('fin-surf').value) || 0
   };
 }
 
 function updateFinDayTotal() {
   var v = getFinFormValues();
-  var total = v.t51 + v.multibanco;
+  // Total of day = Invoiced + T51
   var calcEl = document.getElementById('fin-total-day-calc');
   var totalEl = document.getElementById('fin-day-total');
-  if (calcEl) calcEl.textContent = fmtEur(total);
-  if (totalEl) totalEl.textContent = fmtEur(total);
+  if (calcEl) calcEl.textContent = fmtEur(v.totalDay);
+  if (totalEl) totalEl.textContent = fmtEur(v.totalDay);
+  // Entregar = TotalDay - MultiBanco - GenExpenses (auto-calc, write to hidden)
+  var entEl = document.getElementById('fin-entregar');
+  if (entEl) entEl.value = v.entregar.toFixed(2);
+  var entCalcEl = document.getElementById('fin-entregar-calc');
+  if (entCalcEl) entCalcEl.textContent = fmtEur(v.entregar);
+  // Cash total = Notes + Coins
+  var cashTotal = v.cashNotes + v.coins;
+  var cashTotalEl = document.getElementById('fin-cash-total-calc');
+  if (cashTotalEl) cashTotalEl.textContent = fmtEur(cashTotal);
+  // Balance indicator
+  var balEl = document.getElementById('fin-cash-balance');
+  if (balEl) {
+    var diff = cashTotal - v.entregar;
+    var absDiff = Math.abs(diff);
+    if (Math.abs(diff) < 0.005) {
+      balEl.style.background = '#dcfce7';
+      balEl.innerHTML = '<i class="fas fa-circle-check" style="color:#16a34a;font-size:18px"></i><span style="color:#16a34a">Balanced — OK</span>';
+    } else if (diff < 0) {
+      balEl.style.background = '#fef2f2';
+      balEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:#dc2626;font-size:18px"></i>'
+        +'<span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span>';
+    } else {
+      balEl.style.background = '#f0fdf4';
+      balEl.innerHTML = '<i class="fas fa-arrow-trend-up" style="color:#16a34a;font-size:18px"></i>'
+        +'<span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span>';
+    }
+  }
 }
 
 function saveFinanceEntry() {
   var v = getFinFormValues();
-  var total = v.t51 + v.multibanco;
   var today = toDateStr(new Date());
   var db = getDB();
   if (!db.finEntries) db.finEntries = [];
@@ -1699,8 +1772,9 @@ function saveFinanceEntry() {
   var entry = {
     id: idx !== -1 ? db.finEntries[idx].id : uid(),
     date: today,
-    t51: v.t51, multibanco: v.multibanco, totalDay: total,
-    invoiced: v.invoiced, tips: v.tips, entregar: v.entregar,
+    t51: v.t51, multibanco: v.multibanco, totalDay: v.totalDay,
+    invoiced: v.invoiced, genExpenses: v.genExpenses,
+    tips: v.tips, entregar: v.entregar,
     cashNotes: v.cashNotes, coins: v.coins, surf: v.surf,
     savedAt: new Date().toISOString()
   };
@@ -1708,10 +1782,10 @@ function saveFinanceEntry() {
   saveDB(db);
   toast('Daily finance entry saved!', 'gold');
   updateFinDayTotal();
-  // Supabase sync
   sbFetch(idx !== -1 ? 'PATCH' : 'POST', 'fin_entries',
     { id: entry.id, date: entry.date, t51: entry.t51, multibanco: entry.multibanco,
-      total_day: entry.totalDay, invoiced: entry.invoiced, tips: entry.tips,
+      total_day: entry.totalDay, invoiced: entry.invoiced,
+      gen_expenses: entry.genExpenses, tips: entry.tips,
       entregar: entry.entregar, cash_notes: entry.cashNotes,
       coins: entry.coins, surf: entry.surf, saved_at: entry.savedAt },
     idx !== -1 ? 'id=eq.'+entry.id : null
@@ -1719,7 +1793,7 @@ function saveFinanceEntry() {
 }
 
 function clearFinanceEntry() {
-  ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-entregar','fin-cash-notes','fin-coins','fin-surf'].forEach(function(id){
+  ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-gen-expenses','fin-cash-notes','fin-coins','fin-surf'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.value='';
   });
   updateFinDayTotal();
@@ -1754,19 +1828,30 @@ function renderFinRecords() {
   }
   listEl.innerHTML = entries.map(function(e){
     var total = e.totalDay || 0;
+    var cashTotal = (e.cashNotes||0) + (e.coins||0);
+    var diff = cashTotal - (e.entregar||0);
+    var absDiff = Math.abs(diff);
+    var balHtml;
+    if (Math.abs(diff) < 0.005) {
+      balHtml = '<div style="background:#dcfce7;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-circle-check" style="color:#16a34a"></i><span style="color:#16a34a">Balanced — OK</span></div>';
+    } else if (diff < 0) {
+      balHtml = '<div style="background:#fef2f2;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i><span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span></div>';
+    } else {
+      balHtml = '<div style="background:#f0fdf4;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-arrow-trend-up" style="color:#16a34a"></i><span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span></div>';
+    }
     return '<div class="fin-record">'
       +'<div class="fin-record-header">'
         +'<span class="fin-record-date">'+fmtDateShort(e.date)+'</span>'
         +'<span class="fin-record-total">'+fmtEur(total)+'</span>'
       +'</div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#10b981"></i> Total Invoiced</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-cash-register" style="color:var(--ocean-400)"></i> T 51</span><span class="fin-row-val">'+fmtEur(e.t51||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-credit-card" style="color:var(--ocean-400)"></i> MultiBanco</span><span class="fin-row-val">'+fmtEur(e.multibanco||0)+'</span></div>'
-      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#10b981"></i> Total Invoiced</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
+      +(e.genExpenses ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-receipt" style="color:#ef4444"></i> General Expenses</span><span class="fin-row-val">'+fmtEur(e.genExpenses||0)+'</span></div>' : '')
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Tips</span><span class="fin-row-val">'+fmtEur(e.tips||0)+'</span></div>'
-      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-arrow-right" style="color:#ef4444"></i> € Entregar</span><span class="fin-row-val">'+fmtEur(e.entregar||0)+'</span></div>'
-      +(e.cashNotes ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-note-sticky" style="color:var(--ocean-300)"></i> Cash Notes</span><span class="fin-row-val">'+fmtEur(e.cashNotes||0)+'</span></div>' : '')
-      +(e.coins ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-circle-dollar-to-slot" style="color:#f59e0b"></i> Coins</span><span class="fin-row-val">'+fmtEur(e.coins||0)+'</span></div>' : '')
-      +(e.surf ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-umbrella-beach" style="color:#0ea5e9"></i> Surf</span><span class="fin-row-val">'+fmtEur(e.surf||0)+'</span></div>' : '')
+      +'<div class="fin-row"><span class="fin-row-label" style="color:#7c3aed;font-weight:800"><i class="fas fa-arrow-right" style="color:#7c3aed"></i> € Entregar</span><span class="fin-row-val" style="color:#7c3aed">'+fmtEur(e.entregar||0)+'</span></div>'
+      +(cashTotal ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Total</span><span class="fin-row-val">'+fmtEur(cashTotal)+'</span></div>' : '')
+      +balHtml
     +'</div>';
   }).join('');
 }
@@ -2807,6 +2892,7 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-del-table]');
   if (el) { removeTableNum(el.dataset.delTable); return; }
   if (t.closest('#btn-change-pin')) { changePin(); return; }
+  if (t.closest('#btn-save-fundo')) { saveFundoCaixa(); return; }
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
 });
 
@@ -2816,7 +2902,7 @@ document.addEventListener('input', function(e) {
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
   // Finance live total update
-  if (['fin-t51','fin-multibanco'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
+  if (['fin-t51','fin-multibanco','fin-invoiced','fin-gen-expenses','fin-cash-notes','fin-coins'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
 });
 document.addEventListener('change', function(e) {
   var t = e.target;
