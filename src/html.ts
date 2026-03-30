@@ -1259,7 +1259,7 @@ var MIGRATION_SQL = [
   '',
   '-- 3. Apply settings migration',
   "UPDATE settings SET finance_pin = '0000', fundo_caixa = 0 WHERE id = 'config';"
-].join('\n');
+].join('\\n');
 
 function showMigrationNotice(missing) {
   // Show the banner above settings-locked (visible even when not admin)
@@ -3037,7 +3037,7 @@ syncFromSupabase().then(function() {
   updateOrdersBadge();
   showMigrationNotice(sbMissingItems);
   if (sbMissingItems.length > 0) {
-    toast('⚠️ DB migration needed — see Settings', 'error');
+    toast('DB migration needed \u2014 check Settings', 'error');
   }
 });
 
