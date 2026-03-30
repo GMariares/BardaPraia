@@ -46,7 +46,7 @@ export function getAppHTML(): string {
     .role-badge-finance { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:.05em; }
 
     /* ── FINANCE SECTION ── */
-    .fin-card { background:white; border-radius:var(--radius); padding:18px; margin-bottom:12px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
+    .fin-card { background:white; border-radius:var(--radius); padding:14px; margin-bottom:12px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); overflow:hidden; }
     .fin-card h3 { font-size:14px; font-weight:700; color:var(--ocean-800); margin-bottom:14px; display:flex; align-items:center; gap:7px; }
     .fin-total-box { background:linear-gradient(135deg,#4c1d95,#7c3aed); border-radius:14px; padding:18px; text-align:center; color:white; margin-bottom:14px; }
     .fin-total-label { font-size:12px; opacity:.7; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
@@ -63,15 +63,15 @@ export function getAppHTML(): string {
     .fin-summary-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); text-align:center; box-shadow:var(--shadow); }
     .fin-summary-num { font-size:20px; font-weight:800; color:var(--ocean-900); }
     .fin-summary-label { font-size:11px; color:var(--ocean-400); margin-top:2px; }
-    .fin-input-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-    .fin-input-row label { font-size:12px; font-weight:700; color:var(--ocean-700); text-transform:uppercase; letter-spacing:.04em; min-width:110px; flex-shrink:0; }
-    .fin-input-row input { flex:1; border:1.5px solid var(--ocean-200); border-radius:9px; padding:10px 14px; font-size:16px; font-weight:700; color:var(--ocean-900); background:var(--ocean-50); outline:none; text-align:right; -webkit-appearance:none; }
+    .fin-input-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; overflow:hidden; }
+    .fin-input-row label { font-size:12px; font-weight:700; color:var(--ocean-700); text-transform:uppercase; letter-spacing:.04em; width:120px; min-width:120px; flex-shrink:0; }
+    .fin-input-row input { flex:1; min-width:0; width:0; border:1.5px solid var(--ocean-200); border-radius:9px; padding:10px 12px; font-size:16px; font-weight:700; color:var(--ocean-900); background:var(--ocean-50); outline:none; text-align:right; -webkit-appearance:none; box-sizing:border-box; }
     .fin-input-row input:focus { border-color:#8b5cf6; background:white; box-shadow:0 0 0 3px rgba(139,92,246,.1); }
     .fin-section-title { font-size:11px; font-weight:800; color:var(--ocean-400); text-transform:uppercase; letter-spacing:.08em; margin:16px 0 10px; display:flex; align-items:center; gap:6px; }
     .fin-section-title::after { content:''; flex:1; height:1px; background:var(--ocean-100); }
-    .fin-derived { background:var(--ocean-50); border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-    .fin-derived-label { font-size:13px; color:var(--ocean-600); font-weight:600; }
-    .fin-derived-val { font-size:17px; font-weight:800; color:var(--ocean-800); }
+    .fin-derived { background:var(--ocean-50); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; overflow:hidden; }
+    .fin-derived-label { font-size:12px; color:var(--ocean-600); font-weight:600; flex:1; min-width:0; }
+    .fin-derived-val { font-size:16px; font-weight:800; color:var(--ocean-800); flex-shrink:0; white-space:nowrap; }
 
     /* ── DRAWER ── */
     #drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(3px); z-index:300; opacity:0; pointer-events:none; transition:opacity .25s; }
@@ -783,7 +783,7 @@ export function getAppHTML(): string {
         <h3><i class="fas fa-vault" style="color:#10b981"></i> Fundo de Caixa</h3>
         <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Set the base cash fund amount used in Finance calculations.</p>
         <div class="fin-input-row" style="margin-bottom:12px">
-          <label style="min-width:130px">Fundo de Caixa (€)</label>
+          <label>Fundo de Caixa (€)</label>
           <input type="number" id="settings-fundo" class="input-field" placeholder="0.00" step="0.01" min="0" inputmode="decimal" style="text-align:right;font-weight:700;font-size:16px" />
         </div>
         <button class="btn btn-primary" id="btn-save-fundo"><i class="fas fa-save"></i> Save</button>
