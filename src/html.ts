@@ -1668,7 +1668,8 @@ function renderTableGrid(gridId, selectedArr) {
 // SETTINGS
 // ================================================
 function saveFundoCaixa() {
-  var val = parseFloat(document.getElementById('settings-fundo').value) || 0;
+  var raw = (document.getElementById('settings-fundo').value || '').trim().replace(',', '.');
+  var val = parseFloat(raw) || 0;
   var db = getDB(); db.fundoCaixa = val; saveDB(db);
   toast('Fundo de Caixa saved!', 'gold');
   sbFetch('PATCH','settings',{fundo_caixa:val},'id=eq.config').catch(function(){});
@@ -1791,11 +1792,20 @@ function setFinForm(entry) {
   updateFinDayTotal();
 }
 
+// Parse a finance input by id — handles both '.' and ',' as decimal separator (iOS fix)
+function finVal(id) {
+  var el = document.getElementById(id);
+  if (!el) return 0;
+  var raw = el.value.trim().replace(',', '.');
+  var n = parseFloat(raw);
+  return isNaN(n) ? 0 : n;
+}
+
 function getFinFormValues() {
-  var t51        = parseFloat(document.getElementById('fin-t51').value) || 0;
-  var multibanco = parseFloat(document.getElementById('fin-multibanco').value) || 0;
-  var invoiced   = parseFloat(document.getElementById('fin-invoiced').value) || 0;
-  var genExpenses= parseFloat(document.getElementById('fin-gen-expenses').value) || 0;
+  var t51        = finVal('fin-t51');
+  var multibanco = finVal('fin-multibanco');
+  var invoiced   = finVal('fin-invoiced');
+  var genExpenses= finVal('fin-gen-expenses');
   var totalDay   = invoiced + t51;
   var entregar   = Math.max(0, totalDay - multibanco - genExpenses);
   return {
@@ -1805,10 +1815,10 @@ function getFinFormValues() {
     totalDay:    totalDay,
     genExpenses: genExpenses,
     entregar:    entregar,
-    tips:        parseFloat(document.getElementById('fin-tips').value) || 0,
-    cashNotes:   parseFloat(document.getElementById('fin-cash-notes').value) || 0,
-    coins:       parseFloat(document.getElementById('fin-coins').value) || 0,
-    surf:        parseFloat(document.getElementById('fin-surf').value) || 0
+    tips:        finVal('fin-tips'),
+    cashNotes:   finVal('fin-cash-notes'),
+    coins:       finVal('fin-coins'),
+    surf:        finVal('fin-surf')
   };
 }
 
