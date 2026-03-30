@@ -764,6 +764,18 @@ export function getAppHTML(): string {
 
   <!-- ═══ SETTINGS ═══ -->
   <section id="section-settings" class="page-section">
+    <!-- Migration notice — always visible when migration is needed (admin must see this) -->
+    <div id="sb-migration-banner" style="display:none;margin:0 0 14px 0;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:14px">
+      <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:8px;display:flex;align-items:center;gap:7px">
+        <i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Database migration required
+      </div>
+      <p style="font-size:12px;color:#78350f;margin-bottom:10px">Some columns or tables are missing in your Supabase database. This prevents Finance data and Settings (Finance PIN, Fundo de Caixa) from syncing across devices. Run the script below <strong>once</strong> in your Supabase SQL Editor to fix this.</p>
+      <a href="https://supabase.com/dashboard/project/eurcdnyhwqofnddhxrpf/sql/new" target="_blank" class="btn btn-gold btn-sm" style="width:100%;justify-content:center;margin-bottom:10px"><i class="fas fa-external-link-alt"></i> Open Supabase SQL Editor</a>
+      <div style="position:relative">
+        <pre id="sb-migration-sql" style="background:#1e1e2e;color:#cdd6f4;font-size:11px;border-radius:8px;padding:12px;overflow-x:auto;white-space:pre;margin:0;line-height:1.6"></pre>
+        <button id="btn-copy-sql" class="btn btn-sm" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.1);color:#cdd6f4;border:1px solid rgba(255,255,255,.2);font-size:11px"><i class="fas fa-copy"></i> Copy</button>
+      </div>
+    </div>
     <div id="settings-locked" class="locked-overlay" style="display:none">
       <i class="fas fa-lock"></i>
       <h3>Admin Only</h3>
@@ -831,6 +843,7 @@ export function getAppHTML(): string {
           <span class="pulse-dot yellow"></span>
           <span style="font-size:13px;color:#ca8a04" id="sb-status-text">Connecting...</span>
         </div>
+        <!-- Migration notice moved to banner above settings-locked -->
       </div>
     </div>
   </section>
@@ -1215,15 +1228,71 @@ function setSbStatus(ok, msg) {
   }
 }
 
+var sbMissingItems = []; // track what's missing for migration notice
+
+var MIGRATION_SQL = [
+  '-- Run this once in your Supabase SQL Editor',
+  '-- https://supabase.com/dashboard/project/eurcdnyhwqofnddhxrpf/sql/new',
+  '',
+  '-- 1. Add Finance PIN and Fundo de Caixa to settings',
+  "ALTER TABLE settings ADD COLUMN IF NOT EXISTS finance_pin TEXT DEFAULT '0000';",
+  'ALTER TABLE settings ADD COLUMN IF NOT EXISTS fundo_caixa NUMERIC DEFAULT 0;',
+  '',
+  '-- 2. Finance daily entries table',
+  'CREATE TABLE IF NOT EXISTS fin_entries (',
+  '  id TEXT PRIMARY KEY,',
+  '  date DATE NOT NULL UNIQUE,',
+  '  t51 NUMERIC DEFAULT 0,',
+  '  multibanco NUMERIC DEFAULT 0,',
+  '  total_day NUMERIC DEFAULT 0,',
+  '  invoiced NUMERIC DEFAULT 0,',
+  '  gen_expenses NUMERIC DEFAULT 0,',
+  '  tips NUMERIC DEFAULT 0,',
+  '  entregar NUMERIC DEFAULT 0,',
+  '  cash_notes NUMERIC DEFAULT 0,',
+  '  coins NUMERIC DEFAULT 0,',
+  '  surf NUMERIC DEFAULT 0,',
+  "  saved_at TIMESTAMPTZ DEFAULT now()",
+  ');',
+  'ALTER TABLE fin_entries ENABLE ROW LEVEL SECURITY;',
+  "CREATE POLICY allow_all ON fin_entries FOR ALL TO anon USING (true) WITH CHECK (true);",
+  '',
+  '-- 3. Apply settings migration',
+  "UPDATE settings SET finance_pin = '0000', fundo_caixa = 0 WHERE id = 'config';"
+].join('\n');
+
+function showMigrationNotice(missing) {
+  // Show the banner above settings-locked (visible even when not admin)
+  var banner = document.getElementById('sb-migration-banner');
+  var sqlEl  = document.getElementById('sb-migration-sql');
+  if (!banner || !sqlEl) return;
+  if (missing.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+  sqlEl.textContent = MIGRATION_SQL;
+  banner.style.display = 'block';
+}
+
 function syncFromSupabase() {
   setSbStatus(null, 'Syncing...');
+  sbMissingItems = [];
   var db = getDB();
   var promises = [
     sbFetch('GET', 'settings', null, 'id=eq.config').then(function(rows) {
       if (rows && rows[0]) {
         db.adminPin = rows[0].admin_pin || '1234';
-        db.financePin = rows[0].finance_pin || db.financePin || '0000';
-        db.fundoCaixa = parseFloat(rows[0].fundo_caixa)||0;
+        // Detect missing columns — PostgREST returns them as undefined/null if missing
+        if (rows[0].finance_pin === undefined || rows[0].finance_pin === null) {
+          sbMissingItems.push('settings.finance_pin');
+        } else {
+          db.financePin = rows[0].finance_pin || db.financePin || '0000';
+        }
+        if (rows[0].fundo_caixa === undefined || rows[0].fundo_caixa === null) {
+          sbMissingItems.push('settings.fundo_caixa');
+        } else {
+          db.fundoCaixa = parseFloat(rows[0].fundo_caixa)||0;
+        }
         db.tables = rows[0].tables || db.tables;
       }
     }),
@@ -1288,9 +1357,9 @@ function syncFromSupabase() {
         tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
         cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
         genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
-        entregar: parseFloat(r.entregar)||0, savedAt: r.saved_at
+        savedAt: r.saved_at
       }; });
-    }).catch(function(){ /* table may not exist yet */ })
+    }).catch(function(){ sbMissingItems.push('fin_entries table'); })
   ];
   return Promise.all(promises).then(function() {
     saveDB(db);
@@ -1655,7 +1724,13 @@ function saveSupabase() {
   toast('Syncing with Supabase...','gold');
   syncFromSupabase().then(function(){
     renderDashboard(); renderInventory(); renderAllReservations(); renderTasks(); renderShifts();
-    updateAllDropdowns(); toast('Synced successfully!','gold');
+    updateAllDropdowns();
+    showMigrationNotice(sbMissingItems);
+    if (sbMissingItems.length === 0) {
+      toast('Synced successfully!','gold');
+    } else {
+      toast('Synced \u2014 but DB migration still needed!', 'error');
+    }
   });
 }
 function updateSupabaseStatus() {
@@ -2913,6 +2988,17 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-change-pin')) { changePin(); return; }
   if (t.closest('#btn-save-fundo')) { saveFundoCaixa(); return; }
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
+  if (t.closest('#btn-copy-sql')) {
+    var sqlPre = document.getElementById('sb-migration-sql');
+    if (sqlPre) {
+      navigator.clipboard.writeText(sqlPre.textContent || '').then(function(){
+        toast('SQL copied to clipboard!', 'gold');
+      }).catch(function(){
+        toast('Copy failed \u2014 select & copy manually', 'error');
+      });
+    }
+    return;
+  }
 });
 
 document.addEventListener('input', function(e) {
@@ -2949,6 +3035,10 @@ syncFromSupabase().then(function() {
   updateAllDropdowns();
   showSection(currentSection);
   updateOrdersBadge();
+  showMigrationNotice(sbMissingItems);
+  if (sbMissingItems.length > 0) {
+    toast('⚠️ DB migration needed — see Settings', 'error');
+  }
 });
 
 })();
