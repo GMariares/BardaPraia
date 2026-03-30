@@ -1753,22 +1753,25 @@ function updateFinDayTotal() {
   var cashTotal = v.cashNotes + v.coins;
   var cashTotalEl = document.getElementById('fin-cash-total-calc');
   if (cashTotalEl) cashTotalEl.textContent = fmtEur(cashTotal);
-  // Balance indicator
+  // Balance indicator — expected in drawer = Entregar + Fundo de Caixa
+  var fundo = getDB().fundoCaixa || 0;
+  var expected = v.entregar + fundo;
   var balEl = document.getElementById('fin-cash-balance');
   if (balEl) {
-    var diff = cashTotal - v.entregar;
+    var diff = cashTotal - expected;
     var absDiff = Math.abs(diff);
-    if (Math.abs(diff) < 0.005) {
+    var fundoNote = fundo ? ' <span style="font-size:11px;opacity:.75">(incl. Fundo '+fmtEur(fundo)+')</span>' : '';
+    if (absDiff < 0.005) {
       balEl.style.background = '#dcfce7';
-      balEl.innerHTML = '<i class="fas fa-circle-check" style="color:#16a34a;font-size:18px"></i><span style="color:#16a34a">Balanced — OK</span>';
+      balEl.innerHTML = '<i class="fas fa-circle-check" style="color:#16a34a;font-size:18px"></i><span style="color:#16a34a">Balanced — OK</span>'+fundoNote;
     } else if (diff < 0) {
       balEl.style.background = '#fef2f2';
       balEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:#dc2626;font-size:18px"></i>'
-        +'<span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span>';
+        +'<span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span>'+fundoNote;
     } else {
       balEl.style.background = '#f0fdf4';
       balEl.innerHTML = '<i class="fas fa-arrow-trend-up" style="color:#16a34a;font-size:18px"></i>'
-        +'<span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span>';
+        +'<span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span>'+fundoNote;
     }
   }
 }
@@ -1841,16 +1844,19 @@ function renderFinRecords() {
   }
   listEl.innerHTML = entries.map(function(e){
     var total = e.totalDay || 0;
+    var fundo = getDB().fundoCaixa || 0;
     var cashTotal = (e.cashNotes||0) + (e.coins||0);
-    var diff = cashTotal - (e.entregar||0);
+    var expected = (e.entregar||0) + fundo;
+    var diff = cashTotal - expected;
     var absDiff = Math.abs(diff);
+    var fundoNote = fundo ? ' <span style="font-size:11px;opacity:.75">(incl. Fundo '+fmtEur(fundo)+')</span>' : '';
     var balHtml;
-    if (Math.abs(diff) < 0.005) {
-      balHtml = '<div style="background:#dcfce7;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-circle-check" style="color:#16a34a"></i><span style="color:#16a34a">Balanced — OK</span></div>';
+    if (absDiff < 0.005) {
+      balHtml = '<div style="background:#dcfce7;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-circle-check" style="color:#16a34a"></i><span style="color:#16a34a">Balanced — OK</span>'+fundoNote+'</div>';
     } else if (diff < 0) {
-      balHtml = '<div style="background:#fef2f2;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i><span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span></div>';
+      balHtml = '<div style="background:#fef2f2;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i><span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
     } else {
-      balHtml = '<div style="background:#f0fdf4;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-arrow-trend-up" style="color:#16a34a"></i><span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span></div>';
+      balHtml = '<div style="background:#f0fdf4;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-arrow-trend-up" style="color:#16a34a"></i><span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
     }
     return '<div class="fin-record">'
       +'<div class="fin-record-header">'
