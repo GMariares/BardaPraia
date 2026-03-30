@@ -636,12 +636,20 @@ export function getAppHTML(): string {
             <input type="number" id="fin-cash" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
           <div class="fin-input-row">
+            <label>Notes</label>
+            <input type="text" id="fin-cash-notes" placeholder="Cash notes..." style="text-align:left;font-weight:500;font-size:14px" />
+          </div>
+          <div class="fin-input-row" style="margin-bottom:0">
             <label>Coins</label>
             <input type="number" id="fin-coins" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
+        </div>
+
+        <div class="fin-card">
+          <h3><i class="fas fa-umbrella-beach" style="color:#0ea5e9"></i> Surf</h3>
           <div class="fin-input-row" style="margin-bottom:0">
-            <label>Notes</label>
-            <input type="text" id="fin-notes" placeholder="Optional notes..." style="text-align:left;font-weight:500;font-size:14px" />
+            <label>Surf</label>
+            <input type="number" id="fin-surf" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
           </div>
         </div>
 
@@ -1249,7 +1257,8 @@ function syncFromSupabase() {
         t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
         totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
         tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
-        cash: parseFloat(r.cash)||0, coins: parseFloat(r.coins)||0, notes: r.notes||'', savedAt: r.saved_at
+        cash: parseFloat(r.cash)||0, cashNotes: r.cash_notes||'',
+        coins: parseFloat(r.coins)||0, surf: parseFloat(r.surf)||0, savedAt: r.saved_at
       }; });
     }).catch(function(){ /* table may not exist yet */ })
   ];
@@ -1657,8 +1666,9 @@ function setFinForm(entry) {
   document.getElementById('fin-tips').value = entry.tips || '';
   document.getElementById('fin-entregar').value = entry.entregar || '';
   document.getElementById('fin-cash').value = entry.cash || '';
+  document.getElementById('fin-cash-notes').value = entry.cashNotes || '';
   document.getElementById('fin-coins').value = entry.coins || '';
-  document.getElementById('fin-notes').value = entry.notes || '';
+  document.getElementById('fin-surf').value = entry.surf || '';
   updateFinDayTotal();
 }
 
@@ -1670,8 +1680,9 @@ function getFinFormValues() {
     tips:       parseFloat(document.getElementById('fin-tips').value) || 0,
     entregar:   parseFloat(document.getElementById('fin-entregar').value) || 0,
     cash:       parseFloat(document.getElementById('fin-cash').value) || 0,
+    cashNotes:  document.getElementById('fin-cash-notes').value.trim(),
     coins:      parseFloat(document.getElementById('fin-coins').value) || 0,
-    notes:      document.getElementById('fin-notes').value.trim()
+    surf:       parseFloat(document.getElementById('fin-surf').value) || 0
   };
 }
 
@@ -1696,7 +1707,8 @@ function saveFinanceEntry() {
     date: today,
     t51: v.t51, multibanco: v.multibanco, totalDay: total,
     invoiced: v.invoiced, tips: v.tips, entregar: v.entregar,
-    cash: v.cash, coins: v.coins, notes: v.notes, savedAt: new Date().toISOString()
+    cash: v.cash, cashNotes: v.cashNotes, coins: v.coins, surf: v.surf,
+    savedAt: new Date().toISOString()
   };
   if (idx !== -1) { db.finEntries[idx] = entry; } else { db.finEntries.unshift(entry); }
   saveDB(db);
@@ -1706,13 +1718,14 @@ function saveFinanceEntry() {
   sbFetch(idx !== -1 ? 'PATCH' : 'POST', 'fin_entries',
     { id: entry.id, date: entry.date, t51: entry.t51, multibanco: entry.multibanco,
       total_day: entry.totalDay, invoiced: entry.invoiced, tips: entry.tips,
-      entregar: entry.entregar, cash: entry.cash, coins: entry.coins, notes: entry.notes, saved_at: entry.savedAt },
+      entregar: entry.entregar, cash: entry.cash, cash_notes: entry.cashNotes,
+      coins: entry.coins, surf: entry.surf, saved_at: entry.savedAt },
     idx !== -1 ? 'id=eq.'+entry.id : null
   ).catch(function(){ /* saved locally */ });
 }
 
 function clearFinanceEntry() {
-  ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-entregar','fin-cash','fin-coins','fin-notes'].forEach(function(id){
+  ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-entregar','fin-cash','fin-cash-notes','fin-coins','fin-surf'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.value='';
   });
   updateFinDayTotal();
@@ -1758,8 +1771,9 @@ function renderFinRecords() {
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Tips</span><span class="fin-row-val">'+fmtEur(e.tips||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-arrow-right" style="color:#ef4444"></i> € Entregar</span><span class="fin-row-val">'+fmtEur(e.entregar||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Details</span><span class="fin-row-val">'+fmtEur(e.cash||0)+'</span></div>'
+      +(e.cashNotes ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-note-sticky" style="color:var(--ocean-300)"></i> Cash Notes</span><span style="font-size:13px;color:var(--ocean-600)">'+esc(e.cashNotes)+'</span></div>' : '')
       +(e.coins ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-circle-dollar-to-slot" style="color:#f59e0b"></i> Coins</span><span class="fin-row-val">'+fmtEur(e.coins||0)+'</span></div>' : '')
-      +(e.notes ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-note-sticky" style="color:var(--ocean-300)"></i> Notes</span><span style="font-size:13px;color:var(--ocean-600)">'+esc(e.notes)+'</span></div>' : '')
+      +(e.surf ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-umbrella-beach" style="color:#0ea5e9"></i> Surf</span><span class="fin-row-val">'+fmtEur(e.surf||0)+'</span></div>' : '')
     +'</div>';
   }).join('');
 }
