@@ -41,6 +41,37 @@ export function getAppHTML(): string {
     #topbar-emp { font-size:13px; color:var(--ocean-700); background:var(--ocean-100); border:1px solid var(--ocean-200); border-radius:8px; padding:5px 10px; outline:none; cursor:pointer; max-width:110px; }
     #admin-login-btn { background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
     #admin-logout-btn { background:#fee2e2; color:#dc2626; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
+    #finance-login-btn { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    #finance-logout-btn { background:#ede9fe; color:#7c3aed; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
+    .role-badge-finance { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:.05em; }
+
+    /* ── FINANCE SECTION ── */
+    .fin-card { background:white; border-radius:var(--radius); padding:18px; margin-bottom:12px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
+    .fin-card h3 { font-size:14px; font-weight:700; color:var(--ocean-800); margin-bottom:14px; display:flex; align-items:center; gap:7px; }
+    .fin-total-box { background:linear-gradient(135deg,#4c1d95,#7c3aed); border-radius:14px; padding:18px; text-align:center; color:white; margin-bottom:14px; }
+    .fin-total-label { font-size:12px; opacity:.7; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
+    .fin-total-num { font-size:34px; font-weight:900; }
+    .fin-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--ocean-50); }
+    .fin-row:last-child { border-bottom:none; }
+    .fin-row-label { font-size:13px; font-weight:600; color:var(--ocean-700); display:flex; align-items:center; gap:8px; }
+    .fin-row-val { font-size:16px; font-weight:800; color:var(--ocean-900); }
+    .fin-record { background:white; border-radius:var(--radius); padding:16px; margin-bottom:10px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
+    .fin-record-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--ocean-50); }
+    .fin-record-date { font-weight:700; font-size:15px; color:var(--ocean-900); }
+    .fin-record-total { font-weight:900; font-size:20px; color:#7c3aed; }
+    .fin-summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
+    .fin-summary-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); text-align:center; box-shadow:var(--shadow); }
+    .fin-summary-num { font-size:20px; font-weight:800; color:var(--ocean-900); }
+    .fin-summary-label { font-size:11px; color:var(--ocean-400); margin-top:2px; }
+    .fin-input-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .fin-input-row label { font-size:12px; font-weight:700; color:var(--ocean-700); text-transform:uppercase; letter-spacing:.04em; min-width:110px; flex-shrink:0; }
+    .fin-input-row input { flex:1; border:1.5px solid var(--ocean-200); border-radius:9px; padding:10px 14px; font-size:16px; font-weight:700; color:var(--ocean-900); background:var(--ocean-50); outline:none; text-align:right; -webkit-appearance:none; }
+    .fin-input-row input:focus { border-color:#8b5cf6; background:white; box-shadow:0 0 0 3px rgba(139,92,246,.1); }
+    .fin-section-title { font-size:11px; font-weight:800; color:var(--ocean-400); text-transform:uppercase; letter-spacing:.08em; margin:16px 0 10px; display:flex; align-items:center; gap:6px; }
+    .fin-section-title::after { content:''; flex:1; height:1px; background:var(--ocean-100); }
+    .fin-derived { background:var(--ocean-50); border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .fin-derived-label { font-size:13px; color:var(--ocean-600); font-weight:600; }
+    .fin-derived-val { font-size:17px; font-weight:800; color:var(--ocean-800); }
 
     /* ── DRAWER ── */
     #drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(3px); z-index:300; opacity:0; pointer-events:none; transition:opacity .25s; }
@@ -341,6 +372,8 @@ export function getAppHTML(): string {
   <div id="topbar-right">
     <div id="topbar-role-info"></div>
     <select id="topbar-emp"><option value="">Staff</option></select>
+    <button id="finance-login-btn"><i class="fas fa-euro-sign"></i></button>
+    <button id="finance-logout-btn"><i class="fas fa-sign-out-alt"></i> Finance</button>
     <button id="admin-login-btn">Admin</button>
     <button id="admin-logout-btn"><i class="fas fa-sign-out-alt"></i></button>
   </div>
@@ -364,6 +397,7 @@ export function getAppHTML(): string {
     <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts</button>
     <div class="section-label" style="margin-top:12px">Admin</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
+    <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#ddd6fe">PIN</span></button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
   </nav>
   <div id="drawer-footer">
@@ -539,6 +573,103 @@ export function getAppHTML(): string {
     <div id="shifts-list"></div>
   </section>
 
+  <!-- ═══ FINANCE ═══ -->
+  <section id="section-finance" class="page-section">
+    <div id="finance-locked" class="locked-overlay" style="display:none">
+      <i class="fas fa-euro-sign" style="color:#8b5cf6"></i>
+      <h3>Finance Access Required</h3>
+      <p>Enter the Finance PIN to access daily records.</p>
+      <button class="btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white" id="fin-login-prompt-btn"><i class="fas fa-key"></i> Enter Finance PIN</button>
+    </div>
+    <div id="finance-content" style="display:none">
+      <div class="tab-row" style="margin-bottom:14px">
+        <button class="tab-btn active" id="fin-tab-entry" data-fin-tab="entry"><i class="fas fa-pen-to-square"></i> Daily Entry</button>
+        <button class="tab-btn" id="fin-tab-records" data-fin-tab="records"><i class="fas fa-history"></i> Records</button>
+      </div>
+
+      <!-- ── Daily Entry Panel ── -->
+      <div id="fin-panel-entry">
+        <div class="fin-total-box">
+          <div class="fin-total-label">TOTAL OF THE DAY</div>
+          <div class="fin-total-num" id="fin-day-total">€0.00</div>
+          <div style="font-size:12px;opacity:.7;margin-top:4px" id="fin-entry-date"></div>
+        </div>
+
+        <div class="fin-card">
+          <h3><i class="fas fa-money-bill-wave" style="color:#10b981"></i> Revenue</h3>
+          <div class="fin-section-title"><i class="fas fa-cash-register"></i> Day Breakdown</div>
+          <div class="fin-input-row">
+            <label>T 51</label>
+            <input type="number" id="fin-t51" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          </div>
+          <div class="fin-input-row">
+            <label>MultiBanco</label>
+            <input type="number" id="fin-multibanco" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          </div>
+          <div class="fin-derived">
+            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> Total of Day (T51 + MB)</span>
+            <span class="fin-derived-val" id="fin-total-day-calc">€0.00</span>
+          </div>
+          <div class="fin-section-title"><i class="fas fa-file-invoice-dollar"></i> Invoiced</div>
+          <div class="fin-input-row">
+            <label>Total Invoiced</label>
+            <input type="number" id="fin-invoiced" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          </div>
+        </div>
+
+        <div class="fin-card">
+          <h3><i class="fas fa-arrow-down" style="color:#ef4444"></i> Expenses</h3>
+          <div class="fin-input-row">
+            <label>Tips</label>
+            <input type="number" id="fin-tips" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          </div>
+          <div class="fin-input-row">
+            <label>€ Entregar</label>
+            <input type="number" id="fin-entregar" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          </div>
+        </div>
+
+        <div class="fin-card">
+          <h3><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Details</h3>
+          <div class="fin-input-row">
+            <label>Cash Details</label>
+            <input type="number" id="fin-cash" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          </div>
+          <div class="fin-input-row" style="margin-bottom:0">
+            <label>Notes</label>
+            <input type="text" id="fin-notes" placeholder="Optional notes..." style="text-align:left;font-weight:500;font-size:14px" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border-color:#7c3aed;margin-bottom:8px" id="btn-save-finance-entry">
+          <i class="fas fa-save"></i> Save Daily Entry
+        </button>
+        <button class="btn btn-secondary" style="width:100%;justify-content:center" id="btn-clear-finance-entry">
+          <i class="fas fa-rotate-left"></i> Clear Form
+        </button>
+      </div>
+
+      <!-- ── Records Panel ── -->
+      <div id="fin-panel-records" style="display:none">
+        <div class="fin-summary-grid">
+          <div class="fin-summary-card">
+            <div class="fin-summary-num" id="fin-rec-today">€0</div>
+            <div class="fin-summary-label">Today</div>
+          </div>
+          <div class="fin-summary-card">
+            <div class="fin-summary-num" id="fin-rec-week">€0</div>
+            <div class="fin-summary-label">This Week</div>
+          </div>
+          <div class="fin-summary-card">
+            <div class="fin-summary-num" id="fin-rec-month">€0</div>
+            <div class="fin-summary-label">This Month</div>
+          </div>
+        </div>
+        <div id="fin-records-list"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══ BLACK BOX ═══ -->
   <section id="section-blackbox" class="page-section">
     <div id="blackbox-locked" class="locked-overlay" style="display:none">
@@ -621,6 +752,16 @@ export function getAppHTML(): string {
         </div>
         <button class="btn btn-gold" id="btn-change-pin"><i class="fas fa-save"></i> Update PIN</button>
       </div>
+      <!-- Finance PIN -->
+      <div class="settings-card">
+        <h3><i class="fas fa-euro-sign" style="color:#8b5cf6"></i> Finance PIN</h3>
+        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Change the 4-digit Finance tab PIN.</p>
+        <div class="form-grid-2" style="margin-bottom:12px">
+          <div><label class="label">New Finance PIN</label><input type="password" id="new-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
+          <div><label class="label">Confirm PIN</label><input type="password" id="confirm-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
+        </div>
+        <button class="btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;display:flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700" id="btn-change-finance-pin"><i class="fas fa-save"></i> Update Finance PIN</button>
+      </div>
       <!-- Team Members -->
       <div class="settings-card">
         <h3><i class="fas fa-users" style="color:var(--ocean-500)"></i> Team Members</h3>
@@ -661,10 +802,11 @@ export function getAppHTML(): string {
 <nav id="bottom-nav">
   <button class="bnav-item active" id="bnav-dashboard" data-nav="dashboard"><i class="fas fa-home"></i>Home</button>
   <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Stock</button>
-  <button class="bnav-item" id="bnav-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i>Bookings</button>
+  <button class="bnav-item" id="bnav-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i>Book</button>
   <button class="bnav-item" id="bnav-tasks" data-nav="tasks"><i class="fas fa-list-check"></i>Tasks</button>
   <button class="bnav-item" id="bnav-shifts" data-nav="shifts"><i class="fas fa-clock"></i>Shifts</button>
   <button class="bnav-item admin-nav" id="bnav-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i>Box</button>
+  <button class="bnav-item" id="bnav-finance" data-nav="finance" style="color:#8b5cf6"><i class="fas fa-euro-sign"></i>Finance</button>
 </nav>
 
 <!-- ═══════════ MODALS ═══════════ -->
@@ -694,6 +836,34 @@ export function getAppHTML(): string {
       <button class="pin-key del" data-pin-key="del"><i class="fas fa-delete-left"></i></button>
     </div>
     <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- Finance PIN Login Modal -->
+<div class="modal-overlay modal-center" id="modal-finance-login">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 style="justify-content:center"><i class="fas fa-euro-sign" style="color:#8b5cf6"></i> Finance Login</h2>
+    <p style="text-align:center;font-size:13px;color:var(--ocean-400);margin-bottom:20px">Enter your 4-digit Finance PIN</p>
+    <div class="pin-display" id="fin-pin-display">
+      <div class="pin-dot" id="fpd0"></div><div class="pin-dot" id="fpd1"></div>
+      <div class="pin-dot" id="fpd2"></div><div class="pin-dot" id="fpd3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" data-fin-pin-key="1">1</button>
+      <button class="pin-key" data-fin-pin-key="2">2</button>
+      <button class="pin-key" data-fin-pin-key="3">3</button>
+      <button class="pin-key" data-fin-pin-key="4">4</button>
+      <button class="pin-key" data-fin-pin-key="5">5</button>
+      <button class="pin-key" data-fin-pin-key="6">6</button>
+      <button class="pin-key" data-fin-pin-key="7">7</button>
+      <button class="pin-key" data-fin-pin-key="8">8</button>
+      <button class="pin-key" data-fin-pin-key="9">9</button>
+      <button class="pin-key del" data-fin-pin-key="cancel">Cancel</button>
+      <button class="pin-key" data-fin-pin-key="0">0</button>
+      <button class="pin-key del" data-fin-pin-key="del"><i class="fas fa-delete-left"></i></button>
+    </div>
+    <div class="pin-error" id="fin-pin-error"></div>
   </div>
 </div>
 
@@ -975,6 +1145,8 @@ function getDB() {
   if (!db.bbMenu)       db.bbMenu = [];
   if (!db.bbEntries)    db.bbEntries = [];
   if (!db.adminPin)     db.adminPin = '1234';
+  if (!db.financePin)   db.financePin = '0000';
+  if (!db.finEntries)   db.finEntries = [];
   return db;
 }
 
@@ -1010,6 +1182,7 @@ function syncFromSupabase() {
     sbFetch('GET', 'settings', null, 'id=eq.config').then(function(rows) {
       if (rows && rows[0]) {
         db.adminPin = rows[0].admin_pin || '1234';
+        db.financePin = rows[0].finance_pin || db.financePin || '0000';
         db.tables = rows[0].tables || db.tables;
       }
     }),
@@ -1065,7 +1238,16 @@ function syncFromSupabase() {
       if (rows) db.bbEntries = rows.map(function(r){ return {
         id: r.id, date: r.date, items: r.items||[], total: parseFloat(r.total)||0, savedAt: r.saved_at
       }; });
-    })
+    }),
+    sbFetch('GET', 'fin_entries', null, 'order=date.desc&limit=365').then(function(rows) {
+      if (rows) db.finEntries = rows.map(function(r){ return {
+        id: r.id, date: r.date,
+        t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
+        totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
+        tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
+        cash: parseFloat(r.cash)||0, notes: r.notes||'', savedAt: r.saved_at
+      }; });
+    }).catch(function(){ /* table may not exist yet */ })
   ];
   return Promise.all(promises).then(function() {
     saveDB(db);
@@ -1082,6 +1264,7 @@ function syncFromSupabase() {
 // STATE
 // ================================================
 var isAdmin = false;
+var isFinance = false;
 var currentSection = 'dashboard';
 var calendarWeekStart = getMonday(new Date());
 var selectedCalendarDay = null;
@@ -1094,9 +1277,11 @@ var editInventoryId = null;
 var editBbItemId = null;
 var shiftsWeekOffset = 0;
 var pinBuffer = '';
+var finPinBuffer = '';
 var bbSelectedItems = {}; // {id: qty}
 var bbItemSearchVal = '';
 var currentBbTab = 'daily';
+var currentFinTab = 'entry';
 var selectedTables = [];
 
 // ================================================
@@ -1196,6 +1381,74 @@ function updateAdminUI() {
 }
 
 // ================================================
+// FINANCE PIN SYSTEM
+// ================================================
+function openFinanceLogin(callback) {
+  finPinBuffer = '';
+  document.getElementById('fin-pin-error').textContent = '';
+  updateFinPinDisplay();
+  openModal('modal-finance-login');
+  window._finPinCallback = callback || null;
+}
+
+function updateFinPinDisplay() {
+  for (var i = 0; i < 4; i++) {
+    var dot = document.getElementById('fpd' + i);
+    if (dot) dot.classList.toggle('filled', i < finPinBuffer.length);
+  }
+}
+
+function handleFinPinKey(key) {
+  if (key === 'cancel') { closeModal('modal-finance-login'); finPinBuffer = ''; return; }
+  if (key === 'del') { finPinBuffer = finPinBuffer.slice(0,-1); updateFinPinDisplay(); return; }
+  if (finPinBuffer.length >= 4) return;
+  finPinBuffer += key;
+  updateFinPinDisplay();
+  if (finPinBuffer.length === 4) {
+    var db = getDB();
+    if (finPinBuffer === db.financePin) {
+      isFinance = true;
+      closeModal('modal-finance-login');
+      finPinBuffer = '';
+      updateFinanceUI();
+      toast('Finance access granted!', 'gold');
+      if (window._finPinCallback) { window._finPinCallback(); window._finPinCallback = null; }
+      else { showSection('finance'); }
+    } else {
+      document.getElementById('fin-pin-error').textContent = 'Incorrect PIN. Try again.';
+      finPinBuffer = '';
+      updateFinPinDisplay();
+      setTimeout(function(){ document.getElementById('fin-pin-error').textContent = ''; }, 2000);
+    }
+  }
+}
+
+function financeLogout() {
+  isFinance = false;
+  updateFinanceUI();
+  if (currentSection === 'finance') showSection('dashboard');
+  toast('Finance logged out.');
+}
+
+function updateFinanceUI() {
+  var loginBtn = document.getElementById('finance-login-btn');
+  var logoutBtn = document.getElementById('finance-logout-btn');
+  if (loginBtn) loginBtn.style.display = isFinance ? 'none' : 'flex';
+  if (logoutBtn) logoutBtn.style.display = isFinance ? 'flex' : 'none';
+}
+
+function changeFinancePin() {
+  var np = document.getElementById('new-finance-pin').value;
+  var cp = document.getElementById('confirm-finance-pin').value;
+  if (!/^\d{4}$/.test(np)) { toast('Finance PIN must be 4 digits','error'); return; }
+  if (np !== cp) { toast('PINs do not match','error'); return; }
+  var db = getDB(); db.financePin = np; saveDB(db);
+  document.getElementById('new-finance-pin').value=''; document.getElementById('confirm-finance-pin').value='';
+  sbFetch('PATCH','settings',{finance_pin:np},'id=eq.config').catch(function(){});
+  toast('Finance PIN updated!', 'gold');
+}
+
+// ================================================
 // DRAWER / NAVIGATION
 // ================================================
 function openDrawer() { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
@@ -1218,7 +1471,7 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + name);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Bar da Praia',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',settings:'Settings'};
+  var titles = {dashboard:'Bar da Praia',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   currentSection = name;
 
@@ -1228,6 +1481,7 @@ function showSection(name) {
   if (name === 'tasks')        renderTasks();
   if (name === 'shifts')       renderShifts();
   if (name === 'blackbox')     renderBlackBox();
+  if (name === 'finance')      renderFinance();
   if (name === 'settings')     renderSettings();
 }
 
@@ -1354,6 +1608,153 @@ function saveSupabase() {
 }
 function updateSupabaseStatus() {
   setSbStatus(true, 'Connected · ' + SB_URL.replace('https://',''));
+}
+
+// ================================================
+// FINANCE
+// ================================================
+function switchFinTab(tab) {
+  ['entry','records'].forEach(function(x){
+    document.getElementById('fin-tab-'+x).classList.toggle('active',x===tab);
+    document.getElementById('fin-panel-'+x).style.display=x===tab?'block':'none';
+  });
+  currentFinTab = tab;
+  if (tab === 'records') renderFinRecords();
+}
+
+function renderFinance() {
+  var locked = document.getElementById('finance-locked');
+  var content = document.getElementById('finance-content');
+  if (!isFinance) {
+    locked.style.display = 'flex';
+    content.style.display = 'none';
+    return;
+  }
+  locked.style.display = 'none';
+  content.style.display = 'block';
+  // Set today's date label
+  var today = toDateStr(new Date());
+  var el = document.getElementById('fin-entry-date');
+  if (el) el.textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  // Check if there's already an entry for today and pre-fill
+  var db = getDB();
+  var existing = (db.finEntries||[]).find(function(e){ return e.date === today; });
+  if (existing) {
+    setFinForm(existing);
+  }
+  updateFinDayTotal();
+  if (currentFinTab === 'records') renderFinRecords();
+}
+
+function setFinForm(entry) {
+  document.getElementById('fin-t51').value = entry.t51 || '';
+  document.getElementById('fin-multibanco').value = entry.multibanco || '';
+  document.getElementById('fin-invoiced').value = entry.invoiced || '';
+  document.getElementById('fin-tips').value = entry.tips || '';
+  document.getElementById('fin-entregar').value = entry.entregar || '';
+  document.getElementById('fin-cash').value = entry.cash || '';
+  document.getElementById('fin-notes').value = entry.notes || '';
+  updateFinDayTotal();
+}
+
+function getFinFormValues() {
+  return {
+    t51:        parseFloat(document.getElementById('fin-t51').value) || 0,
+    multibanco: parseFloat(document.getElementById('fin-multibanco').value) || 0,
+    invoiced:   parseFloat(document.getElementById('fin-invoiced').value) || 0,
+    tips:       parseFloat(document.getElementById('fin-tips').value) || 0,
+    entregar:   parseFloat(document.getElementById('fin-entregar').value) || 0,
+    cash:       parseFloat(document.getElementById('fin-cash').value) || 0,
+    notes:      document.getElementById('fin-notes').value.trim()
+  };
+}
+
+function updateFinDayTotal() {
+  var v = getFinFormValues();
+  var total = v.t51 + v.multibanco;
+  var calcEl = document.getElementById('fin-total-day-calc');
+  var totalEl = document.getElementById('fin-day-total');
+  if (calcEl) calcEl.textContent = fmtEur(total);
+  if (totalEl) totalEl.textContent = fmtEur(total);
+}
+
+function saveFinanceEntry() {
+  var v = getFinFormValues();
+  var total = v.t51 + v.multibanco;
+  var today = toDateStr(new Date());
+  var db = getDB();
+  if (!db.finEntries) db.finEntries = [];
+  var idx = db.finEntries.findIndex(function(e){ return e.date === today; });
+  var entry = {
+    id: idx !== -1 ? db.finEntries[idx].id : uid(),
+    date: today,
+    t51: v.t51, multibanco: v.multibanco, totalDay: total,
+    invoiced: v.invoiced, tips: v.tips, entregar: v.entregar,
+    cash: v.cash, notes: v.notes, savedAt: new Date().toISOString()
+  };
+  if (idx !== -1) { db.finEntries[idx] = entry; } else { db.finEntries.unshift(entry); }
+  saveDB(db);
+  toast('Daily finance entry saved!', 'gold');
+  updateFinDayTotal();
+  // Supabase sync
+  sbFetch(idx !== -1 ? 'PATCH' : 'POST', 'fin_entries',
+    { id: entry.id, date: entry.date, t51: entry.t51, multibanco: entry.multibanco,
+      total_day: entry.totalDay, invoiced: entry.invoiced, tips: entry.tips,
+      entregar: entry.entregar, cash: entry.cash, notes: entry.notes, saved_at: entry.savedAt },
+    idx !== -1 ? 'id=eq.'+entry.id : null
+  ).catch(function(){ /* saved locally */ });
+}
+
+function clearFinanceEntry() {
+  ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-entregar','fin-cash','fin-notes'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value='';
+  });
+  updateFinDayTotal();
+}
+
+function renderFinRecords() {
+  var db = getDB();
+  var entries = (db.finEntries||[]).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+  var today = toDateStr(new Date());
+  var weekStart = toDateStr(getMonday(new Date()));
+  var monthStr = today.slice(0,7);
+
+  var todayTotal=0, weekTotal=0, monthTotal=0;
+  entries.forEach(function(e){
+    var t = e.totalDay || 0;
+    if (e.date === today) todayTotal += t;
+    if (e.date >= weekStart) weekTotal += t;
+    if (e.date.slice(0,7) === monthStr) monthTotal += t;
+  });
+  var todayEl = document.getElementById('fin-rec-today');
+  var weekEl  = document.getElementById('fin-rec-week');
+  var monthEl = document.getElementById('fin-rec-month');
+  if (todayEl) todayEl.textContent = fmtEur(todayTotal);
+  if (weekEl)  weekEl.textContent  = fmtEur(weekTotal);
+  if (monthEl) monthEl.textContent = fmtEur(monthTotal);
+
+  var listEl = document.getElementById('fin-records-list');
+  if (!listEl) return;
+  if (!entries.length) {
+    listEl.innerHTML = '<div class="empty-state" style="padding:24px"><i class="fas fa-folder-open"></i><p>No records yet.</p></div>';
+    return;
+  }
+  listEl.innerHTML = entries.map(function(e){
+    var total = e.totalDay || 0;
+    return '<div class="fin-record">'
+      +'<div class="fin-record-header">'
+        +'<span class="fin-record-date">'+fmtDateShort(e.date)+'</span>'
+        +'<span class="fin-record-total">'+fmtEur(total)+'</span>'
+      +'</div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-cash-register" style="color:var(--ocean-400)"></i> T 51</span><span class="fin-row-val">'+fmtEur(e.t51||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-credit-card" style="color:var(--ocean-400)"></i> MultiBanco</span><span class="fin-row-val">'+fmtEur(e.multibanco||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#10b981"></i> Total Invoiced</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Tips</span><span class="fin-row-val">'+fmtEur(e.tips||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-arrow-right" style="color:#ef4444"></i> € Entregar</span><span class="fin-row-val">'+fmtEur(e.entregar||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Details</span><span class="fin-row-val">'+fmtEur(e.cash||0)+'</span></div>'
+      +(e.notes ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-note-sticky" style="color:var(--ocean-300)"></i> Notes</span><span style="font-size:13px;color:var(--ocean-600)">'+esc(e.notes)+'</span></div>' : '')
+    +'</div>';
+  }).join('');
 }
 
 // ================================================
@@ -2280,6 +2681,20 @@ document.addEventListener('click', function(e) {
   if (t.closest('#hamburger-btn')) { openDrawer(); return; }
   if (t.closest('#drawer-overlay')) { closeDrawer(); return; }
 
+  // Finance PIN pad
+  var finPinEl = t.closest('[data-fin-pin-key]');
+  if (finPinEl) { handleFinPinKey(finPinEl.dataset.finPinKey); return; }
+  if (t.closest('#fin-login-prompt-btn')) { openFinanceLogin(); return; }
+  if (t.closest('#finance-login-btn')) { openFinanceLogin(); return; }
+  if (t.closest('#finance-logout-btn')) { financeLogout(); return; }
+
+  // Finance tabs & actions
+  var finTabEl = t.closest('[data-fin-tab]');
+  if (finTabEl) { switchFinTab(finTabEl.dataset.finTab); return; }
+  if (t.closest('#btn-save-finance-entry')) { saveFinanceEntry(); return; }
+  if (t.closest('#btn-clear-finance-entry')) { clearFinanceEntry(); return; }
+  if (t.closest('#btn-change-finance-pin')) { changeFinancePin(); return; }
+
   // Admin
   if (t.closest('#admin-login-btn')) { openAdminLogin(); return; }
   if (t.closest('#admin-logout-btn')) { adminLogout(); return; }
@@ -2386,6 +2801,8 @@ document.addEventListener('input', function(e) {
   if (t.id === 'inv-search') { invSearchVal=t.value; renderInventory(); }
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
+  // Finance live total update
+  if (['fin-t51','fin-multibanco'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
 });
 document.addEventListener('change', function(e) {
   var t = e.target;
@@ -2402,6 +2819,7 @@ initSupabase();
 // Show cached data immediately for instant load
 updateAllDropdowns();
 updateAdminUI();
+updateFinanceUI();
 showSection('dashboard');
 updateOrdersBadge();
 // Then sync from Supabase and refresh all views
