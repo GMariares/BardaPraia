@@ -603,7 +603,7 @@ export function getAppHTML(): string {
           <h3><i class="fas fa-file-invoice-dollar" style="color:#10b981"></i> Invoiced</h3>
           <div class="fin-input-row" style="margin-bottom:0">
             <label>Total Invoiced</label>
-            <input type="number" id="fin-invoiced" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-invoiced" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
         </div>
 
@@ -612,11 +612,11 @@ export function getAppHTML(): string {
           <h3><i class="fas fa-money-bill-wave" style="color:var(--ocean-500)"></i> Revenue</h3>
           <div class="fin-input-row">
             <label>T 51</label>
-            <input type="number" id="fin-t51" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-t51" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-input-row">
             <label>MultiBanco</label>
-            <input type="number" id="fin-multibanco" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-multibanco" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-derived">
             <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> Total of Day (Invoiced + T51)</span>
@@ -629,11 +629,11 @@ export function getAppHTML(): string {
           <h3><i class="fas fa-arrow-down" style="color:#ef4444"></i> Expenses</h3>
           <div class="fin-input-row">
             <label>Tips</label>
-            <input type="number" id="fin-tips" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-tips" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-input-row">
             <label>General Expenses</label>
-            <input type="number" id="fin-gen-expenses" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-gen-expenses" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-derived">
             <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> € Entregar (Day − MB − Gen.Exp)</span>
@@ -647,11 +647,11 @@ export function getAppHTML(): string {
           <h3><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Details</h3>
           <div class="fin-input-row">
             <label>Notes</label>
-            <input type="number" id="fin-cash-notes" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-cash-notes" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-input-row">
             <label>Coins</label>
-            <input type="number" id="fin-coins" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-coins" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-derived" style="margin-top:6px">
             <span class="fin-derived-label"><i class="fas fa-sigma" style="color:var(--ocean-400)"></i> Total Cash (Notes + Coins)</span>
@@ -666,7 +666,7 @@ export function getAppHTML(): string {
           <h3><i class="fas fa-umbrella-beach" style="color:#0ea5e9"></i> Surf</h3>
           <div class="fin-input-row" style="margin-bottom:0">
             <label>Surf</label>
-            <input type="number" id="fin-surf" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            <input type="text" id="fin-surf" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
         </div>
 
@@ -799,7 +799,7 @@ export function getAppHTML(): string {
         <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Set the base cash fund amount used in Finance calculations.</p>
         <div class="fin-input-row" style="margin-bottom:12px">
           <label>Fundo de Caixa (€)</label>
-          <input type="number" id="settings-fundo" class="input-field" placeholder="0.00" step="0.01" min="0" inputmode="decimal" style="text-align:right;font-weight:700;font-size:16px" />
+          <input type="text" id="settings-fundo" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" />
         </div>
         <button class="btn btn-primary" id="btn-save-fundo"><i class="fas fa-save"></i> Save</button>
       </div>
@@ -1796,7 +1796,8 @@ function setFinForm(entry) {
 function finVal(id) {
   var el = document.getElementById(id);
   if (!el) return 0;
-  var raw = el.value.trim().replace(',', '.');
+  // Replace comma decimal separator (Portuguese/iOS keyboards) with dot
+  var raw = el.value.trim().replace(/\s/g, '').replace(',', '.');
   var n = parseFloat(raw);
   return isNaN(n) ? 0 : n;
 }
