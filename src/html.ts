@@ -165,7 +165,10 @@ export function getAppHTML(): string {
     .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
 
     /* ── INVENTORY CARDS ── */
-    .inv-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); margin-bottom:10px; box-shadow:var(--shadow); }
+    .inv-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); margin-bottom:10px; box-shadow:var(--shadow); cursor:grab; user-select:none; transition:opacity .15s,box-shadow .15s; }
+    .inv-card.dragging { opacity:.4; box-shadow:none; cursor:grabbing; }
+    .inv-card.drag-over { border:2px dashed var(--ocean-400); }
+    .inv-drag-handle { color:var(--ocean-300); font-size:16px; cursor:grab; padding:0 4px 0 0; flex-shrink:0; }
     .inv-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
     .inv-cat-icon { font-size:22px; flex-shrink:0; }
     .inv-name { font-weight:700; font-size:15px; color:var(--ocean-900); }
@@ -475,10 +478,10 @@ export function getAppHTML(): string {
         <input type="text" placeholder="Search items..." id="inv-search" />
         <select id="inv-cat-filter" style="border:none;outline:none;font-size:13px;color:var(--ocean-600);background:transparent;cursor:pointer">
           <option value="">All</option>
-          <option value="beverages">🍹 Drinks</option>
-          <option value="food">🍔 Food</option>
-          <option value="supplies">🧹 Supplies</option>
-          <option value="equipment">🔧 Equipment</option>
+          <option value="beverages">🍹 Bar</option>
+          <option value="food">🍔 Cozinha</option>
+          <option value="supplies">🧹 Limpeza</option>
+          <option value="equipment">🔧 Economato</option>
           <option value="other">📦 Other</option>
         </select>
       </div>
@@ -569,6 +572,21 @@ export function getAppHTML(): string {
       <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block"></span> Afternoon</span>
       <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#8b5cf6;display:inline-block"></span> Evening</span>
       <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#374151;display:inline-block"></span> Night</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#1f2937;border:1px solid #374151;display:inline-block"></span> Day Off</span>
+    </div>
+    <!-- Weekly Tips Calculator -->
+    <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+      <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        <i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Weekly Tips Distribution
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <label style="font-size:11px;font-weight:600;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Total Tips (€)</label>
+          <input type="text" id="shifts-tips-input" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700" />
+        </div>
+        <button class="btn btn-gold btn-sm" id="btn-generate-tips" style="height:42px;white-space:nowrap"><i class="fas fa-calculator"></i> Generate</button>
+      </div>
+      <div id="shifts-tips-result" style="margin-top:10px"></div>
     </div>
     <div id="shifts-list"></div>
   </section>
@@ -602,7 +620,7 @@ export function getAppHTML(): string {
         <div class="fin-card">
           <h3><i class="fas fa-file-invoice-dollar" style="color:#10b981"></i> Invoiced</h3>
           <div class="fin-input-row" style="margin-bottom:0">
-            <label>Total Invoiced</label>
+            <label>Total Facturado</label>
             <input type="text" id="fin-invoiced" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
         </div>
@@ -632,7 +650,7 @@ export function getAppHTML(): string {
             <input type="text" id="fin-tips" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-input-row">
-            <label>General Expenses</label>
+            <label>Despesas</label>
             <input type="text" id="fin-gen-expenses" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-derived">
@@ -680,19 +698,106 @@ export function getAppHTML(): string {
 
       <!-- ── Records Panel ── -->
       <div id="fin-panel-records" style="display:none">
-        <div class="fin-summary-grid">
-          <div class="fin-summary-card">
-            <div class="fin-summary-num" id="fin-rec-today">€0</div>
-            <div class="fin-summary-label">Today</div>
+
+        <!-- Section 1: Total of Day -->
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-receipt" style="color:#7c3aed"></i> Total of the Day</div>
+          <div class="fin-summary-grid">
+            <div class="fin-summary-card" style="position:relative">
+              <div class="fin-summary-num" id="fin-stat-day-month">€0</div>
+              <div class="fin-summary-label">This Month</div>
+              <div id="fin-stat-day-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-day-month-budget" style="font-size:11px;margin-top:4px"></div>
+            </div>
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-day-year">€0</div>
+              <div class="fin-summary-label">This Year</div>
+              <div id="fin-stat-day-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-day-year-budget" style="font-size:11px;margin-top:4px"></div>
+            </div>
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-day-range">€0</div>
+              <div class="fin-summary-label">Custom Range</div>
+              <div id="fin-stat-day-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-day-range-budget" style="font-size:11px;margin-top:4px"></div>
+            </div>
           </div>
-          <div class="fin-summary-card">
-            <div class="fin-summary-num" id="fin-rec-week">€0</div>
-            <div class="fin-summary-label">This Week</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+            <input type="date" id="fin-range-from" class="input-field" style="flex:1;min-width:120px;font-size:12px;padding:6px 8px" />
+            <span style="font-size:12px;color:var(--ocean-400)">to</span>
+            <input type="date" id="fin-range-to" class="input-field" style="flex:1;min-width:120px;font-size:12px;padding:6px 8px" />
+            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:140px">
+              <label style="font-size:11px;color:var(--ocean-600);white-space:nowrap">Budget €</label>
+              <input type="text" id="fin-budget-day" class="input-field" placeholder="0.00" inputmode="decimal" style="flex:1;font-size:12px;padding:6px 8px;text-align:right" />
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-fin-recalc"><i class="fas fa-calculator"></i> Calc</button>
           </div>
-          <div class="fin-summary-card">
-            <div class="fin-summary-num" id="fin-rec-month">€0</div>
-            <div class="fin-summary-label">This Month</div>
+        </div>
+
+        <!-- Section 2: T51 -->
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-cash-register" style="color:#0ea5e9"></i> T 51</div>
+          <div class="fin-summary-grid">
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-t51-month">€0</div>
+              <div class="fin-summary-label">This Month</div>
+              <div id="fin-stat-t51-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-t51-month-budget" style="font-size:11px;margin-top:4px"></div>
+            </div>
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-t51-year">€0</div>
+              <div class="fin-summary-label">This Year</div>
+              <div id="fin-stat-t51-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-t51-range">€0</div>
+              <div class="fin-summary-label">Custom Range</div>
+              <div id="fin-stat-t51-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
           </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:140px">
+              <label style="font-size:11px;color:var(--ocean-600);white-space:nowrap">Budget €</label>
+              <input type="text" id="fin-budget-t51" class="input-field" placeholder="0.00" inputmode="decimal" style="flex:1;font-size:12px;padding:6px 8px;text-align:right" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Surf -->
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-water" style="color:#06b6d4"></i> Surf</div>
+          <div class="fin-summary-grid">
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-surf-month">€0</div>
+              <div class="fin-summary-label">This Month</div>
+              <div id="fin-stat-surf-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-surf-month-budget" style="font-size:11px;margin-top:4px"></div>
+            </div>
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-surf-year">€0</div>
+              <div class="fin-summary-label">This Year</div>
+              <div id="fin-stat-surf-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
+            <div class="fin-summary-card">
+              <div class="fin-summary-num" id="fin-stat-surf-range">€0</div>
+              <div class="fin-summary-label">Custom Range</div>
+              <div id="fin-stat-surf-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:140px">
+              <label style="font-size:11px;color:var(--ocean-600);white-space:nowrap">Budget €</label>
+              <input type="text" id="fin-budget-surf" class="input-field" placeholder="0.00" inputmode="decimal" style="flex:1;font-size:12px;padding:6px 8px;text-align:right" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Day picker + records list -->
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+          <i class="fas fa-calendar-day" style="color:var(--ocean-400)"></i>
+          <label style="font-size:12px;font-weight:600;color:var(--ocean-600);white-space:nowrap">Jump to date:</label>
+          <input type="date" id="fin-rec-day-picker" class="input-field" style="flex:1;font-size:12px;padding:6px 8px" />
+          <button class="btn btn-secondary btn-sm" id="btn-fin-clear-day"><i class="fas fa-times"></i></button>
         </div>
         <div id="fin-records-list"></div>
       </div>
@@ -929,10 +1034,10 @@ export function getAppHTML(): string {
       <div><label class="label">Item Name *</label><input type="text" class="input-field" id="inv-item-name" placeholder="e.g. Water Bottle" /></div>
       <div><label class="label">Category</label>
         <select class="select-field" id="inv-category">
-          <option value="beverages">🍹 Beverages</option>
-          <option value="food">🍔 Food</option>
-          <option value="supplies">🧹 Supplies</option>
-          <option value="equipment">🔧 Equipment</option>
+          <option value="beverages">🍹 Bar</option>
+          <option value="food">🍔 Cozinha</option>
+          <option value="supplies">🧹 Limpeza</option>
+          <option value="equipment">🔧 Economato</option>
           <option value="other">📦 Other</option>
         </select>
       </div>
@@ -1084,7 +1189,12 @@ export function getAppHTML(): string {
     <h2><i class="fas fa-clock" style="color:var(--ocean-400)"></i><span id="shift-modal-title">Add Shift</span></h2>
     <input type="hidden" id="shift-edit-id" />
     <div class="form-row"><label class="label">Employee *</label><select class="select-field" id="shift-employee"></select></div>
-    <div class="form-row"><label class="label">Day *</label>
+    <!-- Full week toggle -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;background:#f0f9ff;border-radius:10px;border:1px solid #bae6fd">
+      <input type="checkbox" id="shift-full-week" style="width:18px;height:18px;cursor:pointer;accent-color:var(--ocean-500)" />
+      <label for="shift-full-week" style="font-size:13px;font-weight:600;color:var(--ocean-700);cursor:pointer">Set for entire week (all 7 days)</label>
+    </div>
+    <div id="shift-day-row" class="form-row"><label class="label">Day *</label>
       <select class="select-field" id="shift-day">
         <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
         <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
@@ -1092,11 +1202,18 @@ export function getAppHTML(): string {
         <option value="Sunday">Sunday</option>
       </select>
     </div>
-    <div class="form-grid-2" style="margin-bottom:14px">
-      <div><label class="label">Start Time *</label><input type="time" class="input-field" id="shift-start" /></div>
-      <div><label class="label">End Time *</label><input type="time" class="input-field" id="shift-end" /></div>
+    <!-- Day off toggle -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca">
+      <input type="checkbox" id="shift-day-off" style="width:18px;height:18px;cursor:pointer;accent-color:#dc2626" />
+      <label for="shift-day-off" style="font-size:13px;font-weight:600;color:#991b1b;cursor:pointer">Day Off (no shift)</label>
     </div>
-    <div class="form-row"><label class="label">Role / Notes</label><input type="text" class="input-field" id="shift-role" placeholder="e.g. Bar, Kitchen, Host..." /></div>
+    <div id="shift-times-row">
+      <div class="form-grid-2" style="margin-bottom:14px">
+        <div><label class="label">Start Time *</label><input type="time" class="input-field" id="shift-start" /></div>
+        <div><label class="label">End Time *</label><input type="time" class="input-field" id="shift-end" /></div>
+      </div>
+      <div class="form-row"><label class="label">Role / Notes</label><input type="text" class="input-field" id="shift-role" placeholder="e.g. Bar, Kitchen, Host..." /></div>
+    </div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-shift"><i class="fas fa-save"></i> Save Shift</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-shift">Cancel</button>
@@ -1200,6 +1317,8 @@ function getDB() {
   if (!db.financePin)   db.financePin = '0000';
   if (!db.finEntries)   db.finEntries = [];
   if (db.fundoCaixa === undefined) db.fundoCaixa = 0;
+  if (!db.invSortOrder) db.invSortOrder = [];
+  if (!db.weekTips)     db.weekTips = {};
   return db;
 }
 
@@ -1901,36 +2020,66 @@ function clearFinanceEntry() {
   updateFinDayTotal();
 }
 
+var finRecDayFilter = '';
+function finBudgetDeviation(actual, budget){
+  if(!budget||budget<=0) return '';
+  var pct = ((actual - budget) / budget * 100);
+  var color = pct >= 0 ? '#16a34a' : '#dc2626';
+  var sign = pct >= 0 ? '+' : '';
+  return '<span style="font-size:11px;font-weight:700;color:'+color+'">'+sign+pct.toFixed(1)+'% vs budget</span>';
+}
+function finStatBox(sumId, avgId, budgetDevId, total, count, budget){
+  var el=document.getElementById(sumId); if(el) el.textContent=fmtEur(total);
+  var avgEl=document.getElementById(avgId); if(avgEl) avgEl.textContent=count>0?('avg '+fmtEur(total/count)+'/day'):'';
+  var bEl=document.getElementById(budgetDevId); if(bEl) bEl.innerHTML=finBudgetDeviation(total,budget);
+}
 function renderFinRecords() {
   var db = getDB();
-  var entries = (db.finEntries||[]).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+  var allEntries = (db.finEntries||[]).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
   var today = toDateStr(new Date());
-  var weekStart = toDateStr(getMonday(new Date()));
   var monthStr = today.slice(0,7);
+  var yearStr  = today.slice(0,4);
 
-  var todayTotal=0, weekTotal=0, monthTotal=0;
-  entries.forEach(function(e){
-    var t = e.totalDay || 0;
-    if (e.date === today) todayTotal += t;
-    if (e.date >= weekStart) weekTotal += t;
-    if (e.date.slice(0,7) === monthStr) monthTotal += t;
+  // Read range inputs
+  var fromEl=document.getElementById('fin-range-from'), toEl=document.getElementById('fin-range-to');
+  var rangeFrom = fromEl?fromEl.value:'', rangeTo = toEl?toEl.value:'';
+  // Read budgets
+  function getBudget(id){ var el=document.getElementById(id); return el?parseFloat((el.value||'').replace(',','.'))||0:0; }
+  var budgetDay  = getBudget('fin-budget-day');
+  var budgetT51  = getBudget('fin-budget-t51');
+  var budgetSurf = getBudget('fin-budget-surf');
+
+  // Aggregate totals
+  var dayMonth=0,dayYear=0,dayRange=0, t51Month=0,t51Year=0,t51Range=0, surfMonth=0,surfYear=0,surfRange=0;
+  var cntMonth=0,cntYear=0,cntRange=0;
+  allEntries.forEach(function(e){
+    var td=e.totalDay||0, t=e.t51||0, s=e.surf||0;
+    if(e.date.slice(0,7)===monthStr){ dayMonth+=td; t51Month+=t; surfMonth+=s; cntMonth++; }
+    if(e.date.slice(0,4)===yearStr) { dayYear+=td;  t51Year+=t;  surfYear+=s;  cntYear++; }
+    if(rangeFrom&&rangeTo&&e.date>=rangeFrom&&e.date<=rangeTo){ dayRange+=td; t51Range+=t; surfRange+=s; cntRange++; }
   });
-  var todayEl = document.getElementById('fin-rec-today');
-  var weekEl  = document.getElementById('fin-rec-week');
-  var monthEl = document.getElementById('fin-rec-month');
-  if (todayEl) todayEl.textContent = fmtEur(todayTotal);
-  if (weekEl)  weekEl.textContent  = fmtEur(weekTotal);
-  if (monthEl) monthEl.textContent = fmtEur(monthTotal);
 
+  finStatBox('fin-stat-day-month','fin-stat-day-month-avg','fin-stat-day-month-budget', dayMonth, cntMonth, budgetDay);
+  finStatBox('fin-stat-day-year', 'fin-stat-day-year-avg', 'fin-stat-day-year-budget',  dayYear,  cntYear,  budgetDay*12);
+  finStatBox('fin-stat-day-range','fin-stat-day-range-avg','fin-stat-day-range-budget', dayRange, cntRange, 0);
+  finStatBox('fin-stat-t51-month','fin-stat-t51-month-avg','fin-stat-t51-month-budget', t51Month, cntMonth, budgetT51);
+  finStatBox('fin-stat-t51-year', 'fin-stat-t51-year-avg', null, t51Year, cntYear, 0);
+  finStatBox('fin-stat-t51-range','fin-stat-t51-range-avg',null, t51Range, cntRange, 0);
+  finStatBox('fin-stat-surf-month','fin-stat-surf-month-avg','fin-stat-surf-month-budget', surfMonth, cntMonth, budgetSurf);
+  finStatBox('fin-stat-surf-year', 'fin-stat-surf-year-avg', null, surfYear, cntYear, 0);
+  finStatBox('fin-stat-surf-range','fin-stat-surf-range-avg',null, surfRange, cntRange, 0);
+
+  // Records list — optionally filtered by day picker
   var listEl = document.getElementById('fin-records-list');
   if (!listEl) return;
+  var entries = finRecDayFilter ? allEntries.filter(function(e){ return e.date===finRecDayFilter; }) : allEntries;
   if (!entries.length) {
-    listEl.innerHTML = '<div class="empty-state" style="padding:24px"><i class="fas fa-folder-open"></i><p>No records yet.</p></div>';
+    listEl.innerHTML = '<div class="empty-state" style="padding:24px"><i class="fas fa-folder-open"></i><p>No records'+(finRecDayFilter?' for '+fmtDateShort(finRecDayFilter):'')+' yet.</p></div>';
     return;
   }
+  var fundo = db.fundoCaixa || 0;
   listEl.innerHTML = entries.map(function(e){
     var total = e.totalDay || 0;
-    var fundo = getDB().fundoCaixa || 0;
     var cashTotal = (e.cashNotes||0) + (e.coins||0);
     var expected = (e.entregar||0) + fundo;
     var diff = cashTotal - expected;
@@ -1949,12 +2098,13 @@ function renderFinRecords() {
         +'<span class="fin-record-date">'+fmtDateShort(e.date)+'</span>'
         +'<span class="fin-record-total">'+fmtEur(total)+'</span>'
       +'</div>'
-      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#10b981"></i> Total Invoiced</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#10b981"></i> Total Facturado</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-cash-register" style="color:var(--ocean-400)"></i> T 51</span><span class="fin-row-val">'+fmtEur(e.t51||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-credit-card" style="color:var(--ocean-400)"></i> MultiBanco</span><span class="fin-row-val">'+fmtEur(e.multibanco||0)+'</span></div>'
-      +(e.genExpenses ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-receipt" style="color:#ef4444"></i> General Expenses</span><span class="fin-row-val">'+fmtEur(e.genExpenses||0)+'</span></div>' : '')
+      +(e.genExpenses ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-receipt" style="color:#ef4444"></i> Despesas</span><span class="fin-row-val">'+fmtEur(e.genExpenses||0)+'</span></div>' : '')
+      +(e.surf ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-water" style="color:#06b6d4"></i> Surf</span><span class="fin-row-val">'+fmtEur(e.surf||0)+'</span></div>' : '')
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Tips</span><span class="fin-row-val">'+fmtEur(e.tips||0)+'</span></div>'
-      +'<div class="fin-row"><span class="fin-row-label" style="color:#7c3aed;font-weight:800"><i class="fas fa-arrow-right" style="color:#7c3aed"></i> € Entregar</span><span class="fin-row-val" style="color:#7c3aed">'+fmtEur(e.entregar||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label" style="color:#7c3aed;font-weight:800"><i class="fas fa-arrow-right" style="color:#7c3aed"></i> Entregar</span><span class="fin-row-val" style="color:#7c3aed">'+fmtEur(e.entregar||0)+'</span></div>'
       +(cashTotal ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Total</span><span class="fin-row-val">'+fmtEur(cashTotal)+'</span></div>' : '')
       +balHtml
     +'</div>';
@@ -1965,6 +2115,7 @@ function renderFinRecords() {
 // INVENTORY
 // ================================================
 var catIconMap={beverages:'🍹',food:'🍔',supplies:'🧹',equipment:'🔧',other:'📦'};
+var catLabelMap={beverages:'Bar',food:'Cozinha',supplies:'Limpeza',equipment:'Economato',other:'Other'};
 function switchInvTab(t) {
   ['stock','log','orders'].forEach(function(x){
     document.getElementById('inv-tab-'+x).classList.toggle('active',x===t);
@@ -2083,6 +2234,11 @@ function saveMinimum(){
 }
 function renderInventory(){
   var db=getDB(); var items=db.inventory.slice();
+  // Apply custom sort order when no filter active
+  if(!invSearchVal && !invCatFilter && db.invSortOrder && db.invSortOrder.length){
+    var order=db.invSortOrder;
+    items.sort(function(a,b){ var ai=order.indexOf(a.id),bi=order.indexOf(b.id); return (ai===-1?9999:ai)-(bi===-1?9999:bi); });
+  }
   if(invSearchVal) items=items.filter(function(i){return i.name.toLowerCase().indexOf(invSearchVal.toLowerCase())!==-1;});
   if(invCatFilter) items=items.filter(function(i){return i.category===invCatFilter;});
   var el=document.getElementById('inventory-list'); if(!el) return;
@@ -2090,8 +2246,9 @@ function renderInventory(){
   el.innerHTML=items.map(function(item){
     var total=item.qtyBar+item.qtyStorage; var isLow=total<item.minimum;
     var pct=item.minimum>0?Math.min(Math.round(total/item.minimum*100),100):100;
-    return '<div class="inv-card">'
+    return '<div class="inv-card" draggable="true" data-inv-id="'+esc(item.id)+'">'
       +'<div class="inv-card-header">'
+        +'<div class="inv-drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></div>'
         +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'📦')+'</div>'
         +'<div style="flex:1;min-width:0"><div class="inv-name">'+esc(item.name)+'</div>'
         +'<div class="inv-meta">'+(item.lastEmployee?'Last: '+esc(item.lastEmployee):'')+(item.updatedAt?' · '+fmtDate(item.updatedAt):'')+'</div></div>'
@@ -2114,6 +2271,77 @@ function renderInventory(){
       +'</div>'
     +'</div>';
   }).join('');
+  initInvDragDrop();
+}
+
+var invDragSrc = null;
+function initInvDragDrop(){
+  var list = document.getElementById('inventory-list'); if(!list) return;
+  var cards = list.querySelectorAll('.inv-card[data-inv-id]');
+  cards.forEach(function(card){
+    card.addEventListener('dragstart', function(e){
+      invDragSrc = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', function(){
+      card.classList.remove('dragging');
+      list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
+      // Save new order
+      var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
+      var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
+    });
+    card.addEventListener('dragover', function(e){
+      e.preventDefault(); e.dataTransfer.dropEffect='move';
+      if(card !== invDragSrc){
+        list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
+        card.classList.add('drag-over');
+      }
+    });
+    card.addEventListener('drop', function(e){
+      e.preventDefault();
+      if(invDragSrc && invDragSrc !== card){
+        var allCards = Array.from(list.querySelectorAll('.inv-card'));
+        var srcIdx = allCards.indexOf(invDragSrc);
+        var tgtIdx = allCards.indexOf(card);
+        if(srcIdx < tgtIdx) list.insertBefore(invDragSrc, card.nextSibling);
+        else list.insertBefore(invDragSrc, card);
+        card.classList.remove('drag-over');
+      }
+    });
+    // Touch drag support (mobile)
+    var touchY0=0, touchCard=null, touchClone=null;
+    card.addEventListener('touchstart', function(e){
+      touchY0 = e.touches[0].clientY;
+      touchCard = card;
+    }, {passive:true});
+    card.addEventListener('touchmove', function(e){
+      if(!touchCard) return;
+      var y = e.touches[0].clientY;
+      var els = list.querySelectorAll('.inv-card');
+      els.forEach(function(c){ c.classList.remove('drag-over'); });
+      var el = document.elementFromPoint(e.touches[0].clientX, y);
+      var target = el ? el.closest('.inv-card[data-inv-id]') : null;
+      if(target && target !== touchCard) target.classList.add('drag-over');
+    }, {passive:true});
+    card.addEventListener('touchend', function(e){
+      if(!touchCard) return;
+      var y = e.changedTouches[0].clientY;
+      var el = document.elementFromPoint(e.changedTouches[0].clientX, y);
+      var target = el ? el.closest('.inv-card[data-inv-id]') : null;
+      if(target && target !== touchCard){
+        var allCards = Array.from(list.querySelectorAll('.inv-card'));
+        var srcIdx = allCards.indexOf(touchCard);
+        var tgtIdx = allCards.indexOf(target);
+        if(srcIdx < tgtIdx) list.insertBefore(touchCard, target.nextSibling);
+        else list.insertBefore(touchCard, target);
+      }
+      list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
+      var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
+      var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
+      touchCard=null;
+    });
+  });
 }
 function renderInvLog(){
   var db=getDB(); var el=document.getElementById('inv-log-list'); if(!el) return;
@@ -2489,6 +2717,12 @@ function renderShifts(){
   var db = getDB();
   var addBtn = document.getElementById('btn-add-shift');
   if (addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
+  // Restore saved tips for this week
+  var wsTipsKey = toDateStr(ws);
+  var tipsInp = document.getElementById('shifts-tips-input');
+  if (tipsInp) { tipsInp.value = db.weekTips && db.weekTips[wsTipsKey] ? db.weekTips[wsTipsKey] : ''; }
+  var tipsRes = document.getElementById('shifts-tips-result');
+  if (tipsRes) tipsRes.innerHTML = '';
   var el = document.getElementById('shifts-list'); if (!el) return;
 
   // Current time marker (only relevant for today)
@@ -2536,6 +2770,19 @@ function renderShifts(){
       rowsHTML = '<div class="gantt-empty">No shifts scheduled</div>';
     } else {
       rowsHTML = dayShifts.map(function(s) {
+        // Day off — show full-width black bar
+        if (s.dayOff) {
+          var offLabel = esc(s.employee) + ' — Day Off';
+          return '<div class="gantt-row">'
+            +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
+            +'<div class="gantt-track">'
+              +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#9ca3af;font-size:11px;letter-spacing:.5px" title="'+offLabel+'"'
+                +(isAdmin?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
+                +'<i class="fas fa-ban" style="margin-right:4px"></i>'+offLabel
+              +'</div>'
+            +'</div>'
+          +'</div>';
+        }
         var startMins = timeToMins(s.start);
         var endMins   = timeToMins(s.end);
         // Handle overnight (end < start means next day)
@@ -2588,29 +2835,79 @@ function openAddShiftModal(preDay){
   document.getElementById('shift-start').value='09:00';
   document.getElementById('shift-end').value='17:00';
   document.getElementById('shift-role').value='';
+  document.getElementById('shift-full-week').checked=false;
+  document.getElementById('shift-day-off').checked=false;
+  document.getElementById('shift-day-row').style.display='';
+  document.getElementById('shift-times-row').style.display='';
   openModal('modal-add-shift');
 }
 function saveShift(){
   var emp=document.getElementById('shift-employee').value; if(!emp){toast('Select employee!','error');return;}
+  var fullWeek=document.getElementById('shift-full-week').checked;
+  var isDayOff=document.getElementById('shift-day-off').checked;
   var day=document.getElementById('shift-day').value;
-  var start=document.getElementById('shift-start').value; if(!start){toast('Start time required!','error');return;}
-  var end=document.getElementById('shift-end').value; if(!end){toast('End time required!','error');return;}
+  var start=isDayOff?'00:00':document.getElementById('shift-start').value;
+  var end=isDayOff?'00:00':document.getElementById('shift-end').value;
+  if(!isDayOff&&!start){toast('Start time required!','error');return;}
+  if(!isDayOff&&!end){toast('End time required!','error');return;}
   var role=document.getElementById('shift-role').value.trim();
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
-  var newId=uid();
-  db.shifts.push({id:newId,employee:emp,day:day,start:start,end:end,role:role,weekStart:ws,createdAt:new Date().toISOString()});
-  saveDB(db); closeModal('modal-add-shift'); renderShifts(); toast('Adding shift...');
-  sbFetch('POST','shifts',{employee:emp,day:day,start_time:start,end_time:end,role:role,week_start:ws}).then(function(rows){
-    if(rows&&rows[0]){var si=db.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1) db.shifts[si].id=rows[0].id; saveDB(db);}
-    toast('Shift added!');
-  }).catch(function(){ toast('Saved locally','error'); });
+  var ALLDAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var daysToAdd=fullWeek?ALLDAYS:[day];
+  daysToAdd.forEach(function(d){
+    // Remove existing shift for this employee+day+week (replace mode)
+    db.shifts=db.shifts.filter(function(s){return !(s.employee===emp&&s.day===d&&s.weekStart===ws);});
+    if(!isDayOff||fullWeek){
+      // For full week day-off, still mark each day
+    }
+    var newId=uid();
+    db.shifts.push({id:newId,employee:emp,day:d,start:start,end:end,role:role,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()});
+    sbFetch('POST','shifts',{employee:emp,day:d,start_time:start,end_time:end,role:role,day_off:isDayOff,week_start:ws}).then(function(rows){
+      if(rows&&rows[0]){var si=db.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1){db.shifts[si].id=rows[0].id; saveDB(db);}}
+    }).catch(function(){});
+  });
+  saveDB(db); closeModal('modal-add-shift'); renderShifts();
+  toast(fullWeek?'Week shifts saved!':'Shift saved!');
 }
 function deleteShift(id){
   if(!confirm('Remove shift?')) return;
   var db=getDB(); db.shifts=db.shifts.filter(function(s){return s.id!==id;}); saveDB(db);
   renderShifts(); toast('Removing...');
   sbFetch('DELETE','shifts',null,'id=eq.'+id).then(function(){ toast('Shift removed.'); }).catch(function(){ toast('Removed locally','error'); });
+}
+function generateTips(){
+  var raw=(document.getElementById('shifts-tips-input').value||'').trim().replace(',','.');
+  var total=parseFloat(raw); if(isNaN(total)||total<=0){toast('Enter a valid tips amount','error');return;}
+  var db=getDB();
+  var ws=toDateStr(getWeekStart(shiftsWeekOffset));
+  var ALLDAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  // Gather worked hours per employee (exclude day-off)
+  var hoursMap={};
+  db.shifts.forEach(function(s){
+    if(s.weekStart!==ws||s.dayOff) return;
+    var sm=timeToMins(s.start), em=timeToMins(s.end);
+    if(em<=sm) em+=24*60;
+    var hrs=(em-sm)/60;
+    if(hrs>0) hoursMap[s.employee]=(hoursMap[s.employee]||0)+hrs;
+  });
+  var emps=Object.keys(hoursMap);
+  var el=document.getElementById('shifts-tips-result');
+  if(emps.length===0){el.innerHTML='<p style="font-size:13px;color:#dc2626">No worked shifts found for this week.</p>';return;}
+  var totalHrs=emps.reduce(function(s,e){return s+hoursMap[e];},0);
+  // Save tips to db
+  db.weekTips[ws]=total; saveDB(db);
+  var rows=emps.map(function(e){
+    var share=(hoursMap[e]/totalHrs)*total;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
+      +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
+      +'<div style="font-size:11px;color:var(--ocean-400)">'+hoursMap[e].toFixed(1)+' hrs ('+Math.round(hoursMap[e]/totalHrs*100)+'%)</div></div>'
+      +'<div style="font-weight:800;font-size:16px;color:#f59e0b">'+fmtEur(share)+'</div>'
+      +'</div>';
+  }).join('');
+  el.innerHTML='<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a">'
+    +'<div style="font-size:12px;color:#78350f;font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
+    +rows+'</div>';
 }
 
 // ================================================
@@ -2898,6 +3195,8 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-finance-entry')) { saveFinanceEntry(); return; }
   if (t.closest('#btn-clear-finance-entry')) { clearFinanceEntry(); return; }
   if (t.closest('#btn-change-finance-pin')) { changeFinancePin(); return; }
+  if (t.closest('#btn-fin-recalc')) { renderFinRecords(); return; }
+  if (t.closest('#btn-fin-clear-day')) { finRecDayFilter=''; var dp=document.getElementById('fin-rec-day-picker'); if(dp) dp.value=''; renderFinRecords(); return; }
 
   // Admin
   if (t.closest('#admin-login-btn')) { openAdminLogin(); return; }
@@ -2965,6 +3264,7 @@ document.addEventListener('click', function(e) {
 
   // Shifts
   if (t.closest('#btn-add-shift')) { openAddShiftModal(); return; }
+  if (t.closest('#btn-generate-tips')) { generateTips(); return; }
   el = t.closest('[data-add-shift-day]');
   if (el) { openAddShiftModal(el.dataset.addShiftDay); return; }
   if (t.closest('#btn-save-shift')) { saveShift(); return; }
@@ -3028,6 +3328,16 @@ document.addEventListener('change', function(e) {
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.id === 'topbar-emp') { document.getElementById('drawer-user-name').textContent=t.value||'Staff'; }
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
+  if (t.id === 'fin-rec-day-picker') { finRecDayFilter=t.value||''; renderFinRecords(); }
+  if (t.id === 'fin-range-from' || t.id === 'fin-range-to') { renderFinRecords(); }
+  // Shift modal: full-week toggle hides day selector
+  if (t.id === 'shift-full-week') {
+    document.getElementById('shift-day-row').style.display = t.checked ? 'none' : '';
+  }
+  // Shift modal: day-off toggle hides time fields
+  if (t.id === 'shift-day-off') {
+    document.getElementById('shift-times-row').style.display = t.checked ? 'none' : '';
+  }
 });
 
 // ================================================
