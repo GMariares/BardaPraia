@@ -744,6 +744,7 @@ export function getAppHTML(): string {
               <div class="fin-summary-num" id="fin-stat-t51-year">€0</div>
               <div class="fin-summary-label">This Year</div>
               <div id="fin-stat-t51-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-t51-year-budget" style="font-size:11px;margin-top:4px"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-range">€0</div>
@@ -767,6 +768,7 @@ export function getAppHTML(): string {
               <div class="fin-summary-num" id="fin-stat-surf-year">€0</div>
               <div class="fin-summary-label">This Year</div>
               <div id="fin-stat-surf-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-surf-year-budget" style="font-size:11px;margin-top:4px"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-range">€0</div>
@@ -905,10 +907,30 @@ export function getAppHTML(): string {
       <!-- Finance Budgets -->
       <div class="settings-card">
         <h3><i class="fas fa-chart-line" style="color:#16a34a"></i> Finance Budgets</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Monthly budget targets — shown automatically in Finance Records.</p>
-        <div class="form-row"><label class="label">Total of Day — Monthly Budget (€)</label><input type="text" id="settings-budget-day" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" /></div>
-        <div class="form-row"><label class="label">T 51 — Monthly Budget (€)</label><input type="text" id="settings-budget-t51" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" /></div>
-        <div class="form-row" style="margin-bottom:14px"><label class="label">Surf — Monthly Budget (€)</label><input type="text" id="settings-budget-surf" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" /></div>
+        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:10px">Set a monthly budget for each metric. The year total is calculated automatically.</p>
+        <div style="overflow-x:auto;margin-bottom:14px">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="background:var(--ocean-50)">
+                <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:60px">Month</th>
+                <th style="padding:6px 4px;font-weight:700;color:#7c3aed;text-align:right;min-width:80px">Total Day</th>
+                <th style="padding:6px 4px;font-weight:700;color:#0ea5e9;text-align:right;min-width:80px">T 51</th>
+                <th style="padding:6px 4px;font-weight:700;color:#06b6d4;text-align:right;min-width:80px">Surf</th>
+              </tr>
+            </thead>
+            <tbody id="budget-months-body">
+              <!-- rendered by renderSettings() -->
+            </tbody>
+            <tfoot>
+              <tr style="background:var(--ocean-50);border-top:2px solid var(--ocean-200)">
+                <td style="padding:6px 8px;font-weight:800;color:var(--ocean-800);font-size:12px">Year Total</td>
+                <td id="budget-year-day"  style="padding:6px 4px;font-weight:800;color:#7c3aed;text-align:right;font-size:12px">€0</td>
+                <td id="budget-year-t51"  style="padding:6px 4px;font-weight:800;color:#0ea5e9;text-align:right;font-size:12px">€0</td>
+                <td id="budget-year-surf" style="padding:6px 4px;font-weight:800;color:#06b6d4;text-align:right;font-size:12px">€0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
         <button class="btn btn-primary" id="btn-save-budgets"><i class="fas fa-save"></i> Save Budgets</button>
       </div>
       <!-- Team Members -->
@@ -1286,6 +1308,13 @@ function sbFetch(method, table, body, params) {
 }
 
 // ================================================
+// ================================================
+// CONSTANTS
+// ================================================
+var MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var MONTH_KEYS=['01','02','03','04','05','06','07','08','09','10','11','12'];
+
+// ================================================
 // LOCAL CACHE DB (fast render layer)
 // ================================================
 var DB_KEY = 'bardapraia_v6';
@@ -1309,9 +1338,20 @@ function getDB() {
   if (db.fundoCaixa === undefined) db.fundoCaixa = 0;
   if (!db.invSortOrder) db.invSortOrder = [];
   if (!db.weekTips)     db.weekTips = {};
-  if (db.budgetDay  === undefined) db.budgetDay  = 0;
-  if (db.budgetT51  === undefined) db.budgetT51  = 0;
-  if (db.budgetSurf === undefined) db.budgetSurf = 0;
+  // Per-month budgets: { day:{01:0,...,12:0}, t51:{...}, surf:{...} }
+  var MONTHS=['01','02','03','04','05','06','07','08','09','10','11','12'];
+  if (!db.budgets) {
+    db.budgets = { day:{}, t51:{}, surf:{} };
+    MONTHS.forEach(function(m){ db.budgets.day[m]=0; db.budgets.t51[m]=0; db.budgets.surf[m]=0; });
+  } else {
+    // backfill any missing months
+    ['day','t51','surf'].forEach(function(k){
+      if(!db.budgets[k]) db.budgets[k]={};
+      MONTHS.forEach(function(m){ if(db.budgets[k][m]===undefined) db.budgets[k][m]=0; });
+    });
+  }
+  // Remove old scalar fields if present
+  delete db.budgetDay; delete db.budgetT51; delete db.budgetSurf;
   return db;
 }
 
@@ -1372,10 +1412,8 @@ var MIGRATION_SQL = [
   '-- 3. Apply settings migration',
   "UPDATE settings SET finance_pin = '0000', fundo_caixa = 0 WHERE id = 'config';",
   '',
-  '-- 4. Add Finance Budget columns (optional — used by Finance Records)',
-  'ALTER TABLE settings ADD COLUMN IF NOT EXISTS budget_day  NUMERIC DEFAULT 0;',
-  'ALTER TABLE settings ADD COLUMN IF NOT EXISTS budget_t51  NUMERIC DEFAULT 0;',
-  'ALTER TABLE settings ADD COLUMN IF NOT EXISTS budget_surf NUMERIC DEFAULT 0;'
+  '-- 4. Add Finance Budgets JSON column (optional — stores per-month budgets)',
+  "ALTER TABLE settings ADD COLUMN IF NOT EXISTS budgets JSONB DEFAULT '{}'::jsonb;"
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1410,10 +1448,15 @@ function syncFromSupabase() {
         } else {
           db.fundoCaixa = parseFloat(rows[0].fundo_caixa)||0;
         }
-        // Budget fields — these are optional; if missing, just use local defaults (no migration required)
-        if (rows[0].budget_day  !== undefined && rows[0].budget_day  !== null) db.budgetDay  = parseFloat(rows[0].budget_day) ||0;
-        if (rows[0].budget_t51  !== undefined && rows[0].budget_t51  !== null) db.budgetT51  = parseFloat(rows[0].budget_t51) ||0;
-        if (rows[0].budget_surf !== undefined && rows[0].budget_surf !== null) db.budgetSurf = parseFloat(rows[0].budget_surf)||0;
+        // Per-month budgets JSON column — optional; silently use local defaults if missing
+        if (rows[0].budgets && typeof rows[0].budgets === 'object') {
+          var rb = rows[0].budgets;
+          ['day','t51','surf'].forEach(function(k){
+            if (rb[k] && typeof rb[k]==='object') {
+              MONTH_KEYS.forEach(function(m){ db.budgets[k][m] = parseFloat(rb[k][m])||0; });
+            }
+          });
+        }
         db.tables = rows[0].tables || db.tables;
       }
     }),
@@ -1795,14 +1838,25 @@ function saveFundoCaixa() {
   toast('Fundo de Caixa saved!', 'gold');
   sbFetch('PATCH','settings',{fundo_caixa:val},'id=eq.config').catch(function(){});
 }
+function parseBudgetVal(s){ return parseFloat((s||'').trim().replace(',','.'))||0; }
 function saveBudgets() {
-  var parseVal = function(id){ var el=document.getElementById(id); return el?parseFloat((el.value||'').trim().replace(',','.'))||0:0; };
-  var day  = parseVal('settings-budget-day');
-  var t51  = parseVal('settings-budget-t51');
-  var surf = parseVal('settings-budget-surf');
-  var db = getDB(); db.budgetDay=day; db.budgetT51=t51; db.budgetSurf=surf; saveDB(db);
+  var db = getDB();
+  var b = db.budgets;
+  var yearDay=0, yearT51=0, yearSurf=0;
+  MONTH_KEYS.forEach(function(m){
+    var d=parseBudgetVal(document.getElementById('bud-day-'+m) ?document.getElementById('bud-day-'+m).value:'');
+    var t=parseBudgetVal(document.getElementById('bud-t51-'+m) ?document.getElementById('bud-t51-'+m).value:'');
+    var s=parseBudgetVal(document.getElementById('bud-surf-'+m)?document.getElementById('bud-surf-'+m).value:'');
+    b.day[m]=d; b.t51[m]=t; b.surf[m]=s;
+    yearDay+=d; yearT51+=t; yearSurf+=s;
+  });
+  saveDB(db);
+  // Update year-total footer
+  var yd=document.getElementById('budget-year-day');   if(yd)  yd.textContent =fmtEur(yearDay);
+  var yt=document.getElementById('budget-year-t51');   if(yt)  yt.textContent =fmtEur(yearT51);
+  var ys=document.getElementById('budget-year-surf');  if(ys)  ys.textContent =fmtEur(yearSurf);
   toast('Budgets saved!', 'gold');
-  sbFetch('PATCH','settings',{budget_day:day,budget_t51:t51,budget_surf:surf},'id=eq.config').catch(function(){});
+  sbFetch('PATCH','settings',{budgets:db.budgets},'id=eq.config').catch(function(){});
 }
 function renderSettings() {
   var settingsLocked = document.getElementById('settings-locked');
@@ -1834,12 +1888,25 @@ function renderSettings() {
   document.getElementById('sb-key').value = SB_KEY.slice(0,30) + '...';
   var fundoEl = document.getElementById('settings-fundo');
   if (fundoEl) fundoEl.value = db.fundoCaixa || '';
-  var budDayEl = document.getElementById('settings-budget-day');
-  if (budDayEl) budDayEl.value = db.budgetDay || '';
-  var budT51El = document.getElementById('settings-budget-t51');
-  if (budT51El) budT51El.value = db.budgetT51 || '';
-  var budSurfEl = document.getElementById('settings-budget-surf');
-  if (budSurfEl) budSurfEl.value = db.budgetSurf || '';
+  // Render budget month table
+  var tbody = document.getElementById('budget-months-body');
+  if (tbody) {
+    var b = db.budgets; var yearDay=0,yearT51=0,yearSurf=0;
+    tbody.innerHTML = MONTH_KEYS.map(function(m,i){
+      var d=b.day[m]||0, t=b.t51[m]||0, s=b.surf[m]||0;
+      yearDay+=d; yearT51+=t; yearSurf+=s;
+      var iStyle='width:100%;border:1px solid var(--ocean-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
+      return '<tr style="border-bottom:1px solid var(--ocean-50)">'
+        +'<td style="padding:5px 8px;font-weight:700;color:var(--ocean-700)">'+MONTH_NAMES[i]+'</td>'
+        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-day-'+m+'" value="'+(d||'')+'" placeholder="0" style="'+iStyle+'color:#7c3aed" /></td>'
+        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-t51-'+m+'" value="'+(t||'')+'" placeholder="0" style="'+iStyle+'color:#0ea5e9" /></td>'
+        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-surf-'+m+'" value="'+(s||'')+'" placeholder="0" style="'+iStyle+'color:#06b6d4" /></td>'
+        +'</tr>';
+    }).join('');
+    var yd=document.getElementById('budget-year-day');  if(yd)  yd.textContent=fmtEur(yearDay);
+    var yt=document.getElementById('budget-year-t51');  if(yt)  yt.textContent=fmtEur(yearT51);
+    var ys=document.getElementById('budget-year-surf'); if(ys)  ys.textContent=fmtEur(yearSurf);
+  }
   updateSupabaseStatus();
   updateAllDropdowns();
 }
@@ -2060,10 +2127,15 @@ function renderFinRecords() {
   // Read range inputs
   var fromEl=document.getElementById('fin-range-from'), toEl=document.getElementById('fin-range-to');
   var rangeFrom = fromEl?fromEl.value:'', rangeTo = toEl?toEl.value:'';
-  // Read budgets from db (set in Settings)
-  var budgetDay  = db.budgetDay  || 0;
-  var budgetT51  = db.budgetT51  || 0;
-  var budgetSurf = db.budgetSurf || 0;
+  // Read per-month budgets from db (set in Settings)
+  var bud = db.budgets || { day:{}, t51:{}, surf:{} };
+  var curMon = monthStr.slice(5,7); // e.g. "06"
+  var budgetDay  = bud.day[curMon]  || 0;
+  var budgetT51  = bud.t51[curMon]  || 0;
+  var budgetSurf = bud.surf[curMon] || 0;
+  // Year budget = sum of all 12 months
+  var budgetDayYear=0, budgetT51Year=0, budgetSurfYear=0;
+  MONTH_KEYS.forEach(function(m){ budgetDayYear+=(bud.day[m]||0); budgetT51Year+=(bud.t51[m]||0); budgetSurfYear+=(bud.surf[m]||0); });
 
   // Aggregate totals
   var dayMonth=0,dayYear=0,dayRange=0, t51Month=0,t51Year=0,t51Range=0, surfMonth=0,surfYear=0,surfRange=0;
@@ -2076,13 +2148,13 @@ function renderFinRecords() {
   });
 
   finStatBox('fin-stat-day-month','fin-stat-day-month-avg','fin-stat-day-month-budget', dayMonth, cntMonth, budgetDay);
-  finStatBox('fin-stat-day-year', 'fin-stat-day-year-avg', 'fin-stat-day-year-budget',  dayYear,  cntYear,  budgetDay*12);
+  finStatBox('fin-stat-day-year', 'fin-stat-day-year-avg', 'fin-stat-day-year-budget',  dayYear,  cntYear,  budgetDayYear);
   finStatBox('fin-stat-day-range','fin-stat-day-range-avg','fin-stat-day-range-budget', dayRange, cntRange, 0);
   finStatBox('fin-stat-t51-month','fin-stat-t51-month-avg','fin-stat-t51-month-budget', t51Month, cntMonth, budgetT51);
-  finStatBox('fin-stat-t51-year', 'fin-stat-t51-year-avg', null, t51Year, cntYear, 0);
+  finStatBox('fin-stat-t51-year', 'fin-stat-t51-year-avg', 'fin-stat-t51-year-budget',  t51Year,  cntYear,  budgetT51Year);
   finStatBox('fin-stat-t51-range','fin-stat-t51-range-avg',null, t51Range, cntRange, 0);
   finStatBox('fin-stat-surf-month','fin-stat-surf-month-avg','fin-stat-surf-month-budget', surfMonth, cntMonth, budgetSurf);
-  finStatBox('fin-stat-surf-year', 'fin-stat-surf-year-avg', null, surfYear, cntYear, 0);
+  finStatBox('fin-stat-surf-year', 'fin-stat-surf-year-avg', 'fin-stat-surf-year-budget',  surfYear,  cntYear,  budgetSurfYear);
   finStatBox('fin-stat-surf-range','fin-stat-surf-range-avg',null, surfRange, cntRange, 0);
 
   // Records list — optionally filtered by day picker
