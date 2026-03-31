@@ -726,10 +726,6 @@ export function getAppHTML(): string {
             <input type="date" id="fin-range-from" class="input-field" style="flex:1;min-width:120px;font-size:12px;padding:6px 8px" />
             <span style="font-size:12px;color:var(--ocean-400)">to</span>
             <input type="date" id="fin-range-to" class="input-field" style="flex:1;min-width:120px;font-size:12px;padding:6px 8px" />
-            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:140px">
-              <label style="font-size:11px;color:var(--ocean-600);white-space:nowrap">Budget €</label>
-              <input type="text" id="fin-budget-day" class="input-field" placeholder="0.00" inputmode="decimal" style="flex:1;font-size:12px;padding:6px 8px;text-align:right" />
-            </div>
             <button class="btn btn-secondary btn-sm" id="btn-fin-recalc"><i class="fas fa-calculator"></i> Calc</button>
           </div>
         </div>
@@ -755,12 +751,6 @@ export function getAppHTML(): string {
               <div id="fin-stat-t51-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
             </div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
-            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:140px">
-              <label style="font-size:11px;color:var(--ocean-600);white-space:nowrap">Budget €</label>
-              <input type="text" id="fin-budget-t51" class="input-field" placeholder="0.00" inputmode="decimal" style="flex:1;font-size:12px;padding:6px 8px;text-align:right" />
-            </div>
-          </div>
         </div>
 
         <!-- Section 3: Surf -->
@@ -782,12 +772,6 @@ export function getAppHTML(): string {
               <div class="fin-summary-num" id="fin-stat-surf-range">€0</div>
               <div class="fin-summary-label">Custom Range</div>
               <div id="fin-stat-surf-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
-            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:140px">
-              <label style="font-size:11px;color:var(--ocean-600);white-space:nowrap">Budget €</label>
-              <input type="text" id="fin-budget-surf" class="input-field" placeholder="0.00" inputmode="decimal" style="flex:1;font-size:12px;padding:6px 8px;text-align:right" />
             </div>
           </div>
         </div>
@@ -917,6 +901,15 @@ export function getAppHTML(): string {
           <div><label class="label">Confirm PIN</label><input type="password" id="confirm-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
         </div>
         <button class="btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;display:flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700" id="btn-change-finance-pin"><i class="fas fa-save"></i> Update Finance PIN</button>
+      </div>
+      <!-- Finance Budgets -->
+      <div class="settings-card">
+        <h3><i class="fas fa-chart-line" style="color:#16a34a"></i> Finance Budgets</h3>
+        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Monthly budget targets — shown automatically in Finance Records.</p>
+        <div class="form-row"><label class="label">Total of Day — Monthly Budget (€)</label><input type="text" id="settings-budget-day" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" /></div>
+        <div class="form-row"><label class="label">T 51 — Monthly Budget (€)</label><input type="text" id="settings-budget-t51" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" /></div>
+        <div class="form-row" style="margin-bottom:14px"><label class="label">Surf — Monthly Budget (€)</label><input type="text" id="settings-budget-surf" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" /></div>
+        <button class="btn btn-primary" id="btn-save-budgets"><i class="fas fa-save"></i> Save Budgets</button>
       </div>
       <!-- Team Members -->
       <div class="settings-card">
@@ -1188,34 +1181,31 @@ export function getAppHTML(): string {
     <div class="modal-handle"></div>
     <h2><i class="fas fa-clock" style="color:var(--ocean-400)"></i><span id="shift-modal-title">Add Shift</span></h2>
     <input type="hidden" id="shift-edit-id" />
-    <div class="form-row"><label class="label">Employee *</label><select class="select-field" id="shift-employee"></select></div>
-    <!-- Full week toggle -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;background:#f0f9ff;border-radius:10px;border:1px solid #bae6fd">
-      <input type="checkbox" id="shift-full-week" style="width:18px;height:18px;cursor:pointer;accent-color:var(--ocean-500)" />
-      <label for="shift-full-week" style="font-size:13px;font-weight:600;color:var(--ocean-700);cursor:pointer">Set for entire week (all 7 days)</label>
+    <div class="form-row" style="margin-bottom:14px"><label class="label">Employee *</label><select class="select-field" id="shift-employee"></select></div>
+    <!-- Per-day schedule table -->
+    <div style="font-size:11px;font-weight:700;color:var(--ocean-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Schedule</div>
+    <div style="overflow-x:auto;margin-bottom:14px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:var(--ocean-50)">
+          <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:90px">Day</th>
+          <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">Start</th>
+          <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">End</th>
+          <th style="padding:6px 4px;font-weight:700;color:#dc2626;white-space:nowrap">Day Off</th>
+        </tr></thead>
+        <tbody id="shift-days-body">
+          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+        </tbody>
+      </table>
     </div>
-    <div id="shift-day-row" class="form-row"><label class="label">Day *</label>
-      <select class="select-field" id="shift-day">
-        <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
-        <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
-        <option value="Friday">Friday</option><option value="Saturday">Saturday</option>
-        <option value="Sunday">Sunday</option>
-      </select>
-    </div>
-    <!-- Day off toggle -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca">
-      <input type="checkbox" id="shift-day-off" style="width:18px;height:18px;cursor:pointer;accent-color:#dc2626" />
-      <label for="shift-day-off" style="font-size:13px;font-weight:600;color:#991b1b;cursor:pointer">Day Off (no shift)</label>
-    </div>
-    <div id="shift-times-row">
-      <div class="form-grid-2" style="margin-bottom:14px">
-        <div><label class="label">Start Time *</label><input type="time" class="input-field" id="shift-start" /></div>
-        <div><label class="label">End Time *</label><input type="time" class="input-field" id="shift-end" /></div>
-      </div>
-      <div class="form-row"><label class="label">Role / Notes</label><input type="text" class="input-field" id="shift-role" placeholder="e.g. Bar, Kitchen, Host..." /></div>
-    </div>
+    <div class="form-row" style="margin-bottom:14px"><label class="label">Role / Notes (applies to all days)</label><input type="text" class="input-field" id="shift-role" placeholder="e.g. Bar, Kitchen, Host..." /></div>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-shift"><i class="fas fa-save"></i> Save Shift</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-shift"><i class="fas fa-save"></i> Save Shifts</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-shift">Cancel</button>
     </div>
   </div>
@@ -1319,6 +1309,9 @@ function getDB() {
   if (db.fundoCaixa === undefined) db.fundoCaixa = 0;
   if (!db.invSortOrder) db.invSortOrder = [];
   if (!db.weekTips)     db.weekTips = {};
+  if (db.budgetDay  === undefined) db.budgetDay  = 0;
+  if (db.budgetT51  === undefined) db.budgetT51  = 0;
+  if (db.budgetSurf === undefined) db.budgetSurf = 0;
   return db;
 }
 
@@ -1377,7 +1370,12 @@ var MIGRATION_SQL = [
   "CREATE POLICY allow_all ON fin_entries FOR ALL TO anon USING (true) WITH CHECK (true);",
   '',
   '-- 3. Apply settings migration',
-  "UPDATE settings SET finance_pin = '0000', fundo_caixa = 0 WHERE id = 'config';"
+  "UPDATE settings SET finance_pin = '0000', fundo_caixa = 0 WHERE id = 'config';",
+  '',
+  '-- 4. Add Finance Budget columns (optional — used by Finance Records)',
+  'ALTER TABLE settings ADD COLUMN IF NOT EXISTS budget_day  NUMERIC DEFAULT 0;',
+  'ALTER TABLE settings ADD COLUMN IF NOT EXISTS budget_t51  NUMERIC DEFAULT 0;',
+  'ALTER TABLE settings ADD COLUMN IF NOT EXISTS budget_surf NUMERIC DEFAULT 0;'
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1412,6 +1410,10 @@ function syncFromSupabase() {
         } else {
           db.fundoCaixa = parseFloat(rows[0].fundo_caixa)||0;
         }
+        // Budget fields — these are optional; if missing, just use local defaults (no migration required)
+        if (rows[0].budget_day  !== undefined && rows[0].budget_day  !== null) db.budgetDay  = parseFloat(rows[0].budget_day) ||0;
+        if (rows[0].budget_t51  !== undefined && rows[0].budget_t51  !== null) db.budgetT51  = parseFloat(rows[0].budget_t51) ||0;
+        if (rows[0].budget_surf !== undefined && rows[0].budget_surf !== null) db.budgetSurf = parseFloat(rows[0].budget_surf)||0;
         db.tables = rows[0].tables || db.tables;
       }
     }),
@@ -1793,6 +1795,15 @@ function saveFundoCaixa() {
   toast('Fundo de Caixa saved!', 'gold');
   sbFetch('PATCH','settings',{fundo_caixa:val},'id=eq.config').catch(function(){});
 }
+function saveBudgets() {
+  var parseVal = function(id){ var el=document.getElementById(id); return el?parseFloat((el.value||'').trim().replace(',','.'))||0:0; };
+  var day  = parseVal('settings-budget-day');
+  var t51  = parseVal('settings-budget-t51');
+  var surf = parseVal('settings-budget-surf');
+  var db = getDB(); db.budgetDay=day; db.budgetT51=t51; db.budgetSurf=surf; saveDB(db);
+  toast('Budgets saved!', 'gold');
+  sbFetch('PATCH','settings',{budget_day:day,budget_t51:t51,budget_surf:surf},'id=eq.config').catch(function(){});
+}
 function renderSettings() {
   var settingsLocked = document.getElementById('settings-locked');
   var settingsContent = document.getElementById('settings-content');
@@ -1823,6 +1834,12 @@ function renderSettings() {
   document.getElementById('sb-key').value = SB_KEY.slice(0,30) + '...';
   var fundoEl = document.getElementById('settings-fundo');
   if (fundoEl) fundoEl.value = db.fundoCaixa || '';
+  var budDayEl = document.getElementById('settings-budget-day');
+  if (budDayEl) budDayEl.value = db.budgetDay || '';
+  var budT51El = document.getElementById('settings-budget-t51');
+  if (budT51El) budT51El.value = db.budgetT51 || '';
+  var budSurfEl = document.getElementById('settings-budget-surf');
+  if (budSurfEl) budSurfEl.value = db.budgetSurf || '';
   updateSupabaseStatus();
   updateAllDropdowns();
 }
@@ -2043,11 +2060,10 @@ function renderFinRecords() {
   // Read range inputs
   var fromEl=document.getElementById('fin-range-from'), toEl=document.getElementById('fin-range-to');
   var rangeFrom = fromEl?fromEl.value:'', rangeTo = toEl?toEl.value:'';
-  // Read budgets
-  function getBudget(id){ var el=document.getElementById(id); return el?parseFloat((el.value||'').replace(',','.'))||0:0; }
-  var budgetDay  = getBudget('fin-budget-day');
-  var budgetT51  = getBudget('fin-budget-t51');
-  var budgetSurf = getBudget('fin-budget-surf');
+  // Read budgets from db (set in Settings)
+  var budgetDay  = db.budgetDay  || 0;
+  var budgetT51  = db.budgetT51  || 0;
+  var budgetSurf = db.budgetSurf || 0;
 
   // Aggregate totals
   var dayMonth=0,dayYear=0,dayRange=0, t51Month=0,t51Year=0,t51Range=0, surfMonth=0,surfYear=0,surfRange=0;
@@ -2826,49 +2842,75 @@ function renderShifts(){
     +'</div>';
   }).join('');
 }
+function prefillShiftRows(emp){
+  if(!emp) return;
+  var db=getDB();
+  var ws=toDateStr(getWeekStart(shiftsWeekOffset));
+  var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
+  rows.forEach(function(row){
+    var day=row.dataset.shiftDay;
+    var existing=db.shifts.find(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
+    var startEl=row.querySelector('.shift-day-start');
+    var endEl=row.querySelector('.shift-day-end');
+    var offChk=row.querySelector('.shift-day-off-chk');
+    if(existing){
+      offChk.checked=!!existing.dayOff;
+      startEl.disabled=!!existing.dayOff;
+      endEl.disabled=!!existing.dayOff;
+      startEl.value=existing.dayOff?'':existing.start||'09:00';
+      endEl.value=existing.dayOff?'':existing.end||'17:00';
+    } else {
+      offChk.checked=false;
+      startEl.disabled=false; endEl.disabled=false;
+      startEl.value='09:00'; endEl.value='17:00';
+    }
+  });
+}
 function openAddShiftModal(preDay){
   updateAllDropdowns();
-  document.getElementById('shift-modal-title').textContent='Add Shift';
+  document.getElementById('shift-modal-title').textContent='Add Shifts';
   document.getElementById('shift-edit-id').value='';
   document.getElementById('shift-employee').value='';
-  document.getElementById('shift-day').value=preDay||'Monday';
-  document.getElementById('shift-start').value='09:00';
-  document.getElementById('shift-end').value='17:00';
   document.getElementById('shift-role').value='';
-  document.getElementById('shift-full-week').checked=false;
-  document.getElementById('shift-day-off').checked=false;
-  document.getElementById('shift-day-row').style.display='';
-  document.getElementById('shift-times-row').style.display='';
+  // Reset all rows to defaults
+  var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
+  rows.forEach(function(row){
+    row.querySelector('.shift-day-start').value='09:00';
+    row.querySelector('.shift-day-end').value='17:00';
+    row.querySelector('.shift-day-off-chk').checked=false;
+    row.querySelector('.shift-day-start').disabled=false;
+    row.querySelector('.shift-day-end').disabled=false;
+  });
   openModal('modal-add-shift');
 }
 function saveShift(){
   var emp=document.getElementById('shift-employee').value; if(!emp){toast('Select employee!','error');return;}
-  var fullWeek=document.getElementById('shift-full-week').checked;
-  var isDayOff=document.getElementById('shift-day-off').checked;
-  var day=document.getElementById('shift-day').value;
-  var start=isDayOff?'00:00':document.getElementById('shift-start').value;
-  var end=isDayOff?'00:00':document.getElementById('shift-end').value;
-  if(!isDayOff&&!start){toast('Start time required!','error');return;}
-  if(!isDayOff&&!end){toast('End time required!','error');return;}
   var role=document.getElementById('shift-role').value.trim();
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
-  var ALLDAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-  var daysToAdd=fullWeek?ALLDAYS:[day];
-  daysToAdd.forEach(function(d){
-    // Remove existing shift for this employee+day+week (replace mode)
-    db.shifts=db.shifts.filter(function(s){return !(s.employee===emp&&s.day===d&&s.weekStart===ws);});
-    if(!isDayOff||fullWeek){
-      // For full week day-off, still mark each day
-    }
+  var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
+  var saved=0;
+  rows.forEach(function(row){
+    var day=row.dataset.shiftDay;
+    var isDayOff=row.querySelector('.shift-day-off-chk').checked;
+    var start=isDayOff?'00:00':row.querySelector('.shift-day-start').value;
+    var end=isDayOff?'00:00':row.querySelector('.shift-day-end').value;
+    if(!isDayOff&&(!start||!end)) return; // skip empty rows (not day-off, no time)
+    // Remove existing shift for this employee+day+week (replace)
+    var existing=db.shifts.filter(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
+    existing.forEach(function(s){
+      sbFetch('DELETE','shifts',null,'id=eq.'+s.id).catch(function(){});
+    });
+    db.shifts=db.shifts.filter(function(s){return !(s.employee===emp&&s.day===day&&s.weekStart===ws);});
     var newId=uid();
-    db.shifts.push({id:newId,employee:emp,day:d,start:start,end:end,role:role,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()});
-    sbFetch('POST','shifts',{employee:emp,day:d,start_time:start,end_time:end,role:role,day_off:isDayOff,week_start:ws}).then(function(rows){
-      if(rows&&rows[0]){var si=db.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1){db.shifts[si].id=rows[0].id; saveDB(db);}}
+    db.shifts.push({id:newId,employee:emp,day:day,start:start,end:end,role:role,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()});
+    sbFetch('POST','shifts',{employee:emp,day:day,start_time:start,end_time:end,role:role,day_off:isDayOff,week_start:ws}).then(function(rows2){
+      if(rows2&&rows2[0]){var si=db.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1){db.shifts[si].id=rows2[0].id; saveDB(db);}}
     }).catch(function(){});
+    saved++;
   });
   saveDB(db); closeModal('modal-add-shift'); renderShifts();
-  toast(fullWeek?'Week shifts saved!':'Shift saved!');
+  toast(saved+' shift'+(saved!==1?'s':'')+' saved!');
 }
 function deleteShift(id){
   if(!confirm('Remove shift?')) return;
@@ -3298,6 +3340,7 @@ document.addEventListener('click', function(e) {
   if (el) { removeTableNum(el.dataset.delTable); return; }
   if (t.closest('#btn-change-pin')) { changePin(); return; }
   if (t.closest('#btn-save-fundo')) { saveFundoCaixa(); return; }
+  if (t.closest('#btn-save-budgets')) { saveBudgets(); return; }
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
   if (t.closest('#btn-copy-sql')) {
     var sqlPre = document.getElementById('sb-migration-sql');
@@ -3330,13 +3373,22 @@ document.addEventListener('change', function(e) {
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
   if (t.id === 'fin-rec-day-picker') { finRecDayFilter=t.value||''; renderFinRecords(); }
   if (t.id === 'fin-range-from' || t.id === 'fin-range-to') { renderFinRecords(); }
-  // Shift modal: full-week toggle hides day selector
-  if (t.id === 'shift-full-week') {
-    document.getElementById('shift-day-row').style.display = t.checked ? 'none' : '';
-  }
-  // Shift modal: day-off toggle hides time fields
-  if (t.id === 'shift-day-off') {
-    document.getElementById('shift-times-row').style.display = t.checked ? 'none' : '';
+  // Pre-fill shift rows when employee is selected in shift modal
+  if (t.id === 'shift-employee' && t.value) { prefillShiftRows(t.value); }
+  // Disable/enable time inputs when Day Off checkbox changes in shift modal
+  if (t.classList && t.classList.contains('shift-day-off-chk')) {
+    var row = t.closest('tr[data-shift-day]');
+    if (row) {
+      row.querySelector('.shift-day-start').disabled = t.checked;
+      row.querySelector('.shift-day-end').disabled   = t.checked;
+      if (t.checked) {
+        row.querySelector('.shift-day-start').value = '';
+        row.querySelector('.shift-day-end').value   = '';
+      } else {
+        row.querySelector('.shift-day-start').value = '09:00';
+        row.querySelector('.shift-day-end').value   = '17:00';
+      }
+    }
   }
 });
 
