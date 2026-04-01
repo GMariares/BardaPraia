@@ -1441,42 +1441,57 @@ function syncFromSupabase() {
   var promises = [
     sbFetch('GET', 'settings', null, 'id=eq.config').then(function(rows) {
       if (rows && rows[0]) {
-        db.adminPin = rows[0].admin_pin || '1234';
-        // Detect missing columns — PostgREST returns them as undefined/null if missing
-        if (rows[0].finance_pin === undefined || rows[0].finance_pin === null) {
+        var r = rows[0];
+        // ── Always prefer Supabase value; only fall back when column is missing (undefined) ──
+
+        // admin_pin
+        if (r.admin_pin !== undefined) db.adminPin = r.admin_pin || '1234';
+
+        // finance_pin
+        if (r.finance_pin === undefined) {
           sbMissingItems.push('settings.finance_pin');
         } else {
-          db.financePin = rows[0].finance_pin || db.financePin || '0000';
+          db.financePin = r.finance_pin || '0000';
         }
-        if (rows[0].fundo_caixa === undefined || rows[0].fundo_caixa === null) {
+
+        // fundo_caixa
+        if (r.fundo_caixa === undefined) {
           sbMissingItems.push('settings.fundo_caixa');
         } else {
-          db.fundoCaixa = parseFloat(rows[0].fundo_caixa)||0;
+          db.fundoCaixa = parseFloat(r.fundo_caixa) || 0;
         }
-        // Per-month budgets JSON column
-        if (rows[0].budgets === undefined) {
+
+        // tables — use Supabase array whenever column exists (even if empty)
+        if (r.tables !== undefined) db.tables = r.tables || db.tables;
+
+        // budgets — full replace from Supabase; detect missing column
+        if (r.budgets === undefined) {
           sbMissingItems.push('settings.budgets');
-        } else if (rows[0].budgets && typeof rows[0].budgets === 'object') {
-          var rb = rows[0].budgets;
+        } else {
+          // Supabase owns the truth: replace entire budgets object
+          var rb = (r.budgets && typeof r.budgets === 'object') ? r.budgets : {};
+          var MONTHS = MONTH_KEYS;
           ['day','t51','surf'].forEach(function(k){
-            if (rb[k] && typeof rb[k]==='object') {
-              MONTH_KEYS.forEach(function(m){ db.budgets[k][m] = parseFloat(rb[k][m])||0; });
-            }
+            db.budgets[k] = {};
+            MONTHS.forEach(function(m){
+              db.budgets[k][m] = (rb[k] && rb[k][m] !== undefined) ? parseFloat(rb[k][m]) || 0 : 0;
+            });
           });
         }
-        // Weekly tips per week-start
-        if (rows[0].week_tips === undefined) {
+
+        // week_tips — full replace from Supabase
+        if (r.week_tips === undefined) {
           sbMissingItems.push('settings.week_tips');
-        } else if (rows[0].week_tips && typeof rows[0].week_tips === 'object') {
-          db.weekTips = rows[0].week_tips;
+        } else {
+          db.weekTips = (r.week_tips && typeof r.week_tips === 'object') ? r.week_tips : {};
         }
-        // Inventory sort order
-        if (rows[0].inv_sort_order === undefined) {
+
+        // inv_sort_order — full replace from Supabase
+        if (r.inv_sort_order === undefined) {
           sbMissingItems.push('settings.inv_sort_order');
-        } else if (Array.isArray(rows[0].inv_sort_order)) {
-          db.invSortOrder = rows[0].inv_sort_order;
+        } else {
+          db.invSortOrder = Array.isArray(r.inv_sort_order) ? r.inv_sort_order : [];
         }
-        db.tables = rows[0].tables || db.tables;
       }
     }),
     sbFetch('GET', 'employees', null, 'order=name.asc').then(function(rows) {
@@ -1747,7 +1762,7 @@ function changeFinancePin() {
   if (np !== cp) { toast('PINs do not match','error'); return; }
   var db = getDB(); db.financePin = np; saveDB(db);
   document.getElementById('new-finance-pin').value=''; document.getElementById('confirm-finance-pin').value='';
-  sbFetch('PATCH','settings',{finance_pin:np},'id=eq.config').catch(function(){});
+  sbFetch('PATCH','settings',{finance_pin:np},'id=eq.config').catch(function(e){ console.error('finance_pin sync:',e); });
   toast('Finance PIN updated!', 'gold');
 }
 
@@ -1861,8 +1876,10 @@ function saveFundoCaixa() {
   var raw = (document.getElementById('settings-fundo').value || '').trim().replace(',', '.');
   var val = parseFloat(raw) || 0;
   var db = getDB(); db.fundoCaixa = val; saveDB(db);
-  toast('Fundo de Caixa saved!', 'gold');
-  sbFetch('PATCH','settings',{fundo_caixa:val},'id=eq.config').catch(function(){});
+  toast('Saving...', 'gold');
+  sbFetch('PATCH','settings',{fundo_caixa:val},'id=eq.config')
+    .then(function(){ toast('Fundo de Caixa saved & synced!', 'gold'); })
+    .catch(function(e){ console.error('fundo sync failed:',e); toast('Saved locally — sync failed','error'); });
 }
 function parseBudgetVal(s){ return parseFloat((s||'').trim().replace(',','.'))||0; }
 function saveBudgets() {
@@ -1881,8 +1898,13 @@ function saveBudgets() {
   var yd=document.getElementById('budget-year-day');   if(yd)  yd.textContent =fmtEur(yearDay);
   var yt=document.getElementById('budget-year-t51');   if(yt)  yt.textContent =fmtEur(yearT51);
   var ys=document.getElementById('budget-year-surf');  if(ys)  ys.textContent =fmtEur(yearSurf);
-  toast('Budgets saved!', 'gold');
-  sbFetch('PATCH','settings',{budgets:db.budgets},'id=eq.config').catch(function(){});
+  toast('Saving budgets...', 'gold');
+  sbFetch('PATCH','settings',{budgets:db.budgets},'id=eq.config')
+    .then(function(){ toast('Budgets saved & synced!', 'gold'); })
+    .catch(function(e){
+      console.error('Budget sync failed:', e);
+      toast('Saved locally — Supabase sync failed (run migration SQL)', 'error');
+    });
 }
 function renderSettings() {
   var settingsLocked = document.getElementById('settings-locked');
@@ -2404,7 +2426,7 @@ function initInvDragDrop(){
       // Save new order locally and sync to Supabase
       var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
       var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
-      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(){});
+      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(e){ console.error('inv_sort sync:',e); });
     });
     card.addEventListener('dragover', function(e){
       e.preventDefault(); e.dataTransfer.dropEffect='move';
@@ -2454,7 +2476,7 @@ function initInvDragDrop(){
       list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
       var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
       var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
-      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(){});
+      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(e){ console.error('inv_sort sync:',e); });
       touchCard=null;
     });
   });
@@ -3039,7 +3061,7 @@ function generateTips(){
   var totalHrs=emps.reduce(function(s,e){return s+hoursMap[e];},0);
   // Save tips to db and sync to Supabase
   db.weekTips[ws]=total; saveDB(db);
-  sbFetch('PATCH','settings',{week_tips:db.weekTips},'id=eq.config').catch(function(){});
+  sbFetch('PATCH','settings',{week_tips:db.weekTips},'id=eq.config').catch(function(e){ console.error('week_tips sync:',e); });
   var rows=emps.map(function(e){
     var share=(hoursMap[e]/totalHrs)*total;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
