@@ -736,7 +736,7 @@ export function getAppHTML(): string {
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-day-year">€0</div>
-              <div class="fin-summary-label">This Year</div>
+              <div class="fin-summary-label">Year to Date</div>
               <div id="fin-stat-day-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-day-year-budget" style="font-size:11px;margin-top:4px"></div>
             </div>
@@ -767,7 +767,7 @@ export function getAppHTML(): string {
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-year">€0</div>
-              <div class="fin-summary-label">This Year</div>
+              <div class="fin-summary-label">Year to Date</div>
               <div id="fin-stat-t51-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-t51-year-budget" style="font-size:11px;margin-top:4px"></div>
             </div>
@@ -791,7 +791,7 @@ export function getAppHTML(): string {
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-year">€0</div>
-              <div class="fin-summary-label">This Year</div>
+              <div class="fin-summary-label">Year to Date</div>
               <div id="fin-stat-surf-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-surf-year-budget" style="font-size:11px;margin-top:4px"></div>
             </div>
@@ -2275,9 +2275,13 @@ function renderFinRecords() {
   var budgetDay  = bud.day[curMon]  || 0;
   var budgetT51  = bud.t51[curMon]  || 0;
   var budgetSurf = bud.surf[curMon] || 0;
-  // Year budget = sum of all 12 months
+  // Year-to-date budget = sum of months Jan through current month only
   var budgetDayYear=0, budgetT51Year=0, budgetSurfYear=0;
-  MONTH_KEYS.forEach(function(m){ budgetDayYear+=(bud.day[m]||0); budgetT51Year+=(bud.t51[m]||0); budgetSurfYear+=(bud.surf[m]||0); });
+  MONTH_KEYS.forEach(function(m){
+    if(m <= curMon) { // only include months up to and including the current month
+      budgetDayYear+=(bud.day[m]||0); budgetT51Year+=(bud.t51[m]||0); budgetSurfYear+=(bud.surf[m]||0);
+    }
+  });
 
   // Aggregate totals
   var dayMonth=0,dayYear=0,dayRange=0, t51Month=0,t51Year=0,t51Range=0, surfMonth=0,surfYear=0,surfRange=0;
