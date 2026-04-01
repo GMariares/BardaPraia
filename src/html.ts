@@ -616,6 +616,17 @@ export function getAppHTML(): string {
           </div>
         </div>
 
+        <!-- Missing days warning -->
+        <div id="fin-missing-warning" style="display:none;background:#fef2f2;border:2px solid #dc2626;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <i class="fas fa-triangle-exclamation" style="color:#dc2626;font-size:18px;margin-top:1px;flex-shrink:0"></i>
+            <div>
+              <div style="font-weight:800;font-size:13px;color:#dc2626;margin-bottom:4px">Missing previous entries</div>
+              <div id="fin-missing-days-list" style="font-size:12px;color:#b91c1c;line-height:1.7"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Invoiced FIRST -->
         <div class="fin-card">
           <h3><i class="fas fa-file-invoice-dollar" style="color:#10b981"></i> Invoiced</h3>
@@ -2034,6 +2045,46 @@ function renderFinance() {
   if (currentFinTab === 'records') renderFinRecords();
 }
 
+var FIN_CHECK_FROM = '2026-03-29'; // only check for gaps after this date
+
+function checkFinMissingDays(dateStr) {
+  var warnEl = document.getElementById('fin-missing-warning');
+  var listEl = document.getElementById('fin-missing-days-list');
+  if (!warnEl || !listEl) return;
+
+  // Only check dates strictly after the cutoff
+  if (dateStr <= FIN_CHECK_FROM) { warnEl.style.display = 'none'; return; }
+
+  var db = getDB();
+  var saved = {};
+  (db.finEntries || []).forEach(function(e){ saved[e.date] = true; });
+
+  // Walk backwards from the day before dateStr down to FIN_CHECK_FROM (exclusive)
+  var missing = [];
+  var d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1); // start from yesterday relative to selected date
+  while (true) {
+    var s = toDateStr(d);
+    if (s <= FIN_CHECK_FROM) break;
+    if (!saved[s]) missing.push(s);
+    d.setDate(d.getDate() - 1);
+    if (missing.length >= 10) break; // cap display at 10
+  }
+
+  if (missing.length === 0) {
+    warnEl.style.display = 'none';
+  } else {
+    // Format each missing date as readable string
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    listEl.innerHTML = missing.map(function(s){
+      var parts = s.split('-');
+      var label = parseInt(parts[2],10) + ' ' + months[parseInt(parts[1],10)-1] + ' ' + parts[0];
+      return '<div style="display:flex;align-items:center;gap:6px"><i class="fas fa-circle" style="font-size:5px;color:#dc2626"></i> ' + label + '</div>';
+    }).join('');
+    warnEl.style.display = 'block';
+  }
+}
+
 function applyFinLockState(dateStr) {
   var db = getDB();
   var hasSaved = !!(db.finEntries||[]).find(function(e){ return e.date === dateStr; });
@@ -2069,6 +2120,7 @@ function loadFinEntryForDate(dateStr) {
   }
   updateFinDayTotal();
   applyFinLockState(dateStr);
+  checkFinMissingDays(dateStr);
 }
 
 function setFinForm(entry) {
