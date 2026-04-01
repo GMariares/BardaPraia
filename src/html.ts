@@ -450,8 +450,8 @@ export function getAppHTML(): string {
       <div id="dash-pending-orders"></div>
     </div>
     <div class="dash-panel">
-      <h3><i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Low Stock Alerts</h3>
-      <div id="dash-low-stock"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#22c55e;font-size:22px"></i><p>All good!</p></div></div>
+      <h3><i class="fas fa-clipboard-list" style="color:var(--ocean-500)"></i> Open Tasks <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
+      <div id="dash-tasks-panel"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#22c55e;font-size:22px"></i><p>All done!</p></div></div>
     </div>
     <div class="dash-panel">
       <h3><i class="fas fa-calendar-day" style="color:var(--ocean-500)"></i> Today's Reservations</h3>
@@ -2885,8 +2885,13 @@ function renderTasks(){
   document.getElementById('task-count-pending').textContent=db.tasks.filter(function(t){return t.status==='pending';}).length;
   document.getElementById('task-count-progress').textContent=db.tasks.filter(function(t){return t.status==='in-progress';}).length;
   document.getElementById('task-count-done').textContent=db.tasks.filter(function(t){return t.status==='done';}).length;
-  var po={high:0,medium:1,low:2};
-  var tasks=db.tasks.slice().sort(function(a,b){return(po[a.priority]||1)-(po[b.priority]||1);});
+  // Sort by deadline ascending — tasks with no deadline go to the end
+  var tasks=db.tasks.slice().sort(function(a,b){
+    if(!a.deadline && !b.deadline) return 0;
+    if(!a.deadline) return 1;
+    if(!b.deadline) return -1;
+    return a.deadline.localeCompare(b.deadline);
+  });
   if(currentTaskFilter!=='all') tasks=tasks.filter(function(t){return t.status===currentTaskFilter;});
   var el=document.getElementById('task-list'); if(!el) return;
   if(tasks.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No tasks here.</p></div>';return;}
@@ -3374,12 +3379,6 @@ function renderDashboard(){
   document.getElementById('dash-inv-status').className='badge '+(lowItems.length>0?'badge-red':'badge-green');
   document.getElementById('dash-inv-status').textContent=lowItems.length>0?lowItems.length+' Low':'OK';
   document.getElementById('dash-inv-low').textContent=lowItems.length>0?lowItems.length+' need restock':'';
-  var alertEl=document.getElementById('dash-low-stock');
-  if(lowItems.length===0){alertEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-check-circle" style="color:#22c55e;font-size:22px"></i><p>All good!</p></div>';}
-  else alertEl.innerHTML=lowItems.slice(0,5).map(function(i){
-    var total=i.qtyBar+i.qtyStorage; var pct=i.minimum>0?Math.round(total/i.minimum*100):100;
-    return '<div class="alert-item"><span class="pulse-dot red"></span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#dc2626">'+esc(i.name)+'</div><div style="height:4px;background:#fee2e2;border-radius:2px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#ef4444;border-radius:2px"></div></div></div><div style="font-size:12px;color:#dc2626;font-weight:700">'+total+'/'+i.minimum+'</div></div>';
-  }).join('');
   var today=toDateStr(new Date());
   var todayRes=db.reservations.filter(function(r){return r.date===today;}).sort(function(a,b){return a.time.localeCompare(b.time);});
   document.getElementById('dash-res-count').textContent=todayRes.length;
@@ -3389,10 +3388,41 @@ function renderDashboard(){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--ocean-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ocean-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ocean-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
   }).join('');
-  var openTasks=db.tasks.filter(function(t){return t.status!=='done';});
+  var openTasks=db.tasks.filter(function(t){return t.status!=='done';}).slice().sort(function(a,b){
+    if(!a.deadline && !b.deadline) return 0;
+    if(!a.deadline) return 1;
+    if(!b.deadline) return -1;
+    return a.deadline.localeCompare(b.deadline);
+  });
   document.getElementById('dash-task-count').textContent=openTasks.length;
   document.getElementById('dash-task-badge').className='badge '+(openTasks.length>0?'badge-yellow':'badge-green');
   document.getElementById('dash-task-badge').textContent=openTasks.length>0?'Open':'All Done';
+  // Render open tasks panel on dashboard
+  var tasksPanelEl=document.getElementById('dash-tasks-panel');
+  var tasksBadgeEl=document.getElementById('dash-tasks-panel-badge');
+  if(tasksBadgeEl){ tasksBadgeEl.textContent=openTasks.length; tasksBadgeEl.style.display=openTasks.length>0?'inline':'none'; }
+  if(tasksPanelEl){
+    if(openTasks.length===0){
+      tasksPanelEl.innerHTML='<div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#22c55e;font-size:22px"></i><p>All done!</p></div>';
+    } else {
+      var now2=new Date();
+      tasksPanelEl.innerHTML=openTasks.slice(0,6).map(function(t){
+        var isOverdue=t.deadline&&new Date(t.deadline)<now2;
+        var priColor=t.priority==='high'?'badge-red':t.priority==='low'?'badge-gray':'badge-yellow';
+        return '<div class="today-res-item" data-nav="tasks" style="cursor:pointer;gap:10px">'
+          +'<div style="width:34px;height:34px;background:var(--ocean-100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(taskCatIcons[t.category]||'📌')+'</div>'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:13px;font-weight:700;color:var(--ocean-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'
+            +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'
+              +(t.deadline?'<i class="fas fa-calendar-check" style="margin-right:3px'+(isOverdue?';color:#dc2626':'')+'"></i><span style="'+(isOverdue?'color:#dc2626;font-weight:700':'')+'">'+esc(t.deadline)+'</span>':'<span style="color:var(--ocean-300)">No deadline</span>')
+            +'</div>'
+          +'</div>'
+          +'<span class="badge '+priColor+'" style="flex-shrink:0;align-self:center">'+esc(t.priority||'medium')+'</span>'
+        +'</div>';
+      }).join('')
+      +(openTasks.length>6?'<div style="text-align:center;padding:8px;font-size:12px;color:var(--ocean-400);cursor:pointer" data-nav="tasks">+' +(openTasks.length-6)+' more tasks →</div>':'');
+    }
+  }
   document.getElementById('dash-tables').textContent=db.tables.length;
 
   // Pending orders panel — visible to everyone
