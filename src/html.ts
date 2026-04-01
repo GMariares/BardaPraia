@@ -1412,8 +1412,13 @@ var MIGRATION_SQL = [
   '-- 3. Apply settings migration',
   "UPDATE settings SET finance_pin = '0000', fundo_caixa = 0 WHERE id = 'config';",
   '',
-  '-- 4. Add Finance Budgets JSON column (optional — stores per-month budgets)',
-  "ALTER TABLE settings ADD COLUMN IF NOT EXISTS budgets JSONB DEFAULT '{}'::jsonb;"
+  '-- 4. Shared settings columns (budgets, weekly tips, stock sort order)',
+  "ALTER TABLE settings ADD COLUMN IF NOT EXISTS budgets       JSONB DEFAULT '{}'::jsonb;",
+  "ALTER TABLE settings ADD COLUMN IF NOT EXISTS week_tips     JSONB DEFAULT '{}'::jsonb;",
+  "ALTER TABLE settings ADD COLUMN IF NOT EXISTS inv_sort_order JSONB DEFAULT '[]'::jsonb;",
+  '',
+  '-- 5. Day-off flag on shifts table',
+  'ALTER TABLE shifts ADD COLUMN IF NOT EXISTS day_off BOOLEAN DEFAULT false;'
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1448,14 +1453,28 @@ function syncFromSupabase() {
         } else {
           db.fundoCaixa = parseFloat(rows[0].fundo_caixa)||0;
         }
-        // Per-month budgets JSON column — optional; silently use local defaults if missing
-        if (rows[0].budgets && typeof rows[0].budgets === 'object') {
+        // Per-month budgets JSON column
+        if (rows[0].budgets === undefined) {
+          sbMissingItems.push('settings.budgets');
+        } else if (rows[0].budgets && typeof rows[0].budgets === 'object') {
           var rb = rows[0].budgets;
           ['day','t51','surf'].forEach(function(k){
             if (rb[k] && typeof rb[k]==='object') {
               MONTH_KEYS.forEach(function(m){ db.budgets[k][m] = parseFloat(rb[k][m])||0; });
             }
           });
+        }
+        // Weekly tips per week-start
+        if (rows[0].week_tips === undefined) {
+          sbMissingItems.push('settings.week_tips');
+        } else if (rows[0].week_tips && typeof rows[0].week_tips === 'object') {
+          db.weekTips = rows[0].week_tips;
+        }
+        // Inventory sort order
+        if (rows[0].inv_sort_order === undefined) {
+          sbMissingItems.push('settings.inv_sort_order');
+        } else if (Array.isArray(rows[0].inv_sort_order)) {
+          db.invSortOrder = rows[0].inv_sort_order;
         }
         db.tables = rows[0].tables || db.tables;
       }
@@ -1495,13 +1514,20 @@ function syncFromSupabase() {
         deadline: r.deadline||'', doneAt: r.done_at||'', createdAt: r.created_at
       }; });
     }),
-    sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc').then(function(rows) {
-      if (rows) db.shifts = rows.map(function(r){ return {
-        id: r.id, employee: r.employee, day: r.day, weekStart: r.week_start,
-        start: r.start_time ? r.start_time.slice(0,5) : '',
-        end: r.end_time ? r.end_time.slice(0,5) : '',
-        role: r.role||'', createdAt: r.created_at
-      }; });
+    sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc&limit=1').then(function(rows) {
+      // Detect missing day_off column
+      if (rows && rows[0] && rows[0].day_off === undefined) {
+        sbMissingItems.push('shifts.day_off');
+      }
+      // Re-fetch all shifts
+      return sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc').then(function(rows2) {
+        if (rows2) db.shifts = rows2.map(function(r){ return {
+          id: r.id, employee: r.employee, day: r.day, weekStart: r.week_start,
+          start: r.start_time ? r.start_time.slice(0,5) : '',
+          end: r.end_time ? r.end_time.slice(0,5) : '',
+          role: r.role||'', dayOff: !!r.day_off, createdAt: r.created_at
+        }; });
+      });
     }),
     sbFetch('GET', 'bb_menu', null, 'order=category.asc,name.asc').then(function(rows) {
       if (rows) db.bbMenu = rows.map(function(r){ return {
@@ -2375,9 +2401,10 @@ function initInvDragDrop(){
     card.addEventListener('dragend', function(){
       card.classList.remove('dragging');
       list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
-      // Save new order
+      // Save new order locally and sync to Supabase
       var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
       var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
+      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(){});
     });
     card.addEventListener('dragover', function(e){
       e.preventDefault(); e.dataTransfer.dropEffect='move';
@@ -2427,6 +2454,7 @@ function initInvDragDrop(){
       list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
       var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
       var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
+      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(){});
       touchCard=null;
     });
   });
@@ -3009,8 +3037,9 @@ function generateTips(){
   var el=document.getElementById('shifts-tips-result');
   if(emps.length===0){el.innerHTML='<p style="font-size:13px;color:#dc2626">No worked shifts found for this week.</p>';return;}
   var totalHrs=emps.reduce(function(s,e){return s+hoursMap[e];},0);
-  // Save tips to db
+  // Save tips to db and sync to Supabase
   db.weekTips[ws]=total; saveDB(db);
+  sbFetch('PATCH','settings',{week_tips:db.weekTips},'id=eq.config').catch(function(){});
   var rows=emps.map(function(e){
     var share=(hoursMap[e]/totalHrs)*total;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
