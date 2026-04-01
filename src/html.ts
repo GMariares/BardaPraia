@@ -688,12 +688,26 @@ export function getAppHTML(): string {
           </div>
         </div>
 
-        <button class="btn btn-primary" style="width:100%;justify-content:center;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border-color:#7c3aed;margin-bottom:8px" id="btn-save-finance-entry">
-          <i class="fas fa-save"></i> Save Daily Entry
-        </button>
-        <button class="btn btn-secondary" style="width:100%;justify-content:center" id="btn-clear-finance-entry">
-          <i class="fas fa-rotate-left"></i> Clear Form
-        </button>
+        <!-- Action buttons — shown when entry is NOT yet saved for this date -->
+        <div id="fin-entry-actions">
+          <button class="btn btn-primary" style="width:100%;justify-content:center;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border-color:#7c3aed;margin-bottom:8px" id="btn-save-finance-entry">
+            <i class="fas fa-save"></i> Save Daily Entry
+          </button>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center" id="btn-clear-finance-entry">
+            <i class="fas fa-rotate-left"></i> Clear Form
+          </button>
+        </div>
+        <!-- Locked banner — shown when entry is already saved for this date -->
+        <div id="fin-entry-locked" style="display:none;background:#f0fdf4;border:2px solid #16a34a;border-radius:var(--radius);padding:14px 16px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
+          <i class="fas fa-circle-check" style="color:#16a34a;font-size:22px;flex-shrink:0"></i>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:14px;color:#15803d">Entry Saved</div>
+            <div style="font-size:12px;color:#16a34a;margin-top:2px">This day is locked. Admin can edit.</div>
+          </div>
+          <button id="btn-fin-edit-entry" style="display:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;align-items:center;gap:6px">
+            <i class="fas fa-pen"></i> Edit
+          </button>
+        </div>
       </div>
 
       <!-- ── Records Panel ── -->
@@ -1596,6 +1610,7 @@ var shiftsWeekOffset = 0;
 var pinBuffer = '';
 var finPinBuffer = '';
 var finSelectedDate = '';
+var finEditMode = false; // true = admin has unlocked a saved entry for editing
 var bbSelectedItems = {}; // {id: qty}
 var bbItemSearchVal = '';
 var currentBbTab = 'daily';
@@ -2019,8 +2034,32 @@ function renderFinance() {
   if (currentFinTab === 'records') renderFinRecords();
 }
 
+function applyFinLockState(dateStr) {
+  var db = getDB();
+  var hasSaved = !!(db.finEntries||[]).find(function(e){ return e.date === dateStr; });
+  var actionsEl  = document.getElementById('fin-entry-actions');
+  var lockedEl   = document.getElementById('fin-entry-locked');
+  var editBtnEl  = document.getElementById('btn-fin-edit-entry');
+  var FIN_INPUTS = ['fin-t51','fin-multibanco','fin-invoiced','fin-tips',
+                    'fin-gen-expenses','fin-cash-notes','fin-coins','fin-surf'];
+
+  if (hasSaved && !finEditMode) {
+    // Locked state — entry exists, not in edit mode
+    FIN_INPUTS.forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=true; el.style.opacity='0.6'; el.style.background='#f8fafc'; } });
+    if (actionsEl) actionsEl.style.display = 'none';
+    if (lockedEl)  { lockedEl.style.display = 'flex'; }
+    if (editBtnEl) { editBtnEl.style.display = isAdmin ? 'flex' : 'none'; }
+  } else {
+    // Editable state — no entry yet, or admin is editing
+    FIN_INPUTS.forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=false; el.style.opacity=''; el.style.background=''; } });
+    if (actionsEl) actionsEl.style.display = 'block';
+    if (lockedEl)  { lockedEl.style.display = 'none'; }
+  }
+}
+
 function loadFinEntryForDate(dateStr) {
   finSelectedDate = dateStr;
+  finEditMode = false; // always reset edit mode when switching date
   var db = getDB();
   var existing = (db.finEntries||[]).find(function(e){ return e.date === dateStr; });
   if (existing) {
@@ -2029,6 +2068,7 @@ function loadFinEntryForDate(dateStr) {
     clearFinanceFields();
   }
   updateFinDayTotal();
+  applyFinLockState(dateStr);
 }
 
 function setFinForm(entry) {
@@ -2130,8 +2170,10 @@ function saveFinanceEntry() {
   };
   if (idx !== -1) { db.finEntries[idx] = entry; } else { db.finEntries.unshift(entry); }
   saveDB(db);
+  finEditMode = false; // re-lock after save
   toast('Daily finance entry saved!', 'gold');
   updateFinDayTotal();
+  applyFinLockState(saveDate);
   sbFetch(idx !== -1 ? 'PATCH' : 'POST', 'fin_entries',
     { id: entry.id, date: entry.date, t51: entry.t51, multibanco: entry.multibanco,
       total_day: entry.totalDay, invoiced: entry.invoiced,
@@ -3359,6 +3401,13 @@ document.addEventListener('click', function(e) {
   if (finTabEl) { switchFinTab(finTabEl.dataset.finTab); return; }
   if (t.closest('#btn-save-finance-entry')) { saveFinanceEntry(); return; }
   if (t.closest('#btn-clear-finance-entry')) { clearFinanceEntry(); return; }
+  if (t.closest('#btn-fin-edit-entry')) {
+    if (!isAdmin) { toast('Admin access required', 'error'); return; }
+    finEditMode = true;
+    applyFinLockState(finSelectedDate);
+    toast('Entry unlocked for editing', 'gold');
+    return;
+  }
   if (t.closest('#btn-change-finance-pin')) { changeFinancePin(); return; }
   if (t.closest('#btn-fin-recalc')) { renderFinRecords(); return; }
   if (t.closest('#btn-fin-clear-day')) { finRecDayFilter=''; var dp=document.getElementById('fin-rec-day-picker'); if(dp) dp.value=''; renderFinRecords(); return; }
