@@ -254,11 +254,11 @@ export function getAppHTML(): string {
     .gantt-day-name { font-weight:700; font-size:14px; color:var(--ocean-900); }
     .gantt-day-date { font-size:11px; color:var(--ocean-400); margin-top:1px; }
     .gantt-timeline { position:relative; padding:0 14px 10px; }
-    .gantt-hours { display:flex; border-bottom:1px solid var(--ocean-100); margin-bottom:6px; padding-bottom:4px; }
-    .gantt-hour-label { flex:1; font-size:9px; font-weight:700; color:var(--ocean-300); text-align:left; white-space:nowrap; }
+    .gantt-hours { position:relative; border-bottom:1px solid var(--ocean-100); margin-bottom:6px; padding-bottom:4px; height:18px; }
+    .gantt-hour-label { position:absolute; font-size:9px; font-weight:700; color:var(--ocean-300); white-space:nowrap; transform:translateX(-50%); }
     .gantt-rows { position:relative; }
-    .gantt-grid-lines { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; pointer-events:none; }
-    .gantt-grid-line { flex:1; border-left:1px dashed var(--ocean-100); }
+    .gantt-grid-lines { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; }
+    .gantt-grid-line { position:absolute; top:0; bottom:0; width:1px; background:rgba(186,230,253,.5); }
     .gantt-row { position:relative; height:28px; margin-bottom:5px; display:flex; align-items:center; }
     .gantt-emp-label { width:60px; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ocean-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:6px; }
     .gantt-track { flex:1; position:relative; height:22px; border-radius:4px; background:var(--ocean-50); overflow:visible; }
@@ -563,6 +563,7 @@ export function getAppHTML(): string {
         <button class="btn btn-secondary btn-sm" id="btn-shifts-prev-week"><i class="fas fa-chevron-left"></i></button>
         <button class="btn btn-secondary btn-sm" id="btn-shifts-next-week"><i class="fas fa-chevron-right"></i></button>
         <button class="btn btn-gold btn-sm" id="btn-add-shift" style="display:none"><i class="fas fa-plus"></i> Add</button>
+        <button class="btn btn-secondary btn-sm" id="btn-repeat-week" style="display:none" title="Copy previous week shifts to this week"><i class="fas fa-copy"></i> Repeat</button>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);margin-bottom:12px;font-size:11px;color:var(--ocean-400);flex-wrap:wrap">
@@ -832,9 +833,12 @@ export function getAppHTML(): string {
       <!-- Daily Entry -->
       <div id="bb-panel-daily">
         <div class="bb-total-box">
-          <div class="bb-total-label">TODAY'S TOTAL</div>
+          <div class="bb-total-label">DAILY ENTRY</div>
           <div class="bb-total-num" id="bb-today-total">€0.00</div>
-          <div style="font-size:12px;opacity:.6;margin-top:4px" id="bb-today-date"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px">
+            <input type="date" id="bb-entry-date" class="input-field" style="font-size:12px;padding:4px 10px;width:auto;background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3);text-align:center" />
+            <span id="bb-today-date" style="font-size:11px;opacity:.7"></span>
+          </div>
         </div>
         <div class="search-bar" style="margin-bottom:10px">
           <i class="fas fa-search"></i>
@@ -1211,9 +1215,26 @@ export function getAppHTML(): string {
         </select>
       </div>
     </div>
-    <div class="form-grid-2" style="margin-bottom:16px">
+    <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Assigned To</label><select class="select-field" id="task-assigned"></select></div>
       <div><label class="label">Deadline</label><input type="date" class="input-field" id="task-deadline" /></div>
+    </div>
+    <div class="form-row" style="margin-bottom:16px">
+      <label class="label"><i class="fas fa-repeat" style="color:#8b5cf6;margin-right:4px"></i> Recurrence</label>
+      <select class="select-field" id="task-recurrence">
+        <option value="">None (one-time)</option>
+        <option value="daily">Every Day</option>
+        <option value="weekly">Once a Week</option>
+        <option value="biweekly">Every 2 Weeks</option>
+        <option value="monthly">Once a Month</option>
+        <option value="monday">Every Monday</option>
+        <option value="tuesday">Every Tuesday</option>
+        <option value="wednesday">Every Wednesday</option>
+        <option value="thursday">Every Thursday</option>
+        <option value="friday">Every Friday</option>
+        <option value="saturday">Every Saturday</option>
+        <option value="sunday">Every Sunday</option>
+      </select>
     </div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-task"><i class="fas fa-save"></i> Save Task</button>
@@ -1250,7 +1271,19 @@ export function getAppHTML(): string {
         </tbody>
       </table>
     </div>
-    <div class="form-row" style="margin-bottom:14px"><label class="label">Role / Notes (applies to all days)</label><input type="text" class="input-field" id="shift-role" placeholder="e.g. Bar, Kitchen, Host..." /></div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div><label class="label">Zone</label>
+        <select class="select-field" id="shift-zone">
+          <option value="">— None —</option>
+          <option value="Dishes">🍽️ Dishes</option>
+          <option value="Kitchen">👨‍🍳 Kitchen</option>
+          <option value="Bar">🍹 Bar</option>
+          <option value="Service">🛎️ Service</option>
+          <option value="Foccaceria">🫓 Foccaceria</option>
+        </select>
+      </div>
+      <div><label class="label">Role / Notes</label><input type="text" class="input-field" id="shift-role" placeholder="e.g. Host, Manager..." /></div>
+    </div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-shift"><i class="fas fa-save"></i> Save Shifts</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-shift">Cancel</button>
@@ -1442,8 +1475,12 @@ var MIGRATION_SQL = [
   "ALTER TABLE settings ADD COLUMN IF NOT EXISTS week_tips     JSONB DEFAULT '{}'::jsonb;",
   "ALTER TABLE settings ADD COLUMN IF NOT EXISTS inv_sort_order JSONB DEFAULT '[]'::jsonb;",
   '',
-  '-- 5. Day-off flag on shifts table',
-  'ALTER TABLE shifts ADD COLUMN IF NOT EXISTS day_off BOOLEAN DEFAULT false;'
+  '-- 5. Shifts extra columns',
+  'ALTER TABLE shifts ADD COLUMN IF NOT EXISTS day_off BOOLEAN DEFAULT false;',
+  "ALTER TABLE shifts ADD COLUMN IF NOT EXISTS zone TEXT DEFAULT '';",
+  '',
+  '-- 6. Task recurrence column',
+  "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence TEXT DEFAULT NULL;"
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1551,21 +1588,18 @@ function syncFromSupabase() {
       if (rows) db.tasks = rows.map(function(r){ return {
         id: r.id, title: r.title, description: r.description||'', category: r.category,
         priority: r.priority, status: r.status, assignedTo: r.assigned_to||'',
-        deadline: r.deadline||'', doneAt: r.done_at||'', createdAt: r.created_at
+        deadline: r.deadline||'', doneAt: r.done_at||'', createdAt: r.created_at,
+        recurrence: r.recurrence||''
       }; });
     }),
     sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc&limit=1').then(function(rows) {
-      // Detect missing day_off column
-      if (rows && rows[0] && rows[0].day_off === undefined) {
-        sbMissingItems.push('shifts.day_off');
-      }
-      // Re-fetch all shifts
+      if (rows && rows[0] && rows[0].day_off === undefined) sbMissingItems.push('shifts.day_off');
       return sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc').then(function(rows2) {
         if (rows2) db.shifts = rows2.map(function(r){ return {
           id: r.id, employee: r.employee, day: r.day, weekStart: r.week_start,
           start: r.start_time ? r.start_time.slice(0,5) : '',
           end: r.end_time ? r.end_time.slice(0,5) : '',
-          role: r.role||'', dayOff: !!r.day_off, createdAt: r.created_at
+          role: r.role||'', zone: r.zone||'', dayOff: !!r.day_off, createdAt: r.created_at
         }; });
       });
     }),
@@ -2830,6 +2864,7 @@ function openAddTaskModal(editId){
     document.getElementById('task-priority').value=t.priority||'medium';
     document.getElementById('task-assigned').value=t.assignedTo||'';
     document.getElementById('task-deadline').value=t.deadline||'';
+    document.getElementById('task-recurrence').value=t.recurrence||'';
   } else {
     document.getElementById('task-modal-title').textContent='New Task';
     document.getElementById('task-edit-id').value='';
@@ -2839,6 +2874,7 @@ function openAddTaskModal(editId){
     document.getElementById('task-priority').value='medium';
     document.getElementById('task-assigned').value='';
     document.getElementById('task-deadline').value='';
+    document.getElementById('task-recurrence').value='';
   }
   openModal('modal-add-task');
 }
@@ -2850,8 +2886,9 @@ function saveTask(){
   var pri=document.getElementById('task-priority').value;
   var asn=document.getElementById('task-assigned').value;
   var dl=document.getElementById('task-deadline').value;
-  var task={title:title,description:desc,category:cat,priority:pri,assignedTo:asn,deadline:dl};
-  var sbTask={title:title,description:desc,category:cat,priority:pri,assigned_to:asn,deadline:dl||null};
+  var rec=document.getElementById('task-recurrence').value;
+  var task={title:title,description:desc,category:cat,priority:pri,assignedTo:asn,deadline:dl,recurrence:rec};
+  var sbTask={title:title,description:desc,category:cat,priority:pri,assigned_to:asn,deadline:dl||null,recurrence:rec||null};
   if(editId){
     var idx=db.tasks.findIndex(function(t){return t.id===editId;});if(idx!==-1) db.tasks[idx]=Object.assign({},db.tasks[idx],task);
     saveDB(db); closeModal('modal-add-task'); renderTasks(); renderDashboard(); toast('Updating...');
@@ -2866,6 +2903,25 @@ function saveTask(){
     }).catch(function(){ toast('Saved locally','error'); });
   }
 }
+function nextRecurDeadline(baseDate, recurrence){
+  // Returns next deadline date string based on recurrence type from a base date
+  var d=baseDate?new Date(baseDate):new Date();
+  var dayNames=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  switch(recurrence){
+    case 'daily':    d.setDate(d.getDate()+1); break;
+    case 'weekly':   d.setDate(d.getDate()+7); break;
+    case 'biweekly': d.setDate(d.getDate()+14); break;
+    case 'monthly':  d.setMonth(d.getMonth()+1); break;
+    default:
+      var targetDay=dayNames.indexOf(recurrence);
+      if(targetDay>=0){
+        var cur=d.getDay(); // 0=Sun
+        var diff=targetDay-cur; if(diff<=0) diff+=7;
+        d.setDate(d.getDate()+diff);
+      }
+  }
+  return d.toISOString().substring(0,10);
+}
 function setTaskStatus(id,status){
   var db=getDB(); var idx=db.tasks.findIndex(function(t){return t.id===id;});
   var doneAt=status==='done'?new Date().toISOString():null;
@@ -2873,6 +2929,21 @@ function setTaskStatus(id,status){
   renderTasks(); renderDashboard(); toast('Marked as '+status+'!');
   var patch={status:status}; if(doneAt) patch.done_at=doneAt;
   sbFetch('PATCH','tasks',patch,'id=eq.'+id).catch(function(){});
+  // If recurring and marked done, spawn next instance
+  if(status==='done'&&idx!==-1){
+    var t=db.tasks[idx];
+    if(t.recurrence){
+      var nextDl=nextRecurDeadline(t.deadline||null,t.recurrence);
+      var newId=uid();
+      var newTask={id:newId,title:t.title,description:t.description,category:t.category,priority:t.priority,assignedTo:t.assignedTo,deadline:nextDl,recurrence:t.recurrence,status:'pending',createdAt:new Date().toISOString()};
+      db=getDB(); db.tasks.push(newTask); saveDB(db);
+      renderTasks(); renderDashboard();
+      sbFetch('POST','tasks',{title:newTask.title,description:newTask.description,category:newTask.category,priority:newTask.priority,assigned_to:newTask.assignedTo,deadline:nextDl,recurrence:newTask.recurrence,status:'pending'})
+        .then(function(rows){ if(rows&&rows[0]){var ti=db.tasks.findIndex(function(x){return x.id===newId;}); if(ti!==-1){db.tasks[ti].id=rows[0].id;saveDB(db);}} })
+        .catch(function(){});
+      toast('Next recurrence scheduled for '+nextDl+'!','gold');
+    }
+  }
 }
 function deleteTask(id){
   if(!confirm('Delete task?')) return;
@@ -2896,12 +2967,14 @@ function renderTasks(){
   var el=document.getElementById('task-list'); if(!el) return;
   if(tasks.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No tasks here.</p></div>';return;}
   var now=new Date();
+  var recurLabels={daily:'Daily',weekly:'Weekly',biweekly:'Every 2 wks',monthly:'Monthly',monday:'Every Mon',tuesday:'Every Tue',wednesday:'Every Wed',thursday:'Every Thu',friday:'Every Fri',saturday:'Every Sat',sunday:'Every Sun'};
   el.innerHTML=tasks.map(function(t){
     var isOverdue=t.deadline&&new Date(t.deadline)<now&&t.status!=='done';
+    var recurBadge=t.recurrence?'<span class="badge" style="background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe"><i class="fas fa-repeat" style="margin-right:3px;font-size:9px"></i>'+(recurLabels[t.recurrence]||esc(t.recurrence))+'</span>':'';
     return '<div class="task-item'+(t.status==='done'?' done':'')+'">'
       +'<div class="task-top"><div class="task-icon">'+(taskCatIcons[t.category]||'📌')+'</div>'
       +'<div class="task-body"><div class="task-title'+(t.status==='done'?' done-text':'')+'">'+esc(t.title)+'</div>'
-      +'<div class="task-badges"><span class="badge '+(priColors[t.priority]||'badge-gray')+'">'+esc(t.priority||'medium')+'</span><span class="badge '+(t.status==='done'?'badge-green':t.status==='in-progress'?'badge-blue':'badge-yellow')+'">'+esc(t.status)+'</span>'+(isOverdue?'<span class="badge badge-red">Overdue</span>':'')+'</div>'
+      +'<div class="task-badges"><span class="badge '+(priColors[t.priority]||'badge-gray')+'">'+esc(t.priority||'medium')+'</span><span class="badge '+(t.status==='done'?'badge-green':t.status==='in-progress'?'badge-blue':'badge-yellow')+'">'+esc(t.status)+'</span>'+(isOverdue?'<span class="badge badge-red">Overdue</span>':'')+recurBadge+'</div>'
       +(t.description?'<div class="task-desc">'+esc(t.description)+'</div>':'')
       +'<div class="task-meta">'+(t.assignedTo?'<span><i class="fas fa-user" style="margin-right:3px"></i>'+esc(t.assignedTo)+'</span>':'')+(t.deadline?'<span><i class="fas fa-calendar-check" style="margin-right:3px"></i>'+esc(t.deadline)+'</span>':'')+'</div>'
       +'</div></div>'
@@ -2934,17 +3007,28 @@ var GANTT_COLORS = [
   '#06b6d4','#f97316','#a855f7','#14b8a6','#ec4899'
 ];
 
+// Zone colours
+var ZONE_COLORS = {
+  'Dishes':    '#64748b',
+  'Kitchen':   '#ef4444',
+  'Bar':       '#0ea5e9',
+  'Service':   '#22c55e',
+  'Foccaceria':'#f59e0b'
+};
+var ZONES_ORDER = ['Dishes','Kitchen','Bar','Service','Foccaceria',''];
+
 function timeToMins(t) {
   if (!t) return 0;
   var parts = t.split(':');
   return parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
 }
 
-function ganttShiftColor(employee, db) {
-  // Consistent color per employee name
+function ganttShiftColor(shift, db) {
+  // Color by zone if set, else by employee
+  if (shift.zone && ZONE_COLORS[shift.zone]) return ZONE_COLORS[shift.zone];
   var emps = db.employees || [];
-  var idx = emps.indexOf(employee);
-  if (idx === -1) idx = Math.abs(employee.split('').reduce(function(a,c){return a+c.charCodeAt(0);},0)) % GANTT_COLORS.length;
+  var idx = emps.indexOf(shift.employee);
+  if (idx === -1) idx = Math.abs(shift.employee.split('').reduce(function(a,c){return a+c.charCodeAt(0);},0)) % GANTT_COLORS.length;
   return GANTT_COLORS[idx % GANTT_COLORS.length];
 }
 
@@ -2958,6 +3042,8 @@ function renderShifts(){
   var db = getDB();
   var addBtn = document.getElementById('btn-add-shift');
   if (addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
+  var repBtn = document.getElementById('btn-repeat-week');
+  if (repBtn) repBtn.style.display = isAdmin ? 'flex' : 'none';
   // Restore saved tips for this week
   var wsTipsKey = toDateStr(ws);
   var tipsInp = document.getElementById('shifts-tips-input');
@@ -2982,21 +3068,21 @@ function renderShifts(){
       return s.day === day && s.weekStart === wsStr;
     });
 
-    // Build hour ruler HTML
+    // Ruler: absolutely positioned labels aligned to bar percentages
     var rulerHTML = '<div class="gantt-hours">';
-    // Show label every 2 hours for readability on mobile
     for (var h = GANTT_START; h <= GANTT_END; h++) {
-      var showLabel = (h % 2 === 1) || h === GANTT_START || h === GANTT_END;
-      rulerHTML += '<div class="gantt-hour-label" style="min-width:0;flex:1">'
-        + (showLabel ? h+':00' : '')
-        +'</div>';
+      var showLabel = (h === GANTT_START) || (h % 2 === 0) || (h === GANTT_END);
+      if (!showLabel) continue;
+      var pct = ((h - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
+      rulerHTML += '<span class="gantt-hour-label" style="left:'+pct+'%">'+h+'</span>';
     }
     rulerHTML += '</div>';
 
-    // Grid lines (one per hour)
+    // Grid lines: absolutely positioned, one per hour, aligned to same percentages
     var gridHTML = '<div class="gantt-grid-lines">';
-    for (var g = 0; g <= GANTT_SPAN; g++) {
-      gridHTML += '<div class="gantt-grid-line"></div>';
+    for (var g = GANTT_START; g <= GANTT_END; g++) {
+      var gPct = ((g - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
+      gridHTML += '<div class="gantt-grid-line" style="left:'+gPct+'%"></div>';
     }
     gridHTML += '</div>';
 
@@ -3005,45 +3091,70 @@ function renderShifts(){
       ? '<div class="gantt-now-line" style="left:'+nowPct.toFixed(2)+'%"><div class="gantt-now-dot"></div></div>'
       : '';
 
-    // Shift bars
+    // Shift bars — group by zone, day-offs always last
     var rowsHTML = '';
     if (dayShifts.length === 0) {
       rowsHTML = '<div class="gantt-empty">No shifts scheduled</div>';
     } else {
-      rowsHTML = dayShifts.map(function(s) {
-        // Day off — show full-width black bar
+      // Sort: by zone order first, day-offs always last
+      var sorted = dayShifts.slice().sort(function(a, b) {
+        if (a.dayOff && !b.dayOff) return 1;
+        if (!a.dayOff && b.dayOff) return -1;
+        var za = ZONES_ORDER.indexOf(a.zone||''); if(za===-1) za=ZONES_ORDER.length;
+        var zb = ZONES_ORDER.indexOf(b.zone||''); if(zb===-1) zb=ZONES_ORDER.length;
+        if (za !== zb) return za - zb;
+        return (a.employee||'').localeCompare(b.employee||'');
+      });
+
+      // Group into zone sections
+      var lastZone = null;
+      rowsHTML = sorted.map(function(s) {
+        var zoneHeader = '';
+        var zone = s.dayOff ? 'day-off' : (s.zone || '');
+        if (zone !== lastZone) {
+          lastZone = zone;
+          if (zone && zone !== 'day-off') {
+            var zColor = ZONE_COLORS[zone] || '#64748b';
+            zoneHeader = '<div style="font-size:10px;font-weight:800;color:'+zColor+';text-transform:uppercase;letter-spacing:.8px;padding:4px 0 2px;margin-top:4px">'+esc(zone)+'</div>';
+          } else if (zone === 'day-off') {
+            zoneHeader = '<div style="font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;padding:4px 0 2px;margin-top:4px">Day Off</div>';
+          }
+        }
+
+        var rowHTML = '';
         if (s.dayOff) {
-          var offLabel = esc(s.employee) + ' — Day Off';
-          return '<div class="gantt-row">'
+          var offLabel = esc(s.employee);
+          rowHTML = '<div class="gantt-row">'
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
-              +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#9ca3af;font-size:11px;letter-spacing:.5px" title="'+offLabel+'"'
+              +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#9ca3af;font-size:10px" title="'+offLabel+' — Day Off"'
                 +(isAdmin?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
-                +'<i class="fas fa-ban" style="margin-right:4px"></i>'+offLabel
+                +'<i class="fas fa-ban" style="margin-right:3px"></i>'+offLabel
+              +'</div>'
+            +'</div>'
+          +'</div>';
+        } else {
+          var startMins = timeToMins(s.start);
+          var endMins   = timeToMins(s.end);
+          if (endMins <= startMins) endMins += 24*60;
+          var clampStart = Math.max(startMins, GANTT_START*60);
+          var clampEnd   = Math.min(endMins,   GANTT_END*60);
+          var leftPct  = ((clampStart/60 - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
+          var widthPct = Math.max(((clampEnd - clampStart)/60 / GANTT_SPAN * 100), 0.5).toFixed(2);
+          var color = ganttShiftColor(s, db);
+          var barLabel = esc(s.employee.split(' ')[0]) + ' ' + esc(s.start) + '–' + esc(s.end);
+          if (s.role) barLabel += ' · '+esc(s.role);
+          rowHTML = '<div class="gantt-row">'
+            +'<div class="gantt-emp-label" title="'+esc(s.employee)+(s.zone?' ['+esc(s.zone)+']':'')+'">'+esc(s.employee.split(' ')[0])+'</div>'
+            +'<div class="gantt-track">'
+              +'<div class="gantt-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'" title="'+barLabel+'"'
+                +(isAdmin?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
+                + barLabel
               +'</div>'
             +'</div>'
           +'</div>';
         }
-        var startMins = timeToMins(s.start);
-        var endMins   = timeToMins(s.end);
-        // Handle overnight (end < start means next day)
-        if (endMins <= startMins) endMins += 24*60;
-        // Clamp to gantt range
-        var clampStart = Math.max(startMins, GANTT_START*60);
-        var clampEnd   = Math.min(endMins,   GANTT_END*60);
-        var leftPct  = ((clampStart/60 - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
-        var widthPct = Math.max(((clampEnd - clampStart)/60 / GANTT_SPAN * 100), 0.5).toFixed(2);
-        var color = ganttShiftColor(s.employee, db);
-        var label = esc(s.employee) + ' ' + esc(s.start) + '–' + esc(s.end) + (s.role ? ' · '+esc(s.role) : '');
-        return '<div class="gantt-row">'
-          +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
-          +'<div class="gantt-track">'
-            +'<div class="gantt-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'" title="'+label+'"'
-              +(isAdmin?' data-delete-shift="'+esc(s.id)+'"':'')+'>'  
-              + label
-            +'</div>'
-          +'</div>'
-        +'</div>';
+        return zoneHeader + rowHTML;
       }).join('');
     }
 
@@ -3097,6 +3208,7 @@ function openAddShiftModal(preDay){
   document.getElementById('shift-edit-id').value='';
   document.getElementById('shift-employee').value='';
   document.getElementById('shift-role').value='';
+  document.getElementById('shift-zone').value='';
   // Reset all rows to defaults
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
   rows.forEach(function(row){
@@ -3108,9 +3220,33 @@ function openAddShiftModal(preDay){
   });
   openModal('modal-add-shift');
 }
+function repeatWeek(){
+  var db=getDB();
+  var curWs=toDateStr(getWeekStart(shiftsWeekOffset));
+  var prevWs=toDateStr(getWeekStart(shiftsWeekOffset-1));
+  var prevShifts=db.shifts.filter(function(s){return s.weekStart===prevWs;});
+  if(prevShifts.length===0){toast('No shifts found in previous week','error');return;}
+  // Remove existing shifts for current week first
+  var toDelete=db.shifts.filter(function(s){return s.weekStart===curWs;});
+  toDelete.forEach(function(s){ sbFetch('DELETE','shifts',null,'id=eq.'+s.id).catch(function(){}); });
+  db.shifts=db.shifts.filter(function(s){return s.weekStart!==curWs;});
+  // Copy prev week shifts to current week
+  var saved=0;
+  prevShifts.forEach(function(s){
+    var newId=uid();
+    var ns={id:newId,employee:s.employee,day:s.day,start:s.start,end:s.end,role:s.role||'',zone:s.zone||'',dayOff:!!s.dayOff,weekStart:curWs,createdAt:new Date().toISOString()};
+    db.shifts.push(ns);
+    sbFetch('POST','shifts',{employee:ns.employee,day:ns.day,start_time:ns.start,end_time:ns.end,role:ns.role,zone:ns.zone,day_off:ns.dayOff,week_start:curWs})
+      .then(function(rows2){ if(rows2&&rows2[0]){var si=db.shifts.findIndex(function(x){return x.id===newId;}); if(si!==-1){db.shifts[si].id=rows2[0].id; saveDB(db);}} })
+      .catch(function(){});
+    saved++;
+  });
+  saveDB(db); renderShifts(); toast(saved+' shifts copied from previous week!','gold');
+}
 function saveShift(){
   var emp=document.getElementById('shift-employee').value; if(!emp){toast('Select employee!','error');return;}
   var role=document.getElementById('shift-role').value.trim();
+  var zone=document.getElementById('shift-zone').value;
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
@@ -3120,16 +3256,13 @@ function saveShift(){
     var isDayOff=row.querySelector('.shift-day-off-chk').checked;
     var start=isDayOff?'00:00':row.querySelector('.shift-day-start').value;
     var end=isDayOff?'00:00':row.querySelector('.shift-day-end').value;
-    if(!isDayOff&&(!start||!end)) return; // skip empty rows (not day-off, no time)
-    // Remove existing shift for this employee+day+week (replace)
+    if(!isDayOff&&(!start||!end)) return;
     var existing=db.shifts.filter(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
-    existing.forEach(function(s){
-      sbFetch('DELETE','shifts',null,'id=eq.'+s.id).catch(function(){});
-    });
+    existing.forEach(function(s){ sbFetch('DELETE','shifts',null,'id=eq.'+s.id).catch(function(){}); });
     db.shifts=db.shifts.filter(function(s){return !(s.employee===emp&&s.day===day&&s.weekStart===ws);});
     var newId=uid();
-    db.shifts.push({id:newId,employee:emp,day:day,start:start,end:end,role:role,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()});
-    sbFetch('POST','shifts',{employee:emp,day:day,start_time:start,end_time:end,role:role,day_off:isDayOff,week_start:ws}).then(function(rows2){
+    db.shifts.push({id:newId,employee:emp,day:day,start:start,end:end,role:role,zone:zone,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()});
+    sbFetch('POST','shifts',{employee:emp,day:day,start_time:start,end_time:end,role:role,zone:zone,day_off:isDayOff,week_start:ws}).then(function(rows2){
       if(rows2&&rows2[0]){var si=db.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1){db.shifts[si].id=rows2[0].id; saveDB(db);}}
     }).catch(function(){});
     saved++;
@@ -3201,7 +3334,14 @@ function switchBbTab(t){
 }
 function renderBbDaily(){
   var today=toDateStr(new Date());
-  document.getElementById('bb-today-date').textContent=fmtDateShort(today);
+  var dateInp=document.getElementById('bb-entry-date');
+  if(dateInp){
+    if(!dateInp.value) dateInp.value=today;
+  }
+  var activeDateStr=(dateInp&&dateInp.value)?dateInp.value:today;
+  var isToday=activeDateStr===today;
+  var todayLbl=document.getElementById('bb-today-date');
+  if(todayLbl) todayLbl.textContent=isToday?'(Today)':'';
   renderBbMenuSelector();
   renderBbSelectedList();
   updateBbTotal();
@@ -3261,23 +3401,19 @@ function saveDailyEntry(){
     return{id:id,name:item?item.name:'?',price:item?item.price:0,qty:bbSelectedItems[id],subtotal:(item?item.price:0)*bbSelectedItems[id]};
   });
   var total=items.reduce(function(s,i){return s+i.subtotal;},0);
-  var today=toDateStr(new Date());
-  var idx=db.bbEntries.findIndex(function(e){return e.date===today;});
-  var entry={id:uid(),date:today,items:items,total:total,savedAt:new Date().toISOString()};
+  var dateInp=document.getElementById('bb-entry-date');
+  var entryDate=(dateInp&&dateInp.value)?dateInp.value:toDateStr(new Date());
+  var idx=db.bbEntries.findIndex(function(e){return e.date===entryDate;});
+  var entry={id:uid(),date:entryDate,items:items,total:total,savedAt:new Date().toISOString()};
   if(idx!==-1) db.bbEntries[idx]=entry; else db.bbEntries.push(entry);
   saveDB(db); toast('Saving...','gold');
   bbSelectedItems={}; renderBbDaily(); renderBbRecords();
-  // Upsert in Supabase (unique on date)
-  sbFetch('POST','bb_entries',{date:today,items:items,total:total},null).catch(function(){
-    // If conflict (date exists), update instead
-    sbFetch('PATCH','bb_entries',{items:items,total:total,saved_at:new Date().toISOString()},'date=eq.'+today).catch(function(){});
-  });
-  // Use proper upsert header
+  // Use proper upsert header to handle both insert and update
   fetch(SB_URL+'/rest/v1/bb_entries', {
     method:'POST',
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
-    body:JSON.stringify({date:today,items:items,total:total,saved_at:new Date().toISOString()})
-  }).then(function(){ toast('Daily entry saved! '+fmtEur(total),'gold'); }).catch(function(){});
+    body:JSON.stringify({date:entryDate,items:items,total:total,saved_at:new Date().toISOString()})
+  }).then(function(){ toast('Entry saved for '+entryDate+'! '+fmtEur(total),'gold'); }).catch(function(){ toast('Saved locally only','error'); });
 }
 function clearDailyEntry(){ bbSelectedItems={}; renderBbDaily(); toast('Cleared.'); }
 function renderBbRecords(){
@@ -3564,6 +3700,7 @@ document.addEventListener('click', function(e) {
 
   // Shifts
   if (t.closest('#btn-add-shift')) { openAddShiftModal(); return; }
+  if (t.closest('#btn-repeat-week')) { repeatWeek(); return; }
   if (t.closest('#btn-generate-tips')) { generateTips(); return; }
   el = t.closest('[data-add-shift-day]');
   if (el) { openAddShiftModal(el.dataset.addShiftDay); return; }
@@ -3631,6 +3768,8 @@ document.addEventListener('change', function(e) {
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
   if (t.id === 'fin-rec-day-picker') { finRecDayFilter=t.value||''; renderFinRecords(); }
   if (t.id === 'fin-range-from' || t.id === 'fin-range-to') { renderFinRecords(); }
+  // BB entry date change — clear current selection
+  if (t.id === 'bb-entry-date' && t.value) { bbSelectedItems={}; renderBbDaily(); }
   // Pre-fill shift rows when employee is selected in shift modal
   if (t.id === 'shift-employee' && t.value) { prefillShiftRows(t.value); }
   // Disable/enable time inputs when Day Off checkbox changes in shift modal
