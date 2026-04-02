@@ -254,7 +254,9 @@ export function getAppHTML(): string {
     .gantt-day-name { font-weight:700; font-size:14px; color:var(--ocean-900); }
     .gantt-day-date { font-size:11px; color:var(--ocean-400); margin-top:1px; }
     .gantt-timeline { position:relative; padding:0 14px 10px; }
-    .gantt-hours { position:relative; border-bottom:1px solid var(--ocean-100); margin-bottom:6px; padding-bottom:4px; height:18px; }
+    .gantt-hours { display:flex; align-items:flex-end; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--ocean-100); }
+    .gantt-hours-spacer { width:60px; flex-shrink:0; }
+    .gantt-hours-track { flex:1; position:relative; height:14px; }
     .gantt-hour-label { position:absolute; font-size:9px; font-weight:700; color:var(--ocean-300); white-space:nowrap; transform:translateX(-50%); }
     .gantt-rows { position:relative; }
     .gantt-grid-lines { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; }
@@ -3068,28 +3070,33 @@ function renderShifts(){
       return s.day === day && s.weekStart === wsStr;
     });
 
-    // Ruler: absolutely positioned labels aligned to bar percentages
-    var rulerHTML = '<div class="gantt-hours">';
+    // Ruler: same flex layout as gantt-row so track aligns perfectly with bars
+    var rulerInner = '';
     for (var h = GANTT_START; h <= GANTT_END; h++) {
       var showLabel = (h === GANTT_START) || (h % 2 === 0) || (h === GANTT_END);
       if (!showLabel) continue;
       var pct = ((h - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
-      rulerHTML += '<span class="gantt-hour-label" style="left:'+pct+'%">'+h+'</span>';
+      rulerInner += '<span class="gantt-hour-label" style="left:'+pct+'%">'+h+'</span>';
     }
-    rulerHTML += '</div>';
+    var rulerHTML = '<div class="gantt-hours"><div class="gantt-hours-spacer"></div><div class="gantt-hours-track">'+rulerInner+'</div></div>';
 
-    // Grid lines: absolutely positioned, one per hour, aligned to same percentages
-    var gridHTML = '<div class="gantt-grid-lines">';
+    // Grid lines: offset by emp-label width (60px) so they align with bars inside gantt-track
+    var gridHTML = '<div class="gantt-grid-lines" style="left:60px">';
     for (var g = GANTT_START; g <= GANTT_END; g++) {
       var gPct = ((g - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
       gridHTML += '<div class="gantt-grid-line" style="left:'+gPct+'%"></div>';
     }
     gridHTML += '</div>';
 
-    // Now-line for today
-    var nowLineHTML = (isToday && nowInRange)
-      ? '<div class="gantt-now-line" style="left:'+nowPct.toFixed(2)+'%"><div class="gantt-now-dot"></div></div>'
-      : '';
+    // Now-line for today — offset by emp-label width (60px) then percentage of remaining track
+    var nowLineHTML = '';
+    if (isToday && nowInRange) {
+      // The now-line must sit inside the track area (starts at 60px from gantt-rows left)
+      // We use a wrapper offset to 60px, then position the line as % within that wrapper
+      nowLineHTML = '<div style="position:absolute;top:0;bottom:0;left:60px;right:0;pointer-events:none;z-index:10">'
+        +'<div class="gantt-now-line" style="left:'+nowPct.toFixed(2)+'%"><div class="gantt-now-dot"></div></div>'
+        +'</div>';
+    }
 
     // Shift bars — group by zone, day-offs always last
     var rowsHTML = '';
