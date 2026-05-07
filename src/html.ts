@@ -1359,7 +1359,9 @@ export function getAppHTML(): string {
       </div>
     </div>
     <div class="form-grid-2" style="margin-bottom:14px">
-      <div><label class="label">Assigned To</label><select class="select-field" id="task-assigned"></select></div>
+      <div><label class="label">Assigned To</label>
+        <div id="task-assigned-list" style="background:#f8fafc;border:1.5px solid var(--ocean-200);border-radius:var(--radius);padding:8px;max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+      </div>
       <div><label class="label">Deadline</label><input type="date" class="input-field" id="task-deadline" /></div>
     </div>
     <div class="form-row" style="margin-bottom:16px">
@@ -1765,12 +1767,20 @@ function syncFromSupabase() {
       }; });
     }),
     sbFetch('GET', 'tasks', null, 'order=created_at.desc').then(function(rows) {
-      if (rows) db.tasks = rows.map(function(r){ return {
-        id: r.id, title: r.title, description: r.description||'', category: r.category,
-        priority: r.priority, status: r.status, assignedTo: r.assigned_to||'',
-        deadline: r.deadline||'', doneAt: r.done_at||'', createdAt: r.created_at,
-        recurrence: r.recurrence||''
-      }; });
+      if (rows) db.tasks = rows.map(function(r){
+        // assigned_to may be a JSON string array or plain string (legacy)
+        var asn = r.assigned_to||[];
+        if (typeof asn === 'string') {
+          try { asn = JSON.parse(asn); } catch(e) { asn = asn ? [asn] : []; }
+        }
+        if (!Array.isArray(asn)) asn = [];
+        return {
+          id: r.id, title: r.title, description: r.description||'', category: r.category,
+          priority: r.priority, status: r.status, assignedTo: asn,
+          deadline: r.deadline||'', doneAt: r.done_at||'', createdAt: r.created_at,
+          recurrence: r.recurrence||''
+        };
+      });
     }),
     sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc&limit=1').then(function(rows) {
       if (rows && rows[0] && rows[0].day_off === undefined) sbMissingItems.push('shifts.day_off');
@@ -1849,6 +1859,7 @@ function syncFromSupabase() {
 var isAdmin = false;
 var isFinance = false;
 var currentUser = null; // the logged-in app_user object
+var SESSION_KEY = 'bardapraia_session';
 var currentSection = 'dashboard';
 var calendarWeekStart = getMonday(new Date());
 var selectedCalendarDay = null;
@@ -1914,27 +1925,58 @@ function doLogin() {
   var user = db.appUsers.find(function(u){ return u.username.toLowerCase() === uname; });
   if (!user || !user.active) { errEl.textContent = 'Invalid username or password.'; return; }
   if (user.passwordHash !== hashPw(pw)) { errEl.textContent = 'Invalid username or password.'; return; }
+  applyLogin(user, true);
+}
+
+function applyLogin(user, showWelcome) {
   currentUser = user;
   isAdmin   = hasRole('admin');
   isFinance = hasRole('finance') || hasRole('admin');
+  // Persist session across refreshes
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({id: user.id, username: user.username})); } catch(e){}
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').textContent = '';
   document.getElementById('login-screen').classList.add('hidden');
   updateSessionUI();
   showSection('dashboard');
-  toast('Welcome, ' + user.name + '!', 'gold');
+  if (showWelcome) {
+    toast('Welcome, ' + user.name + '!', 'gold');
+    requestNotifPermission();
+  }
 }
 
 function appLogout() {
   currentUser = null;
   isAdmin = false;
   isFinance = false;
+  try { localStorage.removeItem(SESSION_KEY); } catch(e){}
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').textContent = '';
   document.getElementById('login-screen').classList.remove('hidden');
   updateSessionUI();
   closeDrawer();
+}
+
+// ── Push Notifications ──────────────────────────────────────────
+function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function sendTaskNotification(taskTitle, assignedNames) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  var body = assignedNames.length ? 'Assigned to: ' + assignedNames.join(', ') : 'A new task has been assigned to you';
+  try {
+    new Notification('📋 New Task: ' + taskTitle, {
+      body: body,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'task-' + Date.now()
+    });
+  } catch(e) {}
 }
 
 function updateSessionUI() {
@@ -3266,19 +3308,59 @@ function renderAllReservations(){
 // ================================================
 var taskCatIcons={maintenance:'🔧',cleaning:'🧹',call:'📞',purchase:'🛒',admin:'📋',staff:'👥',other:'📌'};
 var priColors={high:'badge-red',medium:'badge-yellow',low:'badge-green'};
+
+// Helper: get assignedTo as array always (handles legacy string or array)
+function taskAssignees(t){
+  if(!t.assignedTo) return [];
+  if(Array.isArray(t.assignedTo)) return t.assignedTo;
+  return t.assignedTo ? [t.assignedTo] : [];
+}
+
+// Helper: resolve user IDs to display names
+function assigneeNames(ids){
+  var db=getDB();
+  return ids.map(function(id){
+    var u=db.appUsers.find(function(u){return u.id===id||u.username===id;});
+    return u ? u.name.split(' ')[0] : id;
+  });
+}
+
+// Render the multi-user checkbox picker inside the task modal
+function renderTaskAssigneePicker(selectedIds){
+  var db=getDB();
+  var el=document.getElementById('task-assigned-list'); if(!el) return;
+  var users=db.appUsers.filter(function(u){return u.active;});
+  if(!users.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--ocean-400)">No users found</div>';
+    return;
+  }
+  el.innerHTML=users.map(function(u){
+    var checked=selectedIds.indexOf(u.id)!==-1;
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 4px;border-radius:6px;'+(checked?'background:#eff6ff':'')+'\">'
+      +'<input type="checkbox" class="task-assignee-cb" value="'+esc(u.id)+'" '+(checked?'checked':'')+' style="width:15px;height:15px;accent-color:var(--ocean-500)">'
+      +'<span style="font-size:13px;font-weight:600;color:var(--ocean-800)">'+esc(u.name)+'</span>'
+      +'<span style="font-size:11px;color:var(--ocean-400)">'+esc('@'+u.username)+'</span>'
+    +'</label>';
+  }).join('');
+}
+
+function getCheckedAssignees(){
+  return Array.from(document.querySelectorAll('.task-assignee-cb:checked')).map(function(cb){return cb.value;});
+}
+
 function openAddTaskModal(editId){
-  updateAllDropdowns();
+  var db=getDB();
   if(editId){
-    var db=getDB(); var t=db.tasks.find(function(x){return x.id===editId;}); if(!t) return;
+    var t=db.tasks.find(function(x){return x.id===editId;}); if(!t) return;
     document.getElementById('task-modal-title').textContent='Edit Task';
     document.getElementById('task-edit-id').value=editId;
     document.getElementById('task-title').value=t.title;
     document.getElementById('task-description').value=t.description||'';
     document.getElementById('task-category').value=t.category||'other';
     document.getElementById('task-priority').value=t.priority||'medium';
-    document.getElementById('task-assigned').value=t.assignedTo||'';
     document.getElementById('task-deadline').value=t.deadline||'';
     document.getElementById('task-recurrence').value=t.recurrence||'';
+    renderTaskAssigneePicker(taskAssignees(t));
   } else {
     document.getElementById('task-modal-title').textContent='New Task';
     document.getElementById('task-edit-id').value='';
@@ -3286,23 +3368,25 @@ function openAddTaskModal(editId){
     document.getElementById('task-description').value='';
     document.getElementById('task-category').value='maintenance';
     document.getElementById('task-priority').value='medium';
-    document.getElementById('task-assigned').value='';
     document.getElementById('task-deadline').value='';
     document.getElementById('task-recurrence').value='';
+    renderTaskAssigneePicker([]);
   }
   openModal('modal-add-task');
 }
+
 function saveTask(){
   var title=document.getElementById('task-title').value.trim(); if(!title){toast('Title required!','error');return;}
   var db=getDB(); var editId=document.getElementById('task-edit-id').value;
   var desc=document.getElementById('task-description').value.trim();
   var cat=document.getElementById('task-category').value;
   var pri=document.getElementById('task-priority').value;
-  var asn=document.getElementById('task-assigned').value;
+  var asn=getCheckedAssignees(); // array of user IDs
   var dl=document.getElementById('task-deadline').value;
   var rec=document.getElementById('task-recurrence').value;
+  var isNew=!editId;
   var task={title:title,description:desc,category:cat,priority:pri,assignedTo:asn,deadline:dl,recurrence:rec};
-  var sbTask={title:title,description:desc,category:cat,priority:pri,assigned_to:asn,deadline:dl||null,recurrence:rec||null};
+  var sbTask={title:title,description:desc,category:cat,priority:pri,assigned_to:JSON.stringify(asn),deadline:dl||null,recurrence:rec||null};
   if(editId){
     var idx=db.tasks.findIndex(function(t){return t.id===editId;});if(idx!==-1) db.tasks[idx]=Object.assign({},db.tasks[idx],task);
     saveDB(db); closeModal('modal-add-task'); renderTasks(); renderDashboard(); toast('Updating...');
@@ -3316,9 +3400,14 @@ function saveTask(){
       toast('Task created!');
     }).catch(function(){ toast('Saved locally','error'); });
   }
+  // Push notification to assigned users (fires for the current device if permission granted)
+  if(asn.length){
+    var names=assigneeNames(asn);
+    sendTaskNotification(title, names);
+  }
 }
+
 function nextRecurDeadline(baseDate, recurrence){
-  // Returns next deadline date string based on recurrence type from a base date
   var d=baseDate?new Date(baseDate):new Date();
   var dayNames=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   switch(recurrence){
@@ -3328,14 +3417,11 @@ function nextRecurDeadline(baseDate, recurrence){
     case 'monthly':  d.setMonth(d.getMonth()+1); break;
     default:
       var targetDay=dayNames.indexOf(recurrence);
-      if(targetDay>=0){
-        var cur=d.getDay(); // 0=Sun
-        var diff=targetDay-cur; if(diff<=0) diff+=7;
-        d.setDate(d.getDate()+diff);
-      }
+      if(targetDay>=0){var cur=d.getDay();var diff=targetDay-cur;if(diff<=0)diff+=7;d.setDate(d.getDate()+diff);}
   }
   return d.toISOString().substring(0,10);
 }
+
 function setTaskStatus(id,status){
   var db=getDB(); var idx=db.tasks.findIndex(function(t){return t.id===id;});
   var doneAt=status==='done'?new Date().toISOString():null;
@@ -3343,35 +3429,45 @@ function setTaskStatus(id,status){
   renderTasks(); renderDashboard(); toast('Marked as '+status+'!');
   var patch={status:status}; if(doneAt) patch.done_at=doneAt;
   sbFetch('PATCH','tasks',patch,'id=eq.'+id).catch(function(){});
-  // If recurring and marked done, spawn next instance
   if(status==='done'&&idx!==-1){
     var t=db.tasks[idx];
     if(t.recurrence){
       var nextDl=nextRecurDeadline(t.deadline||null,t.recurrence);
       var newId=uid();
-      var newTask={id:newId,title:t.title,description:t.description,category:t.category,priority:t.priority,assignedTo:t.assignedTo,deadline:nextDl,recurrence:t.recurrence,status:'pending',createdAt:new Date().toISOString()};
+      var asnArr=taskAssignees(t);
+      var newTask={id:newId,title:t.title,description:t.description,category:t.category,priority:t.priority,assignedTo:asnArr,deadline:nextDl,recurrence:t.recurrence,status:'pending',createdAt:new Date().toISOString()};
       db=getDB(); db.tasks.push(newTask); saveDB(db);
       renderTasks(); renderDashboard();
-      sbFetch('POST','tasks',{title:newTask.title,description:newTask.description,category:newTask.category,priority:newTask.priority,assigned_to:newTask.assignedTo,deadline:nextDl,recurrence:newTask.recurrence,status:'pending'})
+      sbFetch('POST','tasks',{title:newTask.title,description:newTask.description,category:newTask.category,priority:newTask.priority,assigned_to:JSON.stringify(asnArr),deadline:nextDl,recurrence:newTask.recurrence,status:'pending'})
         .then(function(rows){ if(rows&&rows[0]){var ti=db.tasks.findIndex(function(x){return x.id===newId;}); if(ti!==-1){db.tasks[ti].id=rows[0].id;saveDB(db);}} })
         .catch(function(){});
       toast('Next recurrence scheduled for '+nextDl+'!','gold');
     }
   }
 }
+
 function deleteTask(id){
   if(!confirm('Delete task?')) return;
   var db=getDB(); db.tasks=db.tasks.filter(function(t){return t.id!==id;}); saveDB(db);
   renderTasks(); renderDashboard(); toast('Deleting...');
   sbFetch('DELETE','tasks',null,'id=eq.'+id).then(function(){ toast('Deleted.'); }).catch(function(){ toast('Deleted locally','error'); });
 }
+
 function renderTasks(){
   var db=getDB();
-  document.getElementById('task-count-pending').textContent=db.tasks.filter(function(t){return t.status==='pending';}).length;
-  document.getElementById('task-count-progress').textContent=db.tasks.filter(function(t){return t.status==='in-progress';}).length;
-  document.getElementById('task-count-done').textContent=db.tasks.filter(function(t){return t.status==='done';}).length;
-  // Sort by deadline ascending — tasks with no deadline go to the end
-  var tasks=db.tasks.slice().sort(function(a,b){
+  // Filter tasks visible to current user:
+  // Admin sees all. Others see only tasks assigned to them (or unassigned).
+  var allTasks=db.tasks;
+  if(!isAdmin && currentUser){
+    allTasks=db.tasks.filter(function(t){
+      var ids=taskAssignees(t);
+      return ids.length===0 || ids.indexOf(currentUser.id)!==-1;
+    });
+  }
+  document.getElementById('task-count-pending').textContent=allTasks.filter(function(t){return t.status==='pending';}).length;
+  document.getElementById('task-count-progress').textContent=allTasks.filter(function(t){return t.status==='in-progress';}).length;
+  document.getElementById('task-count-done').textContent=allTasks.filter(function(t){return t.status==='done';}).length;
+  var tasks=allTasks.slice().sort(function(a,b){
     if(!a.deadline && !b.deadline) return 0;
     if(!a.deadline) return 1;
     if(!b.deadline) return -1;
@@ -3385,18 +3481,25 @@ function renderTasks(){
   el.innerHTML=tasks.map(function(t){
     var isOverdue=t.deadline&&new Date(t.deadline)<now&&t.status!=='done';
     var recurBadge=t.recurrence?'<span class="badge" style="background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe"><i class="fas fa-repeat" style="margin-right:3px;font-size:9px"></i>'+(recurLabels[t.recurrence]||esc(t.recurrence))+'</span>':'';
+    var ids=taskAssignees(t);
+    var names=assigneeNames(ids);
+    var assignedBadges=names.map(function(n){return '<span style="background:#e0f2fe;color:#0369a1;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600"><i class="fas fa-user" style="margin-right:3px;font-size:9px"></i>'+esc(n)+'</span>';}).join('');
+    var canEdit=isAdmin;
     return '<div class="task-item'+(t.status==='done'?' done':'')+'">'
       +'<div class="task-top"><div class="task-icon">'+(taskCatIcons[t.category]||'📌')+'</div>'
       +'<div class="task-body"><div class="task-title'+(t.status==='done'?' done-text':'')+'">'+esc(t.title)+'</div>'
       +'<div class="task-badges"><span class="badge '+(priColors[t.priority]||'badge-gray')+'">'+esc(t.priority||'medium')+'</span><span class="badge '+(t.status==='done'?'badge-green':t.status==='in-progress'?'badge-blue':'badge-yellow')+'">'+esc(t.status)+'</span>'+(isOverdue?'<span class="badge badge-red">Overdue</span>':'')+recurBadge+'</div>'
       +(t.description?'<div class="task-desc">'+esc(t.description)+'</div>':'')
-      +'<div class="task-meta">'+(t.assignedTo?'<span><i class="fas fa-user" style="margin-right:3px"></i>'+esc(t.assignedTo)+'</span>':'')+(t.deadline?'<span><i class="fas fa-calendar-check" style="margin-right:3px"></i>'+esc(t.deadline)+'</span>':'')+'</div>'
+      +'<div class="task-meta" style="gap:5px;flex-wrap:wrap">'
+        +(assignedBadges||'<span style="font-size:11px;color:var(--ocean-300)">Unassigned</span>')
+        +(t.deadline?'<span style="margin-left:4px"><i class="fas fa-calendar-check" style="margin-right:3px"></i>'+esc(t.deadline)+'</span>':'')
+      +'</div>'
       +'</div></div>'
       +'<div class="task-actions">'
         +(t.status!=='done'?'<button class="btn btn-sm" style="background:#dcfce7;color:#16a34a;border:1.5px solid #bbf7d0;flex:1;justify-content:center" data-task-done="'+esc(t.id)+'"><i class="fas fa-check"></i> Done</button>':'')
         +(t.status==='pending'?'<button class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:1.5px solid #bfdbfe" data-task-progress="'+esc(t.id)+'"><i class="fas fa-play"></i></button>':'')
-        +'<button class="btn btn-secondary btn-sm" data-edit-task="'+esc(t.id)+'"><i class="fas fa-pen"></i></button>'
-        +'<button class="btn btn-danger btn-sm btn-icon" data-delete-task="'+esc(t.id)+'"><i class="fas fa-trash"></i></button>'
+        +(canEdit?'<button class="btn btn-secondary btn-sm" data-edit-task="'+esc(t.id)+'"><i class="fas fa-pen"></i></button>':'')
+        +(canEdit?'<button class="btn btn-danger btn-sm btn-icon" data-delete-task="'+esc(t.id)+'"><i class="fas fa-trash"></i></button>':'')
       +'</div>'
     +'</div>';
   }).join('');
@@ -4257,31 +4360,14 @@ document.addEventListener('keydown', function(e) {
 // ================================================
 selectedCalendarDay = toDateStr(new Date());
 initSupabase();
-// Always show login screen on startup — user must authenticate
 updateSessionUI();
 
-// Show loading state on login button while sync runs
 (function() {
-  var loginBtn    = document.getElementById('btn-do-login');
-  var syncStatus  = document.getElementById('login-sync-status');
+  var loginBtn   = document.getElementById('btn-do-login');
+  var syncStatus = document.getElementById('login-sync-status');
   if (syncStatus) syncStatus.textContent = 'Connecting to server...';
 
-  syncFromSupabase().then(function() {
-    // Unlock login button once sync is done
-    if (loginBtn) {
-      loginBtn.disabled = false;
-      loginBtn.style.opacity = '';
-      loginBtn.style.cursor = '';
-      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
-    }
-    if (syncStatus) syncStatus.textContent = '';
-
-    showMigrationNotice(sbMissingItems);
-    if (sbMissingItems.length > 0) {
-      toast('DB migration needed \u2014 check Settings', 'error');
-    }
-  }).catch(function() {
-    // Sync failed — still allow login with local/seed users
+  function unlockLogin(offline) {
     if (loginBtn) {
       loginBtn.disabled = false;
       loginBtn.style.opacity = '';
@@ -4289,9 +4375,57 @@ updateSessionUI();
       loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
     }
     if (syncStatus) {
-      syncStatus.style.color = 'var(--red-400, #f87171)';
-      syncStatus.textContent = 'Offline — using local data';
+      if (offline) {
+        syncStatus.style.color = 'var(--red-400,#f87171)';
+        syncStatus.textContent = 'Offline \u2014 using local data';
+      } else {
+        syncStatus.textContent = '';
+      }
     }
+  }
+
+  syncFromSupabase().then(function() {
+    unlockLogin(false);
+    showMigrationNotice(sbMissingItems);
+    if (sbMissingItems.length > 0) {
+      toast('DB migration needed \u2014 check Settings', 'error');
+    }
+
+    // ── Restore session after sync so we have fresh user data ──
+    try {
+      var saved = localStorage.getItem(SESSION_KEY);
+      if (saved) {
+        var ref = JSON.parse(saved);          // { id, username }
+        var db  = getDB();
+        var user = db.appUsers.find(function(u) {
+          return u.id === ref.id || u.username === ref.username;
+        });
+        if (user && user.active) {
+          applyLogin(user, false);             // silent restore — no welcome toast
+        } else {
+          // User no longer valid — clear saved session
+          localStorage.removeItem(SESSION_KEY);
+        }
+      }
+    } catch(e) {}
+
+  }).catch(function() {
+    unlockLogin(true);
+
+    // Offline: try to restore session from local cache anyway
+    try {
+      var saved2 = localStorage.getItem(SESSION_KEY);
+      if (saved2) {
+        var ref2 = JSON.parse(saved2);
+        var db2  = getDB();
+        var user2 = db2.appUsers.find(function(u) {
+          return u.id === ref2.id || u.username === ref2.username;
+        });
+        if (user2 && user2.active) {
+          applyLogin(user2, false);
+        }
+      }
+    } catch(e) {}
   });
 })();
 
