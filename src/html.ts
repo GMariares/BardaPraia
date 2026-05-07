@@ -626,30 +626,72 @@ export function getAppHTML(): string {
         <button class="btn btn-secondary btn-sm" id="btn-repeat-week" style="display:none" title="Copy previous week shifts to this week"><i class="fas fa-copy"></i> Repeat</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);margin-bottom:12px;font-size:11px;color:var(--ocean-400);flex-wrap:wrap">
-      <i class="fas fa-circle-info" style="color:var(--ocean-300)"></i>
-      Timeline: 07:00 – 24:00 &nbsp;·&nbsp;
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#0ea5e9;display:inline-block"></span> Morning</span>
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block"></span> Afternoon</span>
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#8b5cf6;display:inline-block"></span> Evening</span>
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#374151;display:inline-block"></span> Night</span>
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#1f2937;border:1px solid #374151;display:inline-block"></span> Day Off</span>
+    <!-- Shifts tabs -->
+    <div class="tab-row" style="margin-bottom:12px" id="shifts-tab-row">
+      <button class="tab-btn active" data-shifts-tab="gantt"><i class="fas fa-calendar-week"></i> Schedule</button>
+      <button class="tab-btn" data-shifts-tab="tips"><i class="fas fa-hand-holding-dollar"></i> Tips</button>
+      <button class="tab-btn" data-shifts-tab="hours"><i class="fas fa-clock"></i> Hours</button>
+      <button class="tab-btn" data-shifts-tab="attendance"><i class="fas fa-user-check"></i> Attendance</button>
+      <button class="tab-btn" id="shifts-tab-team-btn" data-shifts-tab="team" style="display:none"><i class="fas fa-users"></i> Team</button>
     </div>
-    <!-- Weekly Tips Calculator -->
-    <div class="shifts-tips-card" style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-      <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
-        <i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Weekly Tips Distribution
+
+    <!-- ── Tab: Schedule (Gantt) ── -->
+    <div id="shifts-panel-gantt">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);margin-bottom:12px;font-size:11px;color:var(--ocean-400);flex-wrap:wrap">
+        <i class="fas fa-circle-info" style="color:var(--ocean-300)"></i>
+        Timeline: 07:00 – 24:00 &nbsp;·&nbsp;
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#0ea5e9;display:inline-block"></span> Morning</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block"></span> Afternoon</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#8b5cf6;display:inline-block"></span> Evening</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#374151;display:inline-block"></span> Night</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#1f2937;border:1px solid #374151;display:inline-block"></span> Day Off</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#dc2626;display:inline-block"></span> Absent</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <div style="flex:1;min-width:120px">
-          <label style="font-size:11px;font-weight:600;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Total Tips (€)</label>
-          <input type="text" id="shifts-tips-input" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700" />
+      <div id="shifts-list"></div>
+    </div>
+
+    <!-- ── Tab: Tips ── -->
+    <div id="shifts-panel-tips" style="display:none">
+      <div class="shifts-tips-card" style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+        <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Weekly Tips Distribution
         </div>
-        <button class="btn btn-gold btn-sm" id="btn-generate-tips" style="height:42px;white-space:nowrap"><i class="fas fa-calculator"></i> Generate</button>
+        <div id="tips-locked-notice" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#78350f;display:flex;align-items:center;gap:8px">
+          <i class="fas fa-lock" style="color:#f59e0b"></i> Tips already generated for this week — field is locked.
+          <button id="btn-tips-unlock" class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:11px"><i class="fas fa-unlock"></i> Edit</button>
+        </div>
+        <div id="tips-input-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px">
+            <label style="font-size:11px;font-weight:600;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Total Tips (€)</label>
+            <input type="text" id="shifts-tips-input" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700" />
+          </div>
+          <button class="btn btn-gold btn-sm" id="btn-generate-tips" style="height:42px;white-space:nowrap"><i class="fas fa-calculator"></i> Generate</button>
+        </div>
+        <div id="shifts-tips-result" style="margin-top:10px"></div>
       </div>
-      <div id="shifts-tips-result" style="margin-top:10px"></div>
     </div>
-    <div id="shifts-list"></div>
+
+    <!-- ── Tab: Hours & Days ── -->
+    <div id="shifts-panel-hours" style="display:none">
+      <div id="shifts-hours-content"></div>
+    </div>
+
+    <!-- ── Tab: Attendance ── -->
+    <div id="shifts-panel-attendance" style="display:none">
+      <div id="shifts-attendance-content"></div>
+    </div>
+
+    <!-- ── Tab: Team Members (shift_mgr + admin) ── -->
+    <div id="shifts-panel-team" style="display:none">
+      <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:18px;box-shadow:var(--shadow)">
+        <h3 style="font-size:15px;font-weight:700;color:var(--ocean-800);margin-bottom:14px;display:flex;align-items:center;gap:7px"><i class="fas fa-users" style="color:var(--ocean-500)"></i> Team Members</h3>
+        <div id="shifts-employee-list"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="shifts-new-employee-name" class="input-field" placeholder="Employee name..." style="font-size:14px" />
+          <button class="btn btn-primary" id="btn-shifts-add-employee" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ═══ FINANCE ═══ -->
@@ -1044,15 +1086,7 @@ export function getAppHTML(): string {
         </div>
         <button class="btn btn-primary" id="btn-save-budgets"><i class="fas fa-save"></i> Save Budgets</button>
       </div>
-      <!-- Team Members -->
-      <div class="settings-card">
-        <h3><i class="fas fa-users" style="color:var(--ocean-500)"></i> Team Members</h3>
-        <div id="employee-list"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input type="text" id="new-employee-name" class="input-field" placeholder="Employee name..." style="font-size:14px" />
-          <button class="btn btn-primary" id="btn-add-employee" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
-        </div>
-      </div>
+      <!-- Team Members moved to Shifts → Team tab -->
       <!-- Tables -->
       <div class="settings-card">
         <h3><i class="fas fa-chair" style="color:var(--ocean-500)"></i> Table Configuration</h3>
@@ -1416,33 +1450,24 @@ export function getAppHTML(): string {
     <div style="overflow-x:auto;margin-bottom:14px">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr style="background:var(--ocean-50)">
-          <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:90px">Day</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:72px">Day</th>
           <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">Start</th>
           <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">End</th>
+          <th style="padding:6px 4px;font-weight:700;color:var(--ocean-500);min-width:90px">Zone</th>
           <th style="padding:6px 4px;font-weight:700;color:#dc2626;white-space:nowrap">Day Off</th>
         </tr></thead>
         <tbody id="shift-days-body">
-          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
         </tbody>
       </table>
     </div>
-    <div class="form-grid-2" style="margin-bottom:14px">
-      <div><label class="label">Zone</label>
-        <select class="select-field" id="shift-zone">
-          <option value="">— None —</option>
-          <option value="Dishes">🍽️ Dishes</option>
-          <option value="Kitchen">👨‍🍳 Kitchen</option>
-          <option value="Bar">🍹 Bar</option>
-          <option value="Service">🛎️ Service</option>
-          <option value="Foccaceria">🫓 Foccaceria</option>
-        </select>
-      </div>
+    <div class="form-row" style="margin-bottom:14px">
       <div><label class="label">Role / Notes</label><input type="text" class="input-field" id="shift-role" placeholder="e.g. Host, Manager..." /></div>
     </div>
     <div style="display:flex;gap:10px">
@@ -1556,7 +1581,9 @@ function getDB() {
   if (!db.finEntries)   db.finEntries = [];
   if (db.fundoCaixa === undefined) db.fundoCaixa = 0;
   if (!db.invSortOrder) db.invSortOrder = [];
-  if (!db.weekTips)     db.weekTips = {};
+  if (!db.weekTips)      db.weekTips = {};
+  if (!db.tipsLocked)   db.tipsLocked = {};   // {weekStart: true} — locked after generate
+  if (!db.absences)     db.absences = [];      // [{id,employee,date,weekStart,justified}]
   if (!db.appUsers)     db.appUsers = [];
   // Always ensure the seed admin exists — re-insert if missing
   if (!db.appUsers.find(function(u){ return u.id === 'admin_seed'; })) {
@@ -1690,7 +1717,20 @@ var MIGRATION_SQL = [
   ');',
   'ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;',
   'DROP POLICY IF EXISTS allow_all ON push_subscriptions;',
-  "CREATE POLICY allow_all ON push_subscriptions FOR ALL TO anon USING (true) WITH CHECK (true);"
+  "CREATE POLICY allow_all ON push_subscriptions FOR ALL TO anon USING (true) WITH CHECK (true);",
+  '',
+  '-- 9. Absences table',
+  'CREATE TABLE IF NOT EXISTS absences (',
+  '  id TEXT PRIMARY KEY,',
+  '  employee TEXT NOT NULL,',
+  '  date DATE NOT NULL,',
+  '  week_start DATE NOT NULL,',
+  '  justified BOOLEAN DEFAULT false,',
+  "  created_at TIMESTAMPTZ DEFAULT now()",
+  ');',
+  'ALTER TABLE absences ENABLE ROW LEVEL SECURITY;',
+  'DROP POLICY IF EXISTS allow_all ON absences;',
+  "CREATE POLICY allow_all ON absences FOR ALL TO anon USING (true) WITH CHECK (true);"
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1868,7 +1908,13 @@ function syncFromSupabase() {
           active: true, createdAt: new Date().toISOString()
         });
       }
-    }).catch(function(){ sbMissingItems.push('app_users table'); })
+    }).catch(function(){ sbMissingItems.push('app_users table'); }),
+    sbFetch('GET', 'absences', null, 'order=date.desc&limit=500').then(function(rows) {
+      if (rows) db.absences = rows.map(function(r){ return {
+        id: r.id, employee: r.employee, date: r.date,
+        weekStart: r.week_start, justified: !!r.justified, createdAt: r.created_at
+      }; });
+    }).catch(function(){})   // absences table may not exist yet — silent fail
   ];
   return Promise.all(promises).then(function() {
     saveDB(db);
@@ -2540,11 +2586,13 @@ function syncUserToSb(user, method) {
 // ================================================
 function getEmployees() { return getDB().employees; }
 function addEmployee() {
-  var inp = document.getElementById('new-employee-name');
+  // Support both settings input (legacy) and shifts team tab input
+  var inp = document.getElementById('shifts-new-employee-name') || document.getElementById('new-employee-name');
+  if (!inp) return;
   var name = inp.value.trim(); if (!name) return;
   var db = getDB();
   if (db.employees.indexOf(name) !== -1) { toast('Already exists!','error'); return; }
-  db.employees.push(name); saveDB(db); inp.value=''; renderSettings(); updateAllDropdowns(); toast('Adding...');
+  db.employees.push(name); saveDB(db); inp.value=''; renderShiftsTeamTab(); updateAllDropdowns(); toast('Adding...');
   sbFetch('POST','employees',{name:name}).then(function(){
     toast('Employee added!');
   }).catch(function(){ toast('Saved locally (sync later)','error'); });
@@ -2552,7 +2600,7 @@ function addEmployee() {
 function removeEmployee(name) {
   if (!confirm('Remove '+name+'?')) return;
   var db=getDB(); db.employees=db.employees.filter(function(e){return e!==name;}); saveDB(db);
-  renderSettings(); updateAllDropdowns();
+  renderShiftsTeamTab(); updateAllDropdowns();
   sbFetch('DELETE','employees',null,'name=eq.'+encodeURIComponent(name)).then(function(){
     toast('Removed.');
   }).catch(function(){ toast('Removed locally','error'); });
@@ -2652,13 +2700,7 @@ function renderSettings() {
   settingsContent.style.display = 'block';
 
   var db = getDB();
-  var el = document.getElementById('employee-list');
-  el.innerHTML = db.employees.length===0
-    ? '<div class="empty-state" style="padding:16px"><p>No employees yet.</p></div>'
-    : db.employees.map(function(e){
-        return '<div class="emp-row"><div style="display:flex;align-items:center;gap:10px"><div class="emp-avatar">'+esc(e[0])+'</div><span style="font-size:14px;font-weight:600;color:var(--ocean-900)">'+esc(e)+'</span></div>'
-          +'<button class="btn btn-danger btn-sm btn-icon" data-remove-emp="'+esc(e)+'"><i class="fas fa-trash"></i></button></div>';
-      }).join('');
+  // employee-list was moved to Shifts → Team tab, skip here
 
   // Table config
   var tg = document.getElementById('table-num-grid');
@@ -3719,6 +3761,22 @@ function ganttShiftColor(shift, db) {
   return GANTT_COLORS[idx % GANTT_COLORS.length];
 }
 
+var currentShiftsTab = 'gantt';
+function switchShiftsTab(tab) {
+  currentShiftsTab = tab;
+  ['gantt','tips','hours','attendance','team'].forEach(function(t) {
+    var panel = document.getElementById('shifts-panel-'+t);
+    if (panel) panel.style.display = (t === tab) ? '' : 'none';
+  });
+  document.querySelectorAll('[data-shifts-tab]').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.shiftsTab === tab);
+  });
+  if (tab === 'tips')       renderShiftsTipsTab();
+  if (tab === 'hours')      renderShiftsHoursTab();
+  if (tab === 'attendance') renderShiftsAttendanceTab();
+  if (tab === 'team')       renderShiftsTeamTab();
+}
+
 function renderShifts(){
   var ws = getWeekStart(shiftsWeekOffset);
   var we = new Date(ws); we.setDate(we.getDate()+6);
@@ -3732,16 +3790,15 @@ function renderShifts(){
   if (addBtn) addBtn.style.display = canShiftEdit ? 'flex' : 'none';
   var repBtn = document.getElementById('btn-repeat-week');
   if (repBtn) repBtn.style.display = canShiftEdit ? 'flex' : 'none';
-  // Tips card: only visible to shift_mgr / admin
-  var tipsCard = document.querySelector('#section-shifts .shifts-tips-card');
-  if (tipsCard) tipsCard.style.display = canShiftEdit ? '' : 'none';
-  // Restore saved tips for this week
-  var wsTipsKey = toDateStr(ws);
-  var tipsInp = document.getElementById('shifts-tips-input');
-  if (tipsInp) { tipsInp.value = db.weekTips && db.weekTips[wsTipsKey] ? db.weekTips[wsTipsKey] : ''; }
-  var tipsRes = document.getElementById('shifts-tips-result');
-  if (tipsRes) tipsRes.innerHTML = '';
+  // Team tab only for shift_mgr / admin
+  var teamTabBtn = document.getElementById('shifts-tab-team-btn');
+  if (teamTabBtn) teamTabBtn.style.display = canShiftEdit ? '' : 'none';
+
+  // Refresh current active tab
+  switchShiftsTab(currentShiftsTab);
+
   var el = document.getElementById('shifts-list'); if (!el) return;
+  var wsStr = toDateStr(ws);
 
   // Current time marker (only relevant for today)
   var now = new Date();
@@ -3754,9 +3811,14 @@ function renderShifts(){
     var dayDate = new Date(ws); dayDate.setDate(dayDate.getDate()+di);
     var dateStr = toDateStr(dayDate);
     var isToday = dateStr === todayStr;
-    var wsStr = toDateStr(ws);
     var dayShifts = db.shifts.filter(function(s){
       return s.day === day && s.weekStart === wsStr;
+    });
+    // Employees with no shift this day (unallocated)
+    var allocatedEmps = dayShifts.map(function(s){ return s.employee; });
+    var absentEmps = (db.absences||[]).filter(function(a){ return a.date===dateStr; }).map(function(a){ return a.employee; });
+    var unallocated = (db.employees||[]).filter(function(e){
+      return allocatedEmps.indexOf(e) === -1 && absentEmps.indexOf(e) === -1;
     });
 
     // Ruler: same flex layout as gantt-row so track aligns perfectly with bars
@@ -3854,6 +3916,35 @@ function renderShifts(){
       }).join('');
     }
 
+    // Unallocated employees section
+    var unallocatedHTML = '';
+    if (unallocated.length > 0) {
+      var unallocBtns = unallocated.map(function(e) {
+        var absBtns = canShiftEdit
+          ? ' <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;font-size:10px;padding:2px 6px" data-mark-absent="'+esc(e)+'" data-absent-date="'+esc(dateStr)+'" data-absent-ws="'+esc(wsStr)+'" title="Mark absent"><i class="fas fa-user-slash"></i></button>'
+          : '';
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;color:#475569;font-weight:600">'+esc(e)+absBtns+'</span>';
+      }).join(' ');
+      unallocatedHTML = '<div style="padding:6px 10px;background:#fffbeb;border:1px dashed #fbbf24;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
+        +'<span style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
+        +unallocBtns+'</div>';
+    }
+    // Absent employees section
+    var absentHTML = '';
+    if (absentEmps.length > 0) {
+      var absentBtns = absentEmps.map(function(e) {
+        var absObj = (db.absences||[]).find(function(a){ return a.date===dateStr && a.employee===e; });
+        var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:#fef2f2;color:#991b1b;border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
+        var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f8fafc;border:1px solid #cbd5e1" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-rotate"></i></button>' : '';
+        var removeBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f8fafc;border:1px solid #cbd5e1" data-remove-absent="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-times"></i></button>' : '';
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:3px 8px;font-size:12px;color:#dc2626;font-weight:600">'
+          +esc(e)+' '+justLabel+toggleBtn+removeBtn+'</span>';
+      }).join(' ');
+      absentHTML = '<div style="padding:6px 10px;background:#fef2f2;border:1px dashed #f87171;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
+        +'<span style="font-size:10px;font-weight:800;color:#991b1b;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-user-slash" style="margin-right:3px"></i>Absent:</span>'
+        +absentBtns+'</div>';
+    }
+
     return '<div class="gantt-wrap"'
         +(isToday?' style="border-left:3px solid var(--ocean-400)"':'')+'>' 
       +'<div class="gantt-day-header">'
@@ -3871,9 +3962,228 @@ function renderShifts(){
           + rowsHTML
         +'</div>'
       +'</div>'
+      + unallocatedHTML
+      + absentHTML
     +'</div>';
   }).join('');
 }
+// ── Tips tab ────────────────────────────────────────────────────
+function renderShiftsTipsTab() {
+  var ws = getWeekStart(shiftsWeekOffset);
+  var wsStr = toDateStr(ws);
+  var db = getDB();
+  var canShiftEdit = isAdmin || hasRole('shift_mgr');
+  var locked = db.tipsLocked && db.tipsLocked[wsStr];
+
+  // Update tips input visibility
+  var tipsInp    = document.getElementById('shifts-tips-input');
+  var genBtn     = document.getElementById('btn-generate-tips');
+  var inputRow   = document.getElementById('tips-input-row');
+  var lockNotice = document.getElementById('tips-locked-notice');
+
+  if (tipsInp) tipsInp.value = db.weekTips && db.weekTips[wsStr] ? db.weekTips[wsStr] : '';
+
+  if (!canShiftEdit) {
+    if (inputRow) inputRow.style.display = 'none';
+    if (lockNotice) lockNotice.style.display = 'none';
+  } else if (locked) {
+    if (inputRow) inputRow.style.display = 'none';
+    if (lockNotice) lockNotice.style.display = 'flex';
+  } else {
+    if (inputRow) inputRow.style.display = '';
+    if (lockNotice) lockNotice.style.display = 'none';
+  }
+
+  // Re-render tips result if tips already saved for this week
+  var el = document.getElementById('shifts-tips-result');
+  if (!el) return;
+  var total = db.weekTips && db.weekTips[wsStr] ? parseFloat(db.weekTips[wsStr]) : 0;
+  if (total > 0) {
+    var hoursMap = {};
+    db.shifts.forEach(function(s) {
+      if (s.weekStart !== wsStr || s.dayOff) return;
+      var sm = timeToMins(s.start), em = timeToMins(s.end);
+      if (em <= sm) em += 24*60;
+      var hrs = (em-sm)/60;
+      if (hrs > 0) hoursMap[s.employee] = (hoursMap[s.employee]||0) + hrs;
+    });
+    var emps = Object.keys(hoursMap);
+    if (emps.length > 0) {
+      var totalHrs = emps.reduce(function(s,e){return s+hoursMap[e];},0);
+      var rows = emps.sort(function(a,b){return hoursMap[b]-hoursMap[a];}).map(function(e){
+        var share = (hoursMap[e]/totalHrs)*total;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
+          +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
+          +'<div style="font-size:11px;color:var(--ocean-400)">'+hoursMap[e].toFixed(1)+' hrs ('+Math.round(hoursMap[e]/totalHrs*100)+'%)</div></div>'
+          +'<div style="font-weight:800;font-size:16px;color:#f59e0b">'+fmtEur(share)+'</div>'
+          +'</div>';
+      }).join('');
+      el.innerHTML = '<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a">'
+        +'<div style="font-size:12px;color:#78350f;font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
+        +rows+'</div>';
+    }
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+// ── Hours & Days tab ─────────────────────────────────────────────
+function renderShiftsHoursTab() {
+  var ws = getWeekStart(shiftsWeekOffset);
+  var wsStr = toDateStr(ws);
+  var db = getDB();
+  var el = document.getElementById('shifts-hours-content'); if (!el) return;
+
+  var empStats = {}; // {name: {hours, days, zones}}
+  db.shifts.forEach(function(s) {
+    if (s.weekStart !== wsStr || s.dayOff) return;
+    var sm = timeToMins(s.start), em = timeToMins(s.end);
+    if (em <= sm) em += 24*60;
+    var hrs = (em-sm)/60;
+    if (hrs <= 0) return;
+    if (!empStats[s.employee]) empStats[s.employee] = {hours:0, days:0, zones:{}};
+    empStats[s.employee].hours += hrs;
+    empStats[s.employee].days  += 1;
+    if (s.zone) empStats[s.employee].zones[s.zone] = (empStats[s.employee].zones[s.zone]||0)+1;
+  });
+
+  // Also count Day Off entries as scheduled days
+  db.shifts.forEach(function(s) {
+    if (s.weekStart !== wsStr || !s.dayOff) return;
+    if (!empStats[s.employee]) empStats[s.employee] = {hours:0, days:0, zones:{}};
+    // day off doesn't add hours but is a scheduled day
+  });
+
+  var emps = (db.employees||[]).slice().sort();
+  if (emps.length === 0) { el.innerHTML = '<div class="empty-state"><p>No employees yet.</p></div>'; return; }
+
+  var rows = emps.map(function(e) {
+    var st = empStats[e] || {hours:0, days:0, zones:{}};
+    var zonesStr = Object.keys(st.zones).map(function(z){ return z+'('+st.zones[z]+'d)'; }).join(', ') || '—';
+    return '<tr style="border-bottom:1px solid var(--ocean-50)">'
+      +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
+      +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:var(--ocean-600)">'+st.hours.toFixed(1)+'h</td>'
+      +'<td style="padding:9px 8px;text-align:center;font-weight:700;color:#10b981">'+st.days+'d</td>'
+      +'<td style="padding:9px 8px;font-size:11px;color:#64748b">'+esc(zonesStr)+'</td>'
+      +'</tr>';
+  }).join('');
+
+  el.innerHTML = '<div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
+    +'<table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:var(--ocean-50)">'
+    +'<th style="padding:9px 10px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">Employee</th>'
+    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Hours</th>'
+    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Days</th>'
+    +'<th style="padding:9px 8px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">Zones</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ── Attendance tab ────────────────────────────────────────────────
+function renderShiftsAttendanceTab() {
+  var ws = getWeekStart(shiftsWeekOffset);
+  var wsStr = toDateStr(ws);
+  var db = getDB();
+  var el = document.getElementById('shifts-attendance-content'); if (!el) return;
+
+  var emps = (db.employees||[]).slice().sort();
+  if (emps.length === 0) { el.innerHTML = '<div class="empty-state"><p>No employees yet.</p></div>'; return; }
+
+  // Count absences per employee across ALL weeks (all-time for rate)
+  // and this week specifically
+  var allAbsences = db.absences || [];
+  var weekAbsences = allAbsences.filter(function(a){ return a.weekStart === wsStr; });
+
+  // Count total scheduled days vs absent for all-time presence %
+  var empAbsTotal = {}; // total absences all time
+  allAbsences.forEach(function(a) {
+    empAbsTotal[a.employee] = (empAbsTotal[a.employee]||0) + 1;
+  });
+
+  // Count total worked days all time from shifts
+  var empWorkedTotal = {};
+  db.shifts.forEach(function(s) {
+    if (!s.dayOff) empWorkedTotal[s.employee] = (empWorkedTotal[s.employee]||0)+1;
+  });
+
+  var rows = emps.map(function(e) {
+    var weekAbs = weekAbsences.filter(function(a){ return a.employee===e; });
+    var totalAbsences = empAbsTotal[e] || 0;
+    var totalWorked = empWorkedTotal[e] || 0;
+    var totalScheduled = totalWorked + totalAbsences;
+    var presencePct = totalScheduled > 0 ? Math.round((totalWorked/totalScheduled)*100) : 100;
+    var weekAbsJ = weekAbs.filter(function(a){ return a.justified; }).length;
+    var weekAbsU = weekAbs.filter(function(a){ return !a.justified; }).length;
+    var weekAbsStr = weekAbs.length===0 ? '<span style="color:#22c55e;font-weight:700">✓ Present</span>'
+      : (weekAbsJ>0?'<span style="color:#f59e0b;font-weight:700">'+weekAbsJ+' just.</span> ':'')
+       +(weekAbsU>0?'<span style="color:#dc2626;font-weight:700">'+weekAbsU+' unjust.</span>':'');
+    var presColor = presencePct>=90?'#22c55e':presencePct>=75?'#f59e0b':'#dc2626';
+    return '<tr style="border-bottom:1px solid var(--ocean-50)">'
+      +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
+      +'<td style="padding:9px 8px;font-size:12px">'+weekAbsStr+'</td>'
+      +'<td style="padding:9px 8px;text-align:center;font-weight:800;color:#dc2626">'+totalAbsences+'</td>'
+      +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:'+presColor+'">'+presencePct+'%</td>'
+      +'</tr>';
+  }).join('');
+
+  el.innerHTML = '<div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
+    +'<table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:var(--ocean-50)">'
+    +'<th style="padding:9px 10px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">Employee</th>'
+    +'<th style="padding:9px 8px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">This Week</th>'
+    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Total Absences</th>'
+    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Presence %</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ── Team Members tab ─────────────────────────────────────────────
+function renderShiftsTeamTab() {
+  var db = getDB();
+  var el = document.getElementById('shifts-employee-list'); if (!el) return;
+  el.innerHTML = db.employees.length===0
+    ? '<div class="empty-state" style="padding:16px"><p>No employees yet.</p></div>'
+    : db.employees.map(function(e){
+        return '<div class="emp-row"><div style="display:flex;align-items:center;gap:10px"><div class="emp-avatar">'+esc(e[0])+'</div><span style="font-size:14px;font-weight:600;color:var(--ocean-900)">'+esc(e)+'</span></div>'
+          +'<button class="btn btn-danger btn-sm btn-icon" data-remove-emp="'+esc(e)+'"><i class="fas fa-trash"></i></button></div>';
+      }).join('');
+}
+
+// ── Absence helpers ──────────────────────────────────────────────
+function markAbsent(employee, dateStr, wsStr) {
+  var db = getDB();
+  // Check not already absent
+  if ((db.absences||[]).find(function(a){ return a.employee===employee && a.date===dateStr; })) {
+    toast('Already marked absent', 'error'); return;
+  }
+  var newId = uid();
+  db.absences = db.absences || [];
+  db.absences.push({id:newId, employee:employee, date:dateStr, weekStart:wsStr, justified:false, createdAt:new Date().toISOString()});
+  saveDB(db);
+  renderShifts();
+  sbFetch('POST','absences',{id:newId,employee:employee,date:dateStr,week_start:wsStr,justified:false})
+    .then(function(rows){ if(rows&&rows[0]){var si=db.absences.findIndex(function(a){return a.id===newId;}); if(si!==-1){db.absences[si].id=rows[0].id; saveDB(db);}} })
+    .catch(function(){ toast('Absence saved locally','error'); });
+  toast(employee+' marked absent','error');
+}
+
+function toggleJustified(absId) {
+  var db = getDB();
+  var abs = (db.absences||[]).find(function(a){ return a.id===absId; }); if (!abs) return;
+  abs.justified = !abs.justified;
+  saveDB(db);
+  renderShifts();
+  sbFetch('PATCH','absences',{justified:abs.justified},'id=eq.'+absId).catch(function(){});
+  toast(abs.justified ? 'Marked justified' : 'Marked unjustified');
+}
+
+function removeAbsent(absId) {
+  var db = getDB();
+  db.absences = (db.absences||[]).filter(function(a){ return a.id!==absId; });
+  saveDB(db);
+  renderShifts();
+  sbFetch('DELETE','absences',null,'id=eq.'+absId).catch(function(){});
+  toast('Absence removed');
+}
+
 function prefillShiftRows(emp){
   if(!emp) return;
   var db=getDB();
@@ -3885,16 +4195,19 @@ function prefillShiftRows(emp){
     var startEl=row.querySelector('.shift-day-start');
     var endEl=row.querySelector('.shift-day-end');
     var offChk=row.querySelector('.shift-day-off-chk');
+    var zoneEl=row.querySelector('.shift-day-zone');
     if(existing){
       offChk.checked=!!existing.dayOff;
       startEl.disabled=!!existing.dayOff;
       endEl.disabled=!!existing.dayOff;
       startEl.value=existing.dayOff?'':existing.start||'09:00';
       endEl.value=existing.dayOff?'':existing.end||'17:00';
+      if(zoneEl) zoneEl.value=existing.zone||'';
     } else {
       offChk.checked=false;
       startEl.disabled=false; endEl.disabled=false;
       startEl.value='09:00'; endEl.value='17:00';
+      if(zoneEl) zoneEl.value='';
     }
   });
 }
@@ -3904,7 +4217,6 @@ function openAddShiftModal(preDay){
   document.getElementById('shift-edit-id').value='';
   document.getElementById('shift-employee').value='';
   document.getElementById('shift-role').value='';
-  document.getElementById('shift-zone').value='';
   // Reset all rows to defaults
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
   rows.forEach(function(row){
@@ -3913,6 +4225,7 @@ function openAddShiftModal(preDay){
     row.querySelector('.shift-day-off-chk').checked=false;
     row.querySelector('.shift-day-start').disabled=false;
     row.querySelector('.shift-day-end').disabled=false;
+    var zoneEl=row.querySelector('.shift-day-zone'); if(zoneEl) zoneEl.value='';
   });
   openModal('modal-add-shift');
 }
@@ -3942,7 +4255,6 @@ function repeatWeek(){
 function saveShift(){
   var emp=document.getElementById('shift-employee').value; if(!emp){toast('Select employee!','error');return;}
   var role=document.getElementById('shift-role').value.trim();
-  var zone=document.getElementById('shift-zone').value;
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
@@ -3952,6 +4264,8 @@ function saveShift(){
     var isDayOff=row.querySelector('.shift-day-off-chk').checked;
     var start=isDayOff?'00:00':row.querySelector('.shift-day-start').value;
     var end=isDayOff?'00:00':row.querySelector('.shift-day-end').value;
+    var zoneEl=row.querySelector('.shift-day-zone');
+    var zone=zoneEl?zoneEl.value:'';
     if(!isDayOff&&(!start||!end)) return;
     var existing=db.shifts.filter(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
     existing.forEach(function(s){ sbFetch('DELETE','shifts',null,'id=eq.'+s.id).catch(function(){}); });
@@ -3977,7 +4291,6 @@ function generateTips(){
   var total=parseFloat(raw); if(isNaN(total)||total<=0){toast('Enter a valid tips amount','error');return;}
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
-  var ALLDAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   // Gather worked hours per employee (exclude day-off)
   var hoursMap={};
   db.shifts.forEach(function(s){
@@ -3989,12 +4302,15 @@ function generateTips(){
   });
   var emps=Object.keys(hoursMap);
   var el=document.getElementById('shifts-tips-result');
-  if(emps.length===0){el.innerHTML='<p style="font-size:13px;color:#dc2626">No worked shifts found for this week.</p>';return;}
+  if(emps.length===0){if(el)el.innerHTML='<p style="font-size:13px;color:#dc2626">No worked shifts found for this week.</p>';return;}
   var totalHrs=emps.reduce(function(s,e){return s+hoursMap[e];},0);
-  // Save tips to db and sync to Supabase
-  db.weekTips[ws]=total; saveDB(db);
+  // Save tips + lock for this week
+  db.weekTips[ws]=total;
+  if(!db.tipsLocked) db.tipsLocked={};
+  db.tipsLocked[ws]=true;
+  saveDB(db);
   sbFetch('PATCH','settings',{week_tips:db.weekTips},'id=eq.config').catch(function(e){ console.error('week_tips sync:',e); });
-  var rows=emps.map(function(e){
+  var rows=emps.sort(function(a,b){return hoursMap[b]-hoursMap[a];}).map(function(e){
     var share=(hoursMap[e]/totalHrs)*total;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
       +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
@@ -4002,9 +4318,12 @@ function generateTips(){
       +'<div style="font-weight:800;font-size:16px;color:#f59e0b">'+fmtEur(share)+'</div>'
       +'</div>';
   }).join('');
-  el.innerHTML='<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a">'
+  if(el) el.innerHTML='<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a">'
     +'<div style="font-size:12px;color:#78350f;font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
     +rows+'</div>';
+  // Lock the input row and show notice
+  renderShiftsTipsTab();
+  toast('Tips generated and locked for this week!','gold');
 }
 
 // ================================================
