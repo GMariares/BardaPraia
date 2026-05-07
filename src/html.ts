@@ -168,24 +168,21 @@ export function getAppHTML(): string {
     .inv-slicer { display:inline-flex; align-items:center; gap:5px; padding:6px 13px; border-radius:20px; border:1.5px solid var(--ocean-200); background:white; color:var(--ocean-600); font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; white-space:nowrap; }
     .inv-slicer:active { transform:scale(.96); }
     .inv-slicer.active { background:var(--ocean-600); color:white; border-color:var(--ocean-600); }
-    .inv-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); margin-bottom:10px; box-shadow:var(--shadow); cursor:grab; user-select:none; transition:opacity .15s,box-shadow .15s; }
-    .inv-card.dragging { opacity:.4; box-shadow:none; cursor:grabbing; }
-    .inv-card.drag-over { border:2px dashed var(--ocean-400); }
-    .inv-drag-handle { color:var(--ocean-300); font-size:16px; cursor:grab; padding:0 4px 0 0; flex-shrink:0; }
-    .inv-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-    .inv-cat-icon { font-size:22px; flex-shrink:0; }
-    .inv-name { font-weight:700; font-size:15px; color:var(--ocean-900); }
-    .inv-meta { font-size:11px; color:var(--ocean-400); margin-top:1px; }
-    .inv-stats { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
-    .inv-stat { background:var(--ocean-50); border-radius:8px; padding:7px 6px; text-align:center; }
-    .inv-stat-val { font-size:16px; font-weight:800; color:var(--ocean-900); }
-    .inv-stat-label { font-size:10px; color:var(--ocean-400); margin-top:1px; }
-    .inv-stat.min-stat { cursor:pointer; }
-    .inv-stat.min-stat:active { background:var(--ocean-100); }
-    .inv-actions { display:flex; gap:8px; }
-    .progress-bar { height:5px; border-radius:3px; background:var(--ocean-100); overflow:hidden; margin-top:6px; }
-    .progress-fill { height:100%; border-radius:3px; background:var(--grad-btn); transition:width .5s; }
-    .progress-fill.low { background:linear-gradient(90deg,#ef4444,#dc2626); }
+    #inventory-list { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    @media(min-width:600px){ #inventory-list { grid-template-columns:repeat(4,1fr); gap:10px; } }
+    @media(min-width:900px){ #inventory-list { grid-template-columns:repeat(5,1fr); gap:12px; } }
+    .inv-card { background:white; border-radius:var(--radius); padding:10px 8px 8px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; position:relative; }
+    .inv-cat-icon { font-size:20px; }
+    .inv-name { font-weight:700; font-size:12px; color:var(--ocean-900); line-height:1.2; word-break:break-word; }
+    .inv-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; }
+    .inv-stat { background:var(--ocean-50); border-radius:6px; padding:4px 2px; text-align:center; }
+    .inv-stat-val { font-size:13px; font-weight:800; color:var(--ocean-900); }
+    .inv-stat-label { font-size:8px; color:var(--ocean-400); margin-top:1px; text-transform:uppercase; letter-spacing:.3px; }
+    .inv-actions { display:flex; gap:4px; }
+    .inv-order-btn { width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer; transition:filter .15s; flex-shrink:0; }
+    .inv-order-btn:active { filter:brightness(1.15); }
+    .inv-card-del { position:absolute; top:4px; right:4px; background:none; border:none; color:var(--ocean-300); font-size:10px; cursor:pointer; padding:2px 3px; line-height:1; transition:color .15s; }
+    .inv-card-del:hover { color:#ef4444; }
 
     /* ── ORDER STANDBY ── */
     .order-standby { border-left:4px solid #f59e0b; background:#fffbeb; border-radius:0 12px 12px 0; padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow); }
@@ -1092,10 +1089,9 @@ export function getAppHTML(): string {
       </div>
     </div>
     <div class="form-row"><label class="label">Unit (optional)</label><input type="text" class="input-field" id="inv-unit" placeholder="bottles, kg, boxes..." /></div>
-    <div class="form-grid-3" style="margin-bottom:14px">
+    <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">In Bar</label><input type="number" class="input-field" id="inv-qty-bar" min="0" value="0" /></div>
       <div><label class="label">In Storage</label><input type="number" class="input-field" id="inv-qty-storage" min="0" value="0" /></div>
-      <div><label class="label">Minimum</label><input type="number" class="input-field" id="inv-minimum" min="0" value="10" /></div>
     </div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-inventory"><i class="fas fa-save"></i> Save</button>
@@ -1104,20 +1100,26 @@ export function getAppHTML(): string {
   </div>
 </div>
 
-<!-- Edit Minimum -->
-<div class="modal-overlay" id="modal-edit-minimum">
+<!-- Quick Order Qty -->
+<div class="modal-overlay" id="modal-quick-order">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-sliders" style="color:var(--ocean-400)"></i> Edit Minimum Stock</h2>
-    <input type="hidden" id="edit-min-id" />
-    <div style="background:var(--ocean-50);border-radius:12px;padding:14px;margin-bottom:16px">
-      <div style="font-weight:700;font-size:16px;color:var(--ocean-900)" id="edit-min-item-name"></div>
-      <div style="font-size:13px;color:var(--ocean-400);margin-top:3px">Current: <span id="edit-min-current"></span></div>
+    <h2><i class="fas fa-cart-plus" style="color:#0ea5e9"></i> Add to Order</h2>
+    <input type="hidden" id="quick-order-id" />
+    <div style="background:var(--ocean-50);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:28px" id="quick-order-icon"></div>
+      <div>
+        <div style="font-weight:700;font-size:16px;color:var(--ocean-900)" id="quick-order-name"></div>
+        <div style="font-size:12px;color:var(--ocean-400);margin-top:2px" id="quick-order-stock"></div>
+      </div>
     </div>
-    <div class="form-row"><label class="label">New Minimum</label><input type="number" class="input-field" id="edit-min-value" min="0" /></div>
+    <div class="form-row" style="margin-bottom:18px">
+      <label class="label">Quantity to order</label>
+      <input type="number" class="input-field" id="quick-order-qty" min="1" value="1" style="font-size:22px;text-align:center;font-weight:800" />
+    </div>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-minimum"><i class="fas fa-save"></i> Update</button>
-      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-edit-minimum">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-confirm-quick-order"><i class="fas fa-cart-plus"></i> Add to Order</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-quick-order">Cancel</button>
     </div>
   </div>
 </div>
@@ -1146,8 +1148,8 @@ export function getAppHTML(): string {
   <div class="modal">
     <div class="modal-handle"></div>
     <h2><i class="fas fa-cart-shopping" style="color:var(--ocean-400)"></i> Place Order</h2>
-    <p style="font-size:13px;color:var(--ocean-400);margin-bottom:14px">Items below minimum. Order will be placed on <strong>Standby</strong> until admin approves.</p>
-    <div id="order-items-list" style="max-height:40vh;overflow-y:auto;margin-bottom:16px"></div>
+    <p style="font-size:13px;color:var(--ocean-400);margin-bottom:14px">Review your order. Adjust quantities if needed. Order goes on <strong>Standby</strong> until admin approves.</p>
+    <div id="order-items-list" style="max-height:45vh;overflow-y:auto;margin-bottom:16px"></div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-confirm-order"><i class="fas fa-paper-plane"></i> Submit Order</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-order">Cancel</button>
@@ -2408,7 +2410,6 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-unit').value=item.unit||'';
     document.getElementById('inv-qty-bar').value=item.qtyBar;
     document.getElementById('inv-qty-storage').value=item.qtyStorage;
-    document.getElementById('inv-minimum').value=item.minimum;
     document.getElementById('inv-employee').value=item.lastEmployee||'';
   } else {
     editInventoryId=null;
@@ -2418,7 +2419,6 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-category').value='beverages';
     document.getElementById('inv-qty-bar').value='0';
     document.getElementById('inv-qty-storage').value='0';
-    document.getElementById('inv-minimum').value='10';
     document.getElementById('inv-employee').value='';
   }
   openModal('modal-add-inventory');
@@ -2428,24 +2428,23 @@ function saveInventoryItem() {
   var db=getDB(); var emp=document.getElementById('inv-employee').value;
   var qb=parseInt(document.getElementById('inv-qty-bar').value)||0;
   var qs=parseInt(document.getElementById('inv-qty-storage').value)||0;
-  var min=parseInt(document.getElementById('inv-minimum').value)||0;
   var cat=document.getElementById('inv-category').value;
   var unit=document.getElementById('inv-unit').value.trim();
   var now=new Date().toISOString();
   var eid=editInventoryId;
   if(eid){
     var idx=db.inventory.findIndex(function(i){return i.id===eid;});
-    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:min,lastEmployee:emp,updatedAt:now}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
+    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,updatedAt:now}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
     saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Updating...'); editInventoryId=null;
-    sbFetch('PATCH','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,minimum:min,last_employee:emp,updated_at:now},'id=eq.'+eid)
+    sbFetch('PATCH','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp,updated_at:now},'id=eq.'+eid)
       .then(function(){ sbAddInvLog({action:'update',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Updated!'); })
       .catch(function(){ toast('Saved locally','error'); });
   } else {
     var newId=uid();
-    db.inventory.push({id:newId,name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:min,lastEmployee:emp,createdAt:now,updatedAt:now});
+    db.inventory.push({id:newId,name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,createdAt:now,updatedAt:now});
     addInvLog(db,{action:'add',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});
     saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Adding...'); editInventoryId=null;
-    sbFetch('POST','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,minimum:min,last_employee:emp})
+    sbFetch('POST','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp})
       .then(function(rows){
         if(rows&&rows[0]){var oid=db.inventory.findIndex(function(i){return i.id===newId;}); if(oid!==-1) db.inventory[oid].id=rows[0].id; saveDB(db);}
         sbAddInvLog({action:'add',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Item added!');
@@ -2489,21 +2488,32 @@ function saveQtyUpdate(){
     .then(function(){ sbAddInvLog({action:'update',item:iname,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Stock updated!'); })
     .catch(function(){ toast('Updated locally','error'); });
 }
-function openEditMinimumModal(id){
+// Cart: pending order items before submitting { id, name, unit, orderQty }
+var pendingOrderItems = [];
+function openQuickOrderModal(id){
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;}); if(!item) return;
-  document.getElementById('edit-min-id').value=id;
-  document.getElementById('edit-min-item-name').textContent=item.name;
-  document.getElementById('edit-min-current').textContent=(item.qtyBar+item.qtyStorage)+' '+(item.unit||'units');
-  document.getElementById('edit-min-value').value=item.minimum;
-  openModal('modal-edit-minimum');
+  document.getElementById('quick-order-id').value=id;
+  document.getElementById('quick-order-icon').textContent=catIconMap[item.category]||'📦';
+  document.getElementById('quick-order-name').textContent=item.name;
+  var total=item.qtyBar+item.qtyStorage;
+  document.getElementById('quick-order-stock').textContent='Bar: '+item.qtyBar+' · Storage: '+item.qtyStorage+' · Total: '+total+(item.unit?' '+item.unit:'');
+  document.getElementById('quick-order-qty').value='1';
+  openModal('modal-quick-order');
 }
-function saveMinimum(){
-  var id=document.getElementById('edit-min-id').value;
-  var val=parseInt(document.getElementById('edit-min-value').value)||0;
-  var db=getDB(); var idx=db.inventory.findIndex(function(i){return i.id===id;});
-  if(idx!==-1) db.inventory[idx].minimum=val;
-  saveDB(db); closeModal('modal-edit-minimum'); renderInventory(); toast('Updating...');
-  sbFetch('PATCH','inventory',{minimum:val},'id=eq.'+id).then(function(){ toast('Minimum updated!'); }).catch(function(){ toast('Updated locally','error'); });
+function confirmQuickOrder(){
+  var id=document.getElementById('quick-order-id').value;
+  var qty=parseInt(document.getElementById('quick-order-qty').value)||0;
+  if(qty<=0){toast('Enter a valid quantity','error');return;}
+  var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;}); if(!item) return;
+  // Add or update in pending cart
+  var existing=pendingOrderItems.findIndex(function(x){return x.id===id;});
+  if(existing!==-1) pendingOrderItems[existing].orderQty+=qty;
+  else pendingOrderItems.push({id:id,name:item.name,unit:item.unit||'',orderQty:qty});
+  closeModal('modal-quick-order');
+  toast(item.name+' ×'+qty+' added to order 🛒','gold');
+  // Show order badge on Orders tab
+  var badge=document.getElementById('orders-standby-badge');
+  if(badge&&pendingOrderItems.length>0){badge.textContent=pendingOrderItems.length;badge.style.display='inline';}
 }
 function renderInventory(){
   var db=getDB(); var items=db.inventory.slice();
@@ -2515,108 +2525,30 @@ function renderInventory(){
   if(invSearchVal) items=items.filter(function(i){return i.name.toLowerCase().indexOf(invSearchVal.toLowerCase())!==-1;});
   if(invCatFilter) items=items.filter(function(i){return i.category===invCatFilter;});
   var el=document.getElementById('inventory-list'); if(!el) return;
-  if(items.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-box-open"></i><p>No items found.</p></div>';return;}
+  if(items.length===0){el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>No items found.</p></div>';return;}
   el.innerHTML=items.map(function(item){
-    var total=item.qtyBar+item.qtyStorage; var isLow=total<item.minimum;
-    var pct=item.minimum>0?Math.min(Math.round(total/item.minimum*100),100):100;
-    return '<div class="inv-card" draggable="true" data-inv-id="'+esc(item.id)+'">'
-      +'<div class="inv-card-header">'
-        +'<div class="inv-drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></div>'
+    var total=item.qtyBar+item.qtyStorage;
+    return '<div class="inv-card" data-inv-id="'+esc(item.id)+'">'
+      +(isAdmin?'<button class="inv-card-del" data-delete-inv="'+esc(item.id)+'" title="Delete"><i class="fas fa-times"></i></button>':'')
+      +'<div style="display:flex;align-items:center;gap:4px;'+(isAdmin?'padding-right:14px':'')+'">'
         +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'📦')+'</div>'
-        +'<div style="flex:1;min-width:0"><div class="inv-name">'+esc(item.name)+'</div>'
-        +'<div class="inv-meta">'+(item.lastEmployee?'Last: '+esc(item.lastEmployee):'')+(item.updatedAt?' · '+fmtDate(item.updatedAt):'')+'</div></div>'
-        +'<span class="badge '+(isLow?'badge-red':'badge-green')+'">'+(isLow?'Low':'OK')+'</span>'
-      +'</div>'
-      +'<div class="inv-stats">'
-        +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyBar+'</div><div class="inv-stat-label">In Bar</div></div>'
-        +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyStorage+'</div><div class="inv-stat-label">Storage</div></div>'
-        +'<div class="inv-stat"><div class="inv-stat-val" style="color:var(--ocean-600)">'+total+'</div><div class="inv-stat-label">Total</div></div>'
-        +'<div class="inv-stat min-stat" data-edit-min="'+esc(item.id)+'">'
-          +'<div class="inv-stat-val" style="color:#f59e0b">'+item.minimum+'</div>'
-          +'<div class="inv-stat-label">Min <i class="fas fa-pen" style="font-size:8px;opacity:.6"></i></div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div class="inv-name">'+esc(item.name)+'</div>'
+          +(item.unit?'<div style="font-size:9px;color:var(--ocean-400);margin-top:1px">'+esc(item.unit)+'</div>':'')
         +'</div>'
       +'</div>'
-      +'<div class="progress-bar"><div class="progress-fill '+(isLow?'low':'')+'" style="width:'+pct+'%"></div></div>'
-      +'<div class="inv-actions" style="margin-top:10px">'
-        +'<button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center" data-update-qty="'+esc(item.id)+'"><i class="fas fa-pen"></i> Update</button>'
-        +'<button class="btn btn-secondary btn-sm btn-icon" data-edit-inv="'+esc(item.id)+'"><i class="fas fa-edit"></i></button>'
-        +'<button class="btn btn-danger btn-sm btn-icon" data-delete-inv="'+esc(item.id)+'"><i class="fas fa-trash"></i></button>'
+      +'<div class="inv-stats">'
+        +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyBar+'</div><div class="inv-stat-label">Bar</div></div>'
+        +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyStorage+'</div><div class="inv-stat-label">Storage</div></div>'
+        +'<div class="inv-stat"><div class="inv-stat-val" style="color:var(--ocean-600)">'+total+'</div><div class="inv-stat-label">Total</div></div>'
+      +'</div>'
+      +'<div class="inv-actions">'
+        +'<button class="btn btn-secondary btn-sm btn-icon" style="flex:1;justify-content:center" data-update-qty="'+esc(item.id)+'"><i class="fas fa-pen"></i></button>'
+        +(isAdmin?'<button class="btn btn-secondary btn-sm btn-icon" style="flex:1;justify-content:center" data-edit-inv="'+esc(item.id)+'"><i class="fas fa-edit"></i></button>':'')
+        +'<button class="inv-order-btn" data-quick-order="'+esc(item.id)+'" title="Add to order"><i class="fas fa-cart-plus"></i></button>'
       +'</div>'
     +'</div>';
   }).join('');
-  initInvDragDrop();
-}
-
-var invDragSrc = null;
-function initInvDragDrop(){
-  var list = document.getElementById('inventory-list'); if(!list) return;
-  var cards = list.querySelectorAll('.inv-card[data-inv-id]');
-  cards.forEach(function(card){
-    card.addEventListener('dragstart', function(e){
-      invDragSrc = card;
-      card.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    card.addEventListener('dragend', function(){
-      card.classList.remove('dragging');
-      list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
-      // Save new order locally and sync to Supabase
-      var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
-      var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
-      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(e){ console.error('inv_sort sync:',e); });
-    });
-    card.addEventListener('dragover', function(e){
-      e.preventDefault(); e.dataTransfer.dropEffect='move';
-      if(card !== invDragSrc){
-        list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
-        card.classList.add('drag-over');
-      }
-    });
-    card.addEventListener('drop', function(e){
-      e.preventDefault();
-      if(invDragSrc && invDragSrc !== card){
-        var allCards = Array.from(list.querySelectorAll('.inv-card'));
-        var srcIdx = allCards.indexOf(invDragSrc);
-        var tgtIdx = allCards.indexOf(card);
-        if(srcIdx < tgtIdx) list.insertBefore(invDragSrc, card.nextSibling);
-        else list.insertBefore(invDragSrc, card);
-        card.classList.remove('drag-over');
-      }
-    });
-    // Touch drag support (mobile)
-    var touchY0=0, touchCard=null, touchClone=null;
-    card.addEventListener('touchstart', function(e){
-      touchY0 = e.touches[0].clientY;
-      touchCard = card;
-    }, {passive:true});
-    card.addEventListener('touchmove', function(e){
-      if(!touchCard) return;
-      var y = e.touches[0].clientY;
-      var els = list.querySelectorAll('.inv-card');
-      els.forEach(function(c){ c.classList.remove('drag-over'); });
-      var el = document.elementFromPoint(e.touches[0].clientX, y);
-      var target = el ? el.closest('.inv-card[data-inv-id]') : null;
-      if(target && target !== touchCard) target.classList.add('drag-over');
-    }, {passive:true});
-    card.addEventListener('touchend', function(e){
-      if(!touchCard) return;
-      var y = e.changedTouches[0].clientY;
-      var el = document.elementFromPoint(e.changedTouches[0].clientX, y);
-      var target = el ? el.closest('.inv-card[data-inv-id]') : null;
-      if(target && target !== touchCard){
-        var allCards = Array.from(list.querySelectorAll('.inv-card'));
-        var srcIdx = allCards.indexOf(touchCard);
-        var tgtIdx = allCards.indexOf(target);
-        if(srcIdx < tgtIdx) list.insertBefore(touchCard, target.nextSibling);
-        else list.insertBefore(touchCard, target);
-      }
-      list.querySelectorAll('.inv-card').forEach(function(c){ c.classList.remove('drag-over'); });
-      var newOrder = Array.from(list.querySelectorAll('.inv-card[data-inv-id]')).map(function(c){ return c.dataset.invId; });
-      var db=getDB(); db.invSortOrder=newOrder; saveDB(db);
-      sbFetch('PATCH','settings',{inv_sort_order:newOrder},'id=eq.config').catch(function(e){ console.error('inv_sort sync:',e); });
-      touchCard=null;
-    });
-  });
 }
 function renderInvLog(){
   var db=getDB(); var el=document.getElementById('inv-log-list'); if(!el) return;
@@ -2652,22 +2584,22 @@ function renderOrderHistory(){
   }).join('');
 }
 function openOrderModal(){
-  var db=getDB(); var low=db.inventory.filter(function(i){return(i.qtyBar+i.qtyStorage)<i.minimum;});
+  var db=getDB(); var items=db.inventory.slice();
   var el=document.getElementById('order-items-list'); if(!el) return;
-  if(low.length===0){el.innerHTML='<div class="empty-state" style="padding:20px"><i class="fas fa-check-circle" style="color:#22c55e"></i><p>All items above minimum!</p></div>';}
-  else el.innerHTML=low.map(function(item){
-    var total=item.qtyBar+item.qtyStorage; var needed=item.minimum-total;
-    return '<div class="order-row"><div style="flex:1"><div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(item.name)+'</div><div style="font-size:12px;color:var(--ocean-400)">Have '+total+' / Need '+item.minimum+' '+esc(item.unit||'')+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--ocean-400);margin-bottom:3px">Order</div><input type="number" min="1" value="'+needed+'" class="input-field" id="order-qty-'+esc(item.id)+'" style="width:70px;text-align:center;font-size:14px;padding:6px 8px"/></div></div>';
+  if(items.length===0){el.innerHTML='<div class="empty-state" style="padding:20px"><i class="fas fa-box-open"></i><p>No items in inventory.</p></div>';}
+  else el.innerHTML=items.map(function(item){
+    var total=item.qtyBar+item.qtyStorage;
+    return '<div class="order-row"><div style="flex:1"><div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(item.name)+'</div><div style="font-size:12px;color:var(--ocean-400)">Bar: '+item.qtyBar+' · Storage: '+item.qtyStorage+' · Total: '+total+(item.unit?' '+esc(item.unit||''):'')+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--ocean-400);margin-bottom:3px">Order</div><input type="number" min="1" value="1" class="input-field" id="order-qty-'+esc(item.id)+'" style="width:70px;text-align:center;font-size:14px;padding:6px 8px"/></div></div>';
   }).join('');
   openModal('modal-order');
 }
 function confirmOrder(){
-  var db=getDB(); var low=db.inventory.filter(function(i){return(i.qtyBar+i.qtyStorage)<i.minimum;});
-  if(low.length===0){closeModal('modal-order');return;}
-  var orderItems=low.map(function(item){
+  var db=getDB();
+  var orderItems=db.inventory.map(function(item){
     var qEl=document.getElementById('order-qty-'+item.id);
-    return{id:item.id,name:item.name,unit:item.unit,orderQty:qEl?(parseInt(qEl.value)||(item.minimum-item.qtyBar-item.qtyStorage)):item.minimum-item.qtyBar-item.qtyStorage};
-  });
+    return{id:item.id,name:item.name,unit:item.unit,orderQty:qEl?parseInt(qEl.value)||0:0};
+  }).filter(function(x){return x.orderQty>0;});
+  if(orderItems.length===0){toast('Enter at least one quantity to order','error');return;}
   var newOrder={id:uid(),date:new Date().toISOString(),items:orderItems,status:'standby'};
   db.orders.unshift(newOrder);
   saveDB(db); closeModal('modal-order'); renderInventory(); renderDashboard(); updateOrdersBadge(); toast('Submitting order...','gold');
@@ -3521,10 +3453,9 @@ function deleteBbItem(id){
 function renderDashboard(){
   var db=getDB();
   document.getElementById('dash-inv-count').textContent=db.inventory.length;
-  var lowItems=db.inventory.filter(function(i){return(i.qtyBar+i.qtyStorage)<i.minimum;});
-  document.getElementById('dash-inv-status').className='badge '+(lowItems.length>0?'badge-red':'badge-green');
-  document.getElementById('dash-inv-status').textContent=lowItems.length>0?lowItems.length+' Low':'OK';
-  document.getElementById('dash-inv-low').textContent=lowItems.length>0?lowItems.length+' need restock':'';
+  document.getElementById('dash-inv-status').className='badge badge-green';
+  document.getElementById('dash-inv-status').textContent='OK';
+  document.getElementById('dash-inv-low').textContent='';
   var today=toDateStr(new Date());
   var todayRes=db.reservations.filter(function(r){return r.date===today;}).sort(function(a,b){return a.time.localeCompare(b.time);});
   document.getElementById('dash-res-count').textContent=todayRes.length;
@@ -3666,12 +3597,9 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-add-inventory')) { openAddInventoryModal(); return; }
   if (t.closest('#btn-open-order')) { openOrderModal(); return; }
   if (t.closest('#btn-save-inventory')) { saveInventoryItem(); return; }
-  if (t.closest('#btn-save-minimum')) { saveMinimum(); return; }
   if (t.closest('#btn-save-qty-update')) { saveQtyUpdate(); return; }
   if (t.closest('#btn-confirm-order')) { confirmOrder(); return; }
 
-  el = t.closest('[data-edit-min]');
-  if (el) { openEditMinimumModal(el.dataset.editMin); return; }
   el = t.closest('[data-update-qty]');
   if (el) { openUpdateQtyModal(el.dataset.updateQty); return; }
   el = t.closest('[data-edit-inv]');
