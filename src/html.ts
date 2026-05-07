@@ -2239,19 +2239,23 @@ function syncUserToSb(user, method) {
     roles: user.roles,
     contract_start: user.contractStart||null,
     contract_end:   user.contractEnd||null,
-    hours_per_week: user.hours||null,
-    amount_agreed:  user.amount ? parseFloat(user.amount) : null,
-    house_discount: user.discount ? parseFloat(user.discount) : null,
-    insurance_policy: user.insurance||null,
+    hours:          user.hours||null,
+    amount:         user.amount ? parseFloat(user.amount) : null,
+    discount:       user.discount ? parseFloat(user.discount) : null,
+    insurance:      user.insurance||null,
     cloth_size:     user.clothSize||null,
     notes:          user.notes||null,
     active:         user.active !== false,
     created_at:     user.createdAt||new Date().toISOString()
   };
   if (method === 'POST') {
-    sbFetch('POST','app_users',payload).catch(function(e){ console.warn('user sync err',e); });
+    sbFetch('POST','app_users',payload).then(function(){
+      toast('User synced to Supabase ✓');
+    }).catch(function(e){ console.warn('user sync err',e); toast('User saved locally (Supabase sync failed)','error'); });
   } else {
-    sbFetch('PATCH','app_users',payload,'id=eq.'+encodeURIComponent(user.id)).catch(function(e){ console.warn('user sync err',e); });
+    sbFetch('PATCH','app_users',payload,'id=eq.'+encodeURIComponent(user.id)).then(function(){
+      toast('User synced to Supabase ✓');
+    }).catch(function(e){ console.warn('user sync err',e); toast('User saved locally (Supabase sync failed)','error'); });
   }
 }
 
