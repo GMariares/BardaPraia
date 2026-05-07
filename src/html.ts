@@ -27,6 +27,37 @@ export function getAppHTML(): string {
     ::-webkit-scrollbar-track { background: var(--ocean-50); }
     ::-webkit-scrollbar-thumb { background: var(--ocean-300); border-radius: 2px; }
 
+    /* ── LOGIN SCREEN ── */
+    #login-screen { position:fixed; inset:0; z-index:9999; background:var(--grad); display:flex; align-items:center; justify-content:center; padding:20px; }
+    #login-screen.hidden { display:none; }
+    .login-box { background:white; border-radius:20px; padding:32px 28px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .login-logo { text-align:center; margin-bottom:24px; }
+    .login-logo .logo-icon-lg { width:64px; height:64px; background:var(--grad); border-radius:18px; display:inline-flex; align-items:center; justify-content:center; font-size:30px; margin-bottom:10px; }
+    .login-logo h1 { font-size:20px; font-weight:800; color:var(--ocean-900); }
+    .login-logo p  { font-size:12px; color:var(--ocean-400); margin-top:2px; }
+    .login-field { margin-bottom:14px; }
+    .login-field label { font-size:11px; font-weight:700; color:var(--ocean-600); text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:5px; }
+    .login-field input { width:100%; border:1.5px solid var(--ocean-200); border-radius:10px; padding:12px 14px; font-size:15px; color:var(--ocean-900); outline:none; background:var(--ocean-50); }
+    .login-field input:focus { border-color:var(--ocean-500); background:white; box-shadow:0 0 0 3px rgba(14,165,233,.12); }
+    #login-error { color:#dc2626; font-size:13px; text-align:center; min-height:18px; margin-bottom:8px; }
+    .btn-login { width:100%; padding:13px; background:var(--grad-btn); color:white; border:none; border-radius:11px; font-size:15px; font-weight:700; cursor:pointer; transition:filter .15s; }
+    .btn-login:active { filter:brightness(1.1); }
+
+    /* ── ROLE BADGES ── */
+    .role-chip { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; margin:1px; }
+    .role-chip.admin     { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+    .role-chip.finance   { background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; }
+    .role-chip.shift_mgr { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+    .role-chip.employee  { background:#e0f2fe; color:#075985; border:1px solid #7dd3fc; }
+
+    /* ── USER CARDS ── */
+    .user-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); margin-bottom:10px; display:flex; align-items:center; gap:12px; }
+    .user-avatar { width:42px; height:42px; border-radius:50%; background:var(--grad); color:white; font-size:16px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .user-info { flex:1; min-width:0; }
+    .user-name { font-size:14px; font-weight:700; color:var(--ocean-900); }
+    .user-username { font-size:11px; color:var(--ocean-400); margin-top:1px; }
+    .user-roles { margin-top:4px; }
+
     /* ── ADMIN ROLE BADGE ── */
     .role-badge-admin { background: linear-gradient(135deg,#f59e0b,#d97706); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:.05em; }
     .role-badge-emp { background: var(--ocean-100); color:var(--ocean-700); font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
@@ -373,6 +404,27 @@ export function getAppHTML(): string {
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon-lg">🌊</div>
+      <h1>Bar da Praia</h1>
+      <p>Management System</p>
+    </div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="Enter username" autocomplete="username" autocapitalize="none" />
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" />
+    </div>
+    <div id="login-error"></div>
+    <button class="btn-login" id="btn-do-login"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+  </div>
+</div>
+
 <!-- TOP BAR -->
 <header id="topbar">
   <button id="hamburger-btn" aria-label="Menu"><i class="fas fa-bars"></i></button>
@@ -380,10 +432,7 @@ export function getAppHTML(): string {
   <div id="topbar-right">
     <div id="topbar-role-info"></div>
     <select id="topbar-emp"><option value="">Staff</option></select>
-    <button id="finance-login-btn"><i class="fas fa-euro-sign"></i></button>
-    <button id="finance-logout-btn"><i class="fas fa-sign-out-alt"></i> Finance</button>
-    <button id="admin-login-btn">Admin</button>
-    <button id="admin-logout-btn"><i class="fas fa-sign-out-alt"></i></button>
+    <button id="btn-app-logout" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;display:none"><i class="fas fa-sign-out-alt"></i> <span id="topbar-username"></span></button>
   </div>
 </header>
 
@@ -405,16 +454,18 @@ export function getAppHTML(): string {
     <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts</button>
     <div class="section-label" style="margin-top:12px">Admin</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
-    <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#ddd6fe">PIN</span></button>
+    <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#ddd6fe">FINANCE</span></button>
+    <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Users <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
   </nav>
   <div id="drawer-footer">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>
-      <div>
-        <div id="drawer-user-name">Staff</div>
-        <div id="drawer-user-sub" style="color:rgba(255,255,255,.5);font-size:11px">Active session</div>
+    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+      <div id="drawer-avatar" style="width:36px;height:36px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:white;flex-shrink:0">?</div>
+      <div style="flex:1;min-width:0">
+        <div id="drawer-user-name" style="color:white;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        <div id="drawer-user-sub" style="color:rgba(255,255,255,.5);font-size:11px;margin-top:1px">Not signed in</div>
       </div>
+      <button id="drawer-logout-btn" onclick="appLogout()" style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;flex-shrink:0" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
     </div>
   </div>
 </nav>
@@ -887,6 +938,15 @@ export function getAppHTML(): string {
     </div>
   </section>
 
+  <!-- ═══ USERS ═══ -->
+  <section id="section-users" class="page-section">
+    <div class="section-header">
+      <h2 style="font-size:16px;font-weight:800;color:var(--ocean-900)"><i class="fas fa-users" style="color:var(--ocean-500)"></i> Users</h2>
+      <button class="btn btn-primary btn-sm" id="btn-add-user"><i class="fas fa-user-plus"></i> Add User</button>
+    </div>
+    <div id="users-list"><div class="empty-state"><i class="fas fa-users"></i><p>No users yet.</p></div></div>
+  </section>
+
   <!-- ═══ SETTINGS ═══ -->
   <section id="section-settings" class="page-section">
     <!-- Migration notice — always visible when migration is needed (admin must see this) -->
@@ -1070,6 +1130,78 @@ export function getAppHTML(): string {
       <button class="pin-key del" data-fin-pin-key="del"><i class="fas fa-delete-left"></i></button>
     </div>
     <div class="pin-error" id="fin-pin-error"></div>
+  </div>
+</div>
+
+<!-- Add / Edit User -->
+<div class="modal-overlay" id="modal-add-user">
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-user-circle" style="color:var(--ocean-500)"></i><span id="user-modal-title">Add User</span></h2>
+
+    <div style="background:var(--ocean-50);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11px;font-weight:700;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.06em">Account</div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div><label class="label">Name *</label><input type="text" class="input-field" id="user-name" placeholder="Full name" /></div>
+      <div><label class="label">Username *</label><input type="text" class="input-field" id="user-username" placeholder="login name" autocapitalize="none" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div><label class="label">Password *</label><input type="password" class="input-field" id="user-password" placeholder="Min 6 chars" /></div>
+      <div><label class="label">Confirm Password</label><input type="password" class="input-field" id="user-password2" placeholder="Repeat" /></div>
+    </div>
+
+    <div style="background:var(--ocean-50);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.06em">Roles *</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" id="user-roles-wrap">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-admin">
+        <input type="checkbox" value="admin" class="user-role-cb" style="accent-color:#f59e0b" /> 👑 Admin
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-finance">
+        <input type="checkbox" value="finance" class="user-role-cb" style="accent-color:#8b5cf6" /> 💶 Finance
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-shift_mgr">
+        <input type="checkbox" value="shift_mgr" class="user-role-cb" style="accent-color:#10b981" /> 📅 Shift Manager
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-employee">
+        <input type="checkbox" value="employee" class="user-role-cb" style="accent-color:#0ea5e9" /> 👤 Employee
+      </label>
+    </div>
+
+    <div style="background:var(--ocean-50);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.06em">Contract</div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div><label class="label">Contract Start</label><input type="date" class="input-field" id="user-contract-start" /></div>
+      <div><label class="label">Contract End</label><input type="date" class="input-field" id="user-contract-end" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div><label class="label">Agreed Hours/Week</label><input type="number" class="input-field" id="user-hours" placeholder="e.g. 40" min="0" /></div>
+      <div><label class="label">Amount Agreed (€)</label><input type="number" class="input-field" id="user-amount" placeholder="e.g. 1200" min="0" step="0.01" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div><label class="label">House Discount (€)</label><input type="number" class="input-field" id="user-discount" placeholder="e.g. 50" min="0" step="0.01" /></div>
+      <div><label class="label">Insurance Policy</label><input type="text" class="input-field" id="user-insurance" placeholder="Policy number" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div><label class="label">Cloth Size</label>
+        <select class="select-field" id="user-cloth-size">
+          <option value="">— select —</option>
+          <option value="S">S</option><option value="M">M</option><option value="L">L</option>
+          <option value="XL">XL</option><option value="XXL">XXL</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 0">
+          <input type="checkbox" id="user-active" checked style="width:16px;height:16px;accent-color:var(--ocean-500)" />
+          <span style="font-size:13px;font-weight:600;color:var(--ocean-700)">Active Account</span>
+        </label>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="label">Notes</label>
+      <textarea class="input-field" id="user-notes" rows="3" placeholder="Observations, extra info..." style="resize:vertical;min-height:64px"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-user"><i class="fas fa-save"></i> Save User</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-user">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1406,6 +1538,20 @@ function getDB() {
   if (db.fundoCaixa === undefined) db.fundoCaixa = 0;
   if (!db.invSortOrder) db.invSortOrder = [];
   if (!db.weekTips)     db.weekTips = {};
+  if (!db.appUsers)     db.appUsers = [];
+  // Seed default admin if no users exist
+  if (db.appUsers.length === 0) {
+    db.appUsers.push({
+      id: 'admin_seed',
+      name: 'Administrator',
+      username: 'admin',
+      passwordHash: btoa('Admin1234'),
+      roles: ['admin','finance','shift_mgr','employee'],
+      contractStart:'', contractEnd:'', hours:'', amount:'',
+      discount:'', insurance:'', clothSize:'', notes:'',
+      active: true, createdAt: new Date().toISOString()
+    });
+  }
   // Per-month budgets: { day:{01:0,...,12:0}, t51:{...}, surf:{...} }
   var MONTHS=['01','02','03','04','05','06','07','08','09','10','11','12'];
   if (!db.budgets) {
@@ -1490,7 +1636,28 @@ var MIGRATION_SQL = [
   "ALTER TABLE shifts ADD COLUMN IF NOT EXISTS zone TEXT DEFAULT '';",
   '',
   '-- 6. Task recurrence column',
-  "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence TEXT DEFAULT NULL;"
+  "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence TEXT DEFAULT NULL;",
+  '',
+  '-- 7. App users table (login system)',
+  'CREATE TABLE IF NOT EXISTS app_users (',
+  '  id TEXT PRIMARY KEY,',
+  '  name TEXT NOT NULL,',
+  '  username TEXT NOT NULL UNIQUE,',
+  '  password_hash TEXT NOT NULL,',
+  "  roles JSONB DEFAULT '[]',",
+  '  contract_start DATE,',
+  '  contract_end DATE,',
+  '  hours TEXT,',
+  '  amount NUMERIC,',
+  '  discount NUMERIC,',
+  '  insurance TEXT,',
+  '  cloth_size TEXT,',
+  '  notes TEXT,',
+  '  active BOOLEAN DEFAULT true,',
+  "  created_at TIMESTAMPTZ DEFAULT now()",
+  ');',
+  'ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;',
+  "CREATE POLICY allow_all ON app_users FOR ALL TO anon USING (true) WITH CHECK (true);"
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1633,7 +1800,21 @@ function syncFromSupabase() {
         genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
         savedAt: r.saved_at
       }; });
-    }).catch(function(){ sbMissingItems.push('fin_entries table'); })
+    }).catch(function(){ sbMissingItems.push('fin_entries table'); }),
+    sbFetch('GET', 'app_users', null, 'order=name.asc').then(function(rows) {
+      if (rows && rows.length > 0) {
+        db.appUsers = rows.map(function(r){ return {
+          id: r.id, name: r.name, username: r.username,
+          passwordHash: r.password_hash,
+          roles: Array.isArray(r.roles) ? r.roles : [],
+          contractStart: r.contract_start||'', contractEnd: r.contract_end||'',
+          hours: r.hours||'', amount: r.amount||'',
+          discount: r.discount||'', insurance: r.insurance||'',
+          clothSize: r.cloth_size||'', notes: r.notes||'',
+          active: r.active !== false, createdAt: r.created_at
+        }; });
+      }
+    }).catch(function(){ sbMissingItems.push('app_users table'); })
   ];
   return Promise.all(promises).then(function() {
     saveDB(db);
@@ -1651,6 +1832,7 @@ function syncFromSupabase() {
 // ================================================
 var isAdmin = false;
 var isFinance = false;
+var currentUser = null; // the logged-in app_user object
 var currentSection = 'dashboard';
 var calendarWeekStart = getMonday(new Date());
 var selectedCalendarDay = null;
@@ -1670,6 +1852,7 @@ var bbSelectedItems = {}; // {id: qty}
 var bbItemSearchVal = '';
 var currentBbTab = 'daily';
 var currentFinTab = 'entry';
+var editUserId = null; // null = add mode, string = edit mode
 var selectedTables = [];
 
 // ================================================
@@ -1701,129 +1884,100 @@ function openModal(id) { var el=document.getElementById(id); if(!el) return; el.
 function closeModal(id) { var el=document.getElementById(id); if(!el) return; el.classList.remove('open'); document.body.style.overflow=''; }
 
 // ================================================
-// ADMIN / ROLE SYSTEM
+// LOGIN / AUTH SYSTEM
 // ================================================
-function openAdminLogin(callback) {
-  pinBuffer = '';
-  document.getElementById('pin-error').textContent = '';
-  updatePinDisplay();
-  openModal('modal-admin-login');
-  window._pinCallback = callback || null;
-}
+function hashPw(pw) { return btoa(unescape(encodeURIComponent(pw))); }
+function hasRole(role) { return currentUser && Array.isArray(currentUser.roles) && currentUser.roles.indexOf(role) !== -1; }
 
-function updatePinDisplay() {
-  for (var i = 0; i < 4; i++) {
-    var dot = document.getElementById('pd' + i);
-    if (dot) dot.classList.toggle('filled', i < pinBuffer.length);
-  }
-}
-
-function handlePinKey(key) {
-  if (key === 'cancel') { closeModal('modal-admin-login'); pinBuffer = ''; return; }
-  if (key === 'del') { pinBuffer = pinBuffer.slice(0,-1); updatePinDisplay(); return; }
-  if (pinBuffer.length >= 4) return;
-  pinBuffer += key;
-  updatePinDisplay();
-  if (pinBuffer.length === 4) {
-    var db = getDB();
-    if (pinBuffer === db.adminPin) {
-      isAdmin = true;
-      closeModal('modal-admin-login');
-      pinBuffer = '';
-      updateAdminUI();
-      toast('Welcome, Admin!', 'gold');
-      if (window._pinCallback) { window._pinCallback(); window._pinCallback = null; }
-      else { showSection(currentSection); }
-    } else {
-      document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
-      pinBuffer = '';
-      updatePinDisplay();
-      setTimeout(function(){ document.getElementById('pin-error').textContent = ''; }, 2000);
-    }
-  }
-}
-
-function adminLogout() {
-  isAdmin = false;
-  updateAdminUI();
+function doLogin() {
+  var uname = (document.getElementById('login-username').value||'').trim().toLowerCase();
+  var pw    = document.getElementById('login-password').value;
+  var errEl = document.getElementById('login-error');
+  if (!uname || !pw) { errEl.textContent = 'Please enter username and password.'; return; }
+  var db = getDB();
+  var user = db.appUsers.find(function(u){ return u.username.toLowerCase() === uname; });
+  if (!user || !user.active) { errEl.textContent = 'Invalid username or password.'; return; }
+  if (user.passwordHash !== hashPw(pw)) { errEl.textContent = 'Invalid username or password.'; return; }
+  currentUser = user;
+  isAdmin   = hasRole('admin');
+  isFinance = hasRole('finance') || hasRole('admin');
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-screen').classList.add('hidden');
+  updateSessionUI();
   showSection('dashboard');
-  toast('Logged out.');
+  toast('Welcome, ' + user.name + '!', 'gold');
 }
 
-function updateAdminUI() {
-  var loginBtn = document.getElementById('admin-login-btn');
-  var logoutBtn = document.getElementById('admin-logout-btn');
-  var roleInfo = document.getElementById('topbar-role-info');
-  if (isAdmin) {
-    loginBtn.style.display = 'none';
-    logoutBtn.style.display = 'block';
-    roleInfo.innerHTML = '<span class="role-badge-admin"><i class="fas fa-shield-halved"></i> Admin</span>';
+function appLogout() {
+  currentUser = null;
+  isAdmin = false;
+  isFinance = false;
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-screen').classList.remove('hidden');
+  updateSessionUI();
+  closeDrawer();
+}
+
+function updateSessionUI() {
+  // Topbar logout button
+  var logoutBtn = document.getElementById('btn-app-logout');
+  var unameSpan = document.getElementById('topbar-username');
+  var roleInfo  = document.getElementById('topbar-role-info');
+  if (currentUser) {
+    if (logoutBtn) logoutBtn.style.display = 'flex';
+    if (unameSpan) unameSpan.textContent = currentUser.name.split(' ')[0];
+    // Role badge in topbar
+    var badges = (currentUser.roles||[]).map(function(r){
+      var labels = {admin:'👑 Admin',finance:'💶 Finance',shift_mgr:'📅 Shifts',employee:'👤 Employee'};
+      var cls    = {admin:'admin',finance:'finance',shift_mgr:'shift_mgr',employee:'employee'};
+      return '<span class="role-chip '+(cls[r]||'employee')+'">'+(labels[r]||r)+'</span>';
+    }).join('');
+    if (roleInfo) roleInfo.innerHTML = badges;
+    // Drawer footer
+    var dname = document.getElementById('drawer-user-name');
+    var dsub  = document.getElementById('drawer-user-sub');
+    var davt  = document.getElementById('drawer-avatar');
+    if (dname) dname.textContent = currentUser.name;
+    if (dsub)  dsub.textContent  = (currentUser.roles||[]).map(function(r){ return r.charAt(0).toUpperCase()+r.slice(1).replace('_',' '); }).join(' · ');
+    if (davt)  davt.textContent  = currentUser.name.charAt(0).toUpperCase();
   } else {
-    loginBtn.style.display = 'block';
-    logoutBtn.style.display = 'none';
-    roleInfo.innerHTML = '';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    if (roleInfo)  roleInfo.innerHTML = '';
+    var dname2 = document.getElementById('drawer-user-name');
+    var dsub2  = document.getElementById('drawer-user-sub');
+    var davt2  = document.getElementById('drawer-avatar');
+    if (dname2) dname2.textContent = '—';
+    if (dsub2)  dsub2.textContent  = 'Not signed in';
+    if (davt2)  davt2.textContent  = '?';
   }
+  // Show/hide admin-gated drawer items
+  var usersBtn = document.getElementById('ditem-users');
+  if (usersBtn) usersBtn.style.display = isAdmin ? 'flex' : 'none';
   // Show/hide add shift button
   var addShiftBtn = document.getElementById('btn-add-shift');
   if (addShiftBtn) addShiftBtn.style.display = isAdmin ? 'flex' : 'none';
+  var repShiftBtn = document.getElementById('btn-repeat-week');
+  if (repShiftBtn) repShiftBtn.style.display = isAdmin ? 'flex' : 'none';
 }
+
+// Legacy stubs so old call sites don't crash
+function openAdminLogin(cb) { /* replaced by login screen */ if(cb) cb(); }
+function adminLogout() { appLogout(); }
+function updateAdminUI() { updateSessionUI(); }
+function handlePinKey() {}
+function updatePinDisplay() {}
 
 // ================================================
-// FINANCE PIN SYSTEM
+// FINANCE ACCESS (role-based, stubs kept for compatibility)
 // ================================================
-function openFinanceLogin(callback) {
-  finPinBuffer = '';
-  document.getElementById('fin-pin-error').textContent = '';
-  updateFinPinDisplay();
-  openModal('modal-finance-login');
-  window._finPinCallback = callback || null;
-}
-
-function updateFinPinDisplay() {
-  for (var i = 0; i < 4; i++) {
-    var dot = document.getElementById('fpd' + i);
-    if (dot) dot.classList.toggle('filled', i < finPinBuffer.length);
-  }
-}
-
-function handleFinPinKey(key) {
-  if (key === 'cancel') { closeModal('modal-finance-login'); finPinBuffer = ''; return; }
-  if (key === 'del') { finPinBuffer = finPinBuffer.slice(0,-1); updateFinPinDisplay(); return; }
-  if (finPinBuffer.length >= 4) return;
-  finPinBuffer += key;
-  updateFinPinDisplay();
-  if (finPinBuffer.length === 4) {
-    var db = getDB();
-    if (finPinBuffer === db.financePin) {
-      isFinance = true;
-      closeModal('modal-finance-login');
-      finPinBuffer = '';
-      updateFinanceUI();
-      toast('Finance access granted!', 'gold');
-      if (window._finPinCallback) { window._finPinCallback(); window._finPinCallback = null; }
-      else { showSection('finance'); }
-    } else {
-      document.getElementById('fin-pin-error').textContent = 'Incorrect PIN. Try again.';
-      finPinBuffer = '';
-      updateFinPinDisplay();
-      setTimeout(function(){ document.getElementById('fin-pin-error').textContent = ''; }, 2000);
-    }
-  }
-}
-
-function financeLogout() {
-  isFinance = false;
-  updateFinanceUI();
-  if (currentSection === 'finance') showSection('dashboard');
-  toast('Finance logged out.');
-}
-
-function updateFinanceUI() {
-  var loginBtn = document.getElementById('finance-login-btn');
-  var logoutBtn = document.getElementById('finance-logout-btn');
-  if (loginBtn) loginBtn.style.display = isFinance ? 'none' : 'flex';
-  if (logoutBtn) logoutBtn.style.display = isFinance ? 'flex' : 'none';
-}
+function openFinanceLogin(cb) { if(cb) cb(); }
+function financeLogout() { }
+function updateFinanceUI() { }
+function handleFinPinKey() {}
+function updateFinPinDisplay() {}
 
 function changeFinancePin() {
   var np = document.getElementById('new-finance-pin').value;
@@ -1843,10 +1997,15 @@ function openDrawer() { document.getElementById('drawer').classList.add('open');
 function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('open'); document.body.style.overflow=''; }
 
 function showSection(name) {
-  // Admin-gated sections
-  if ((name === 'blackbox' || name === 'settings') && !isAdmin) {
-    // Still show the section but with locked overlay
+  // Access control by role
+  if (!currentUser) { return; }
+  if ((name === 'blackbox' || name === 'settings' || name === 'users') && !isAdmin) {
+    toast('Admin access required.', 'error'); return;
   }
+  if (name === 'finance' && !isFinance) {
+    toast('Finance role required.', 'error'); return;
+  }
+
   document.querySelectorAll('.page-section').forEach(function(s){ s.classList.remove('active'); });
   var sec = document.getElementById('section-' + name);
   if (!sec) return;
@@ -1859,9 +2018,10 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + name);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Bar da Praia',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',settings:'Settings'};
+  var titles = {dashboard:'Bar da Praia',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',users:'Users',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   currentSection = name;
+  closeDrawer();
 
   if (name === 'dashboard')    renderDashboard();
   if (name === 'inventory')    renderInventory();
@@ -1870,7 +2030,227 @@ function showSection(name) {
   if (name === 'shifts')       renderShifts();
   if (name === 'blackbox')     renderBlackBox();
   if (name === 'finance')      renderFinance();
+  if (name === 'users')        renderUsers();
   if (name === 'settings')     renderSettings();
+}
+
+// ================================================
+// USERS MANAGEMENT
+// ================================================
+var ROLE_LABELS = {admin:'👑 Admin', finance:'💶 Finance', shift_mgr:'📅 Shift Mgr', employee:'👤 Employee'};
+var ROLE_COLORS = {admin:'#f59e0b', finance:'#8b5cf6', shift_mgr:'#10b981', employee:'#0ea5e9'};
+
+function renderUsers() {
+  var el = document.getElementById('users-list');
+  if (!el) return;
+  var db = getDB();
+  var users = db.appUsers || [];
+  if (users.length === 0) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>No users yet. Add the first user!</p></div>';
+    return;
+  }
+  el.innerHTML = users.map(function(u) {
+    var roleBadges = (u.roles||[]).map(function(r) {
+      return '<span style="background:'+( ROLE_COLORS[r]||'#64748b')+'22;color:'+(ROLE_COLORS[r]||'#64748b')+';border:1px solid '+(ROLE_COLORS[r]||'#64748b')+'44;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">'+(ROLE_LABELS[r]||r)+'</span>';
+    }).join('');
+    var isSelf = currentUser && currentUser.id === u.id;
+    var contractInfo = '';
+    if (u.contractStart) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-calendar-alt"></i> From '+esc(u.contractStart)+(u.contractEnd?' → '+esc(u.contractEnd):'')+'</span> ';
+    if (u.hours) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-clock"></i> '+esc(u.hours)+'h/wk</span> ';
+    if (u.amount) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-euro-sign"></i> '+esc(u.amount)+'</span>';
+    return '<div style="background:white;border:1.5px solid var(--ocean-100);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">'
+      +'<div style="width:40px;height:40px;background:linear-gradient(135deg,var(--ocean-500),var(--ocean-700));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
+        +esc(u.name.charAt(0).toUpperCase())
+      +'</div>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+          +'<span style="font-weight:800;font-size:14px;color:var(--ocean-900)">'+esc(u.name)+'</span>'
+          +'<span style="font-size:12px;color:var(--ocean-400)">@'+esc(u.username)+'</span>'
+          +(u.active===false?'<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Inactive</span>':'<span style="background:#dcfce7;color:#16a34a;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Active</span>')
+          +(isSelf?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
+        +'</div>'
+        +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+roleBadges+'</div>'
+        +(contractInfo?'<div style="display:flex;gap:10px;flex-wrap:wrap">'+contractInfo+'</div>':'')
+        +(u.notes?'<div style="font-size:12px;color:var(--ocean-500);margin-top:4px;font-style:italic">'+esc(u.notes)+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="btn btn-sm" style="background:var(--ocean-50);color:var(--ocean-700);border:1px solid var(--ocean-200)" data-edit-user="'+esc(u.id)+'"><i class="fas fa-pen"></i></button>'
+        +(isSelf?'':'<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" data-delete-user="'+esc(u.id)+'"><i class="fas fa-trash"></i></button>')
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function openUserModal(userId) {
+  editUserId = userId || null;
+  // Reset form
+  ['user-name','user-username','user-password','user-password2','user-contract-start','user-contract-end','user-hours','user-amount','user-discount','user-insurance','user-notes'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.querySelectorAll('.user-role-cb').forEach(function(cb){ cb.checked = false; });
+  var sizeEl = document.getElementById('user-cloth-size'); if (sizeEl) sizeEl.value = '';
+  var activeEl = document.getElementById('user-active'); if (activeEl) activeEl.checked = true;
+  var titleEl = document.getElementById('user-modal-title');
+  var pwLabel = document.querySelector('label[for="user-password"], #modal-add-user label');
+  var pwFields = document.querySelector('#user-password');
+
+  if (userId) {
+    // Edit mode
+    if (titleEl) titleEl.textContent = ' Edit User';
+    var db = getDB();
+    var u = db.appUsers.find(function(x){ return x.id === userId; });
+    if (!u) return;
+    var setVal = function(id, v){ var el=document.getElementById(id); if(el) el.value=v||''; };
+    setVal('user-name', u.name);
+    setVal('user-username', u.username);
+    // Don't pre-fill password — leave blank means no change
+    setVal('user-contract-start', u.contractStart);
+    setVal('user-contract-end', u.contractEnd);
+    setVal('user-hours', u.hours);
+    setVal('user-amount', u.amount);
+    setVal('user-discount', u.discount);
+    setVal('user-insurance', u.insurance);
+    setVal('user-cloth-size', u.clothSize);
+    setVal('user-notes', u.notes);
+    if (activeEl) activeEl.checked = u.active !== false;
+    (u.roles||[]).forEach(function(r){
+      var cb = document.querySelector('.user-role-cb[value="'+r+'"]');
+      if (cb) cb.checked = true;
+    });
+    // Update password placeholder
+    if (pwFields) pwFields.placeholder = 'Leave blank to keep current';
+  } else {
+    if (titleEl) titleEl.textContent = ' Add User';
+    if (pwFields) pwFields.placeholder = 'Min 6 chars';
+  }
+  openModal('modal-add-user');
+}
+
+function saveUserModal() {
+  var name     = (document.getElementById('user-name').value||'').trim();
+  var username = (document.getElementById('user-username').value||'').trim().toLowerCase();
+  var pw       = (document.getElementById('user-password').value||'');
+  var pw2      = (document.getElementById('user-password2').value||'');
+  var roles    = Array.from(document.querySelectorAll('.user-role-cb:checked')).map(function(cb){ return cb.value; });
+  var active   = document.getElementById('user-active').checked;
+
+  if (!name)     { toast('Name is required', 'error'); return; }
+  if (!username) { toast('Username is required', 'error'); return; }
+  if (!/^[a-z0-9_.-]+$/.test(username)) { toast('Username: only letters, numbers, . _ -', 'error'); return; }
+  if (roles.length === 0) { toast('At least one role is required', 'error'); return; }
+
+  var db = getDB();
+
+  if (!editUserId) {
+    // Add mode — password required
+    if (!pw) { toast('Password is required', 'error'); return; }
+    if (pw.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
+    if (pw !== pw2) { toast('Passwords do not match', 'error'); return; }
+    // Check duplicate username
+    if (db.appUsers.find(function(u){ return u.username.toLowerCase() === username; })) {
+      toast('Username already taken', 'error'); return;
+    }
+    var newUser = {
+      id: uid(),
+      name: name,
+      username: username,
+      passwordHash: hashPw(pw),
+      roles: roles,
+      contractStart: document.getElementById('user-contract-start').value||'',
+      contractEnd:   document.getElementById('user-contract-end').value||'',
+      hours:         document.getElementById('user-hours').value||'',
+      amount:        document.getElementById('user-amount').value||'',
+      discount:      document.getElementById('user-discount').value||'',
+      insurance:     document.getElementById('user-insurance').value||'',
+      clothSize:     document.getElementById('user-cloth-size').value||'',
+      notes:         document.getElementById('user-notes').value||'',
+      active:        active,
+      createdAt:     new Date().toISOString()
+    };
+    db.appUsers.push(newUser);
+    saveDB(db);
+    closeModal('modal-add-user');
+    renderUsers();
+    toast('User '+name+' created!', 'gold');
+    syncUserToSb(newUser, 'POST');
+  } else {
+    // Edit mode
+    var idx = db.appUsers.findIndex(function(u){ return u.id === editUserId; });
+    if (idx === -1) { toast('User not found', 'error'); return; }
+    var existing = db.appUsers[idx];
+    // Check duplicate username (excluding self)
+    if (db.appUsers.find(function(u){ return u.username.toLowerCase() === username && u.id !== editUserId; })) {
+      toast('Username already taken', 'error'); return;
+    }
+    // Only update password if a new one is provided
+    if (pw) {
+      if (pw.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
+      if (pw !== pw2) { toast('Passwords do not match', 'error'); return; }
+      existing.passwordHash = hashPw(pw);
+    }
+    existing.name          = name;
+    existing.username      = username;
+    existing.roles         = roles;
+    existing.contractStart = document.getElementById('user-contract-start').value||'';
+    existing.contractEnd   = document.getElementById('user-contract-end').value||'';
+    existing.hours         = document.getElementById('user-hours').value||'';
+    existing.amount        = document.getElementById('user-amount').value||'';
+    existing.discount      = document.getElementById('user-discount').value||'';
+    existing.insurance     = document.getElementById('user-insurance').value||'';
+    existing.clothSize     = document.getElementById('user-cloth-size').value||'';
+    existing.notes         = document.getElementById('user-notes').value||'';
+    existing.active        = active;
+    db.appUsers[idx] = existing;
+    saveDB(db);
+    // If editing self, refresh currentUser
+    if (currentUser && currentUser.id === editUserId) {
+      currentUser = existing;
+      isAdmin   = hasRole('admin');
+      isFinance = hasRole('finance') || hasRole('admin');
+      updateSessionUI();
+    }
+    closeModal('modal-add-user');
+    renderUsers();
+    toast('User updated!', 'gold');
+    syncUserToSb(existing, 'PATCH');
+  }
+}
+
+function deleteUser(userId) {
+  if (!confirm('Delete this user? This cannot be undone.')) return;
+  var db = getDB();
+  var u = db.appUsers.find(function(x){ return x.id === userId; });
+  if (!u) return;
+  db.appUsers = db.appUsers.filter(function(x){ return x.id !== userId; });
+  saveDB(db);
+  renderUsers();
+  toast('User deleted.', 'error');
+  sbFetch('DELETE','app_users',null,'id=eq.'+encodeURIComponent(userId)).catch(function(){});
+}
+
+function syncUserToSb(user, method) {
+  var payload = {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    password_hash: user.passwordHash,
+    roles: user.roles,
+    contract_start: user.contractStart||null,
+    contract_end:   user.contractEnd||null,
+    hours_per_week: user.hours||null,
+    amount_agreed:  user.amount ? parseFloat(user.amount) : null,
+    house_discount: user.discount ? parseFloat(user.discount) : null,
+    insurance_policy: user.insurance||null,
+    cloth_size:     user.clothSize||null,
+    notes:          user.notes||null,
+    active:         user.active !== false,
+    created_at:     user.createdAt||new Date().toISOString()
+  };
+  if (method === 'POST') {
+    sbFetch('POST','app_users',payload).catch(function(e){ console.warn('user sync err',e); });
+  } else {
+    sbFetch('PATCH','app_users',payload,'id=eq.'+encodeURIComponent(user.id)).catch(function(e){ console.warn('user sync err',e); });
+  }
 }
 
 // ================================================
@@ -3601,7 +3981,20 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-fin-recalc')) { renderFinRecords(); return; }
   if (t.closest('#btn-fin-clear-day')) { finRecDayFilter=''; var dp=document.getElementById('fin-rec-day-picker'); if(dp) dp.value=''; renderFinRecords(); return; }
 
-  // Admin
+  // Login screen
+  if (t.closest('#btn-do-login')) { doLogin(); return; }
+  if (t.closest('#btn-app-logout')) { appLogout(); return; }
+  if (t.closest('#drawer-logout-btn')) { appLogout(); return; }
+
+  // Users
+  if (t.closest('#btn-add-user')) { openUserModal(null); return; }
+  if (t.closest('#btn-save-user')) { saveUserModal(); return; }
+  el = t.closest('[data-edit-user]');
+  if (el) { openUserModal(el.dataset.editUser); return; }
+  el = t.closest('[data-delete-user]');
+  if (el) { deleteUser(el.dataset.deleteUser); return; }
+
+  // Admin (legacy stubs)
   if (t.closest('#admin-login-btn')) { openAdminLogin(); return; }
   if (t.closest('#admin-logout-btn')) { adminLogout(); return; }
   if (t.closest('#bb-login-prompt-btn') || t.closest('#settings-login-prompt-btn')) { openAdminLogin(function(){showSection(currentSection);}); return; }
@@ -3773,22 +4166,26 @@ document.addEventListener('change', function(e) {
   }
 });
 
+// Enter key on login form
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    var ls = document.getElementById('login-screen');
+    if (ls && !ls.classList.contains('hidden')) {
+      doLogin();
+      return;
+    }
+  }
+});
+
 // ================================================
 // INIT
 // ================================================
 selectedCalendarDay = toDateStr(new Date());
 initSupabase();
-// Show cached data immediately for instant load
-updateAllDropdowns();
-updateAdminUI();
-updateFinanceUI();
-showSection('dashboard');
-updateOrdersBadge();
-// Then sync from Supabase and refresh all views
+// Always show login screen on startup — user must authenticate
+updateSessionUI();
+// Start background sync so data is ready when user logs in
 syncFromSupabase().then(function() {
-  updateAllDropdowns();
-  showSection(currentSection);
-  updateOrdersBadge();
   showMigrationNotice(sbMissingItems);
   if (sbMissingItems.length > 0) {
     toast('DB migration needed \u2014 check Settings', 'error');
