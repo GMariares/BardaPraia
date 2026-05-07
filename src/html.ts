@@ -1662,7 +1662,19 @@ var MIGRATION_SQL = [
   ');',
   'ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;',
   'DROP POLICY IF EXISTS allow_all ON app_users;',
-  "CREATE POLICY allow_all ON app_users FOR ALL TO anon USING (true) WITH CHECK (true);"
+  "CREATE POLICY allow_all ON app_users FOR ALL TO anon USING (true) WITH CHECK (true);",
+  '',
+  '-- 8. Push subscriptions (Web Push notifications)',
+  'CREATE TABLE IF NOT EXISTS push_subscriptions (',
+  '  user_id TEXT NOT NULL,',
+  '  endpoint TEXT PRIMARY KEY,',
+  '  p256dh TEXT NOT NULL,',
+  '  auth TEXT NOT NULL,',
+  '  updated_at TIMESTAMPTZ DEFAULT now()',
+  ');',
+  'ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;',
+  'DROP POLICY IF EXISTS allow_all ON push_subscriptions;',
+  "CREATE POLICY allow_all ON push_subscriptions FOR ALL TO anon USING (true) WITH CHECK (true);"
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1958,25 +1970,80 @@ function appLogout() {
   closeDrawer();
 }
 
-// ── Push Notifications ──────────────────────────────────────────
+// ── Push Notifications (Web Push via Service Worker) ───────────
+var swRegistration = null;
+
 function requestNotifPermission() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (Notification.permission === 'denied') return;
+  Notification.requestPermission().then(function(perm) {
+    if (perm === 'granted') registerPushSubscription();
+  });
 }
 
-function sendTaskNotification(taskTitle, assignedNames) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  var body = assignedNames.length ? 'Assigned to: ' + assignedNames.join(', ') : 'A new task has been assigned to you';
-  try {
-    new Notification('📋 New Task: ' + taskTitle, {
-      body: body,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-      tag: 'task-' + Date.now()
+function registerPushSubscription() {
+  if (!swRegistration || !currentUser) return;
+  // Fetch VAPID public key from our backend
+  fetch('/api/push/vapid-public-key').then(function(r){ return r.json(); }).then(function(data) {
+    var vapidKey = urlBase64ToUint8Array(data.key);
+    return swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: vapidKey
     });
-  } catch(e) {}
+  }).then(function(sub) {
+    // Save subscription to Supabase via our API
+    return fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, subscription: sub.toJSON() })
+    });
+  }).then(function(r) {
+    if (r.ok) console.log('[Push] Subscription saved for user', currentUser.username);
+  }).catch(function(err) {
+    console.warn('[Push] Subscribe failed:', err.message);
+  });
+}
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var raw = atob(base64);
+  var output = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
+// Called after task is saved — sends push to assigned users via /api/push/send
+function sendTaskPush(taskTitle, assignedUserIds) {
+  if (!assignedUserIds || !assignedUserIds.length) return;
+  fetch('/api/push/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userIds: assignedUserIds,
+      title: '📋 New Task: ' + taskTitle,
+      body: 'You have been assigned a new task.',
+      url: '/'
+    })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    console.log('[Push] Sent:', d);
+  }).catch(function(e){
+    console.warn('[Push] Send failed:', e.message);
+  });
+}
+
+// Register the service worker on page load
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+    swRegistration = reg;
+    console.log('[SW] Registered');
+    // If already granted and user is logged in, subscribe immediately
+    if (Notification.permission === 'granted' && currentUser) {
+      registerPushSubscription();
+    }
+  }).catch(function(err) {
+    console.warn('[SW] Registration failed:', err.message);
+  });
 }
 
 function updateSessionUI() {
@@ -3400,11 +3467,8 @@ function saveTask(){
       toast('Task created!');
     }).catch(function(){ toast('Saved locally','error'); });
   }
-  // Push notification to assigned users (fires for the current device if permission granted)
-  if(asn.length){
-    var names=assigneeNames(asn);
-    sendTaskNotification(title, names);
-  }
+  // Send Web Push to all assigned users (cross-device)
+  if(asn.length) sendTaskPush(title, asn);
 }
 
 function nextRecurDeadline(baseDate, recurrence){
