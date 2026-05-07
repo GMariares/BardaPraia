@@ -1545,7 +1545,7 @@ function getDB() {
       id: 'admin_seed',
       name: 'Administrator',
       username: 'admin',
-      passwordHash: btoa('Admin1234'),
+      passwordHash: btoa(unescape(encodeURIComponent('Admin1234'))),
       roles: ['admin','finance','shift_mgr','employee'],
       contractStart:'', contractEnd:'', hours:'', amount:'',
       discount:'', insurance:'', clothSize:'', notes:'',
