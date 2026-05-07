@@ -468,6 +468,9 @@ export function getAppHTML(): string {
       </div>
       <button id="drawer-logout-btn" onclick="appLogout()" style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;flex-shrink:0" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
     </div>
+    <button id="btn-enable-notif" style="margin-top:10px;width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
+      <i class="fas fa-bell"></i> <span id="notif-btn-label">Enable Notifications</span> <i id="notif-status-dot" class="fas fa-circle" style="font-size:7px;margin-left:auto;color:rgba(255,255,255,.4)"></i>
+    </button>
   </div>
 </nav>
 
@@ -1992,34 +1995,33 @@ function isLegacyEndpoint(endpoint) {
 }
 
 function updateNotifStatusUI() {
-  var dot  = document.getElementById('notif-status-dot');
-  var txt  = document.getElementById('notif-status-text');
-  var btn  = document.getElementById('btn-enable-notif');
-  if (!dot || !txt) return;
+  var dot   = document.getElementById('notif-status-dot');
+  var label = document.getElementById('notif-btn-label');
+  if (!dot || !label) return;
 
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    dot.style.color = '#ef4444'; txt.textContent = 'Not supported on this browser/device';
-    if (btn) btn.style.display = 'none';
+    dot.style.color = 'rgba(255,100,100,.8)';
+    label.textContent = 'Notifications not supported';
     return;
   }
   var perm = Notification.permission;
   if (perm === 'denied') {
-    dot.style.color = '#ef4444'; txt.textContent = 'Blocked — enable in browser site settings';
-    if (btn) btn.style.display = 'none';
+    dot.style.color = 'rgba(255,100,100,.8)';
+    label.textContent = 'Notifications blocked';
     return;
   }
   if (!swRegistration) {
-    dot.style.color = '#f59e0b'; txt.textContent = 'Service worker not ready yet…';
+    dot.style.color = 'rgba(255,200,0,.8)';
+    label.textContent = 'Enable Notifications';
     return;
   }
   swRegistration.pushManager.getSubscription().then(function(sub) {
     if (!sub || isLegacyEndpoint(sub.endpoint)) {
-      dot.style.color = '#f59e0b';
-      txt.textContent = sub ? 'Old subscription detected — tap button to refresh' : 'Not subscribed on this device';
-      if (btn) { btn.style.display = ''; btn.innerHTML = '<i class="fas fa-bell"></i> Enable Notifications on this Device'; }
+      dot.style.color = 'rgba(255,200,0,.8)';
+      label.textContent = sub ? 'Refresh Notifications ⚠' : 'Enable Notifications';
     } else {
-      dot.style.color = '#22c55e'; txt.textContent = 'Active — notifications enabled on this device';
-      if (btn) { btn.style.display = ''; btn.innerHTML = '<i class="fas fa-rotate"></i> Re-subscribe (reset)'; }
+      dot.style.color = 'rgba(100,255,150,.9)';
+      label.textContent = 'Notifications Active ✓';
     }
   });
 }
