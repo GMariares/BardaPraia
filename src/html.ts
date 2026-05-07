@@ -2026,7 +2026,7 @@ function updateSessionUI() {
   dshow('ditem-reservations', true);
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
-  dshow('ditem-tasks',        isAdmin);
+  dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
   dshow('ditem-blackbox',     isAdmin);
   dshow('ditem-users',        isAdmin);
   dshow('ditem-settings',     isAdmin);
@@ -2041,7 +2041,7 @@ function updateSessionUI() {
   bshow('bnav-reservations', true);
   bshow('bnav-shifts',       true);
   bshow('bnav-finance',      isFinance);
-  bshow('bnav-tasks',        isAdmin);
+  bshow('bnav-tasks',        true);   // visible to all — filter inside renderTasks handles per-user
   bshow('bnav-blackbox',     isAdmin);
 
   // ── Shift edit buttons (shift_mgr + admin only) ────────────────
@@ -2087,7 +2087,7 @@ function closeDrawer() { document.getElementById('drawer').classList.remove('ope
 function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
-  if ((name === 'blackbox' || name === 'settings' || name === 'users' || name === 'tasks') && !isAdmin) {
+  if ((name === 'blackbox' || name === 'settings' || name === 'users') && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
   if (name === 'finance' && !isFinance) {
@@ -3456,12 +3456,14 @@ function deleteTask(id){
 function renderTasks(){
   var db=getDB();
   // Filter tasks visible to current user:
-  // Admin sees all. Others see only tasks assigned to them (or unassigned).
+  // Admin sees ALL tasks.
+  // Non-admin sees ONLY tasks where their user ID is explicitly in the assignedTo array.
+  // Unassigned tasks or legacy string-assigned tasks are admin-only.
   var allTasks=db.tasks;
   if(!isAdmin && currentUser){
     allTasks=db.tasks.filter(function(t){
       var ids=taskAssignees(t);
-      return ids.length===0 || ids.indexOf(currentUser.id)!==-1;
+      return ids.indexOf(currentUser.id)!==-1;
     });
   }
   document.getElementById('task-count-pending').textContent=allTasks.filter(function(t){return t.status==='pending';}).length;
