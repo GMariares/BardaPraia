@@ -633,7 +633,7 @@ export function getAppHTML(): string {
       <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#1f2937;border:1px solid #374151;display:inline-block"></span> Day Off</span>
     </div>
     <!-- Weekly Tips Calculator -->
-    <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+    <div class="shifts-tips-card" style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
       <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
         <i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Weekly Tips Distribution
       </div>
@@ -1938,6 +1938,8 @@ function appLogout() {
 }
 
 function updateSessionUI() {
+  var canShiftEdit = isAdmin || hasRole('shift_mgr');
+
   // Topbar logout button
   var logoutBtn = document.getElementById('btn-app-logout');
   var unameSpan = document.getElementById('topbar-username');
@@ -1945,14 +1947,12 @@ function updateSessionUI() {
   if (currentUser) {
     if (logoutBtn) logoutBtn.style.display = 'flex';
     if (unameSpan) unameSpan.textContent = currentUser.name.split(' ')[0];
-    // Role badge in topbar
     var badges = (currentUser.roles||[]).map(function(r){
       var labels = {admin:'👑 Admin',finance:'💶 Finance',shift_mgr:'📅 Shifts',employee:'👤 Employee'};
       var cls    = {admin:'admin',finance:'finance',shift_mgr:'shift_mgr',employee:'employee'};
       return '<span class="role-chip '+(cls[r]||'employee')+'">'+(labels[r]||r)+'</span>';
     }).join('');
     if (roleInfo) roleInfo.innerHTML = badges;
-    // Drawer footer
     var dname = document.getElementById('drawer-user-name');
     var dsub  = document.getElementById('drawer-user-sub');
     var davt  = document.getElementById('drawer-avatar');
@@ -1969,14 +1969,44 @@ function updateSessionUI() {
     if (dsub2)  dsub2.textContent  = 'Not signed in';
     if (davt2)  davt2.textContent  = '?';
   }
-  // Show/hide admin-gated drawer items
-  var usersBtn = document.getElementById('ditem-users');
-  if (usersBtn) usersBtn.style.display = isAdmin ? 'flex' : 'none';
-  // Show/hide add shift button
+
+  // ── Drawer nav visibility ──────────────────────────────────────
+  // Home / Stock / Book → everyone
+  // Shifts               → everyone
+  // Finance              → finance + admin only
+  // Tasks / Box / Users / Settings → admin only
+  function dshow(id, visible) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = visible ? 'flex' : 'none';
+  }
+  dshow('ditem-dashboard',    true);
+  dshow('ditem-inventory',    true);
+  dshow('ditem-reservations', true);
+  dshow('ditem-shifts',       true);
+  dshow('ditem-finance',      isFinance);
+  dshow('ditem-tasks',        isAdmin);
+  dshow('ditem-blackbox',     isAdmin);
+  dshow('ditem-users',        isAdmin);
+  dshow('ditem-settings',     isAdmin);
+
+  // ── Bottom nav visibility ──────────────────────────────────────
+  function bshow(id, visible) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = visible ? '' : 'none';
+  }
+  bshow('bnav-dashboard',    true);
+  bshow('bnav-inventory',    true);
+  bshow('bnav-reservations', true);
+  bshow('bnav-shifts',       true);
+  bshow('bnav-finance',      isFinance);
+  bshow('bnav-tasks',        isAdmin);
+  bshow('bnav-blackbox',     isAdmin);
+
+  // ── Shift edit buttons (shift_mgr + admin only) ────────────────
   var addShiftBtn = document.getElementById('btn-add-shift');
-  if (addShiftBtn) addShiftBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (addShiftBtn) addShiftBtn.style.display = canShiftEdit ? 'flex' : 'none';
   var repShiftBtn = document.getElementById('btn-repeat-week');
-  if (repShiftBtn) repShiftBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (repShiftBtn) repShiftBtn.style.display = canShiftEdit ? 'flex' : 'none';
 }
 
 // Legacy stubs so old call sites don't crash
@@ -2015,7 +2045,7 @@ function closeDrawer() { document.getElementById('drawer').classList.remove('ope
 function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
-  if ((name === 'blackbox' || name === 'settings' || name === 'users') && !isAdmin) {
+  if ((name === 'blackbox' || name === 'settings' || name === 'users' || name === 'tasks') && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
   if (name === 'finance' && !isFinance) {
@@ -3424,10 +3454,14 @@ function renderShifts(){
     mnames[ws.getMonth()]+' '+ws.getDate()+' – '+mnames[we.getMonth()]+' '+we.getDate()+', '+we.getFullYear();
 
   var db = getDB();
+  var canShiftEdit = isAdmin || hasRole('shift_mgr');
   var addBtn = document.getElementById('btn-add-shift');
-  if (addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (addBtn) addBtn.style.display = canShiftEdit ? 'flex' : 'none';
   var repBtn = document.getElementById('btn-repeat-week');
-  if (repBtn) repBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (repBtn) repBtn.style.display = canShiftEdit ? 'flex' : 'none';
+  // Tips card: only visible to shift_mgr / admin
+  var tipsCard = document.querySelector('#section-shifts .shifts-tips-card');
+  if (tipsCard) tipsCard.style.display = canShiftEdit ? '' : 'none';
   // Restore saved tips for this week
   var wsTipsKey = toDateStr(ws);
   var tipsInp = document.getElementById('shifts-tips-input');
@@ -3517,7 +3551,7 @@ function renderShifts(){
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
               +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#9ca3af;font-size:10px" title="'+offLabel+' — Day Off"'
-                +(isAdmin?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
+                +(canShiftEdit?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
                 +'<i class="fas fa-ban" style="margin-right:3px"></i>'+offLabel
               +'</div>'
             +'</div>'
@@ -3537,7 +3571,7 @@ function renderShifts(){
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+(s.zone?' ['+esc(s.zone)+']':'')+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
               +'<div class="gantt-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'" title="'+barLabel+'"'
-                +(isAdmin?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
+                +(canShiftEdit?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
                 + barLabel
               +'</div>'
             +'</div>'
@@ -3554,7 +3588,7 @@ function renderShifts(){
           +'<div class="gantt-day-name">'+day+(isToday?' <span class="badge badge-blue" style="font-size:10px;vertical-align:middle">Today</span>':'')+'</div>'
           +'<div class="gantt-day-date">'+dateStr+'</div>'
         +'</div>'
-        +(isAdmin?'<button class="btn btn-secondary btn-sm" data-add-shift-day="'+esc(day)+'"><i class="fas fa-plus"></i> Add</button>':'')
+        +(canShiftEdit?'<button class="btn btn-secondary btn-sm" data-add-shift-day="'+esc(day)+'"><i class="fas fa-plus"></i> Add</button>':'')
       +'</div>'
       +'<div class="gantt-timeline">'
         + rulerHTML
