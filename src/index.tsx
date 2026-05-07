@@ -119,20 +119,16 @@ app.post('/api/push/send', async (c) => {
       return c.json({ error: 'Missing userIds or title' }, 400)
     }
 
-    // Fetch subscriptions for given users
-    const ids = userIds.map((id: string) => `user_id=eq.${encodeURIComponent(id)}`).join(',')
-    const subRes = await fetch(
-      `${SB_URL}/rest/v1/push_subscriptions?or=(${ids})&select=endpoint,p256dh,auth`,
-      {
-        headers: {
-          'apikey': SB_KEY,
-          'Authorization': `Bearer ${SB_KEY}`
-        }
-      }
-    )
-    if (!subRes.ok) return c.json({ error: 'Failed to fetch subscriptions' }, 500)
-    const subs: any[] = await subRes.json()
-    if (!subs.length) return c.json({ sent: 0, message: 'No subscriptions found' })
+    // Fetch subscriptions for given users — use in.() filter (correct PostgREST syntax)
+    const idList = userIds.map((id: string) => encodeURIComponent(id)).join(',')
+    const subUrl = `${SB_URL}/rest/v1/push_subscriptions?user_id=in.(${idList})&select=endpoint,p256dh,auth`
+    const subRes = await fetch(subUrl, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    })
+    const subBody = await subRes.text()
+    if (!subRes.ok) return c.json({ error: 'Failed to fetch subscriptions', detail: subBody }, 500)
+    const subs: any[] = JSON.parse(subBody)
+    if (!subs.length) return c.json({ sent: 0, message: 'No subscriptions found for userIds', userIds })
 
     // Build VAPID JWT
     const vapidJwt = await buildVapidJwt(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
@@ -151,16 +147,25 @@ app.post('/api/push/send', async (c) => {
     await Promise.all(subs.map(async (sub) => {
       try {
         const encrypted = await encryptPayload(payload, sub.p256dh, sub.auth)
+
+        // Build VAPID JWT per-subscription (audience = push service origin)
+        const endpointOrigin = new URL(sub.endpoint).origin
+        const perSubJwt = await buildVapidJwt(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE, endpointOrigin)
+
         const pushRes = await fetch(sub.endpoint, {
           method: 'POST',
           headers: {
-            'Authorization': `vapid t=${vapidJwt.jwt},k=${VAPID_PUBLIC}`,
+            'Authorization': `vapid t=${perSubJwt.jwt},k=${VAPID_PUBLIC}`,
             'Content-Type': 'application/octet-stream',
             'Content-Encoding': 'aes128gcm',
             'TTL': '86400'
           },
           body: encrypted
         })
+
+        const responseText = await pushRes.text()
+        console.log(`[Push] ${sub.endpoint.slice(0,50)} → HTTP ${pushRes.status}: ${responseText.slice(0,200)}`)
+
         if (pushRes.status === 201 || pushRes.status === 200 || pushRes.status === 202) {
           sent++
         } else if (pushRes.status === 410 || pushRes.status === 404) {
@@ -169,12 +174,12 @@ app.post('/api/push/send', async (c) => {
             method: 'DELETE',
             headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
           })
-          errors.push(`Expired: ${sub.endpoint.slice(0, 40)}`)
+          errors.push(`Expired (${pushRes.status}): ${sub.endpoint.slice(0, 60)}`)
         } else {
-          errors.push(`HTTP ${pushRes.status} for ${sub.endpoint.slice(0, 40)}`)
+          errors.push(`HTTP ${pushRes.status}: ${responseText.slice(0,100)}`)
         }
       } catch (err: any) {
-        errors.push(err.message)
+        errors.push(`Exception: ${err.message}`)
       }
     }))
 
@@ -201,10 +206,11 @@ function uint8ToUrlBase64(buf: Uint8Array): string {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-async function buildVapidJwt(subject: string, publicKeyB64: string, privateKeyB64: string) {
+async function buildVapidJwt(subject: string, publicKeyB64: string, privateKeyB64: string, audience?: string) {
   const now = Math.floor(Date.now() / 1000)
+  const aud = audience || 'https://fcm.googleapis.com'
   const header  = uint8ToUrlBase64(new TextEncoder().encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })))
-  const payload = uint8ToUrlBase64(new TextEncoder().encode(JSON.stringify({ aud: 'https://fcm.googleapis.com', exp: now + 43200, sub: subject })))
+  const payload = uint8ToUrlBase64(new TextEncoder().encode(JSON.stringify({ aud: aud, exp: now + 43200, sub: subject })))
   const sigInput = `${header}.${payload}`
 
   const privBytes = urlBase64ToUint8(privateKeyB64)
@@ -259,10 +265,13 @@ async function encryptPayload(plaintext: string, p256dhB64: string, authB64: str
   const salt = crypto.getRandomValues(new Uint8Array(16))
 
   // HKDF: PRK = HMAC-SHA256(auth_secret, shared_secret)
-  const prk = await hkdf(authSecret, sharedSecret, enc.encode('WebPush: info\x00').concat(
-    new Uint8Array(await crypto.subtle.exportKey('raw', receiverPublicKey)),
-    senderPublicRaw
-  ), 32)
+  const receiverPublicRaw = new Uint8Array(await crypto.subtle.exportKey('raw', receiverPublicKey))
+  const infoPrefix = enc.encode('WebPush: info\x00')
+  const prkInfo = new Uint8Array(infoPrefix.length + receiverPublicRaw.length + senderPublicRaw.length)
+  prkInfo.set(infoPrefix, 0)
+  prkInfo.set(receiverPublicRaw, infoPrefix.length)
+  prkInfo.set(senderPublicRaw, infoPrefix.length + receiverPublicRaw.length)
+  const prk = await hkdf(authSecret, sharedSecret, prkInfo, 32)
 
   // HKDF: content encryption key
   const cek = await hkdf(salt, prk, enc.encode('Content-Encoding: aes128gcm\x00'), 16)
