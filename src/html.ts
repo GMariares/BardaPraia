@@ -1621,6 +1621,7 @@ var MIGRATION_SQL = [
   "  saved_at TIMESTAMPTZ DEFAULT now()",
   ');',
   'ALTER TABLE fin_entries ENABLE ROW LEVEL SECURITY;',
+  'DROP POLICY IF EXISTS allow_all ON fin_entries;',
   "CREATE POLICY allow_all ON fin_entries FOR ALL TO anon USING (true) WITH CHECK (true);",
   '',
   '-- 3. Apply settings migration',
@@ -1657,6 +1658,7 @@ var MIGRATION_SQL = [
   "  created_at TIMESTAMPTZ DEFAULT now()",
   ');',
   'ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;',
+  'DROP POLICY IF EXISTS allow_all ON app_users;',
   "CREATE POLICY allow_all ON app_users FOR ALL TO anon USING (true) WITH CHECK (true);"
 ].join('\\n');
 
