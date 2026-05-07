@@ -906,6 +906,34 @@ export function getAppHTML(): string {
           </div>
         </div>
 
+        <!-- Section 4: Cash Over / Under Log -->
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-scale-unbalanced" style="color:#dc2626"></i> Cash Over / Under Log</div>
+          <div class="fin-summary-grid" style="margin-bottom:10px">
+            <div class="fin-summary-card" style="border:1px solid #fecaca">
+              <div class="fin-summary-num" id="fin-stat-short-month" style="color:#dc2626">€0</div>
+              <div class="fin-summary-label">Short This Month</div>
+              <div id="fin-stat-short-month-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
+            <div class="fin-summary-card" style="border:1px solid #fecaca">
+              <div class="fin-summary-num" id="fin-stat-short-year" style="color:#dc2626">€0</div>
+              <div class="fin-summary-label">Short This Year</div>
+              <div id="fin-stat-short-year-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
+            <div class="fin-summary-card" style="border:1px solid #bbf7d0">
+              <div class="fin-summary-num" id="fin-stat-over-month" style="color:#16a34a">€0</div>
+              <div class="fin-summary-label">Over This Month</div>
+              <div id="fin-stat-over-month-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
+            <div class="fin-summary-card" style="border:1px solid #bbf7d0">
+              <div class="fin-summary-num" id="fin-stat-over-year" style="color:#16a34a">€0</div>
+              <div class="fin-summary-label">Over This Year</div>
+              <div id="fin-stat-over-year-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+            </div>
+          </div>
+          <div id="fin-diff-log-list"></div>
+        </div>
+
         <!-- Day picker + records list -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
           <i class="fas fa-calendar-day" style="color:var(--ocean-400)"></i>
@@ -1691,8 +1719,10 @@ var MIGRATION_SQL = [
   '  cash_notes NUMERIC DEFAULT 0,',
   '  coins NUMERIC DEFAULT 0,',
   '  surf NUMERIC DEFAULT 0,',
+  '  cash_diff NUMERIC DEFAULT 0,',
   "  saved_at TIMESTAMPTZ DEFAULT now()",
   ');',
+  'ALTER TABLE fin_entries ADD COLUMN IF NOT EXISTS cash_diff NUMERIC DEFAULT 0;',
   'ALTER TABLE fin_entries ENABLE ROW LEVEL SECURITY;',
   'DROP POLICY IF EXISTS allow_all ON fin_entries;',
   "CREATE POLICY allow_all ON fin_entries FOR ALL TO anon USING (true) WITH CHECK (true);",
@@ -1906,6 +1936,7 @@ function syncFromSupabase() {
         tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
         cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
         genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
+        cashDiff: parseFloat(r.cash_diff)||0,
         savedAt: r.saved_at
       }; });
     }).catch(function(){ sbMissingItems.push('fin_entries table'); }),
@@ -2988,6 +3019,10 @@ function saveFinanceEntry() {
   var db = getDB();
   if (!db.finEntries) db.finEntries = [];
   var idx = db.finEntries.findIndex(function(e){ return e.date === saveDate; });
+  var fundo = db.fundoCaixa || 0;
+  var cashTotal = v.cashNotes + v.coins;
+  var expected = v.entregar + fundo;
+  var cashDiff = (cashTotal > 0 || expected > 0) ? (cashTotal - expected) : 0;
   var entry = {
     id: idx !== -1 ? db.finEntries[idx].id : uid(),
     date: saveDate,
@@ -2995,6 +3030,7 @@ function saveFinanceEntry() {
     invoiced: v.invoiced, genExpenses: v.genExpenses,
     tips: v.tips, entregar: v.entregar,
     cashNotes: v.cashNotes, coins: v.coins, surf: v.surf,
+    cashDiff: cashDiff,
     savedAt: new Date().toISOString()
   };
   if (idx !== -1) { db.finEntries[idx] = entry; } else { db.finEntries.unshift(entry); }
@@ -3008,7 +3044,8 @@ function saveFinanceEntry() {
       total_day: entry.totalDay, invoiced: entry.invoiced,
       gen_expenses: entry.genExpenses, tips: entry.tips,
       entregar: entry.entregar, cash_notes: entry.cashNotes,
-      coins: entry.coins, surf: entry.surf, saved_at: entry.savedAt },
+      coins: entry.coins, surf: entry.surf, cash_diff: entry.cashDiff,
+      saved_at: entry.savedAt },
     idx !== -1 ? 'id=eq.'+entry.id : null
   ).catch(function(){ /* saved locally */ });
 }
@@ -3063,11 +3100,24 @@ function renderFinRecords() {
   // Aggregate totals
   var dayMonth=0,dayYear=0,dayRange=0, t51Month=0,t51Year=0,t51Range=0, surfMonth=0,surfYear=0,surfRange=0;
   var cntMonth=0,cntYear=0,cntRange=0;
+  var shortMonth=0,shortYear=0,shortMonthCnt=0,shortYearCnt=0;
+  var overMonth=0,overYear=0,overMonthCnt=0,overYearCnt=0;
   allEntries.forEach(function(e){
     var td=e.totalDay||0, t=e.t51||0, s=e.surf||0;
     if(e.date.slice(0,7)===monthStr){ dayMonth+=td; t51Month+=t; surfMonth+=s; cntMonth++; }
     if(e.date.slice(0,4)===yearStr) { dayYear+=td;  t51Year+=t;  surfYear+=s;  cntYear++; }
     if(rangeFrom&&rangeTo&&e.date>=rangeFrom&&e.date<=rangeTo){ dayRange+=td; t51Range+=t; surfRange+=s; cntRange++; }
+    // cash diff aggregations (only entries that have cash data)
+    var cd = e.cashDiff || 0;
+    if(Math.abs(cd) >= 0.005) {
+      if(cd < 0) {
+        if(e.date.slice(0,7)===monthStr){ shortMonth+=Math.abs(cd); shortMonthCnt++; }
+        if(e.date.slice(0,4)===yearStr) { shortYear+=Math.abs(cd);  shortYearCnt++; }
+      } else {
+        if(e.date.slice(0,7)===monthStr){ overMonth+=cd; overMonthCnt++; }
+        if(e.date.slice(0,4)===yearStr) { overYear+=cd;  overYearCnt++; }
+      }
+    }
   });
 
   finStatBox('fin-stat-day-month','fin-stat-day-month-avg','fin-stat-day-month-budget', dayMonth, cntMonth, budgetDay);
@@ -3079,6 +3129,40 @@ function renderFinRecords() {
   finStatBox('fin-stat-surf-month','fin-stat-surf-month-avg','fin-stat-surf-month-budget', surfMonth, cntMonth, budgetSurf);
   finStatBox('fin-stat-surf-year', 'fin-stat-surf-year-avg', 'fin-stat-surf-year-budget',  surfYear,  cntYear,  budgetSurfYear);
   finStatBox('fin-stat-surf-range','fin-stat-surf-range-avg',null, surfRange, cntRange, 0);
+
+  // --- Cash Over/Under Log ---
+  var shortMonthEl=document.getElementById('fin-stat-short-month'); if(shortMonthEl) shortMonthEl.textContent=fmtEur(shortMonth);
+  var shortMonthCntEl=document.getElementById('fin-stat-short-month-cnt'); if(shortMonthCntEl) shortMonthCntEl.textContent=shortMonthCnt>0?(shortMonthCnt+' day'+(shortMonthCnt>1?'s':'')):'';
+  var shortYearEl=document.getElementById('fin-stat-short-year'); if(shortYearEl) shortYearEl.textContent=fmtEur(shortYear);
+  var shortYearCntEl=document.getElementById('fin-stat-short-year-cnt'); if(shortYearCntEl) shortYearCntEl.textContent=shortYearCnt>0?(shortYearCnt+' day'+(shortYearCnt>1?'s':'')):'';
+  var overMonthEl=document.getElementById('fin-stat-over-month'); if(overMonthEl) overMonthEl.textContent=fmtEur(overMonth);
+  var overMonthCntEl=document.getElementById('fin-stat-over-month-cnt'); if(overMonthCntEl) overMonthCntEl.textContent=overMonthCnt>0?(overMonthCnt+' day'+(overMonthCnt>1?'s':'')):'';
+  var overYearEl=document.getElementById('fin-stat-over-year'); if(overYearEl) overYearEl.textContent=fmtEur(overYear);
+  var overYearCntEl=document.getElementById('fin-stat-over-year-cnt'); if(overYearCntEl) overYearCntEl.textContent=overYearCnt>0?(overYearCnt+' day'+(overYearCnt>1?'s':'')):'';
+
+  // Build diff log — only entries with a non-zero cash diff, most recent first
+  var diffLogEl = document.getElementById('fin-diff-log-list');
+  if (diffLogEl) {
+    var diffEntries = allEntries.filter(function(e){ return Math.abs(e.cashDiff||0) >= 0.005; });
+    if (!diffEntries.length) {
+      diffLogEl.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:13px;color:var(--ocean-300)"><i class="fas fa-check-circle" style="margin-right:6px;color:#16a34a"></i>No discrepancies recorded</div>';
+    } else {
+      diffLogEl.innerHTML = diffEntries.map(function(e){
+        var cd = e.cashDiff || 0;
+        var isShort = cd < 0;
+        var color = isShort ? '#dc2626' : '#16a34a';
+        var bg    = isShort ? '#fef2f2' : '#f0fdf4';
+        var icon  = isShort ? 'fa-triangle-exclamation' : 'fa-arrow-trend-up';
+        var label = isShort ? 'Short' : 'Over';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:'+bg+';gap:10px">'
+          +'<span style="font-size:12px;font-weight:600;color:var(--ocean-700)">'+fmtDateShort(e.date)+'</span>'
+          +'<span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:'+color+'">'
+            +'<i class="fas '+icon+'"></i>'+label+' '+fmtEur(Math.abs(cd))
+          +'</span>'
+        +'</div>';
+      }).join('');
+    }
+  }
 
   // Records list — optionally filtered by day picker
   var listEl = document.getElementById('fin-records-list');
