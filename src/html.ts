@@ -1983,22 +1983,36 @@ function requestNotifPermission() {
 
 function registerPushSubscription() {
   if (!swRegistration || !currentUser) return;
-  // Fetch VAPID public key from our backend
+  var userId = currentUser.id;
+  var username = currentUser.username;
+
   fetch('/api/push/vapid-public-key').then(function(r){ return r.json(); }).then(function(data) {
     var vapidKey = urlBase64ToUint8Array(data.key);
-    return swRegistration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: vapidKey
+    // Always unsubscribe any existing (possibly stale/legacy) subscription first,
+    // then create a fresh one so Chrome generates a new-format endpoint.
+    return swRegistration.pushManager.getSubscription().then(function(existing) {
+      if (existing) {
+        return existing.unsubscribe().then(function() {
+          console.log('[Push] Unsubscribed old subscription');
+        }).catch(function(){});
+      }
+    }).then(function() {
+      return swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey
+      });
     });
   }).then(function(sub) {
-    // Save subscription to Supabase via our API
+    var subJson = sub.toJSON();
+    console.log('[Push] New endpoint:', subJson.endpoint.slice(0, 60));
     return fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id, subscription: sub.toJSON() })
+      body: JSON.stringify({ userId: userId, subscription: subJson })
     });
   }).then(function(r) {
-    if (r.ok) console.log('[Push] Subscription saved for user', currentUser.username);
+    if (r.ok) console.log('[Push] Subscription saved for user', username);
+    else console.warn('[Push] Failed to save subscription');
   }).catch(function(err) {
     console.warn('[Push] Subscribe failed:', err.message);
   });
@@ -2032,11 +2046,14 @@ function sendTaskPush(taskTitle, assignedUserIds) {
   });
 }
 
-// Register the service worker on page load
+// Register the service worker on page load (force update to clear stale SW)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then(function(reg) {
     swRegistration = reg;
-    console.log('[SW] Registered');
+    // Force the new SW to activate immediately if waiting
+    if (reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
+    reg.update(); // Check for updated SW
+    console.log('[SW] Registered, scope:', reg.scope);
     // If already granted and user is logged in, subscribe immediately
     if (Notification.permission === 'granted' && currentUser) {
       registerPushSubscription();
