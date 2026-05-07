@@ -962,6 +962,19 @@ export function getAppHTML(): string {
         <button id="btn-copy-sql" class="btn btn-sm" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.1);color:#cdd6f4;border:1px solid rgba(255,255,255,.2);font-size:11px"><i class="fas fa-copy"></i> Copy</button>
       </div>
     </div>
+    <!-- Notifications card — visible to ALL users -->
+    <div class="settings-card" id="notif-settings-card">
+      <h3><i class="fas fa-bell" style="color:var(--ocean-500)"></i> Push Notifications</h3>
+      <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Receive alerts when a task is assigned to you.</p>
+      <div id="notif-status-row" style="font-size:13px;color:#64748b;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <i class="fas fa-circle" id="notif-status-dot" style="font-size:8px;color:#94a3b8"></i>
+        <span id="notif-status-text">Checking...</span>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-enable-notif">
+        <i class="fas fa-bell"></i> Enable Notifications on this Device
+      </button>
+    </div>
+
     <div id="settings-locked" class="locked-overlay" style="display:none">
       <i class="fas fa-lock"></i>
       <h3>Admin Only</h3>
@@ -1973,6 +1986,44 @@ function appLogout() {
 // ── Push Notifications (Web Push via Service Worker) ───────────
 var swRegistration = null;
 
+// Dead legacy FCM endpoint pattern (shut down June 2024)
+function isLegacyEndpoint(endpoint) {
+  return endpoint && endpoint.indexOf('fcm.googleapis.com/fcm/send') !== -1;
+}
+
+function updateNotifStatusUI() {
+  var dot  = document.getElementById('notif-status-dot');
+  var txt  = document.getElementById('notif-status-text');
+  var btn  = document.getElementById('btn-enable-notif');
+  if (!dot || !txt) return;
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    dot.style.color = '#ef4444'; txt.textContent = 'Not supported on this browser/device';
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  var perm = Notification.permission;
+  if (perm === 'denied') {
+    dot.style.color = '#ef4444'; txt.textContent = 'Blocked — enable in browser site settings';
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  if (!swRegistration) {
+    dot.style.color = '#f59e0b'; txt.textContent = 'Service worker not ready yet…';
+    return;
+  }
+  swRegistration.pushManager.getSubscription().then(function(sub) {
+    if (!sub || isLegacyEndpoint(sub.endpoint)) {
+      dot.style.color = '#f59e0b';
+      txt.textContent = sub ? 'Old subscription detected — tap button to refresh' : 'Not subscribed on this device';
+      if (btn) { btn.style.display = ''; btn.innerHTML = '<i class="fas fa-bell"></i> Enable Notifications on this Device'; }
+    } else {
+      dot.style.color = '#22c55e'; txt.textContent = 'Active — notifications enabled on this device';
+      if (btn) { btn.style.display = ''; btn.innerHTML = '<i class="fas fa-rotate"></i> Re-subscribe (reset)'; }
+    }
+  });
+}
+
 function requestNotifPermission() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   if (Notification.permission === 'denied') return;
@@ -1983,39 +2034,55 @@ function requestNotifPermission() {
 
 function registerPushSubscription() {
   if (!swRegistration || !currentUser) return;
-  var userId = currentUser.id;
+  var userId   = currentUser.id;
   var username = currentUser.username;
+  var btn = document.getElementById('btn-enable-notif');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing…'; }
 
-  fetch('/api/push/vapid-public-key').then(function(r){ return r.json(); }).then(function(data) {
-    var vapidKey = urlBase64ToUint8Array(data.key);
-    // Always unsubscribe any existing (possibly stale/legacy) subscription first,
-    // then create a fresh one so Chrome generates a new-format endpoint.
-    return swRegistration.pushManager.getSubscription().then(function(existing) {
-      if (existing) {
-        return existing.unsubscribe().then(function() {
-          console.log('[Push] Unsubscribed old subscription');
-        }).catch(function(){});
-      }
-    }).then(function() {
-      return swRegistration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKey
+  fetch('/api/push/vapid-public-key')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var vapidKey = urlBase64ToUint8Array(data.key);
+      // Unsubscribe any existing (possibly stale/legacy) subscription first
+      return swRegistration.pushManager.getSubscription().then(function(existing) {
+        if (existing) {
+          return existing.unsubscribe().then(function() {
+            console.log('[Push] Unsubscribed old:', existing.endpoint.slice(0,60));
+          }).catch(function(){});
+        }
+      }).then(function() {
+        return swRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey
+        });
       });
+    })
+    .then(function(sub) {
+      var subJson = sub.toJSON();
+      console.log('[Push] New endpoint:', subJson.endpoint.slice(0, 80));
+      return fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId, subscription: subJson })
+      });
+    })
+    .then(function(r) {
+      if (btn) btn.disabled = false;
+      if (r.ok) {
+        console.log('[Push] Subscription saved for', username);
+        toast('Notifications enabled!', 'success');
+      } else {
+        console.warn('[Push] Failed to save subscription');
+        toast('Could not save subscription', 'error');
+      }
+      updateNotifStatusUI();
+    })
+    .catch(function(err) {
+      if (btn) btn.disabled = false;
+      console.warn('[Push] Subscribe failed:', err.message);
+      toast('Notification setup failed: ' + err.message, 'error');
+      updateNotifStatusUI();
     });
-  }).then(function(sub) {
-    var subJson = sub.toJSON();
-    console.log('[Push] New endpoint:', subJson.endpoint.slice(0, 60));
-    return fetch('/api/push/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: userId, subscription: subJson })
-    });
-  }).then(function(r) {
-    if (r.ok) console.log('[Push] Subscription saved for user', username);
-    else console.warn('[Push] Failed to save subscription');
-  }).catch(function(err) {
-    console.warn('[Push] Subscribe failed:', err.message);
-  });
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -2556,6 +2623,8 @@ function saveBudgets() {
 function renderSettings() {
   var settingsLocked = document.getElementById('settings-locked');
   var settingsContent = document.getElementById('settings-content');
+  // Always update notification status (visible to all users)
+  updateNotifStatusUI();
   if (!isAdmin) {
     settingsLocked.style.display = 'flex';
     settingsContent.style.display = 'none';
@@ -4376,6 +4445,24 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-fundo')) { saveFundoCaixa(); return; }
   if (t.closest('#btn-save-budgets')) { saveBudgets(); return; }
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
+  if (t.closest('#btn-enable-notif')) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      toast('Push notifications not supported on this browser', 'error'); return;
+    }
+    if (Notification.permission === 'denied') {
+      toast('Notifications are blocked — enable them in your browser site settings', 'error'); return;
+    }
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(function(perm) {
+        if (perm === 'granted') registerPushSubscription();
+        else toast('Permission denied', 'error');
+        updateNotifStatusUI();
+      });
+    } else {
+      registerPushSubscription();
+    }
+    return;
+  }
   if (t.closest('#btn-copy-sql')) {
     var sqlPre = document.getElementById('sb-migration-sql');
     if (sqlPre) {
