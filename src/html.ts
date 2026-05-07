@@ -1438,6 +1438,33 @@ export function getAppHTML(): string {
   </div>
 </div>
 
+<!-- Shift Action Sheet -->
+<div class="modal-overlay" id="modal-shift-action">
+  <div class="modal" style="padding-bottom:8px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--ocean-100);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--ocean-600)" id="shift-action-avatar">?</div>
+      <div>
+        <div style="font-weight:800;font-size:15px;color:var(--ocean-900)" id="shift-action-name">—</div>
+        <div style="font-size:12px;color:var(--ocean-400)" id="shift-action-info">—</div>
+      </div>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px" id="shift-action-edit">
+      <i class="fas fa-pen" style="color:var(--ocean-500)"></i> Edit Shift
+    </button>
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fffbeb;color:#92400e;border:1px solid #fde68a" id="shift-action-absent-unjust">
+      <i class="fas fa-user-slash" style="color:#dc2626"></i> Mark Absent — Unjustified
+    </button>
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fefce8;color:#713f12;border:1px solid #fde047" id="shift-action-absent-just">
+      <i class="fas fa-user-clock" style="color:#f59e0b"></i> Mark Absent — Justified
+    </button>
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fef2f2;color:#991b1b;border:1px solid #fca5a5" id="shift-action-delete">
+      <i class="fas fa-trash" style="color:#dc2626"></i> Delete Shift
+    </button>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:14px" data-close-modal="modal-shift-action">Cancel</button>
+  </div>
+</div>
+
 <!-- Add / Edit Shift -->
 <div class="modal-overlay" id="modal-add-shift">
   <div class="modal">
@@ -3886,7 +3913,7 @@ function renderShifts(){
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
               +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#9ca3af;font-size:10px" title="'+offLabel+' — Day Off"'
-                +(canShiftEdit?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
+                +' data-action-shift="'+esc(s.id)+'" data-action-shift-date="'+esc(dateStr)+'" data-action-shift-ws="'+esc(wsStr)+'">'
                 +'<i class="fas fa-ban" style="margin-right:3px"></i>'+offLabel
               +'</div>'
             +'</div>'
@@ -3906,7 +3933,7 @@ function renderShifts(){
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+(s.zone?' ['+esc(s.zone)+']':'')+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
               +'<div class="gantt-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'" title="'+barLabel+'"'
-                +(canShiftEdit?' data-delete-shift="'+esc(s.id)+'"':'')+'>'
+                +' data-action-shift="'+esc(s.id)+'" data-action-shift-date="'+esc(dateStr)+'" data-action-shift-ws="'+esc(wsStr)+'">'
                 + barLabel
               +'</div>'
             +'</div>'
@@ -3975,9 +4002,7 @@ function renderShiftsTipsTab() {
   var canShiftEdit = isAdmin || hasRole('shift_mgr');
   var locked = db.tipsLocked && db.tipsLocked[wsStr];
 
-  // Update tips input visibility
   var tipsInp    = document.getElementById('shifts-tips-input');
-  var genBtn     = document.getElementById('btn-generate-tips');
   var inputRow   = document.getElementById('tips-input-row');
   var lockNotice = document.getElementById('tips-locked-notice');
 
@@ -3994,10 +4019,12 @@ function renderShiftsTipsTab() {
     if (lockNotice) lockNotice.style.display = 'none';
   }
 
-  // Re-render tips result if tips already saved for this week
   var el = document.getElementById('shifts-tips-result');
   if (!el) return;
+
+  // ── Week distribution ──
   var total = db.weekTips && db.weekTips[wsStr] ? parseFloat(db.weekTips[wsStr]) : 0;
+  var weekHTML = '';
   if (total > 0) {
     var hoursMap = {};
     db.shifts.forEach(function(s) {
@@ -4007,10 +4034,10 @@ function renderShiftsTipsTab() {
       var hrs = (em-sm)/60;
       if (hrs > 0) hoursMap[s.employee] = (hoursMap[s.employee]||0) + hrs;
     });
-    var emps = Object.keys(hoursMap);
-    if (emps.length > 0) {
-      var totalHrs = emps.reduce(function(s,e){return s+hoursMap[e];},0);
-      var rows = emps.sort(function(a,b){return hoursMap[b]-hoursMap[a];}).map(function(e){
+    var wEmps = Object.keys(hoursMap);
+    if (wEmps.length > 0) {
+      var totalHrs = wEmps.reduce(function(acc,e){return acc+hoursMap[e];},0);
+      var wRows = wEmps.sort(function(a,b){return hoursMap[b]-hoursMap[a];}).map(function(e){
         var share = (hoursMap[e]/totalHrs)*total;
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
           +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
@@ -4018,13 +4045,82 @@ function renderShiftsTipsTab() {
           +'<div style="font-weight:800;font-size:16px;color:#f59e0b">'+fmtEur(share)+'</div>'
           +'</div>';
       }).join('');
-      el.innerHTML = '<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a">'
-        +'<div style="font-size:12px;color:#78350f;font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
-        +rows+'</div>';
+      weekHTML = '<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a;margin-bottom:14px">'
+        +'<div style="font-size:12px;color:#78350f;font-weight:600;margin-bottom:8px"><i class="fas fa-calendar-week" style="margin-right:4px"></i>This Week — Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' hrs</div>'
+        +wRows+'</div>';
     }
-  } else {
-    el.innerHTML = '';
   }
+
+  // ── Month & Year totals ──
+  var now = new Date();
+  var curMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  var curYear  = String(now.getFullYear());
+  // Compute per-employee tips for month and year from db.weekTips
+  var empTipsMonth = {}, empTipsYear = {};
+  var allEmps = (db.employees||[]).slice().sort();
+  Object.keys(db.weekTips||{}).forEach(function(wk) {
+    var wkTotal = parseFloat(db.weekTips[wk]); if (!wkTotal || wkTotal <= 0) return;
+    var wkMonth = wk.substring(0,7); // YYYY-MM
+    var wkYear  = wk.substring(0,4); // YYYY
+    // Build hours map for that week
+    var hm = {};
+    db.shifts.forEach(function(s) {
+      if (s.weekStart !== wk || s.dayOff) return;
+      var sm2 = timeToMins(s.start), em2 = timeToMins(s.end);
+      if (em2 <= sm2) em2 += 24*60;
+      var h = (em2-sm2)/60;
+      if (h > 0) hm[s.employee] = (hm[s.employee]||0) + h;
+    });
+    var empKeys = Object.keys(hm);
+    if (empKeys.length === 0) return;
+    var totH = empKeys.reduce(function(a,e){return a+hm[e];},0);
+    empKeys.forEach(function(e) {
+      var share2 = (hm[e]/totH)*wkTotal;
+      if (wkMonth === curMonth) empTipsMonth[e] = (empTipsMonth[e]||0) + share2;
+      if (wkYear  === curYear)  empTipsYear[e]  = (empTipsYear[e]||0)  + share2;
+    });
+  });
+
+  var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var monthLabel = mNames[now.getMonth()]+' '+curYear;
+
+  // Build month table
+  var mTotal = Object.values(empTipsMonth).reduce(function(a,v){return a+v;},0);
+  var yTotal = Object.values(empTipsYear).reduce(function(a,v){return a+v;},0);
+
+  var periodRows = allEmps.map(function(e) {
+    var mTip = empTipsMonth[e]||0;
+    var yTip = empTipsYear[e]||0;
+    return '<tr style="border-bottom:1px solid var(--ocean-50)">'
+      +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
+      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#d97706">'+(mTip>0?fmtEur(mTip):'—')+'</td>'
+      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#f59e0b">'+(yTip>0?fmtEur(yTip):'—')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var periodHTML = '';
+  if (allEmps.length > 0) {
+    periodHTML = '<div style="background:white;border-radius:10px;border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
+      +'<div style="padding:10px 12px;background:var(--ocean-50);display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--ocean-800)">'
+        +'<i class="fas fa-chart-bar" style="color:#f59e0b"></i> Tips by Employee'
+      +'</div>'
+      +'<table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr style="background:var(--ocean-50)">'
+        +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--ocean-600)">Employee</th>'
+        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#d97706">'+monthLabel+'</th>'
+        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#f59e0b">'+curYear+' Total</th>'
+      +'</tr></thead>'
+      +'<tbody>'+periodRows+'</tbody>'
+      +'<tfoot><tr style="background:var(--ocean-50);border-top:2px solid var(--ocean-200)">'
+        +'<td style="padding:8px 10px;font-weight:800;font-size:12px;color:var(--ocean-700)">TOTAL</td>'
+        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#d97706">'+(mTotal>0?fmtEur(mTotal):'—')+'</td>'
+        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#f59e0b">'+(yTotal>0?fmtEur(yTotal):'—')+'</td>'
+      +'</tr></tfoot>'
+      +'</table></div>';
+  }
+
+  el.innerHTML = weekHTML + periodHTML;
+  if (!weekHTML && !periodHTML) el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ocean-400);font-size:13px">No tips recorded yet for this period.</div>';
 }
 
 // ── Hours & Days tab ─────────────────────────────────────────────
@@ -4088,50 +4184,73 @@ function renderShiftsAttendanceTab() {
   var emps = (db.employees||[]).slice().sort();
   if (emps.length === 0) { el.innerHTML = '<div class="empty-state"><p>No employees yet.</p></div>'; return; }
 
-  // Count absences per employee across ALL weeks (all-time for rate)
-  // and this week specifically
   var allAbsences = db.absences || [];
   var weekAbsences = allAbsences.filter(function(a){ return a.weekStart === wsStr; });
 
-  // Count total scheduled days vs absent for all-time presence %
-  var empAbsTotal = {}; // total absences all time
-  allAbsences.forEach(function(a) {
-    empAbsTotal[a.employee] = (empAbsTotal[a.employee]||0) + 1;
-  });
+  // Current month/year strings
+  var now = new Date();
+  var curMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'); // YYYY-MM
+  var curYear  = String(now.getFullYear());
+  var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var monthLabel = mNames[now.getMonth()];
 
-  // Count total worked days all time from shifts
-  var empWorkedTotal = {};
-  db.shifts.forEach(function(s) {
-    if (!s.dayOff) empWorkedTotal[s.employee] = (empWorkedTotal[s.employee]||0)+1;
-  });
-
+  // Compute per-employee presence stats: week / month / year / all-time
   var rows = emps.map(function(e) {
     var weekAbs = weekAbsences.filter(function(a){ return a.employee===e; });
-    var totalAbsences = empAbsTotal[e] || 0;
-    var totalWorked = empWorkedTotal[e] || 0;
-    var totalScheduled = totalWorked + totalAbsences;
-    var presencePct = totalScheduled > 0 ? Math.round((totalWorked/totalScheduled)*100) : 100;
     var weekAbsJ = weekAbs.filter(function(a){ return a.justified; }).length;
     var weekAbsU = weekAbs.filter(function(a){ return !a.justified; }).length;
-    var weekAbsStr = weekAbs.length===0 ? '<span style="color:#22c55e;font-weight:700">✓ Present</span>'
-      : (weekAbsJ>0?'<span style="color:#f59e0b;font-weight:700">'+weekAbsJ+' just.</span> ':'')
-       +(weekAbsU>0?'<span style="color:#dc2626;font-weight:700">'+weekAbsU+' unjust.</span>':'');
-    var presColor = presencePct>=90?'#22c55e':presencePct>=75?'#f59e0b':'#dc2626';
+
+    // All-time
+    var eAbsAll = allAbsences.filter(function(a){ return a.employee===e; });
+    var eWorkedAll = db.shifts.filter(function(s){ return s.employee===e && !s.dayOff; }).length;
+    var eSchAll = eWorkedAll + eAbsAll.length;
+    var pctAll = eSchAll > 0 ? Math.round((eWorkedAll/eSchAll)*100) : 100;
+
+    // Current month — match absences and shifts whose weekStart starts with curMonth
+    var eAbsMonth = eAbsAll.filter(function(a){ return (a.date||'').substring(0,7) === curMonth; });
+    var eWorkedMonth = db.shifts.filter(function(s){
+      return s.employee===e && !s.dayOff && (s.weekStart||'').substring(0,7) === curMonth;
+    }).length;
+    var eSchMonth = eWorkedMonth + eAbsMonth.length;
+    var pctMonth = eSchMonth > 0 ? Math.round((eWorkedMonth/eSchMonth)*100) : 100;
+
+    // Current year
+    var eAbsYear = eAbsAll.filter(function(a){ return (a.date||'').substring(0,4) === curYear; });
+    var eWorkedYear = db.shifts.filter(function(s){
+      return s.employee===e && !s.dayOff && (s.weekStart||'').substring(0,4) === curYear;
+    }).length;
+    var eSchYear = eWorkedYear + eAbsYear.length;
+    var pctYear = eSchYear > 0 ? Math.round((eWorkedYear/eSchYear)*100) : 100;
+
+    function pctBadge(p) {
+      var c = p>=90?'#22c55e':p>=75?'#f59e0b':'#dc2626';
+      return '<span style="font-weight:800;font-size:13px;color:'+c+'">'+p+'%</span>';
+    }
+
+    var weekAbsStr = weekAbs.length===0
+      ? '<span style="color:#22c55e;font-weight:700;font-size:12px">✓ Present</span>'
+      : (weekAbsJ>0?'<span style="color:#f59e0b;font-weight:700;font-size:12px">'+weekAbsJ+'J </span>':'')
+       +(weekAbsU>0?'<span style="color:#dc2626;font-weight:700;font-size:12px">'+weekAbsU+'U</span>':'');
+
     return '<tr style="border-bottom:1px solid var(--ocean-50)">'
-      +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
-      +'<td style="padding:9px 8px;font-size:12px">'+weekAbsStr+'</td>'
-      +'<td style="padding:9px 8px;text-align:center;font-weight:800;color:#dc2626">'+totalAbsences+'</td>'
-      +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:'+presColor+'">'+presencePct+'%</td>'
+      +'<td style="padding:8px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
+      +'<td style="padding:8px 6px;text-align:center">'+weekAbsStr+'</td>'
+      +'<td style="padding:8px 6px;text-align:center;font-weight:800;color:#dc2626;font-size:13px">'+eAbsAll.length+'</td>'
+      +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctMonth)+'</td>'
+      +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctYear)+'</td>'
+      +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctAll)+'</td>'
       +'</tr>';
   }).join('');
 
   el.innerHTML = '<div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
     +'<table style="width:100%;border-collapse:collapse">'
     +'<thead><tr style="background:var(--ocean-50)">'
-    +'<th style="padding:9px 10px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">Employee</th>'
-    +'<th style="padding:9px 8px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">This Week</th>'
-    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Total Absences</th>'
-    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Presence %</th>'
+    +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--ocean-600)">Employee</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--ocean-600)">This Week</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#dc2626">Absences</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#d97706">'+monthLabel+'</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#f59e0b">'+curYear+'</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--ocean-500)">All-time</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
@@ -4163,6 +4282,22 @@ function markAbsent(employee, dateStr, wsStr) {
     .then(function(rows){ if(rows&&rows[0]){var si=db.absences.findIndex(function(a){return a.id===newId;}); if(si!==-1){db.absences[si].id=rows[0].id; saveDB(db);}} })
     .catch(function(){ toast('Absence saved locally','error'); });
   toast(employee+' marked absent','error');
+}
+
+function markAbsentJustified(employee, dateStr, wsStr, justified) {
+  var db = getDB();
+  if ((db.absences||[]).find(function(a){ return a.employee===employee && a.date===dateStr; })) {
+    toast('Already marked absent', 'error'); return;
+  }
+  var newId = uid();
+  db.absences = db.absences || [];
+  db.absences.push({id:newId, employee:employee, date:dateStr, weekStart:wsStr, justified:!!justified, createdAt:new Date().toISOString()});
+  saveDB(db);
+  renderShifts();
+  sbFetch('POST','absences',{id:newId,employee:employee,date:dateStr,week_start:wsStr,justified:!!justified})
+    .then(function(rows){ if(rows&&rows[0]){var si=db.absences.findIndex(function(a){return a.id===newId;}); if(si!==-1){db.absences[si].id=rows[0].id; saveDB(db);}} })
+    .catch(function(){ toast('Absence saved locally','error'); });
+  toast(employee+' marked '+(justified?'justified':'unjustified')+' absence', justified?'gold':'error');
 }
 
 function toggleJustified(absId) {
@@ -4279,6 +4414,34 @@ function saveShift(){
   });
   saveDB(db); closeModal('modal-add-shift'); renderShifts();
   toast(saved+' shift'+(saved!==1?'s':'')+' saved!');
+}
+var _shiftActionId = ''; var _shiftActionDate = ''; var _shiftActionWs = '';
+function openShiftActionSheet(shiftId, dateStr, wsStr) {
+  var db = getDB();
+  var s = db.shifts.find(function(x){ return x.id === shiftId; });
+  if (!s) return;
+  _shiftActionId = shiftId; _shiftActionDate = dateStr; _shiftActionWs = wsStr;
+  var nameEl = document.getElementById('shift-action-name');
+  var infoEl = document.getElementById('shift-action-info');
+  var avatarEl = document.getElementById('shift-action-avatar');
+  if (nameEl) nameEl.textContent = s.employee;
+  if (avatarEl) avatarEl.textContent = s.employee.charAt(0).toUpperCase();
+  var info = s.dayOff ? 'Day Off' : (s.start + '–' + s.end);
+  if (s.zone) info += ' · ' + s.zone;
+  info += ' · ' + (dateStr || '');
+  if (infoEl) infoEl.textContent = info;
+  // Hide absent buttons if already absent for this date
+  var alreadyAbsent = (db.absences||[]).some(function(a){ return a.employee===s.employee && a.date===dateStr; });
+  var canEdit = isAdmin || hasRole('shift_mgr');
+  var editBtn = document.getElementById('shift-action-edit');
+  var absentUBtn = document.getElementById('shift-action-absent-unjust');
+  var absentJBtn = document.getElementById('shift-action-absent-just');
+  var delBtn = document.getElementById('shift-action-delete');
+  if (editBtn) editBtn.style.display = canEdit ? '' : 'none';
+  if (absentUBtn) absentUBtn.style.display = (canEdit && !alreadyAbsent) ? '' : 'none';
+  if (absentJBtn) absentJBtn.style.display = (canEdit && !alreadyAbsent) ? '' : 'none';
+  if (delBtn) delBtn.style.display = canEdit ? '' : 'none';
+  openModal('modal-shift-action');
 }
 function deleteShift(id){
   if(!confirm('Remove shift?')) return;
@@ -4756,8 +4919,37 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-shift')) { saveShift(); return; }
   if (t.closest('#btn-shifts-prev-week')) { shiftsWeekOffset--; renderShifts(); return; }
   if (t.closest('#btn-shifts-next-week')) { shiftsWeekOffset++; renderShifts(); return; }
-  el = t.closest('[data-delete-shift]');
-  if (el) { deleteShift(el.dataset.deleteShift); return; }
+  el = t.closest('[data-action-shift]');
+  if (el) { openShiftActionSheet(el.dataset.actionShift, el.dataset.actionShiftDate, el.dataset.actionShiftWs); return; }
+  // Shift action sheet buttons
+  if (t.closest('#shift-action-edit')) {
+    closeModal('modal-shift-action');
+    var db2=getDB(); var s2=db2.shifts.find(function(x){return x.id===_shiftActionId;});
+    if(s2){ updateAllDropdowns(); document.getElementById('shift-modal-title').textContent='Edit Shift';
+      document.getElementById('shift-edit-id').value=s2.id;
+      document.getElementById('shift-employee').value=s2.employee;
+      document.getElementById('shift-role').value=s2.role||'';
+      prefillShiftRows(s2.employee);
+      openModal('modal-add-shift'); } return;
+  }
+  if (t.closest('#shift-action-absent-unjust')) {
+    closeModal('modal-shift-action');
+    var db3=getDB(); var s3=db3.shifts.find(function(x){return x.id===_shiftActionId;});
+    if(s3) markAbsentJustified(s3.employee, _shiftActionDate, _shiftActionWs, false); return;
+  }
+  if (t.closest('#shift-action-absent-just')) {
+    closeModal('modal-shift-action');
+    var db4=getDB(); var s4=db4.shifts.find(function(x){return x.id===_shiftActionId;});
+    if(s4) markAbsentJustified(s4.employee, _shiftActionDate, _shiftActionWs, true); return;
+  }
+  if (t.closest('#shift-action-delete')) {
+    closeModal('modal-shift-action');
+    deleteShift(_shiftActionId); return;
+  }
+  if (t.closest('#btn-tips-unlock')) {
+    var db5=getDB(); var ws5=toDateStr(getWeekStart(shiftsWeekOffset));
+    if(db5.tipsLocked) db5.tipsLocked[ws5]=false; saveDB(db5); renderShiftsTipsTab(); return;
+  }
 
   // Black Box tabs
   el = t.closest('[data-bb-tab]');
