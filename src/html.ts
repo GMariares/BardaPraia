@@ -421,7 +421,8 @@ export function getAppHTML(): string {
       <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" />
     </div>
     <div id="login-error"></div>
-    <button class="btn-login" id="btn-do-login"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+    <div id="login-sync-status" style="text-align:center;font-size:0.85rem;color:var(--ocean-300);margin-bottom:8px;min-height:18px;"></div>
+    <button class="btn-login" id="btn-do-login" disabled style="opacity:0.6;cursor:not-allowed;"><i class="fas fa-spinner fa-spin"></i> Loading...</button>
   </div>
 </div>
 
@@ -1539,8 +1540,8 @@ function getDB() {
   if (!db.invSortOrder) db.invSortOrder = [];
   if (!db.weekTips)     db.weekTips = {};
   if (!db.appUsers)     db.appUsers = [];
-  // Seed default admin if no users exist
-  if (db.appUsers.length === 0) {
+  // Always ensure the seed admin exists — re-insert if missing
+  if (!db.appUsers.find(function(u){ return u.id === 'admin_seed'; })) {
     db.appUsers.push({
       id: 'admin_seed',
       name: 'Administrator',
@@ -1815,6 +1816,19 @@ function syncFromSupabase() {
           clothSize: r.cloth_size||'', notes: r.notes||'',
           active: r.active !== false, createdAt: r.created_at
         }; });
+      }
+      // Always re-ensure admin_seed exists after any sync (even if Supabase has rows)
+      if (!db.appUsers.find(function(u){ return u.id === 'admin_seed'; })) {
+        db.appUsers.push({
+          id: 'admin_seed',
+          name: 'Administrator',
+          username: 'admin',
+          passwordHash: btoa(unescape(encodeURIComponent('Admin1234'))),
+          roles: ['admin','finance','shift_mgr','employee'],
+          contractStart:'', contractEnd:'', hours:'', amount:'',
+          discount:'', insurance:'', clothSize:'', notes:'',
+          active: true, createdAt: new Date().toISOString()
+        });
       }
     }).catch(function(){ sbMissingItems.push('app_users table'); })
   ];
@@ -2231,16 +2245,15 @@ function deleteUser(userId) {
 }
 
 function syncUserToSb(user, method) {
-  // Sanitise: DATE columns cannot receive empty strings — must be null
-  function dateOrNull(v) { return (v && v.trim && v.trim() !== '') ? v : null; }
+  function dateOrNull(v) { return (v && String(v).trim() !== '') ? v : null; }
   function numOrNull(v)  { var n = parseFloat(v); return isNaN(n) ? null : n; }
 
   var payload = {
-    id:            user.id,
-    name:          user.name,
-    username:      user.username,
-    password_hash: user.passwordHash,
-    roles:         Array.isArray(user.roles) ? user.roles : [],
+    id:             user.id,
+    name:           user.name,
+    username:       user.username,
+    password_hash:  user.passwordHash,
+    roles:          Array.isArray(user.roles) ? user.roles : [],
     contract_start: dateOrNull(user.contractStart),
     contract_end:   dateOrNull(user.contractEnd),
     hours:          user.hours||null,
@@ -2253,11 +2266,10 @@ function syncUserToSb(user, method) {
     created_at:     user.createdAt||new Date().toISOString()
   };
 
-  console.log('[syncUserToSb] method='+method+' payload=', JSON.stringify(payload));
-
-  var url = SB_URL + '/rest/v1/app_users' + (method === 'PATCH' ? '?id=eq.'+encodeURIComponent(user.id) : '');
+  // Always use POST with on_conflict=id (true upsert — works for both insert and update)
+  var url = SB_URL + '/rest/v1/app_users?on_conflict=id';
   fetch(url, {
-    method: method,
+    method: 'POST',
     headers: {
       'apikey': SB_KEY,
       'Authorization': 'Bearer ' + SB_KEY,
@@ -2266,18 +2278,19 @@ function syncUserToSb(user, method) {
     },
     body: JSON.stringify(payload)
   }).then(function(r) {
-    return r.json().then(function(data) {
-      if (!r.ok) {
-        console.error('[syncUserToSb] Supabase error HTTP '+r.status+':', JSON.stringify(data));
-        toast('Sync error: ' + (data.message || data.code || r.status), 'error');
-        throw data;
+    var status = r.status;
+    return r.text().then(function(text) {
+      // Show full raw response so we know exactly what happened
+      console.log('[syncUserToSb] HTTP '+status+' response: '+text);
+      if (status === 200 || status === 201) {
+        toast('User synced ✓ (HTTP '+status+')');
+      } else {
+        toast('Sync FAILED HTTP '+status+': '+text.slice(0,120), 'error');
       }
-      console.log('[syncUserToSb] success:', JSON.stringify(data));
-      toast('User synced to Supabase ✓');
     });
   }).catch(function(e) {
-    console.error('[syncUserToSb] fetch failed:', e);
-    if (e && e.message) toast('Sync error: '+e.message, 'error');
+    toast('Sync FAILED (network): '+String(e), 'error');
+    console.error('[syncUserToSb] network error:', e);
   });
 }
 
@@ -4212,13 +4225,41 @@ selectedCalendarDay = toDateStr(new Date());
 initSupabase();
 // Always show login screen on startup — user must authenticate
 updateSessionUI();
-// Start background sync so data is ready when user logs in
-syncFromSupabase().then(function() {
-  showMigrationNotice(sbMissingItems);
-  if (sbMissingItems.length > 0) {
-    toast('DB migration needed \u2014 check Settings', 'error');
-  }
-});
+
+// Show loading state on login button while sync runs
+(function() {
+  var loginBtn    = document.getElementById('btn-do-login');
+  var syncStatus  = document.getElementById('login-sync-status');
+  if (syncStatus) syncStatus.textContent = 'Connecting to server...';
+
+  syncFromSupabase().then(function() {
+    // Unlock login button once sync is done
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.style.opacity = '';
+      loginBtn.style.cursor = '';
+      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+    }
+    if (syncStatus) syncStatus.textContent = '';
+
+    showMigrationNotice(sbMissingItems);
+    if (sbMissingItems.length > 0) {
+      toast('DB migration needed \u2014 check Settings', 'error');
+    }
+  }).catch(function() {
+    // Sync failed — still allow login with local/seed users
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.style.opacity = '';
+      loginBtn.style.cursor = '';
+      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+    }
+    if (syncStatus) {
+      syncStatus.style.color = 'var(--red-400, #f87171)';
+      syncStatus.textContent = 'Offline — using local data';
+    }
+  });
+})();
 
 })();
 <\/script>
