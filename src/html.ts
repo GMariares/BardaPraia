@@ -4632,6 +4632,10 @@ document.addEventListener('click', function(e) {
   if (t.closest('#finance-login-btn')) { openFinanceLogin(); return; }
   if (t.closest('#finance-logout-btn')) { financeLogout(); return; }
 
+  // Shifts tabs
+  var shiftsTabEl = t.closest('[data-shifts-tab]');
+  if (shiftsTabEl) { switchShiftsTab(shiftsTabEl.dataset.shiftsTab); return; }
+
   // Finance tabs & actions
   var finTabEl = t.closest('[data-fin-tab]');
   if (finTabEl) { switchFinTab(finTabEl.dataset.finTab); return; }
