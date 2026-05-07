@@ -2231,32 +2231,54 @@ function deleteUser(userId) {
 }
 
 function syncUserToSb(user, method) {
+  // Sanitise: DATE columns cannot receive empty strings — must be null
+  function dateOrNull(v) { return (v && v.trim && v.trim() !== '') ? v : null; }
+  function numOrNull(v)  { var n = parseFloat(v); return isNaN(n) ? null : n; }
+
   var payload = {
-    id: user.id,
-    name: user.name,
-    username: user.username,
+    id:            user.id,
+    name:          user.name,
+    username:      user.username,
     password_hash: user.passwordHash,
-    roles: user.roles,
-    contract_start: user.contractStart||null,
-    contract_end:   user.contractEnd||null,
+    roles:         Array.isArray(user.roles) ? user.roles : [],
+    contract_start: dateOrNull(user.contractStart),
+    contract_end:   dateOrNull(user.contractEnd),
     hours:          user.hours||null,
-    amount:         user.amount ? parseFloat(user.amount) : null,
-    discount:       user.discount ? parseFloat(user.discount) : null,
+    amount:         numOrNull(user.amount),
+    discount:       numOrNull(user.discount),
     insurance:      user.insurance||null,
     cloth_size:     user.clothSize||null,
     notes:          user.notes||null,
     active:         user.active !== false,
     created_at:     user.createdAt||new Date().toISOString()
   };
-  if (method === 'POST') {
-    sbFetch('POST','app_users',payload).then(function(){
+
+  console.log('[syncUserToSb] method='+method+' payload=', JSON.stringify(payload));
+
+  var url = SB_URL + '/rest/v1/app_users' + (method === 'PATCH' ? '?id=eq.'+encodeURIComponent(user.id) : '');
+  fetch(url, {
+    method: method,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation,resolution=merge-duplicates'
+    },
+    body: JSON.stringify(payload)
+  }).then(function(r) {
+    return r.json().then(function(data) {
+      if (!r.ok) {
+        console.error('[syncUserToSb] Supabase error HTTP '+r.status+':', JSON.stringify(data));
+        toast('Sync error: ' + (data.message || data.code || r.status), 'error');
+        throw data;
+      }
+      console.log('[syncUserToSb] success:', JSON.stringify(data));
       toast('User synced to Supabase ✓');
-    }).catch(function(e){ console.warn('user sync err',e); toast('User saved locally (Supabase sync failed)','error'); });
-  } else {
-    sbFetch('PATCH','app_users',payload,'id=eq.'+encodeURIComponent(user.id)).then(function(){
-      toast('User synced to Supabase ✓');
-    }).catch(function(e){ console.warn('user sync err',e); toast('User saved locally (Supabase sync failed)','error'); });
-  }
+    });
+  }).catch(function(e) {
+    console.error('[syncUserToSb] fetch failed:', e);
+    if (e && e.message) toast('Sync error: '+e.message, 'error');
+  });
 }
 
 // ================================================
