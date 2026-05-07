@@ -2039,29 +2039,47 @@ function registerPushSubscription() {
   var userId   = currentUser.id;
   var username = currentUser.username;
   var btn = document.getElementById('btn-enable-notif');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing…'; }
+  var label = document.getElementById('notif-btn-label');
+
+  function setBtnBusy(msg) {
+    if (btn) btn.disabled = true;
+    if (label) label.textContent = msg;
+  }
+  function setBtnIdle() {
+    if (btn) btn.disabled = false;
+    updateNotifStatusUI();
+  }
+
+  setBtnBusy('Fetching key…');
 
   fetch('/api/push/vapid-public-key')
     .then(function(r){ return r.json(); })
     .then(function(data) {
       var vapidKey = urlBase64ToUint8Array(data.key);
-      // Unsubscribe any existing (possibly stale/legacy) subscription first
+      setBtnBusy('Clearing old subscription…');
       return swRegistration.pushManager.getSubscription().then(function(existing) {
         if (existing) {
-          return existing.unsubscribe().then(function() {
-            console.log('[Push] Unsubscribed old:', existing.endpoint.slice(0,60));
-          }).catch(function(){});
+          console.log('[Push] Unsubscribing old:', existing.endpoint.slice(0,60));
+          return existing.unsubscribe().catch(function(){});
         }
       }).then(function() {
-        return swRegistration.pushManager.subscribe({
+        setBtnBusy('Registering with push server…');
+        console.log('[Push] Calling pushManager.subscribe()…');
+        // Race subscribe against a 15s timeout so it never hangs forever
+        var subscribePromise = swRegistration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: vapidKey
         });
+        var timeoutPromise = new Promise(function(_, reject) {
+          setTimeout(function() { reject(new Error('subscribe() timed out after 15s — check network/firewall')); }, 15000);
+        });
+        return Promise.race([subscribePromise, timeoutPromise]);
       });
     })
     .then(function(sub) {
       var subJson = sub.toJSON();
-      console.log('[Push] New endpoint:', subJson.endpoint.slice(0, 80));
+      console.log('[Push] Got subscription, endpoint:', subJson.endpoint.slice(0, 80));
+      setBtnBusy('Saving subscription…');
       return fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2069,21 +2087,19 @@ function registerPushSubscription() {
       });
     })
     .then(function(r) {
-      if (btn) btn.disabled = false;
       if (r.ok) {
-        console.log('[Push] Subscription saved for', username);
-        toast('Notifications enabled!', 'success');
+        console.log('[Push] Saved for', username);
+        toast('Notifications enabled! ✓', 'success');
       } else {
-        console.warn('[Push] Failed to save subscription');
+        console.warn('[Push] Server rejected subscription');
         toast('Could not save subscription', 'error');
       }
-      updateNotifStatusUI();
+      setBtnIdle();
     })
     .catch(function(err) {
-      if (btn) btn.disabled = false;
-      console.warn('[Push] Subscribe failed:', err.message);
-      toast('Notification setup failed: ' + err.message, 'error');
-      updateNotifStatusUI();
+      console.warn('[Push] Failed:', err.message);
+      toast('Failed: ' + err.message, 'error');
+      setBtnIdle();
     });
 }
 
