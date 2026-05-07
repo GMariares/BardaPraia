@@ -2584,24 +2584,44 @@ function renderOrderHistory(){
   }).join('');
 }
 function openOrderModal(){
-  var db=getDB(); var items=db.inventory.slice();
   var el=document.getElementById('order-items-list'); if(!el) return;
-  if(items.length===0){el.innerHTML='<div class="empty-state" style="padding:20px"><i class="fas fa-box-open"></i><p>No items in inventory.</p></div>';}
-  else el.innerHTML=items.map(function(item){
-    var total=item.qtyBar+item.qtyStorage;
-    return '<div class="order-row"><div style="flex:1"><div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(item.name)+'</div><div style="font-size:12px;color:var(--ocean-400)">Bar: '+item.qtyBar+' · Storage: '+item.qtyStorage+' · Total: '+total+(item.unit?' '+esc(item.unit||''):'')+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--ocean-400);margin-bottom:3px">Order</div><input type="number" min="1" value="1" class="input-field" id="order-qty-'+esc(item.id)+'" style="width:70px;text-align:center;font-size:14px;padding:6px 8px"/></div></div>';
-  }).join('');
+  if(pendingOrderItems.length===0){
+    el.innerHTML='<div class="empty-state" style="padding:20px"><i class="fas fa-cart-shopping"></i><p>No items added yet.<br><small style="color:var(--ocean-400)">Use the 🛒 button on each item to add to order.</small></p></div>';
+  } else {
+    var db=getDB();
+    el.innerHTML=pendingOrderItems.map(function(pi){
+      var inv=db.inventory.find(function(i){return i.id===pi.id;})||{};
+      var total=(inv.qtyBar||0)+(inv.qtyStorage||0);
+      return '<div class="order-row">'
+        +'<div style="flex:1">'
+          +'<div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(pi.name)+'</div>'
+          +'<div style="font-size:12px;color:var(--ocean-400)">Bar: '+(inv.qtyBar||0)+' · Storage: '+(inv.qtyStorage||0)+' · Total: '+total+(pi.unit?' '+esc(pi.unit):'')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<div style="text-align:right">'
+            +'<div style="font-size:11px;color:var(--ocean-400);margin-bottom:3px">Qty</div>'
+            +'<input type="number" min="1" value="'+pi.orderQty+'" class="input-field" id="order-qty-'+esc(pi.id)+'" style="width:70px;text-align:center;font-size:14px;padding:6px 8px"/>'
+          +'</div>'
+          +'<button style="background:none;border:none;color:var(--ocean-300);font-size:14px;cursor:pointer;padding:4px;margin-top:14px" data-remove-pending="'+esc(pi.id)+'" title="Remove"><i class="fas fa-times"></i></button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  }
   openModal('modal-order');
 }
 function confirmOrder(){
-  var db=getDB();
-  var orderItems=db.inventory.map(function(item){
-    var qEl=document.getElementById('order-qty-'+item.id);
-    return{id:item.id,name:item.name,unit:item.unit,orderQty:qEl?parseInt(qEl.value)||0:0};
+  if(pendingOrderItems.length===0){toast('No items in order','error');return;}
+  // Pick up any edited quantities from the modal inputs
+  var orderItems=pendingOrderItems.map(function(pi){
+    var qEl=document.getElementById('order-qty-'+pi.id);
+    var qty=qEl?parseInt(qEl.value)||pi.orderQty:pi.orderQty;
+    return{id:pi.id,name:pi.name,unit:pi.unit,orderQty:qty};
   }).filter(function(x){return x.orderQty>0;});
-  if(orderItems.length===0){toast('Enter at least one quantity to order','error');return;}
+  if(orderItems.length===0){toast('Enter at least one quantity','error');return;}
+  var db=getDB();
   var newOrder={id:uid(),date:new Date().toISOString(),items:orderItems,status:'standby'};
   db.orders.unshift(newOrder);
+  pendingOrderItems=[]; updateOrdersBadge();
   saveDB(db); closeModal('modal-order'); renderInventory(); renderDashboard(); updateOrdersBadge(); toast('Submitting order...','gold');
   sbFetch('POST','orders',{items:orderItems,status:'standby'}).then(function(rows){
     if(rows&&rows[0]){var oi=db.orders.findIndex(function(o){return o.id===newOrder.id;}); if(oi!==-1) db.orders[oi].id=rows[0].id; saveDB(db);}
@@ -3599,13 +3619,24 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-inventory')) { saveInventoryItem(); return; }
   if (t.closest('#btn-save-qty-update')) { saveQtyUpdate(); return; }
   if (t.closest('#btn-confirm-order')) { confirmOrder(); return; }
+  if (t.closest('#btn-confirm-quick-order')) { confirmQuickOrder(); return; }
 
+  el = t.closest('[data-quick-order]');
+  if (el) { openQuickOrderModal(el.dataset.quickOrder); return; }
   el = t.closest('[data-update-qty]');
   if (el) { openUpdateQtyModal(el.dataset.updateQty); return; }
   el = t.closest('[data-edit-inv]');
   if (el) { openAddInventoryModal(el.dataset.editInv); return; }
   el = t.closest('[data-delete-inv]');
   if (el) { deleteInventoryItem(el.dataset.deleteInv); return; }
+  el = t.closest('[data-remove-pending]');
+  if (el) {
+    var rid=el.dataset.removePending;
+    pendingOrderItems=pendingOrderItems.filter(function(x){return x.id!==rid;});
+    updateOrdersBadge();
+    openOrderModal(); // re-render modal in place
+    return;
+  }
   el = t.closest('[data-confirm-order]');
   if (el) { approveOrder(el.dataset.confirmOrder); return; }
 
