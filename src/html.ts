@@ -165,6 +165,9 @@ export function getAppHTML(): string {
     .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
 
     /* ── INVENTORY CARDS ── */
+    .inv-slicer { display:inline-flex; align-items:center; gap:5px; padding:6px 13px; border-radius:20px; border:1.5px solid var(--ocean-200); background:white; color:var(--ocean-600); font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .inv-slicer:active { transform:scale(.96); }
+    .inv-slicer.active { background:var(--ocean-600); color:white; border-color:var(--ocean-600); }
     .inv-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); margin-bottom:10px; box-shadow:var(--shadow); cursor:grab; user-select:none; transition:opacity .15s,box-shadow .15s; }
     .inv-card.dragging { opacity:.4; box-shadow:none; cursor:grabbing; }
     .inv-card.drag-over { border:2px dashed var(--ocean-400); }
@@ -478,14 +481,14 @@ export function getAppHTML(): string {
       <div class="search-bar">
         <i class="fas fa-search"></i>
         <input type="text" placeholder="Search items..." id="inv-search" />
-        <select id="inv-cat-filter" style="border:none;outline:none;font-size:13px;color:var(--ocean-600);background:transparent;cursor:pointer">
-          <option value="">All</option>
-          <option value="beverages">🍹 Bar</option>
-          <option value="food">🍔 Cozinha</option>
-          <option value="supplies">🧹 Limpeza</option>
-          <option value="equipment">🔧 Economato</option>
-          <option value="other">📦 Other</option>
-        </select>
+      </div>
+      <div id="inv-cat-slicers" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="inv-slicer active" data-inv-cat="">All</button>
+        <button class="inv-slicer" data-inv-cat="beverages">🍹 Bar</button>
+        <button class="inv-slicer" data-inv-cat="food">🍔 Cozinha</button>
+        <button class="inv-slicer" data-inv-cat="supplies">🧹 Limpeza</button>
+        <button class="inv-slicer" data-inv-cat="equipment">🔧 Economato</button>
+        <button class="inv-slicer" data-inv-cat="other">📦 Other</button>
       </div>
       <div id="inventory-list"><div class="empty-state"><i class="fas fa-box-open"></i><p>No items yet. Tap Add to start!</p></div></div>
     </div>
@@ -3650,6 +3653,15 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-inv-tab]');
   if (el) { switchInvTab(el.dataset.invTab); return; }
 
+  // Inv category slicers
+  el = t.closest('[data-inv-cat]');
+  if (el) {
+    invCatFilter = el.dataset.invCat;
+    document.querySelectorAll('.inv-slicer').forEach(function(btn){ btn.classList.toggle('active', btn.dataset.invCat === invCatFilter); });
+    renderInventory();
+    return;
+  }
+
   // Inv actions
   if (t.closest('#btn-add-inventory')) { openAddInventoryModal(); return; }
   if (t.closest('#btn-open-order')) { openOrderModal(); return; }
@@ -3769,7 +3781,6 @@ document.addEventListener('input', function(e) {
 });
 document.addEventListener('change', function(e) {
   var t = e.target;
-  if (t.id === 'inv-cat-filter') { invCatFilter=t.value; renderInventory(); }
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.id === 'topbar-emp') { document.getElementById('drawer-user-name').textContent=t.value||'Staff'; }
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
