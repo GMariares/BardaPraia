@@ -171,7 +171,10 @@ export function getAppHTML(): string {
     #inventory-list { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
     @media(min-width:600px){ #inventory-list { grid-template-columns:repeat(4,1fr); gap:10px; } }
     @media(min-width:900px){ #inventory-list { grid-template-columns:repeat(5,1fr); gap:12px; } }
-    .inv-card { background:white; border-radius:var(--radius); padding:10px 8px 8px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; position:relative; }
+    .inv-card { background:white; border-radius:var(--radius); padding:10px 8px 8px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; position:relative; transition:background .25s,border-color .25s; }
+    .inv-card.inv-ordered { background:#f0faf3; border-color:#86efac; }
+    .inv-card.inv-ordered .inv-stat { background:#dcfce7; }
+    .inv-card.inv-ordered .inv-order-btn { background:linear-gradient(135deg,#4ade80,#22c55e); }
     .inv-cat-icon { font-size:20px; }
     .inv-name { font-weight:700; font-size:12px; color:var(--ocean-900); line-height:1.2; word-break:break-word; }
     .inv-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; }
@@ -2511,9 +2514,11 @@ function confirmQuickOrder(){
   else pendingOrderItems.push({id:id,name:item.name,unit:item.unit||'',orderQty:qty});
   closeModal('modal-quick-order');
   toast(item.name+' ×'+qty+' added to order 🛒','gold');
-  // Show order badge on Orders tab
+  // Update badge
   var badge=document.getElementById('orders-standby-badge');
   if(badge&&pendingOrderItems.length>0){badge.textContent=pendingOrderItems.length;badge.style.display='inline';}
+  // Re-render cards so the green state appears immediately
+  renderInventory();
 }
 function renderInventory(){
   var db=getDB(); var items=db.inventory.slice();
@@ -2528,7 +2533,8 @@ function renderInventory(){
   if(items.length===0){el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>No items found.</p></div>';return;}
   el.innerHTML=items.map(function(item){
     var total=item.qtyBar+item.qtyStorage;
-    return '<div class="inv-card" data-inv-id="'+esc(item.id)+'">'
+    var isPending=pendingOrderItems.some(function(p){return p.id===item.id;});
+    return '<div class="inv-card'+(isPending?' inv-ordered':'')+'" data-inv-id="'+esc(item.id)+'">'
       +(isAdmin?'<button class="inv-card-del" data-delete-inv="'+esc(item.id)+'" title="Delete"><i class="fas fa-times"></i></button>':'')
       +'<div style="display:flex;align-items:center;gap:4px;'+(isAdmin?'padding-right:14px':'')+'">'
         +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'📦')+'</div>'
@@ -3634,7 +3640,8 @@ document.addEventListener('click', function(e) {
     var rid=el.dataset.removePending;
     pendingOrderItems=pendingOrderItems.filter(function(x){return x.id!==rid;});
     updateOrdersBadge();
-    openOrderModal(); // re-render modal in place
+    renderInventory(); // revert card colour
+    openOrderModal();  // re-render modal in place
     return;
   }
   el = t.closest('[data-confirm-order]');
