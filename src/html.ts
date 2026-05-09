@@ -2832,7 +2832,25 @@ function switchFinTab(tab) {
     document.getElementById('fin-panel-'+x).style.display=x===tab?'block':'none';
   });
   currentFinTab = tab;
-  if (tab === 'records') renderFinRecords();
+  if (tab === 'records') {
+    // Re-fetch from Supabase before rendering records so all users see latest entries
+    sbFetch('GET', 'fin_entries', null, 'order=date.desc&limit=365').then(function(rows) {
+      if (rows) {
+        var db = getDB();
+        db.finEntries = rows.map(function(r){ return {
+          id: r.id, date: r.date,
+          t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
+          totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
+          tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
+          cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
+          genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
+          cashDiff: parseFloat(r.cash_diff)||0,
+          savedAt: r.saved_at
+        }; });
+        saveDB(db);
+      }
+    }).catch(function(){}).finally(function(){ renderFinRecords(); });
+  }
 }
 
 function renderFinance() {
@@ -2849,8 +2867,27 @@ function renderFinance() {
   var datePicker = document.getElementById('fin-entry-date');
   if (!finSelectedDate) finSelectedDate = toDateStr(new Date());
   if (datePicker) datePicker.value = finSelectedDate;
-  loadFinEntryForDate(finSelectedDate);
-  if (currentFinTab === 'records') renderFinRecords();
+
+  // Always re-fetch fin_entries from Supabase so all users see the latest data
+  sbFetch('GET', 'fin_entries', null, 'order=date.desc&limit=365').then(function(rows) {
+    if (rows) {
+      var db = getDB();
+      db.finEntries = rows.map(function(r){ return {
+        id: r.id, date: r.date,
+        t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
+        totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
+        tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
+        cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
+        genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
+        cashDiff: parseFloat(r.cash_diff)||0,
+        savedAt: r.saved_at
+      }; });
+      saveDB(db);
+    }
+  }).catch(function(){/* use cached data if offline */}).finally(function(){
+    loadFinEntryForDate(finSelectedDate);
+    if (currentFinTab === 'records') renderFinRecords();
+  });
 }
 
 var FIN_CHECK_FROM = '2026-03-29'; // only check for gaps after this date
