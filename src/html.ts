@@ -2357,6 +2357,83 @@ function changeFinancePin() {
 function openDrawer() { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
 function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('open'); document.body.style.overflow=''; }
 
+// ─── Per-section Supabase refresh ───────────────────────────────────────────
+// Fetches only the tables needed by each section, updates the local DB cache,
+// then calls the provided callback so the UI is always up-to-date for every user.
+function fetchForSection(name, callback) {
+  var db = getDB();
+
+  function mapFinEntries(rows) {
+    return rows.map(function(r){ return {
+      id: r.id, date: r.date,
+      t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
+      totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
+      tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
+      cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
+      genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
+      cashDiff: parseFloat(r.cash_diff)||0,
+      savedAt: r.saved_at
+    }; });
+  }
+
+  var fetches = [];
+
+  if (name === 'dashboard') {
+    fetches = [
+      sbFetch('GET','reservations',null,'order=date.asc,time.asc').then(function(r){ if(r) db.reservations=r.map(function(x){return{id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at};}); }).catch(function(){}),
+      sbFetch('GET','tasks',null,'order=created_at.desc').then(function(r){ if(r) db.tasks=r.map(function(x){var a=x.assigned_to||[];if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[]; }}if(!Array.isArray(a))a=[];return{id:x.id,title:x.title,description:x.description||'',category:x.category,priority:x.priority,status:x.status,assignedTo:a,deadline:x.deadline||'',doneAt:x.done_at||'',createdAt:x.created_at,recurrence:x.recurrence||''};});}).catch(function(){}),
+      sbFetch('GET','inventory',null,'order=name.asc').then(function(r){ if(r) db.inventory=r.map(function(x){return{id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',createdAt:x.created_at,updatedAt:x.updated_at};});}).catch(function(){}),
+      sbFetch('GET','orders',null,'order=created_at.desc').then(function(r){ if(r) db.orders=r.map(function(x){return{id:x.id,date:x.date,items:x.items||[],status:x.status,createdAt:x.created_at};});}).catch(function(){})
+    ];
+  } else if (name === 'inventory') {
+    fetches = [
+      sbFetch('GET','inventory',null,'order=name.asc').then(function(r){ if(r) db.inventory=r.map(function(x){return{id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',createdAt:x.created_at,updatedAt:x.updated_at};});}).catch(function(){}),
+      sbFetch('GET','inv_logs',null,'order=timestamp.desc&limit=300').then(function(r){ if(r) db.invLogs=r.map(function(x){return{id:x.id,action:x.action,item:x.item,employee:x.employee,qtyBar:x.qty_bar,qtyStorage:x.qty_storage,timestamp:x.timestamp};});}).catch(function(){}),
+      sbFetch('GET','orders',null,'order=created_at.desc').then(function(r){ if(r) db.orders=r.map(function(x){return{id:x.id,date:x.date,items:x.items||[],status:x.status,createdAt:x.created_at};});}).catch(function(){})
+    ];
+  } else if (name === 'reservations') {
+    fetches = [
+      sbFetch('GET','reservations',null,'order=date.asc,time.asc').then(function(r){ if(r) db.reservations=r.map(function(x){return{id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at};});}).catch(function(){})
+    ];
+  } else if (name === 'tasks') {
+    fetches = [
+      sbFetch('GET','tasks',null,'order=created_at.desc').then(function(r){ if(r) db.tasks=r.map(function(x){var a=x.assigned_to||[];if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[]; }}if(!Array.isArray(a))a=[];return{id:x.id,title:x.title,description:x.description||'',category:x.category,priority:x.priority,status:x.status,assignedTo:a,deadline:x.deadline||'',doneAt:x.done_at||'',createdAt:x.created_at,recurrence:x.recurrence||''};});}).catch(function(){})
+    ];
+  } else if (name === 'shifts') {
+    fetches = [
+      sbFetch('GET','shifts',null,'order=week_start.desc,day.asc').then(function(r){ if(r) db.shifts=r.map(function(x){return{id:x.id,employee:x.employee,day:x.day,weekStart:x.week_start,start:x.start_time?x.start_time.slice(0,5):'',end:x.end_time?x.end_time.slice(0,5):'',role:x.role||'',zone:x.zone||'',dayOff:!!x.day_off,createdAt:x.created_at};});}).catch(function(){}),
+      sbFetch('GET','absences',null,'order=date.desc&limit=500').then(function(r){ if(r) db.absences=r.map(function(x){return{id:x.id,employee:x.employee,date:x.date,weekStart:x.week_start,justified:!!x.justified,createdAt:x.created_at};});}).catch(function(){}),
+      sbFetch('GET','employees',null,'order=name.asc').then(function(r){ if(r) db.employees=r.map(function(x){return x.name;});}).catch(function(){}),
+      sbFetch('GET','settings',null,'id=eq.config').then(function(rows){ if(rows&&rows[0]){ var r=rows[0]; if(r.week_tips!==undefined) db.weekTips=(r.week_tips&&typeof r.week_tips==='object')?r.week_tips:{}; }}).catch(function(){})
+    ];
+  } else if (name === 'blackbox') {
+    fetches = [
+      sbFetch('GET','bb_menu',null,'order=category.asc,name.asc').then(function(r){ if(r) db.bbMenu=r.map(function(x){return{id:x.id,name:x.name,price:parseFloat(x.price)||0,category:x.category};});}).catch(function(){}),
+      sbFetch('GET','bb_entries',null,'order=date.desc&limit=90').then(function(r){ if(r) db.bbEntries=r.map(function(x){return{id:x.id,date:x.date,items:x.items||[],total:parseFloat(x.total)||0,savedAt:x.saved_at};});}).catch(function(){})
+    ];
+  } else if (name === 'finance') {
+    fetches = [
+      sbFetch('GET','fin_entries',null,'order=date.desc&limit=365').then(function(r){ if(r) db.finEntries=mapFinEntries(r); }).catch(function(){})
+    ];
+  } else if (name === 'users') {
+    fetches = [
+      sbFetch('GET','app_users',null,'order=name.asc').then(function(r){
+        if(r&&r.length>0){ db.appUsers=r.map(function(x){return{id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',active:x.active!==false,createdAt:x.created_at};}); }
+        if(!db.appUsers.find(function(u){return u.id==='admin_seed';})){db.appUsers.push({id:'admin_seed',name:'Administrator',username:'admin',passwordHash:btoa(unescape(encodeURIComponent('Admin1234'))),roles:['admin','finance','shift_mgr','employee'],contractStart:'',contractEnd:'',hours:'',amount:'',discount:'',insurance:'',clothSize:'',notes:'',active:true,createdAt:new Date().toISOString()});}
+      }).catch(function(){})
+    ];
+  } else if (name === 'settings') {
+    fetches = [
+      sbFetch('GET','employees',null,'order=name.asc').then(function(r){ if(r) db.employees=r.map(function(x){return x.name;});}).catch(function(){}),
+      sbFetch('GET','settings',null,'id=eq.config').then(function(rows){ if(rows&&rows[0]){ var r=rows[0]; if(r.tables!==undefined) db.tables=r.tables||db.tables; if(r.budgets!==undefined){ var rb=(r.budgets&&typeof r.budgets==='object')?r.budgets:{}; ['day','t51','surf'].forEach(function(k){ db.budgets[k]={}; MONTH_KEYS.forEach(function(m){ db.budgets[k][m]=(rb[k]&&rb[k][m]!==undefined)?parseFloat(rb[k][m])||0:0; }); }); } if(r.fundo_caixa!==undefined) db.fundoCaixa=parseFloat(r.fundo_caixa)||0; }}).catch(function(){})
+    ];
+  }
+
+  Promise.all(fetches).then(function(){ saveDB(db); }).catch(function(){}).finally(function(){
+    if (callback) callback();
+  });
+}
+
 function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
@@ -2384,6 +2461,7 @@ function showSection(name) {
   currentSection = name;
   closeDrawer();
 
+  // Render immediately from cache (instant UI), then refresh from Supabase
   if (name === 'dashboard')    renderDashboard();
   if (name === 'inventory')    renderInventory();
   if (name === 'reservations') { renderCalendar(); renderAllReservations(); }
@@ -2393,6 +2471,19 @@ function showSection(name) {
   if (name === 'finance')      renderFinance();
   if (name === 'users')        renderUsers();
   if (name === 'settings')     renderSettings();
+
+  // Then fetch fresh data and re-render
+  fetchForSection(name, function() {
+    if (name === 'dashboard')    renderDashboard();
+    if (name === 'inventory')    renderInventory();
+    if (name === 'reservations') { renderCalendar(); renderAllReservations(); }
+    if (name === 'tasks')        renderTasks();
+    if (name === 'shifts')       renderShifts();
+    if (name === 'blackbox')     renderBlackBox();
+    // finance is handled inside renderFinance() which already fetches
+    if (name === 'users')        renderUsers();
+    if (name === 'settings')     renderSettings();
+  });
 }
 
 // ================================================
@@ -2833,23 +2924,8 @@ function switchFinTab(tab) {
   });
   currentFinTab = tab;
   if (tab === 'records') {
-    // Re-fetch from Supabase before rendering records so all users see latest entries
-    sbFetch('GET', 'fin_entries', null, 'order=date.desc&limit=365').then(function(rows) {
-      if (rows) {
-        var db = getDB();
-        db.finEntries = rows.map(function(r){ return {
-          id: r.id, date: r.date,
-          t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
-          totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
-          tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
-          cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
-          genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
-          cashDiff: parseFloat(r.cash_diff)||0,
-          savedAt: r.saved_at
-        }; });
-        saveDB(db);
-      }
-    }).catch(function(){}).finally(function(){ renderFinRecords(); });
+    renderFinRecords(); // instant from cache
+    fetchForSection('finance', function(){ renderFinRecords(); }); // then refresh
   }
 }
 
@@ -2867,24 +2943,10 @@ function renderFinance() {
   var datePicker = document.getElementById('fin-entry-date');
   if (!finSelectedDate) finSelectedDate = toDateStr(new Date());
   if (datePicker) datePicker.value = finSelectedDate;
-
-  // Always re-fetch fin_entries from Supabase so all users see the latest data
-  sbFetch('GET', 'fin_entries', null, 'order=date.desc&limit=365').then(function(rows) {
-    if (rows) {
-      var db = getDB();
-      db.finEntries = rows.map(function(r){ return {
-        id: r.id, date: r.date,
-        t51: parseFloat(r.t51)||0, multibanco: parseFloat(r.multibanco)||0,
-        totalDay: parseFloat(r.total_day)||0, invoiced: parseFloat(r.invoiced)||0,
-        tips: parseFloat(r.tips)||0, entregar: parseFloat(r.entregar)||0,
-        cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
-        genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
-        cashDiff: parseFloat(r.cash_diff)||0,
-        savedAt: r.saved_at
-      }; });
-      saveDB(db);
-    }
-  }).catch(function(){/* use cached data if offline */}).finally(function(){
+  // Render immediately from cache, then fetch fresh and re-render
+  loadFinEntryForDate(finSelectedDate);
+  if (currentFinTab === 'records') renderFinRecords();
+  fetchForSection('finance', function(){
     loadFinEntryForDate(finSelectedDate);
     if (currentFinTab === 'records') renderFinRecords();
   });
@@ -3253,8 +3315,14 @@ function switchInvTab(t) {
     document.getElementById('inv-tab-'+x).classList.toggle('active',x===t);
     document.getElementById('inv-panel-'+x).style.display=x===t?'block':'none';
   });
+  // Render from cache instantly, then refresh from Supabase
   if(t==='log') renderInvLog();
   if(t==='orders') renderOrderHistory();
+  fetchForSection('inventory', function(){
+    if(t==='stock') renderInventory();
+    if(t==='log') renderInvLog();
+    if(t==='orders') renderOrderHistory();
+  });
 }
 function openAddInventoryModal(editId) {
   updateAllDropdowns();
@@ -3919,10 +3987,19 @@ function switchShiftsTab(tab) {
   document.querySelectorAll('[data-shifts-tab]').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.shiftsTab === tab);
   });
+  // Render from cache instantly
   if (tab === 'tips')       renderShiftsTipsTab();
   if (tab === 'hours')      renderShiftsHoursTab();
   if (tab === 'attendance') renderShiftsAttendanceTab();
   if (tab === 'team')       renderShiftsTeamTab();
+  // Then fetch fresh data and re-render
+  fetchForSection('shifts', function(){
+    if (tab === 'gantt')      renderShifts();
+    if (tab === 'tips')       renderShiftsTipsTab();
+    if (tab === 'hours')      renderShiftsHoursTab();
+    if (tab === 'attendance') renderShiftsAttendanceTab();
+    if (tab === 'team')       renderShiftsTeamTab();
+  });
 }
 
 function renderShifts(){
@@ -4627,9 +4704,15 @@ function switchBbTab(t){
     var btn=document.getElementById('bb-tab-'+x); if(btn) btn.classList.toggle('active',x===t);
     var panel=document.getElementById('bb-panel-'+x); if(panel) panel.style.display=x===t?'block':'none';
   });
+  // Render from cache instantly, then fetch fresh and re-render
   if(t==='daily') renderBbDaily();
   if(t==='records') renderBbRecords();
   if(t==='menu') renderBbMenuManage();
+  fetchForSection('blackbox', function(){
+    if(t==='daily') renderBbDaily();
+    if(t==='records') renderBbRecords();
+    if(t==='menu') renderBbMenuManage();
+  });
 }
 function renderBbDaily(){
   var today=toDateStr(new Date());
