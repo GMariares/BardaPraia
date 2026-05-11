@@ -816,7 +816,7 @@ export function getAppHTML(): string {
           <i class="fas fa-circle-check" style="color:#16a34a;font-size:22px;flex-shrink:0"></i>
           <div style="flex:1;min-width:0">
             <div style="font-weight:800;font-size:14px;color:#15803d">Entry Saved</div>
-            <div style="font-size:12px;color:#16a34a;margin-top:2px">This day is locked. Admin can edit.</div>
+            <div style="font-size:12px;color:#16a34a;margin-top:2px">This day is locked. Finance users can edit.</div>
           </div>
           <button id="btn-fin-edit-entry" style="display:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;align-items:center;gap:6px">
             <i class="fas fa-pen"></i> Edit
@@ -3058,7 +3058,7 @@ function applyFinLockState(dateStr) {
     FIN_INPUTS.forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=true; el.style.opacity='0.6'; el.style.background='#f8fafc'; } });
     if (actionsEl) actionsEl.style.display = 'none';
     if (lockedEl)  { lockedEl.style.display = 'flex'; }
-    if (editBtnEl) { editBtnEl.style.display = isAdmin ? 'flex' : 'none'; }
+    if (editBtnEl) { editBtnEl.style.display = (isAdmin || isFinance) ? 'flex' : 'none'; }
   } else {
     // Editable state — no entry yet, or admin is editing
     FIN_INPUTS.forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=false; el.style.opacity=''; el.style.background=''; } });
@@ -5043,7 +5043,7 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-finance-entry')) { saveFinanceEntry(); return; }
   if (t.closest('#btn-clear-finance-entry')) { clearFinanceEntry(); return; }
   if (t.closest('#btn-fin-edit-entry')) {
-    if (!isAdmin) { toast('Admin access required', 'error'); return; }
+    if (!isAdmin && !isFinance) { toast('Finance access required', 'error'); return; }
     finEditMode = true;
     applyFinLockState(finSelectedDate);
     toast('Entry unlocked for editing', 'gold');
