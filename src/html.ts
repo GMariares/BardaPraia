@@ -1981,6 +1981,7 @@ var isAdmin = false;
 var isFinance = false;
 var currentUser = null; // the logged-in app_user object
 var SESSION_KEY = 'bardapraia_session';
+var syncReady = false; // true once syncFromSupabase() has completed at least once
 var currentSection = 'dashboard';
 var calendarWeekStart = getMonday(new Date());
 var selectedCalendarDay = null;
@@ -2041,6 +2042,7 @@ function doLogin() {
   var uname = (document.getElementById('login-username').value||'').trim().toLowerCase();
   var pw    = document.getElementById('login-password').value;
   var errEl = document.getElementById('login-error');
+  if (!syncReady) { errEl.textContent = 'Still connecting to server, please wait a moment…'; return; }
   if (!uname || !pw) { errEl.textContent = 'Please enter username and password.'; return; }
   var db = getDB();
   var user = db.appUsers.find(function(u){ return u.username.toLowerCase() === uname; });
@@ -5310,6 +5312,7 @@ updateSessionUI();
   }
 
   syncFromSupabase().then(function() {
+    syncReady = true;
     unlockLogin(false);
     showMigrationNotice(sbMissingItems);
     if (sbMissingItems.length > 0) {
@@ -5335,6 +5338,7 @@ updateSessionUI();
     } catch(e) {}
 
   }).catch(function() {
+    syncReady = true; // offline — allow login with cached data
     unlockLogin(true);
 
     // Offline: try to restore session from local cache anyway
