@@ -481,12 +481,6 @@ export function getAppHTML(): string {
   <section id="section-dashboard" class="page-section active">
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon">📦</div><span class="badge badge-green" id="dash-inv-status">OK</span></div>
-        <div class="kpi-num" id="dash-inv-count">0</div>
-        <div class="kpi-label">Inventory Items</div>
-        <div class="kpi-sub" id="dash-inv-low"></div>
-      </div>
-      <div class="kpi-card">
         <div class="kpi-top"><div class="kpi-icon">🪑</div><span class="badge badge-blue">Today</span></div>
         <div class="kpi-num" id="dash-res-count">0</div>
         <div class="kpi-label">Reservations Today</div>
@@ -496,12 +490,6 @@ export function getAppHTML(): string {
         <div class="kpi-top"><div class="kpi-icon">✅</div><span class="badge badge-yellow" id="dash-task-badge">Open</span></div>
         <div class="kpi-num" id="dash-task-count">0</div>
         <div class="kpi-label">Open Tasks</div>
-        <div class="kpi-sub"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon">🏖️</div><span class="badge badge-blue">Tables</span></div>
-        <div class="kpi-num" id="dash-tables">0</div>
-        <div class="kpi-label">Total Tables</div>
         <div class="kpi-sub"></div>
       </div>
     </div>
@@ -597,10 +585,11 @@ export function getAppHTML(): string {
   <section id="section-tasks" class="page-section">
     <div class="section-header">
       <div class="tab-row" id="task-filter-btns" style="margin-bottom:0">
-        <button class="tab-btn active" data-task-filter="all">All</button>
+        <button class="tab-btn active" data-task-filter="open">Open</button>
         <button class="tab-btn" data-task-filter="pending">Pending</button>
         <button class="tab-btn" data-task-filter="in-progress">Active</button>
         <button class="tab-btn" data-task-filter="done">Done</button>
+        <button class="tab-btn" data-task-filter="all">All</button>
       </div>
       <button class="btn btn-primary btn-sm" id="btn-add-task"><i class="fas fa-plus"></i> New</button>
     </div>
@@ -1995,7 +1984,7 @@ var SESSION_KEY = 'bardapraia_session';
 var currentSection = 'dashboard';
 var calendarWeekStart = getMonday(new Date());
 var selectedCalendarDay = null;
-var currentTaskFilter = 'all';
+var currentTaskFilter = 'open';
 var invSearchVal = '';
 var invCatFilter = '';
 var resSearchVal = '';
@@ -3948,7 +3937,8 @@ function renderTasks(){
     if(!b.deadline) return -1;
     return a.deadline.localeCompare(b.deadline);
   });
-  if(currentTaskFilter!=='all') tasks=tasks.filter(function(t){return t.status===currentTaskFilter;});
+  if(currentTaskFilter==='open') tasks=tasks.filter(function(t){return t.status==='pending'||t.status==='in-progress';});
+  else if(currentTaskFilter!=='all') tasks=tasks.filter(function(t){return t.status===currentTaskFilter;});
   var el=document.getElementById('task-list'); if(!el) return;
   if(tasks.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No tasks here.</p></div>';return;}
   var now=new Date();
@@ -4926,10 +4916,6 @@ function deleteBbItem(id){
 // ================================================
 function renderDashboard(){
   var db=getDB();
-  document.getElementById('dash-inv-count').textContent=db.inventory.length;
-  document.getElementById('dash-inv-status').className='badge badge-green';
-  document.getElementById('dash-inv-status').textContent='OK';
-  document.getElementById('dash-inv-low').textContent='';
   var today=toDateStr(new Date());
   var todayRes=db.reservations.filter(function(r){return r.date===today;}).sort(function(a,b){return a.time.localeCompare(b.time);});
   document.getElementById('dash-res-count').textContent=todayRes.length;
@@ -4939,7 +4925,15 @@ function renderDashboard(){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--ocean-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ocean-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ocean-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
   }).join('');
-  var openTasks=db.tasks.filter(function(t){return t.status!=='done';}).slice().sort(function(a,b){
+  // Tasks: apply the same user-scoping as the Tasks screen
+  var allDashTasks=db.tasks;
+  if(!isAdmin && currentUser){
+    allDashTasks=db.tasks.filter(function(t){
+      var ids=taskAssignees(t);
+      return ids.indexOf(currentUser.id)!==-1;
+    });
+  }
+  var openTasks=allDashTasks.filter(function(t){return t.status!=='done';}).slice().sort(function(a,b){
     if(!a.deadline && !b.deadline) return 0;
     if(!a.deadline) return 1;
     if(!b.deadline) return -1;
@@ -4960,21 +4954,11 @@ function renderDashboard(){
       tasksPanelEl.innerHTML=openTasks.slice(0,6).map(function(t){
         var isOverdue=t.deadline&&new Date(t.deadline)<now2;
         var priColor=t.priority==='high'?'badge-red':t.priority==='low'?'badge-gray':'badge-yellow';
-        return '<div class="today-res-item" data-nav="tasks" style="cursor:pointer;gap:10px">'
-          +'<div style="width:34px;height:34px;background:var(--ocean-100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(taskCatIcons[t.category]||'📌')+'</div>'
-          +'<div style="flex:1;min-width:0">'
-            +'<div style="font-size:13px;font-weight:700;color:var(--ocean-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'
-            +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'
-              +(t.deadline?'<i class="fas fa-calendar-check" style="margin-right:3px'+(isOverdue?';color:#dc2626':'')+'"></i><span style="'+(isOverdue?'color:#dc2626;font-weight:700':'')+'">'+esc(t.deadline)+'</span>':'<span style="color:var(--ocean-300)">No deadline</span>')
-            +'</div>'
-          +'</div>'
-          +'<span class="badge '+priColor+'" style="flex-shrink:0;align-self:center">'+esc(t.priority||'medium')+'</span>'
-        +'</div>';
+        return '<div class="today-res-item" data-nav="tasks" style="cursor:pointer;gap:10px">'          +'<div style="width:34px;height:34px;background:var(--ocean-100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(taskCatIcons[t.category]||'📌')+'</div>'          +'<div style="flex:1;min-width:0">'            +'<div style="font-size:13px;font-weight:700;color:var(--ocean-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'            +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'              +(t.deadline?'<i class="fas fa-calendar-check" style="margin-right:3px'+(isOverdue?';color:#dc2626':'')+'"></i><span style="'+(isOverdue?'color:#dc2626;font-weight:700':'')+'">'+esc(t.deadline)+'</span>':'<span style="color:var(--ocean-300)">No deadline</span>')            +'</div>'          +'</div>'          +'<span class="badge '+priColor+'" style="flex-shrink:0;align-self:center">'+esc(t.priority||'medium')+'</span>'        +'</div>';
       }).join('')
       +(openTasks.length>6?'<div style="text-align:center;padding:8px;font-size:12px;color:var(--ocean-400);cursor:pointer" data-nav="tasks">+' +(openTasks.length-6)+' more tasks →</div>':'');
     }
   }
-  document.getElementById('dash-tables').textContent=db.tables.length;
 
   // Pending orders panel — visible to everyone
   var standbyOrders=db.orders.filter(function(o){return o.status==='standby';});
