@@ -5192,7 +5192,7 @@ document.addEventListener('click', function(e) {
   if (el) { deleteBbItem(el.dataset.deleteBbItem); return; }
 
   // Settings
-  if (t.closest('#btn-add-employee')) { addEmployee(); return; }
+  if (t.closest('#btn-add-employee') || t.closest('#btn-shifts-add-employee')) { addEmployee(); return; }
   el = t.closest('[data-remove-emp]');
   if (el) { removeEmployee(el.dataset.removeEmp); return; }
   if (t.closest('#btn-add-table-num')) { addTableNum(); return; }
