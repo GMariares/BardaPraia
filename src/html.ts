@@ -2164,7 +2164,6 @@ function doLogin() {
   var uname = (document.getElementById('login-username').value||'').trim().toLowerCase();
   var pw    = document.getElementById('login-password').value;
   var errEl = document.getElementById('login-error');
-  if (!syncReady) { errEl.textContent = 'Still connecting to server, please wait a moment…'; return; }
   if (!uname || !pw) { errEl.textContent = 'Please enter username and password.'; return; }
   var db = getDB();
   var user = db.appUsers.find(function(u){ return u.username.toLowerCase() === uname; });
