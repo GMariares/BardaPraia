@@ -1866,8 +1866,8 @@ var MIGRATION_SQL = [
   'CREATE TABLE IF NOT EXISTS suppliers (',
   '  id TEXT PRIMARY KEY,',
   '  name TEXT NOT NULL,',
-  '  email TEXT DEFAULT \'\',',
-  '  phone TEXT DEFAULT \'\',',
+  "  email TEXT DEFAULT '',",
+  "  phone TEXT DEFAULT '',",
   '  total_spend NUMERIC DEFAULT 0,',
   '  send_email BOOLEAN DEFAULT false,',
   "  categories JSONB DEFAULT '[]'::jsonb,",
@@ -3937,25 +3937,11 @@ function sendOrderEmail(orderId){
   var db=getDB(); var ord=db.orders.find(function(o){return o.id===orderId;}); if(!ord) return;
   var sup=ord.supplierId?db.suppliers.find(function(s){return s.id===ord.supplierId;}):null;
   if(!sup||!sup.email){toast('Supplier email not configured','error');return;}
-  var subject=encodeURIComponent('Order #'+orderId.slice(-6).toUpperCase()+' — Bar da Praia');
-  var body=encodeURIComponent(
-    'Dear '+sup.name+',
-
-Please find our order below:
-
-'
-    +ord.items.map(function(i){return '• '+i.name+': '+i.orderQty+' '+(i.unit||'');}).join('
-')
-    +'
-
-Date: '+new Date(ord.date).toLocaleDateString('pt-PT')
-    +(ord.amount>0?'
-Amount: €'+ord.amount.toFixed(2):'')
-    +'
-
-Best regards,
-Bar da Praia'
-  );
+  var nl=String.fromCharCode(10);
+  var subject=encodeURIComponent('Order #'+orderId.slice(-6).toUpperCase()+' - Bar da Praia');
+  var itemLines=ord.items.map(function(i){return '- '+i.name+': '+i.orderQty+' '+(i.unit||'');}).join(nl);
+  var bodyText='Dear '+sup.name+','+nl+nl+'Please find our order below:'+nl+nl+itemLines+nl+nl+'Date: '+new Date(ord.date).toLocaleDateString('pt-PT')+(ord.amount>0?nl+'Amount: EUR '+ord.amount.toFixed(2):'')+nl+nl+'Best regards,'+nl+'Bar da Praia';
+  var body=encodeURIComponent(bodyText);
   window.location.href='mailto:'+encodeURIComponent(sup.email)+'?subject='+subject+'&body='+body;
   toast('Opening email client...','gold');
 }
