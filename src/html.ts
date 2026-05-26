@@ -3864,24 +3864,38 @@ function renderOrderHistory(){
   // ── SAVED ORDERS SECTION ──
   if(hasSaved){
     if(hasDrafts) html+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ocean-400);margin:16px 0 10px;text-transform:uppercase">Previous Orders</div>';
-    // Suppliers with orders
     var allSavedSupIds=Object.keys(savedGroups);
     allSavedSupIds.forEach(function(sid){
       var sup=db.suppliers.find(function(s){return s.id===sid;})||{name:'Unknown Supplier',email:'',sendEmail:false,totalSpend:0};
-      html+='<div style="margin-bottom:18px">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--ocean-50);border-radius:10px">'
-          +'<i class="fas fa-truck" style="color:var(--ocean-400)"></i>'
+      var orders=savedGroups[sid];
+      var standbyCount=orders.filter(function(o){return o.status==='standby';}).length;
+      var supGroupId='sup-orders-'+sid;
+      // Collapsible supplier header
+      html+='<div style="margin-bottom:10px">'
+        +'<div data-toggle-sup="'+esc(sid)+'" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ocean-50);border-radius:10px;cursor:pointer;user-select:none">'
+          +'<i class="fas fa-truck" style="color:var(--ocean-400);flex-shrink:0"></i>'
           +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">'+esc(sup.name)+'</span>'
-          +(sup.totalSpend>0?'<span style="font-size:11px;color:var(--ocean-500)">Total: \u20ac'+((sup.totalSpend||0).toFixed(2))+'</span>':'')
-        +'</div>';
-      savedGroups[sid].forEach(function(o){ html+=renderOrderCard(o,db,sup); });
-      html+='</div>';
+          +(standbyCount>0?'<span style="background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px">'+standbyCount+' pending</span>':'')
+          +(sup.totalSpend>0?'<span style="font-size:11px;color:var(--ocean-500);margin-left:4px">\u20ac'+sup.totalSpend.toFixed(2)+'</span>':'')
+          +'<i class="fas fa-chevron-down sup-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s;margin-left:4px"></i>'
+        +'</div>'
+        // Orders list — collapsed by default
+        +'<div id="'+supGroupId+'" style="display:none;padding:8px 4px 4px">';
+      orders.forEach(function(o){ html+=renderOrderCard(o,db,sup); });
+      html+='</div></div>';
     });
     // Orders with no supplier
     if(noSupOrders.length>0){
-      if(allSavedSupIds.length>0) html+='<div style="margin-bottom:18px"><div style="font-size:12px;color:var(--ocean-400);margin-bottom:8px;font-weight:600">OTHER ORDERS</div>';
+      var noSupId='sup-orders-_none';
+      html+='<div style="margin-bottom:10px">'
+        +'<div data-toggle-sup="_none" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ocean-50);border-radius:10px;cursor:pointer;user-select:none">'
+          +'<i class="fas fa-truck" style="color:var(--ocean-400);flex-shrink:0"></i>'
+          +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">Other Orders</span>'
+          +'<i class="fas fa-chevron-down sup-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s"></i>'
+        +'</div>'
+        +'<div id="'+noSupId+'" style="display:none;padding:8px 4px 4px">';
       noSupOrders.forEach(function(o){ html+=renderOrderCard(o,db,null); });
-      if(allSavedSupIds.length>0) html+='</div>';
+      html+='</div></div>';
     }
   }
 
@@ -5501,6 +5515,17 @@ document.addEventListener('click', function(e) {
   }
   el = t.closest('[data-confirm-draft]');
   if (el) { confirmDraftOrder(el.dataset.confirmDraft); return; }
+  el = t.closest('[data-toggle-sup]');
+  if (el) {
+    var supListEl=document.getElementById('sup-orders-'+el.dataset.toggleSup);
+    var supChevron=el.querySelector('.sup-chevron');
+    if(supListEl){
+      var supOpen=supListEl.style.display==='none';
+      supListEl.style.display=supOpen?'block':'none';
+      if(supChevron) supChevron.style.transform=supOpen?'rotate(180deg)':'';
+    }
+    return;
+  }
   el = t.closest('[data-toggle-order]');
   if (el) {
     var detailEl=document.getElementById('order-detail-'+el.dataset.toggleOrder);
