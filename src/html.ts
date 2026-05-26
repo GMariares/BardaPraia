@@ -204,6 +204,11 @@ export function getAppHTML(): string {
     @media(min-width:900px){ #inventory-list { grid-template-columns:repeat(5,1fr); gap:12px; } }
     .inv-card { background:white; border-radius:var(--radius); padding:10px 8px 8px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; position:relative; transition:background .25s,border-color .25s; }
     .inv-card.inv-ordered { background:#f0faf3; border-color:#86efac; }
+    .supplier-card { background:white; border-radius:var(--radius); padding:12px 10px; border:2px solid var(--ocean-100); box-shadow:var(--shadow); cursor:pointer; transition:all .15s; position:relative; }
+    .supplier-card:active { transform:scale(.97); }
+    .supplier-card-active { border-color:var(--ocean-400); background:var(--ocean-50); box-shadow:0 0 0 3px rgba(14,165,233,.15); }
+    .log-sup-filter { background:var(--ocean-50); border:1.5px solid var(--ocean-200); color:var(--ocean-600); padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .log-sup-filter.active { background:var(--ocean-500); border-color:var(--ocean-500); color:white; }
     .inv-card.inv-ordered .inv-stat { background:#dcfce7; }
     .inv-card.inv-ordered .inv-order-btn { background:linear-gradient(135deg,#4ade80,#22c55e); }
     .inv-cat-icon { font-size:20px; }
@@ -521,11 +526,8 @@ export function getAppHTML(): string {
       </div>
     </div>
     <div id="inv-panel-stock">
-      <div class="search-bar">
-        <i class="fas fa-search"></i>
-        <input type="text" placeholder="Search items..." id="inv-search" />
-      </div>
-      <div id="inv-cat-slicers" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+      <!-- Category filter chips -->
+      <div id="inv-cat-slicers" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
         <button class="inv-slicer active" data-inv-cat="">All</button>
         <button class="inv-slicer" data-inv-cat="beverages">🍹 Bar</button>
         <button class="inv-slicer" data-inv-cat="food">🍔 Cozinha</button>
@@ -533,9 +535,33 @@ export function getAppHTML(): string {
         <button class="inv-slicer" data-inv-cat="equipment">🔧 Economato</button>
         <button class="inv-slicer" data-inv-cat="other">📦 Other</button>
       </div>
-      <div id="inventory-list"><div class="empty-state"><i class="fas fa-box-open"></i><p>No items yet. Tap Add to start!</p></div></div>
+      <!-- Supplier cards section -->
+      <div id="inv-supplier-section" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700;color:var(--ocean-700);display:flex;align-items:center;gap:6px"><i class="fas fa-truck" style="color:var(--ocean-400)"></i> Suppliers</div>
+          <button class="btn btn-secondary btn-sm" id="btn-add-supplier"><i class="fas fa-plus"></i> Add Supplier</button>
+        </div>
+        <div id="supplier-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div>
+      </div>
+      <!-- Items panel (shown when a supplier is selected, or all items) -->
+      <div id="inv-items-section">
+        <div id="inv-items-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn btn-secondary btn-sm" id="btn-back-to-suppliers" style="display:none" data-supplier-filter=""><i class="fas fa-arrow-left"></i></button>
+            <span style="font-size:13px;font-weight:700;color:var(--ocean-700)" id="inv-items-title">All Items</span>
+          </div>
+          <div class="search-bar" style="margin-bottom:0;flex:1;max-width:220px;margin-left:10px">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search items..." id="inv-search" />
+          </div>
+        </div>
+        <div id="inventory-list"><div class="empty-state"><i class="fas fa-box-open"></i><p>No items yet. Tap Add to start!</p></div></div>
+      </div>
     </div>
     <div id="inv-panel-log" style="display:none">
+      <div id="inv-log-supplier-filter" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="log-sup-filter active" data-log-supplier="">All Suppliers</button>
+      </div>
       <div id="inv-log-list"><div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No log entries yet.</p></div></div>
     </div>
     <div id="inv-panel-orders" style="display:none">
@@ -1274,6 +1300,38 @@ export function getAppHTML(): string {
 </div>
 
 <!-- Add / Edit Inventory Item -->
+<!-- Add / Edit Supplier -->
+<div class="modal-overlay" id="modal-add-supplier">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-truck" style="color:#0ea5e9"></i><span id="supplier-modal-title">Add Supplier</span></h2>
+    <div class="form-row" style="margin-bottom:12px"><label class="label">Name *</label><input type="text" class="input-field" id="supplier-name" placeholder="Supplier name" /></div>
+    <div class="form-row" style="margin-bottom:12px"><label class="label">Email</label><input type="email" class="input-field" id="supplier-email" placeholder="supplier@example.com" /></div>
+    <div class="form-row" style="margin-bottom:12px"><label class="label">Phone</label><input type="text" class="input-field" id="supplier-phone" placeholder="+351..." /></div>
+    <div style="margin-bottom:12px">
+      <label class="label">Categories Supplied</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="supplier-cat-checks">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="beverages"> 🍹 Bar</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="food"> 🍔 Cozinha</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="supplies"> 🧹 Limpeza</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="equipment"> 🔧 Economato</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="other"> 📦 Other</label>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px;background:var(--ocean-50);border-radius:10px;padding:12px">
+      <input type="checkbox" id="supplier-send-email" style="width:18px;height:18px;accent-color:var(--ocean-500)" />
+      <div><div style="font-size:13px;font-weight:700;color:var(--ocean-800)">📧 Send orders by email</div><div style="font-size:11px;color:var(--ocean-400)">When enabled, orders to this supplier can be sent by email</div></div>
+    </label>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-supplier"><i class="fas fa-save"></i> Save</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-supplier">Cancel</button>
+    </div>
+    <div id="supplier-delete-row" style="display:none;margin-top:10px">
+      <button class="btn" style="width:100%;justify-content:center;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" id="btn-delete-supplier-modal"><i class="fas fa-trash"></i> Delete Supplier</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add-inventory">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -1296,6 +1354,7 @@ export function getAppHTML(): string {
       <div><label class="label">In Bar</label><input type="number" class="input-field" id="inv-qty-bar" min="0" value="0" /></div>
       <div><label class="label">In Storage</label><input type="number" class="input-field" id="inv-qty-storage" min="0" value="0" /></div>
     </div>
+    <div class="form-row" style="margin-bottom:14px"><label class="label">Supplier</label><select class="select-field" id="inv-supplier"></select></div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-inventory"><i class="fas fa-save"></i> Save</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-inventory">Cancel</button>
@@ -1323,6 +1382,23 @@ export function getAppHTML(): string {
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-confirm-quick-order"><i class="fas fa-cart-plus"></i> Add to Order</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-quick-order">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Set Order Amount (Admin) -->
+<div class="modal-overlay" id="modal-set-order-amount">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-euro-sign" style="color:#16a34a"></i> Set Order Amount</h2>
+    <input type="hidden" id="set-amount-order-id" />
+    <div class="form-row" style="margin-bottom:18px">
+      <label class="label">Amount (€)</label>
+      <input type="number" class="input-field" id="set-amount-value" min="0" step="0.01" placeholder="0.00" style="font-size:22px;text-align:center;font-weight:800" />
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-confirm-set-amount"><i class="fas fa-save"></i> Save Amount</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-set-order-amount">Cancel</button>
     </div>
   </div>
 </div>
@@ -1628,6 +1704,7 @@ function getDB() {
   if (!db.weekTips)      db.weekTips = {};
   if (!db.tipsLocked)   db.tipsLocked = {};   // {weekStart: true} — locked after generate
   if (!db.absences)     db.absences = [];      // [{id,employee,date,weekStart,justified}]
+  if (!db.suppliers)    db.suppliers = [];     // [{id,name,email,phone,totalSpend,sendEmail}]
   if (!db.appUsers)     db.appUsers = [];
   // Always ensure the seed admin exists — re-insert if missing
   if (!db.appUsers.find(function(u){ return u.id === 'admin_seed'; })) {
@@ -1776,7 +1853,29 @@ var MIGRATION_SQL = [
   ');',
   'ALTER TABLE absences ENABLE ROW LEVEL SECURITY;',
   'DROP POLICY IF EXISTS allow_all ON absences;',
-  "CREATE POLICY allow_all ON absences FOR ALL TO anon USING (true) WITH CHECK (true);"
+  "CREATE POLICY allow_all ON absences FOR ALL TO anon USING (true) WITH CHECK (true);",
+  '',
+  '-- 10. Suppliers table',
+  'CREATE TABLE IF NOT EXISTS suppliers (',
+  '  id TEXT PRIMARY KEY,',
+  '  name TEXT NOT NULL,',
+  '  email TEXT DEFAULT \'\',',
+  '  phone TEXT DEFAULT \'\',',
+  '  total_spend NUMERIC DEFAULT 0,',
+  '  send_email BOOLEAN DEFAULT false,',
+  "  categories JSONB DEFAULT '[]'::jsonb,",
+  "  created_at TIMESTAMPTZ DEFAULT now()",
+  ');',
+  'ALTER TABLE suppliers ENABLE ROW LEVEL SECURITY;',
+  'DROP POLICY IF EXISTS allow_all ON suppliers;',
+  "CREATE POLICY allow_all ON suppliers FOR ALL TO anon USING (true) WITH CHECK (true);",
+  '',
+  '-- 11. Inventory: add supplier_id column',
+  "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS supplier_id TEXT DEFAULT NULL REFERENCES suppliers(id) ON DELETE SET NULL;",
+  '',
+  '-- 12. Orders: add supplier_id and amount columns',
+  "ALTER TABLE orders ADD COLUMN IF NOT EXISTS supplier_id TEXT DEFAULT NULL;",
+  "ALTER TABLE orders ADD COLUMN IF NOT EXISTS amount NUMERIC DEFAULT 0;"
 ].join('\\n');
 
 function showMigrationNotice(missing) {
@@ -1870,7 +1969,7 @@ function syncFromSupabase() {
     }),
     sbFetch('GET', 'orders', null, 'order=created_at.desc').then(function(rows) {
       if (rows) db.orders = rows.map(function(r){ return {
-        id: r.id, date: r.date, items: r.items||[], status: r.status, createdAt: r.created_at
+        id: r.id, date: r.date, items: r.items||[], status: r.status, supplierId: r.supplier_id||'', amount: parseFloat(r.amount)||0, createdAt: r.created_at
       }; });
     }),
     sbFetch('GET', 'reservations', null, 'order=date.asc,time.asc').then(function(rows) {
@@ -1962,6 +2061,15 @@ function syncFromSupabase() {
         weekStart: r.week_start, justified: !!r.justified, createdAt: r.created_at
       }; });
     }).catch(function(){})   // absences table may not exist yet — silent fail
+    ,
+    sbFetch('GET', 'suppliers', null, 'order=name.asc').then(function(rows) {
+      if (rows) db.suppliers = rows.map(function(r){ return {
+        id: r.id, name: r.name, email: r.email||'', phone: r.phone||'',
+        totalSpend: parseFloat(r.total_spend)||0, sendEmail: !!r.send_email,
+        categories: Array.isArray(r.categories)?r.categories:(r.categories?JSON.parse(r.categories):[]),
+        createdAt: r.created_at
+      }; });
+    }).catch(function(){})   // suppliers table created on migration
   ];
   return Promise.all(promises).then(function() {
     saveDB(db);
@@ -1988,6 +2096,9 @@ var selectedCalendarDay = null;
 var currentTaskFilter = 'open';
 var invSearchVal = '';
 var invCatFilter = '';
+var invSupplierFilter = ''; // supplier id filter for inventory view
+var invLogSupplierFilter = ''; // supplier id filter for log view
+var editSupplierId = null; // id of supplier being edited
 var resSearchVal = '';
 var resDateFilter = '';
 var editInventoryId = null;
@@ -2375,8 +2486,8 @@ function refreshSection(name) {
       var db = getDB();
       if (res[0]) db.reservations = res[0].map(function(x){ return {id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at}; });
       if (res[1]) db.tasks = res[1].map(function(x){ var a=x.assigned_to||[]; if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[];}} if(!Array.isArray(a))a=[]; return {id:x.id,title:x.title,description:x.description||'',category:x.category,priority:x.priority,status:x.status,assignedTo:a,deadline:x.deadline||'',doneAt:x.done_at||'',createdAt:x.created_at,recurrence:x.recurrence||''}; });
-      if (res[2]) db.inventory = res[2].map(function(x){ return {id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',createdAt:x.created_at,updatedAt:x.updated_at}; });
-      if (res[3]) db.orders = res[3].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],status:x.status,createdAt:x.created_at}; });
+      if (res[2]) db.inventory = res[2].map(function(x){ return {id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',supplierId:x.supplier_id||'',createdAt:x.created_at,updatedAt:x.updated_at}; });
+      if (res[3]) db.orders = res[3].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],status:x.status,supplierId:x.supplier_id||'',amount:parseFloat(x.amount)||0,createdAt:x.created_at}; });
       saveDB(db);
       if (currentSection === name) renderDashboard();
     }).catch(function(){});
@@ -2388,9 +2499,9 @@ function refreshSection(name) {
       sbFetch('GET','orders',null,'order=created_at.desc')
     ]).then(function(res) {
       var db = getDB();
-      if (res[0]) db.inventory = res[0].map(function(x){ return {id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',createdAt:x.created_at,updatedAt:x.updated_at}; });
+      if (res[0]) db.inventory = res[0].map(function(x){ return {id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',supplierId:x.supplier_id||'',createdAt:x.created_at,updatedAt:x.updated_at}; });
       if (res[1]) db.invLogs = res[1].map(function(x){ return {id:x.id,action:x.action,item:x.item,employee:x.employee,qtyBar:x.qty_bar,qtyStorage:x.qty_storage,timestamp:x.timestamp}; });
-      if (res[2]) db.orders = res[2].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],status:x.status,createdAt:x.created_at}; });
+      if (res[2]) db.orders = res[2].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],status:x.status,supplierId:x.supplier_id||'',amount:parseFloat(x.amount)||0,createdAt:x.created_at}; });
       saveDB(db);
       if (currentSection === name) renderInventory();
     }).catch(function(){});
@@ -2523,7 +2634,7 @@ function showSection(name) {
 
   // Render immediately from local cache (instant UI)
   if (name === 'dashboard')    renderDashboard();
-  if (name === 'inventory')    renderInventory();
+  if (name === 'inventory')    { renderInventory(); renderSuppliers(); renderInvLogSupplierFilter(); }
   if (name === 'reservations') { renderCalendar(); renderAllReservations(); }
   if (name === 'tasks')        renderTasks();
   if (name === 'shifts')       renderShifts();
@@ -2813,6 +2924,13 @@ function updateAllDropdowns() {
   });
   var gs=document.getElementById('topbar-emp');
   if(gs){ var c=gs.value; gs.innerHTML='<option value="">Staff</option>'+emp.map(function(e){return '<option value="'+esc(e)+'">'+esc(e)+'</option>';}).join(''); gs.value=c; }
+  // Populate supplier dropdown in inventory modal
+  var supSel=document.getElementById('inv-supplier');
+  if(supSel){
+    var db=getDB();
+    var supOpts='<option value="">-- No Supplier --</option>'+(db.suppliers||[]).map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>';}).join('');
+    var curSup=supSel.value; supSel.innerHTML=supOpts; supSel.value=curSup;
+  }
 }
 
 // ================================================
@@ -3358,7 +3476,8 @@ function switchInvTab(t) {
     document.getElementById('inv-tab-'+x).classList.toggle('active',x===t);
     document.getElementById('inv-panel-'+x).style.display=x===t?'block':'none';
   });
-  if(t==='log') renderInvLog();
+  if(t==='stock') { renderSuppliers(); renderInventory(); }
+  if(t==='log') { renderInvLogSupplierFilter(); renderInvLog(); }
   if(t==='orders') renderOrderHistory();
   refreshSection('inventory');
 }
@@ -3374,6 +3493,7 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-qty-bar').value=item.qtyBar;
     document.getElementById('inv-qty-storage').value=item.qtyStorage;
     document.getElementById('inv-employee').value=item.lastEmployee||'';
+    var supEl=document.getElementById('inv-supplier'); if(supEl) supEl.value=item.supplierId||'';
   } else {
     editInventoryId=null;
     document.getElementById('inv-modal-title').textContent='Add Item';
@@ -3383,6 +3503,8 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-qty-bar').value='0';
     document.getElementById('inv-qty-storage').value='0';
     document.getElementById('inv-employee').value='';
+    var supEl2=document.getElementById('inv-supplier');
+    if(supEl2) supEl2.value = invSupplierFilter || '';
   }
   openModal('modal-add-inventory');
 }
@@ -3393,21 +3515,22 @@ function saveInventoryItem() {
   var qs=parseInt(document.getElementById('inv-qty-storage').value)||0;
   var cat=document.getElementById('inv-category').value;
   var unit=document.getElementById('inv-unit').value.trim();
+  var supId=(document.getElementById('inv-supplier')||{}).value||'';
   var now=new Date().toISOString();
   var eid=editInventoryId;
   if(eid){
     var idx=db.inventory.findIndex(function(i){return i.id===eid;});
-    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,updatedAt:now}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
+    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,supplierId:supId,updatedAt:now}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
     saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Updating...'); editInventoryId=null;
-    sbFetch('PATCH','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp,updated_at:now},'id=eq.'+eid)
+    sbFetch('PATCH','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp,supplier_id:supId||null,updated_at:now},'id=eq.'+eid)
       .then(function(){ sbAddInvLog({action:'update',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Updated!'); })
       .catch(function(){ toast('Saved locally','error'); });
   } else {
     var newId=uid();
-    db.inventory.push({id:newId,name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,createdAt:now,updatedAt:now});
+    db.inventory.push({id:newId,name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,supplierId:supId,createdAt:now,updatedAt:now});
     addInvLog(db,{action:'add',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});
     saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Adding...'); editInventoryId=null;
-    sbFetch('POST','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp})
+    sbFetch('POST','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp,supplier_id:supId||null})
       .then(function(rows){
         if(rows&&rows[0]){var oid=db.inventory.findIndex(function(i){return i.id===newId;}); if(oid!==-1) db.inventory[oid].id=rows[0].id; saveDB(db);}
         sbAddInvLog({action:'add',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Item added!');
@@ -3451,7 +3574,132 @@ function saveQtyUpdate(){
     .then(function(){ sbAddInvLog({action:'update',item:iname,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Stock updated!'); })
     .catch(function(){ toast('Updated locally','error'); });
 }
-// Cart: pending order items before submitting { id, name, unit, orderQty }
+// ================================================
+// SUPPLIERS
+// ================================================
+function renderSuppliers(){
+  var db=getDB(); var el=document.getElementById('supplier-cards'); if(!el) return;
+  var suppliers=db.suppliers||[];
+  // Filter by category if invCatFilter is set
+  var filtered=invCatFilter?suppliers.filter(function(s){return s.categories&&s.categories.indexOf(invCatFilter)!==-1;}):suppliers;
+  if(filtered.length===0){
+    el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--ocean-400);font-size:13px"><i class="fas fa-truck" style="font-size:24px;margin-bottom:8px;display:block"></i>No suppliers yet.<br><small>Tap + Add Supplier to create one.</small></div>';
+    return;
+  }
+  el.innerHTML=filtered.map(function(s){
+    var itemCount=(db.inventory||[]).filter(function(i){return i.supplierId===s.id;}).length;
+    var isActive=invSupplierFilter===s.id;
+    var cats=(s.categories||[]).map(function(c){return catIconMap[c]||'📦';}).join('');
+    return '<div class="supplier-card'+(isActive?' supplier-card-active':'')+'" data-supplier-filter="'+esc(s.id)+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+        +'<div style="font-weight:700;font-size:13px;color:var(--ocean-900);flex:1;line-height:1.3">'+esc(s.name)+'</div>'
+        +'<div style="display:flex;gap:4px;margin-left:4px">'
+          +(isAdmin?'<button class="inv-card-del" data-edit-supplier="'+esc(s.id)+'" title="Edit" style="position:static;transform:none;background:var(--ocean-100);color:var(--ocean-600)"><i class="fas fa-pen" style="font-size:10px"></i></button>':'')
+        +'</div>'
+      +'</div>'
+      +(cats?'<div style="font-size:14px;margin-bottom:5px">'+cats+'</div>':'')
+      +'<div style="font-size:11px;color:var(--ocean-400);display:flex;justify-content:space-between;align-items:center">'
+        +'<span><i class="fas fa-box" style="margin-right:3px"></i>'+itemCount+' items</span>'
+        +(s.sendEmail?'<span style="color:#0ea5e9"><i class="fas fa-envelope"></i></span>':'')
+      +'</div>'
+      +(s.phone?'<div style="font-size:10px;color:var(--ocean-400);margin-top:3px">'+esc(s.phone)+'</div>':'')
+    +'</div>';
+  }).join('');
+}
+
+function openSupplierModal(editId){
+  var db=getDB();
+  if(editId){
+    editSupplierId=editId;
+    var s=db.suppliers.find(function(x){return x.id===editId;}); if(!s) return;
+    document.getElementById('supplier-modal-title').textContent='Edit Supplier';
+    document.getElementById('supplier-name').value=s.name;
+    document.getElementById('supplier-email').value=s.email||'';
+    document.getElementById('supplier-phone').value=s.phone||'';
+    document.getElementById('supplier-send-email').checked=!!s.sendEmail;
+    document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ cb.checked=(s.categories||[]).indexOf(cb.value)!==-1; });
+    var dr=document.getElementById('supplier-delete-row'); if(dr) dr.style.display=isAdmin?'block':'none';
+    var db2=document.getElementById('btn-delete-supplier-modal'); if(db2) db2.setAttribute('data-delete-supplier',editId);
+  } else {
+    editSupplierId=null;
+    document.getElementById('supplier-modal-title').textContent='Add Supplier';
+    document.getElementById('supplier-name').value='';
+    document.getElementById('supplier-email').value='';
+    document.getElementById('supplier-phone').value='';
+    document.getElementById('supplier-send-email').checked=false;
+    document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ cb.checked=false; });
+    var dr2=document.getElementById('supplier-delete-row'); if(dr2) dr2.style.display='none';
+  }
+  openModal('modal-add-supplier');
+}
+
+function saveSupplierModal(){
+  var name=document.getElementById('supplier-name').value.trim();
+  if(!name){toast('Supplier name required!','error');return;}
+  var email=document.getElementById('supplier-email').value.trim();
+  var phone=document.getElementById('supplier-phone').value.trim();
+  var sendEmail=document.getElementById('supplier-send-email').checked;
+  var cats=[];
+  document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ if(cb.checked) cats.push(cb.value); });
+  var db=getDB(); var now=new Date().toISOString();
+  if(editSupplierId){
+    var idx=db.suppliers.findIndex(function(s){return s.id===editSupplierId;});
+    if(idx!==-1) db.suppliers[idx]=Object.assign({},db.suppliers[idx],{name:name,email:email,phone:phone,sendEmail:sendEmail,categories:cats});
+    saveDB(db); closeModal('modal-add-supplier'); renderSuppliers(); updateAllDropdowns(); toast('Updating...'); 
+    sbFetch('PATCH','suppliers',{name:name,email:email,phone:phone,send_email:sendEmail,categories:cats},'id=eq.'+editSupplierId)
+      .then(function(){toast('Supplier updated!');}).catch(function(){toast('Saved locally','error');});
+    editSupplierId=null;
+  } else {
+    var newId=uid();
+    db.suppliers.push({id:newId,name:name,email:email,phone:phone,sendEmail:sendEmail,categories:cats,totalSpend:0,createdAt:now});
+    saveDB(db); closeModal('modal-add-supplier'); renderSuppliers(); updateAllDropdowns(); toast('Adding...');
+    sbFetch('POST','suppliers',{id:newId,name:name,email:email,phone:phone,send_email:sendEmail,categories:cats,total_spend:0})
+      .then(function(rows){
+        if(rows&&rows[0]){var oi=db.suppliers.findIndex(function(s){return s.id===newId;}); if(oi!==-1) db.suppliers[oi].id=rows[0].id; saveDB(db); updateAllDropdowns();}
+        toast('Supplier added!');
+      }).catch(function(){toast('Saved locally','error');});
+  }
+}
+
+function deleteSupplier(id){
+  if(!confirm('Delete this supplier? Items assigned to it will be unassigned.')) return;
+  var db=getDB();
+  // Unassign items
+  db.inventory.forEach(function(i){ if(i.supplierId===id) i.supplierId=''; });
+  db.suppliers=db.suppliers.filter(function(s){return s.id!==id;});
+  if(invSupplierFilter===id){ invSupplierFilter=''; showAllItems(); }
+  saveDB(db); renderSuppliers(); renderInventory(); updateAllDropdowns(); toast('Deleting...');
+  sbFetch('DELETE','suppliers',null,'id=eq.'+id).then(function(){toast('Supplier deleted.');}).catch(function(){toast('Deleted locally','error');});
+}
+
+function showAllItems(){
+  invSupplierFilter='';
+  var backBtn=document.getElementById('btn-back-to-suppliers'); if(backBtn) backBtn.style.display='none';
+  var titleEl=document.getElementById('inv-items-title'); if(titleEl) titleEl.textContent='All Items';
+  renderInventory();
+  renderSuppliers();
+}
+
+function filterBySupplier(supplierId){
+  if(!supplierId){ showAllItems(); return; }
+  invSupplierFilter=supplierId;
+  var db=getDB(); var s=db.suppliers.find(function(x){return x.id===supplierId;});
+  var backBtn=document.getElementById('btn-back-to-suppliers'); if(backBtn) backBtn.style.display='flex';
+  var titleEl=document.getElementById('inv-items-title'); if(titleEl) titleEl.textContent=s?esc(s.name):'Supplier Items';
+  renderInventory();
+  renderSuppliers(); // re-render to show active state
+}
+
+function renderInvLogSupplierFilter(){
+  var db=getDB(); var el=document.getElementById('inv-log-supplier-filter'); if(!el) return;
+  var suppliers=db.suppliers||[];
+  var btns='<button class="log-sup-filter'+(invLogSupplierFilter===''?' active':'')+'" data-log-supplier="">All Suppliers</button>';
+  btns+=suppliers.map(function(s){return '<button class="log-sup-filter'+(invLogSupplierFilter===s.id?' active':'')+'" data-log-supplier="'+esc(s.id)+'">'+esc(s.name)+'</button>';}).join('');
+  el.innerHTML=btns;
+}
+
+// ================================================
+// Cart: pending order items before submitting { id, name, unit, orderQty, supplierId }
 var pendingOrderItems = [];
 function openQuickOrderModal(id){
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;}); if(!item) return;
@@ -3471,7 +3719,7 @@ function confirmQuickOrder(){
   // Add or update in pending cart
   var existing=pendingOrderItems.findIndex(function(x){return x.id===id;});
   if(existing!==-1) pendingOrderItems[existing].orderQty+=qty;
-  else pendingOrderItems.push({id:id,name:item.name,unit:item.unit||'',orderQty:qty});
+  else pendingOrderItems.push({id:id,name:item.name,unit:item.unit||'',orderQty:qty,supplierId:item.supplierId||''});
   closeModal('modal-quick-order');
   toast(item.name+' ×'+qty+' added to order 🛒','gold');
   // Update badge
@@ -3489,6 +3737,7 @@ function renderInventory(){
   }
   if(invSearchVal) items=items.filter(function(i){return i.name.toLowerCase().indexOf(invSearchVal.toLowerCase())!==-1;});
   if(invCatFilter) items=items.filter(function(i){return i.category===invCatFilter;});
+  if(invSupplierFilter) items=items.filter(function(i){return i.supplierId===invSupplierFilter;});
   var el=document.getElementById('inventory-list'); if(!el) return;
   if(items.length===0){el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>No items found.</p></div>';return;}
   el.innerHTML=items.map(function(item){
@@ -3501,6 +3750,7 @@ function renderInventory(){
         +'<div style="flex:1;min-width:0">'
           +'<div class="inv-name">'+esc(item.name)+'</div>'
           +(item.unit?'<div style="font-size:9px;color:var(--ocean-400);margin-top:1px">'+esc(item.unit)+'</div>':'')
+          +(function(){ var db2=getDB(); var sup=item.supplierId&&db2.suppliers?(db2.suppliers.find(function(s){return s.id===item.supplierId;})||null):null; return sup?'<div style="font-size:9px;color:var(--ocean-500);margin-top:1px;font-weight:600">'+esc(sup.name)+'</div>':''; })()
         +'</div>'
       +'</div>'
       +'<div class="inv-stats">'
@@ -3518,9 +3768,15 @@ function renderInventory(){
 }
 function renderInvLog(){
   var db=getDB(); var el=document.getElementById('inv-log-list'); if(!el) return;
-  if(db.invLogs.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No log entries yet.</p></div>';return;}
+  var logs=db.invLogs.slice();
+  // Filter by supplier via invLogSupplierFilter
+  if(invLogSupplierFilter){
+    var supItems=(db.inventory||[]).filter(function(i){return i.supplierId===invLogSupplierFilter;}).map(function(i){return i.name;});
+    logs=logs.filter(function(l){return supItems.indexOf(l.item)!==-1;});
+  }
+  if(logs.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No log entries.</p></div>';return;}
   var icons={add:'<i class="fas fa-plus" style="color:#16a34a"></i>',update:'<i class="fas fa-pen" style="color:#1d4ed8"></i>',delete:'<i class="fas fa-trash" style="color:#dc2626"></i>'};
-  el.innerHTML=db.invLogs.map(function(l){
+  el.innerHTML=logs.map(function(l){
     return '<div class="log-item"><div class="log-icon">'+(icons[l.action]||'📝')+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ocean-900)">'+esc(l.item)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(l.action)+' · '+esc(l.employee||'System')+'</div></div><div style="font-size:11px;color:var(--ocean-400)">'+fmtDate(l.timestamp)+'</div></div>';
   }).join('');
 }
@@ -3534,20 +3790,53 @@ function renderOrderHistory(){
   var db=getDB(); var el=document.getElementById('inv-orders-list'); if(!el) return;
   updateOrdersBadge();
   if(db.orders.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-truck"></i><p>No orders yet.</p></div>';return;}
-  el.innerHTML=db.orders.slice().reverse().map(function(o){
-    var isStandby=o.status==='standby';
-    return '<div class="'+(isStandby?'order-standby':'order-confirmed')+'">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-        +'<span style="font-weight:700;color:var(--ocean-800)">Order #'+o.id.slice(-6).toUpperCase()+'</span>'
-        +'<div style="display:flex;gap:6px;align-items:center">'
-          +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'">'+(isStandby?'⏳ Standby':'✓ Approved')+'</span>'
-          +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':isStandby?'<span style="font-size:11px;color:#92400e;font-style:italic">Awaiting admin</span>':'')
-        +'</div>'
+  // Group orders by supplier
+  var grouped={}; var noSupOrders=[];
+  db.orders.slice().reverse().forEach(function(o){
+    var sid=o.supplierId||'';
+    if(sid){ if(!grouped[sid]) grouped[sid]=[]; grouped[sid].push(o); }
+    else noSupOrders.push(o);
+  });
+  var html='';
+  // Render grouped by supplier
+  var allSupIds=Object.keys(grouped);
+  allSupIds.forEach(function(sid){
+    var sup=db.suppliers.find(function(s){return s.id===sid;})||{name:'Unknown Supplier',email:'',sendEmail:false};
+    html+='<div style="margin-bottom:18px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--ocean-50);border-radius:10px">'
+        +'<i class="fas fa-truck" style="color:var(--ocean-400)"></i>'
+        +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">'+esc(sup.name)+'</span>'
+        +(sup.totalSpend>0?'<span style="font-size:11px;color:var(--ocean-500)">Total: €'+((sup.totalSpend||0).toFixed(2))+'</span>':'')
+      +'</div>';
+    grouped[sid].forEach(function(o){
+      html+=renderOrderCard(o,db,sup);
+    });
+    html+='</div>';
+  });
+  // Render ungrouped orders
+  if(noSupOrders.length>0){
+    if(allSupIds.length>0) html+='<div style="margin-bottom:18px"><div style="font-size:12px;color:var(--ocean-400);margin-bottom:8px;font-weight:600">OTHER ORDERS</div>';
+    noSupOrders.forEach(function(o){ html+=renderOrderCard(o,db,null); });
+    if(allSupIds.length>0) html+='</div>';
+  }
+  el.innerHTML=html;
+}
+function renderOrderCard(o,db,sup){
+  var isStandby=o.status==='standby';
+  var canEmail=sup&&sup.sendEmail&&sup.email;
+  return '<div class="'+(isStandby?'order-standby':'order-confirmed')+'" style="margin-bottom:10px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<span style="font-weight:700;color:var(--ocean-800)">Order #'+o.id.slice(-6).toUpperCase()+'</span>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">'
+        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'">'+(isStandby?'⏳ Standby':'✓ Approved')+'</span>'
+        +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':isStandby?'<span style="font-size:11px;color:#92400e;font-style:italic">Awaiting admin</span>':'')
+        +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'" title="Send by email"><i class="fas fa-envelope"></i></button>':'')
+        +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'" title="Set amount"><i class="fas fa-euro-sign"></i></button>':'')
       +'</div>'
-      +'<div style="font-size:11px;color:var(--ocean-400);margin-bottom:8px">'+fmtDate(o.date)+'</div>'
-      +'<div>'+o.items.map(function(i){return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span style="color:var(--ocean-700)">'+esc(i.name)+'</span><span style="font-weight:700;color:var(--ocean-900)">'+i.orderQty+' '+esc(i.unit||'')+'</span></div>';}).join('')+'</div>'
-    +'</div>';
-  }).join('');
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--ocean-400);margin-bottom:6px">'+fmtDate(o.date)+(o.amount>0?' · <span style="color:#16a34a;font-weight:700">€'+o.amount.toFixed(2)+'</span>':'')+'</div>'
+    +'<div>'+o.items.map(function(i){return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span style="color:var(--ocean-700)">'+esc(i.name)+'</span><span style="font-weight:700;color:var(--ocean-900)">'+i.orderQty+' '+esc(i.unit||'')+'</span></div>';}).join('')+'</div>'
+  +'</div>';
 }
 function openOrderModal(){
   var el=document.getElementById('order-items-list'); if(!el) return;
@@ -3581,26 +3870,84 @@ function confirmOrder(){
   var orderItems=pendingOrderItems.map(function(pi){
     var qEl=document.getElementById('order-qty-'+pi.id);
     var qty=qEl?parseInt(qEl.value)||pi.orderQty:pi.orderQty;
-    return{id:pi.id,name:pi.name,unit:pi.unit,orderQty:qty};
+    return{id:pi.id,name:pi.name,unit:pi.unit,orderQty:qty,supplierId:pi.supplierId||''};
   }).filter(function(x){return x.orderQty>0;});
   if(orderItems.length===0){toast('Enter at least one quantity','error');return;}
-  var db=getDB();
-  var newOrder={id:uid(),date:new Date().toISOString(),items:orderItems,status:'standby'};
-  db.orders.unshift(newOrder);
+  var db=getDB(); var now=new Date().toISOString();
+  // Group items by supplier
+  var groups={}; // supplierId (or '') -> items[]
+  orderItems.forEach(function(pi){ var sid=pi.supplierId||''; if(!groups[sid]) groups[sid]=[]; groups[sid].push(pi); });
+  var orderIds=[];
+  Object.keys(groups).forEach(function(sid){
+    var grpItems=groups[sid];
+    var newOrder={id:uid(),date:now,items:grpItems,status:'standby',supplierId:sid,amount:0};
+    db.orders.unshift(newOrder); orderIds.push(newOrder.id);
+    sbFetch('POST','orders',{id:newOrder.id,items:grpItems,status:'standby',supplier_id:sid||null,amount:0}).then(function(rows){
+      if(rows&&rows[0]){var oi=db.orders.findIndex(function(o){return o.id===newOrder.id;}); if(oi!==-1){db.orders[oi].id=rows[0].id;} saveDB(db);}
+      renderOrderHistory(); updateOrdersBadge(); toast('Order submitted — awaiting admin approval.','gold');
+    }).catch(function(){ toast('Order saved locally','error'); });
+  });
   pendingOrderItems=[]; updateOrdersBadge();
   saveDB(db); closeModal('modal-order'); renderInventory(); renderDashboard(); updateOrdersBadge(); toast('Submitting order...','gold');
-  sbFetch('POST','orders',{items:orderItems,status:'standby'}).then(function(rows){
-    if(rows&&rows[0]){var oi=db.orders.findIndex(function(o){return o.id===newOrder.id;}); if(oi!==-1) db.orders[oi].id=rows[0].id; saveDB(db);}
-    renderOrderHistory(); updateOrdersBadge(); toast('Order submitted — awaiting admin approval.','gold');
-  }).catch(function(){ toast('Order saved locally','error'); });
 }
 function approveOrder(orderId){
   var db=getDB(); var idx=db.orders.findIndex(function(o){return o.id===orderId;});
-  if(idx!==-1) db.orders[idx].status='confirmed';
+  if(idx!==-1){
+    db.orders[idx].status='confirmed';
+    // Update supplier total spend if amount set
+    var ord=db.orders[idx];
+    if(ord.supplierId && ord.amount>0){
+      var si=db.suppliers.findIndex(function(s){return s.id===ord.supplierId;});
+      if(si!==-1){ db.suppliers[si].totalSpend=(db.suppliers[si].totalSpend||0)+ord.amount;
+        sbFetch('PATCH','suppliers',{total_spend:db.suppliers[si].totalSpend},'id=eq.'+ord.supplierId).catch(function(){});
+      }
+    }
+  }
   saveDB(db); renderOrderHistory(); renderDashboard(); toast('Approving...','gold');
   sbFetch('PATCH','orders',{status:'confirmed'},'id=eq.'+orderId).then(function(){
     toast('Order approved!','gold');
   }).catch(function(){ toast('Approved locally','error'); });
+}
+
+function setOrderAmount(orderId){
+  document.getElementById('set-amount-order-id').value=orderId;
+  var db=getDB(); var ord=db.orders.find(function(o){return o.id===orderId;});
+  document.getElementById('set-amount-value').value=ord?ord.amount||'':'';
+  openModal('modal-set-order-amount');
+}
+function confirmSetAmount(){
+  var orderId=document.getElementById('set-amount-order-id').value;
+  var amount=parseFloat(document.getElementById('set-amount-value').value)||0;
+  var db=getDB(); var idx=db.orders.findIndex(function(o){return o.id===orderId;});
+  if(idx!==-1) db.orders[idx].amount=amount;
+  saveDB(db); closeModal('modal-set-order-amount'); renderOrderHistory(); toast('Amount saved!','gold');
+  sbFetch('PATCH','orders',{amount:amount},'id=eq.'+orderId).then(function(){toast('Amount synced!','gold');}).catch(function(){toast('Saved locally','error');});
+}
+function sendOrderEmail(orderId){
+  var db=getDB(); var ord=db.orders.find(function(o){return o.id===orderId;}); if(!ord) return;
+  var sup=ord.supplierId?db.suppliers.find(function(s){return s.id===ord.supplierId;}):null;
+  if(!sup||!sup.email){toast('Supplier email not configured','error');return;}
+  var subject=encodeURIComponent('Order #'+orderId.slice(-6).toUpperCase()+' — Bar da Praia');
+  var body=encodeURIComponent(
+    'Dear '+sup.name+',
+
+Please find our order below:
+
+'
+    +ord.items.map(function(i){return '• '+i.name+': '+i.orderQty+' '+(i.unit||'');}).join('
+')
+    +'
+
+Date: '+new Date(ord.date).toLocaleDateString('pt-PT')
+    +(ord.amount>0?'
+Amount: €'+ord.amount.toFixed(2):'')
+    +'
+
+Best regards,
+Bar da Praia'
+  );
+  window.location.href='mailto:'+encodeURIComponent(sup.email)+'?subject='+subject+'&body='+body;
+  toast('Opening email client...','gold');
 }
 
 // ================================================
@@ -5097,6 +5444,28 @@ document.addEventListener('click', function(e) {
   }
   el = t.closest('[data-confirm-order]');
   if (el) { approveOrder(el.dataset.confirmOrder); return; }
+
+  // Supplier actions
+  if (t.closest('#btn-add-supplier')) { openSupplierModal(null); return; }
+  if (t.closest('#btn-save-supplier')) { saveSupplierModal(); return; }
+  if (t.closest('#btn-confirm-set-amount')) { confirmSetAmount(); return; }
+  el = t.closest('[data-edit-supplier]');
+  if (el) { openSupplierModal(el.dataset.editSupplier); return; }
+  el = t.closest('[data-delete-supplier]');
+  if (el) { closeModal('modal-add-supplier'); deleteSupplier(el.dataset.deleteSupplier); return; }
+  el = t.closest('[data-supplier-filter]');
+  if (el) { filterBySupplier(el.dataset.supplierFilter); return; }
+  el = t.closest('[data-send-order-email]');
+  if (el) { sendOrderEmail(el.dataset.sendOrderEmail); return; }
+  el = t.closest('[data-set-order-amount]');
+  if (el) { setOrderAmount(el.dataset.setOrderAmount); return; }
+  el = t.closest('[data-log-supplier]');
+  if (el) {
+    invLogSupplierFilter=el.dataset.logSupplier;
+    document.querySelectorAll('.log-sup-filter').forEach(function(b){ b.classList.toggle('active',b.dataset.logSupplier===invLogSupplierFilter); });
+    renderInvLog(); return;
+  }
+  if (t.closest('#btn-back-to-suppliers')) { showAllItems(); return; }
 
   // Res tabs / actions
   el = t.closest('[data-res-tab]');
