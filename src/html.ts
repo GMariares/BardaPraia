@@ -1654,8 +1654,11 @@ function initSupabase() {
 function sbFetch(method, table, body, params) {
   var url = SB_URL + '/rest/v1/' + table;
   if (params) url += '?' + params;
+  var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timer = controller ? setTimeout(function(){ controller.abort(); }, 10000) : null;
   return fetch(url, {
     method: method,
+    signal: controller ? controller.signal : undefined,
     headers: {
       'apikey': SB_KEY,
       'Authorization': 'Bearer ' + SB_KEY,
@@ -1664,10 +1667,14 @@ function sbFetch(method, table, body, params) {
     },
     body: body ? JSON.stringify(body) : undefined
   }).then(function(r) {
-    if (!r.ok) return r.json().then(function(e){ throw e; });
+    if (timer) clearTimeout(timer);
+    if (!r.ok) return r.json().then(function(e){ throw e; }).catch(function(){ throw new Error('HTTP ' + r.status); });
     var ct = r.headers.get('content-type') || '';
     if (ct.indexOf('json') !== -1) return r.json();
     return null;
+  }).catch(function(e) {
+    if (timer) clearTimeout(timer);
+    throw e;
   });
 }
 
@@ -1896,7 +1903,7 @@ function syncFromSupabase() {
   sbMissingItems = [];
   var db = getDB();
   var promises = [
-    sbFetch('GET', 'settings', null, 'id=eq.config').then(function(rows) {
+    sbFetch('GET', 'settings', null, 'id=eq.config').catch(function(){ return null; }).then(function(rows) {
       if (rows && rows[0]) {
         var r = rows[0];
         // ── Always prefer Supabase value; only fall back when column is missing (undefined) ──
@@ -1953,33 +1960,34 @@ function syncFromSupabase() {
     }),
     sbFetch('GET', 'employees', null, 'order=name.asc').then(function(rows) {
       if (rows) db.employees = rows.map(function(r){ return r.name; });
-    }),
+    }).catch(function(){}),   // silent fail
     sbFetch('GET', 'inventory', null, 'order=name.asc').then(function(rows) {
       if (rows) db.inventory = rows.map(function(r){ return {
         id: r.id, name: r.name, category: r.category, unit: r.unit||'',
         qtyBar: r.qty_bar, qtyStorage: r.qty_storage, minimum: r.minimum,
-        lastEmployee: r.last_employee||'', createdAt: r.created_at, updatedAt: r.updated_at
+        lastEmployee: r.last_employee||'', supplierId: r.supplier_id||'',
+        createdAt: r.created_at, updatedAt: r.updated_at
       }; });
-    }),
+    }).catch(function(){}),   // silent fail
     sbFetch('GET', 'inv_logs', null, 'order=timestamp.desc&limit=300').then(function(rows) {
       if (rows) db.invLogs = rows.map(function(r){ return {
         id: r.id, action: r.action, item: r.item, employee: r.employee,
         qtyBar: r.qty_bar, qtyStorage: r.qty_storage, timestamp: r.timestamp
       }; });
-    }),
+    }).catch(function(){}),   // silent fail
     sbFetch('GET', 'orders', null, 'order=created_at.desc').then(function(rows) {
       if (rows) db.orders = rows.map(function(r){ return {
         id: r.id, date: r.date, items: r.items||[], status: r.status, supplierId: r.supplier_id||'', amount: parseFloat(r.amount)||0, createdAt: r.created_at
       }; });
-    }),
+    }).catch(function(){}),   // silent fail
     sbFetch('GET', 'reservations', null, 'order=date.asc,time.asc').then(function(rows) {
       if (rows) db.reservations = rows.map(function(r){ return {
         id: r.id, guestName: r.guest_name, phone: r.phone||'', date: r.date,
         time: r.time ? r.time.slice(0,5) : '', guests: r.guests,
         tables: r.tables||[], notes: r.notes||'', status: r.status, createdAt: r.created_at
       }; });
-    }),
-    sbFetch('GET', 'tasks', null, 'order=created_at.desc').then(function(rows) {
+    }).catch(function(){}),   // silent fail
+    sbFetch('GET', 'tasks', null, 'order=created_at.desc').catch(function(){ return null; }).then(function(rows) {
       if (rows) db.tasks = rows.map(function(r){
         // assigned_to may be a JSON string array or plain string (legacy)
         var asn = r.assigned_to||[];
@@ -1995,7 +2003,7 @@ function syncFromSupabase() {
         };
       });
     }),
-    sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc&limit=1').then(function(rows) {
+    sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc&limit=1').catch(function(){ return null; }).then(function(rows) {
       if (rows && rows[0] && rows[0].day_off === undefined) sbMissingItems.push('shifts.day_off');
       return sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc').then(function(rows2) {
         if (rows2) db.shifts = rows2.map(function(r){ return {
@@ -2004,18 +2012,18 @@ function syncFromSupabase() {
           end: r.end_time ? r.end_time.slice(0,5) : '',
           role: r.role||'', zone: r.zone||'', dayOff: !!r.day_off, createdAt: r.created_at
         }; });
-      });
-    }),
+      }).catch(function(){});
+    }),   // silent fail
     sbFetch('GET', 'bb_menu', null, 'order=category.asc,name.asc').then(function(rows) {
       if (rows) db.bbMenu = rows.map(function(r){ return {
         id: r.id, name: r.name, price: parseFloat(r.price)||0, category: r.category
       }; });
-    }),
+    }).catch(function(){}),   // silent fail
     sbFetch('GET', 'bb_entries', null, 'order=date.desc&limit=90').then(function(rows) {
       if (rows) db.bbEntries = rows.map(function(r){ return {
         id: r.id, date: r.date, items: r.items||[], total: parseFloat(r.total)||0, savedAt: r.saved_at
       }; });
-    }),
+    }).catch(function(){}),   // silent fail
     sbFetch('GET', 'fin_entries', null, 'order=date.desc&limit=365').then(function(rows) {
       if (rows) db.finEntries = rows.map(function(r){ return {
         id: r.id, date: r.date,
@@ -2063,12 +2071,15 @@ function syncFromSupabase() {
     }).catch(function(){})   // absences table may not exist yet — silent fail
     ,
     sbFetch('GET', 'suppliers', null, 'order=name.asc').then(function(rows) {
-      if (rows) db.suppliers = rows.map(function(r){ return {
-        id: r.id, name: r.name, email: r.email||'', phone: r.phone||'',
-        totalSpend: parseFloat(r.total_spend)||0, sendEmail: !!r.send_email,
-        categories: Array.isArray(r.categories)?r.categories:(r.categories?JSON.parse(r.categories):[]),
-        createdAt: r.created_at
-      }; });
+      if (rows) db.suppliers = rows.map(function(r){
+        var cats=[];
+        try { cats=Array.isArray(r.categories)?r.categories:(r.categories?JSON.parse(r.categories):[]); } catch(e){}
+        return {
+          id: r.id, name: r.name, email: r.email||'', phone: r.phone||'',
+          totalSpend: parseFloat(r.total_spend)||0, sendEmail: !!r.send_email,
+          categories: cats, createdAt: r.created_at
+        };
+      });
     }).catch(function(){})   // suppliers table created on migration
   ];
   return Promise.all(promises).then(function() {
@@ -5680,7 +5691,17 @@ updateSessionUI();
     }
   }
 
+  // Safety net: always unlock login after 12s even if sync hangs
+  var syncSafetyTimer = setTimeout(function() {
+    if (!syncReady) {
+      syncReady = true;
+      unlockLogin(true);
+      if (syncStatus) { syncStatus.style.color='var(--red-400,#f87171)'; syncStatus.textContent='Sync timeout — using local data'; }
+    }
+  }, 12000);
+
   syncFromSupabase().then(function() {
+    clearTimeout(syncSafetyTimer);
     syncReady = true;
     unlockLogin(false);
     showMigrationNotice(sbMissingItems);
@@ -5707,6 +5728,7 @@ updateSessionUI();
     } catch(e) {}
 
   }).catch(function() {
+    clearTimeout(syncSafetyTimer);
     syncReady = true; // offline — allow login with cached data
     unlockLogin(true);
 
