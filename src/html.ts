@@ -427,7 +427,7 @@ export function getAppHTML(): string {
     </div>
     <div id="login-error"></div>
     <div id="login-sync-status" style="text-align:center;font-size:0.85rem;color:var(--ocean-300);margin-bottom:8px;min-height:18px;"></div>
-    <button class="btn-login" id="btn-do-login" disabled style="opacity:0.6;cursor:not-allowed;"><i class="fas fa-spinner fa-spin"></i> Loading...</button>
+    <button class="btn-login" id="btn-do-login"><i class="fas fa-sign-in-alt"></i> Sign In</button>
   </div>
 </div>
 
