@@ -1977,7 +1977,7 @@ function syncFromSupabase() {
     }).catch(function(){}),   // silent fail
     sbFetch('GET', 'orders', null, 'order=created_at.desc').then(function(rows) {
       if (rows) db.orders = rows.map(function(r){ return {
-        id: r.id, date: r.date, items: r.items||[], status: r.status, supplierId: r.supplier_id||'', amount: parseFloat(r.amount)||0, createdAt: r.created_at
+        id: r.id, date: r.date||r.created_at, items: Array.isArray(r.items)?r.items:[], status: r.status, supplierId: r.supplier_id||'', amount: parseFloat(r.amount)||0, createdAt: r.created_at
       }; });
     }).catch(function(){}),   // silent fail
     sbFetch('GET', 'reservations', null, 'order=date.asc,time.asc').then(function(rows) {
@@ -2497,7 +2497,7 @@ function refreshSection(name) {
       if (res[0]) db.reservations = res[0].map(function(x){ return {id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at}; });
       if (res[1]) db.tasks = res[1].map(function(x){ var a=x.assigned_to||[]; if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[];}} if(!Array.isArray(a))a=[]; return {id:x.id,title:x.title,description:x.description||'',category:x.category,priority:x.priority,status:x.status,assignedTo:a,deadline:x.deadline||'',doneAt:x.done_at||'',createdAt:x.created_at,recurrence:x.recurrence||''}; });
       if (res[2]) db.inventory = res[2].map(function(x){ return {id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',supplierId:x.supplier_id||'',createdAt:x.created_at,updatedAt:x.updated_at}; });
-      if (res[3]) db.orders = res[3].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],status:x.status,supplierId:x.supplier_id||'',amount:parseFloat(x.amount)||0,createdAt:x.created_at}; });
+      if (res[3]) db.orders = res[3].map(function(x){ return {id:x.id,date:x.date||x.created_at,items:Array.isArray(x.items)?x.items:[],status:x.status,supplierId:x.supplier_id||'',amount:parseFloat(x.amount)||0,createdAt:x.created_at}; });
       saveDB(db);
       if (currentSection === name) renderDashboard();
     }).catch(function(){});
@@ -2511,7 +2511,7 @@ function refreshSection(name) {
       var db = getDB();
       if (res[0]) db.inventory = res[0].map(function(x){ return {id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',supplierId:x.supplier_id||'',createdAt:x.created_at,updatedAt:x.updated_at}; });
       if (res[1]) db.invLogs = res[1].map(function(x){ return {id:x.id,action:x.action,item:x.item,employee:x.employee,qtyBar:x.qty_bar,qtyStorage:x.qty_storage,timestamp:x.timestamp}; });
-      if (res[2]) db.orders = res[2].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],status:x.status,supplierId:x.supplier_id||'',amount:parseFloat(x.amount)||0,createdAt:x.created_at}; });
+      if (res[2]) db.orders = res[2].map(function(x){ return {id:x.id,date:x.date||x.created_at,items:Array.isArray(x.items)?x.items:[],status:x.status,supplierId:x.supplier_id||'',amount:parseFloat(x.amount)||0,createdAt:x.created_at}; });
       saveDB(db);
       if (currentSection === name) renderInventory();
     }).catch(function(){});
@@ -3731,12 +3731,9 @@ function confirmQuickOrder(){
   if(existing!==-1) pendingOrderItems[existing].orderQty+=qty;
   else pendingOrderItems.push({id:id,name:item.name,unit:item.unit||'',orderQty:qty,supplierId:item.supplierId||''});
   closeModal('modal-quick-order');
-  toast(item.name+' x'+qty+' added — go to Orders to confirm','gold');
+  toast(item.name+' x'+qty+' added to cart','gold');
   updateOrdersBadge();
-  // Re-render cards so the cart highlight appears immediately
-  renderInventory();
-  // Switch to Orders tab so user sees the draft immediately
-  switchInvTab('orders');
+  renderInventory(); // update cart highlight on card
 }
 function renderInventory(){
   var db=getDB(); var items=db.inventory.slice();
@@ -3893,19 +3890,39 @@ function renderOrderHistory(){
 function renderOrderCard(o,db,sup){
   var isStandby=o.status==='standby';
   var canEmail=sup&&sup.sendEmail&&sup.email;
-  return '<div class="'+(isStandby?'order-standby':'order-confirmed')+'" style="margin-bottom:10px">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-      +'<span style="font-weight:700;color:var(--ocean-800)">Order #'+o.id.slice(-6).toUpperCase()+'</span>'
-      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">'
-        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'">'+(isStandby?'⏳ Standby':'✓ Approved')+'</span>'
-        +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':isStandby?'<span style="font-size:11px;color:#92400e;font-style:italic">Awaiting admin</span>':'')
-        +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'" title="Send by email"><i class="fas fa-envelope"></i></button>':'')
-        +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'" title="Set amount"><i class="fas fa-euro-sign"></i></button>':'')
+  var shortId=o.id.slice(-6).toUpperCase();
+  var itemCount=o.items.length;
+  var detailId='order-detail-'+esc(o.id);
+  // Header — always visible, tap to expand
+  var header='<div class="order-card-header" data-toggle-order="'+esc(o.id)+'" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">'
+    +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+        +'<span style="font-weight:700;color:var(--ocean-800);font-size:13px">Order #'+shortId+'</span>'
+        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'" style="font-size:10px">'+(isStandby?'⏳ Standby':'✓ Approved')+'</span>'
       +'</div>'
+      +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'+fmtDate(o.date)+' · '+itemCount+' item'+(itemCount!==1?'s':'')+(o.amount>0?' · <span style="color:#16a34a;font-weight:600">\u20ac'+o.amount.toFixed(2)+'</span>':'')+'</div>'
     +'</div>'
-    +'<div style="font-size:11px;color:var(--ocean-400);margin-bottom:6px">'+fmtDate(o.date)+(o.amount>0?' · <span style="color:#16a34a;font-weight:700">€'+o.amount.toFixed(2)+'</span>':'')+'</div>'
-    +'<div>'+o.items.map(function(i){return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span style="color:var(--ocean-700)">'+esc(i.name)+'</span><span style="font-weight:700;color:var(--ocean-900)">'+i.orderQty+' '+esc(i.unit||'')+'</span></div>';}).join('')+'</div>'
+    +'<i class="fas fa-chevron-down order-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s;flex-shrink:0"></i>'
   +'</div>';
+  // Detail — hidden by default
+  var detail='<div id="'+detailId+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--ocean-100)">'
+    +'<div style="margin-bottom:10px">'
+    +o.items.map(function(i){
+      return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid var(--ocean-50)">'
+        +'<span style="color:var(--ocean-700)">'+esc(i.name)+'</span>'
+        +'<span style="font-weight:700;color:var(--ocean-900)">'+i.orderQty+' '+esc(i.unit||'')+'</span>'
+      +'</div>';
+    }).join('')
+    +'</div>'
+    // Action buttons inside the detail panel
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
+      +(isStandby&&!isAdmin?'<span style="font-size:11px;color:#92400e;font-style:italic;align-self:center">Awaiting admin approval</span>':'')
+      +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'"><i class="fas fa-envelope"></i> Email</button>':'')
+      +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'"><i class="fas fa-euro-sign"></i> Amount</button>':'')
+    +'</div>'
+  +'</div>';
+  return '<div class="'+(isStandby?'order-standby':'order-confirmed')+'" style="margin-bottom:8px">'+header+detail+'</div>';
 }
 
 function confirmDraftOrder(sid){
@@ -3920,18 +3937,29 @@ function confirmDraftOrder(sid){
   if(orderItems.length===0){toast('Enter at least one quantity','error');return;}
   var db=getDB(); var now=new Date().toISOString();
   var realSid=sid==='_none'?'':sid;
-  var newOrder={id:uid(),date:now,items:orderItems,status:'standby',supplierId:realSid,amount:0};
+  // Use a temp local id until Supabase returns the real UUID
+  var tempId='tmp-'+uid();
+  var newOrder={id:tempId,date:now,items:orderItems,status:'standby',supplierId:realSid,amount:0};
   db.orders.unshift(newOrder);
   // Remove confirmed items from pending cart
   var confirmedIds=items.map(function(p){return p.id;});
   pendingOrderItems=pendingOrderItems.filter(function(p){return confirmedIds.indexOf(p.id)===-1;});
   saveDB(db); updateOrdersBadge(); renderInventory(); renderOrderHistory();
-  toast('Order confirmed — awaiting admin approval.','gold');
-  sbFetch('POST','orders',{id:newOrder.id,items:orderItems,status:'standby',supplier_id:realSid||null,amount:0})
+  toast('Confirming order...','gold');
+  // Do NOT send id — let Supabase generate a proper UUID
+  sbFetch('POST','orders',{items:orderItems,status:'standby',supplier_id:realSid||null,amount:0})
     .then(function(rows){
-      if(rows&&rows[0]){var oi=db.orders.findIndex(function(o){return o.id===newOrder.id;}); if(oi!==-1){db.orders[oi].id=rows[0].id; saveDB(db);}}
-      toast('Order sent!','gold');
-    }).catch(function(){toast('Saved locally','error');});
+      if(rows&&rows[0]){
+        var db2=getDB();
+        var oi=db2.orders.findIndex(function(o){return o.id===tempId;});
+        if(oi!==-1){
+          db2.orders[oi].id=rows[0].id;
+          db2.orders[oi].date=rows[0].date||rows[0].created_at||now;
+        }
+        saveDB(db2); renderOrderHistory();
+      }
+      toast('Order confirmed — awaiting approval.','gold');
+    }).catch(function(e){console.error('Order sync error:',e); toast('Saved locally only — check connection','error');});
 }
 function approveOrder(orderId){
   var db=getDB(); var idx=db.orders.findIndex(function(o){return o.id===orderId;});
@@ -5473,6 +5501,17 @@ document.addEventListener('click', function(e) {
   }
   el = t.closest('[data-confirm-draft]');
   if (el) { confirmDraftOrder(el.dataset.confirmDraft); return; }
+  el = t.closest('[data-toggle-order]');
+  if (el) {
+    var detailEl=document.getElementById('order-detail-'+el.dataset.toggleOrder);
+    var chevron=el.querySelector('.order-chevron');
+    if(detailEl){
+      var open=detailEl.style.display==='none';
+      detailEl.style.display=open?'block':'none';
+      if(chevron) chevron.style.transform=open?'rotate(180deg)':'';
+    }
+    return;
+  }
   el = t.closest('[data-confirm-order]');
   if (el) { approveOrder(el.dataset.confirmOrder); return; }
 
