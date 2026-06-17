@@ -973,6 +973,7 @@ export function getAppHTML(): string {
       <div class="tab-row" style="margin-bottom:14px">
         <button class="tab-btn active" id="bb-tab-daily" data-bb-tab="daily">Daily Entry</button>
         <button class="tab-btn" id="bb-tab-records" data-bb-tab="records">Records</button>
+        <button class="tab-btn" id="bb-tab-items" data-bb-tab="items">Item Records</button>
         <button class="tab-btn" id="bb-tab-menu" data-bb-tab="menu">Menu Items</button>
       </div>
       <!-- Daily Entry -->
@@ -1027,19 +1028,31 @@ export function getAppHTML(): string {
             <div class="bb-summary-label" id="bb-sum-label-month">This Month</div>
           </div>
         </div>
-        <!-- Per-item summary section -->
-        <div style="margin-bottom:14px">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:8px"><i class="fas fa-chart-bar" style="color:var(--ocean-500)"></i> Item Summary</div>
-          <div class="search-bar" style="margin-bottom:8px">
-            <i class="fas fa-search"></i>
-            <input type="text" id="bb-records-search" placeholder="Search items..." />
-          </div>
-          <div id="bb-item-summary-list"></div>
-        </div>
-        <div class="divider" style="margin-bottom:12px"></div>
         <!-- Daily entries list -->
         <div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:8px"><i class="fas fa-calendar-days" style="color:var(--ocean-500)"></i> Daily Records</div>
         <div id="bb-records-list"></div>
+      </div>
+      <!-- Item Records -->
+      <div id="bb-panel-items" style="display:none">
+        <!-- Date range filter -->
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
+            <label style="font-size:11px;color:var(--ocean-500);white-space:nowrap">From</label>
+            <input type="date" id="bb-items-from" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
+            <label style="font-size:11px;color:var(--ocean-500);white-space:nowrap">To</label>
+            <input type="date" id="bb-items-to" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-bb-items-clear-range" style="white-space:nowrap"><i class="fas fa-xmark"></i> Clear</button>
+        </div>
+        <!-- Item search -->
+        <div class="search-bar" style="margin-bottom:10px">
+          <i class="fas fa-search"></i>
+          <input type="text" id="bb-records-search" placeholder="Search items..." />
+        </div>
+        <!-- Item summary list -->
+        <div id="bb-item-summary-list"></div>
       </div>
       <!-- Menu Items Management -->
       <div id="bb-panel-menu" style="display:none">
@@ -2150,6 +2163,8 @@ var currentBbTab = 'daily';
 var bbRecordsFrom = '';
 var bbRecordsTo = '';
 var bbRecordsSearch = '';
+var bbItemsFrom = '';
+var bbItemsTo = '';
 var currentFinTab = 'entry';
 var editUserId = null; // null = add mode, string = edit mode
 var selectedTables = [];
@@ -5177,12 +5192,13 @@ function renderBlackBox(){
 }
 function switchBbTab(t){
   currentBbTab=t;
-  ['daily','records','menu'].forEach(function(x){
+  ['daily','records','items','menu'].forEach(function(x){
     var btn=document.getElementById('bb-tab-'+x); if(btn) btn.classList.toggle('active',x===t);
     var panel=document.getElementById('bb-panel-'+x); if(panel) panel.style.display=x===t?'block':'none';
   });
   if(t==='daily') renderBbDaily();
   if(t==='records') renderBbRecords();
+  if(t==='items') renderBbItemRecords();
   if(t==='menu') renderBbMenuManage();
   refreshSection('blackbox');
 }
@@ -5316,39 +5332,6 @@ function renderBbRecords(){
     if(lbl3) lbl3.textContent='This Month';
   }
 
-  // Per-item aggregates
-  var itemMap={}; // id -> {name, timesSold, revenue}
-  filtered.forEach(function(entry){
-    entry.items.forEach(function(i){
-      if(!itemMap[i.id]) itemMap[i.id]={name:i.name,timesSold:0,revenue:0};
-      itemMap[i.id].timesSold+=i.qty;
-      itemMap[i.id].revenue+=i.subtotal;
-    });
-  });
-  var itemList=Object.keys(itemMap).map(function(id){return Object.assign({id:id},itemMap[id]);});
-  itemList.sort(function(a,b){return b.revenue-a.revenue;});
-  // Apply item search filter
-  var searchLow=bbRecordsSearch.toLowerCase();
-  var itemListFiltered=searchLow?itemList.filter(function(i){return i.name.toLowerCase().indexOf(searchLow)!==-1;}):itemList;
-  var sumEl=document.getElementById('bb-item-summary-list');
-  if(sumEl){
-    var srchInp=document.getElementById('bb-records-search');
-    if(srchInp&&srchInp.value!==bbRecordsSearch) srchInp.value=bbRecordsSearch;
-    if(itemListFiltered.length===0){
-      sumEl.innerHTML='<div class="empty-state" style="padding:10px"><p>'+(searchLow?'No items match your search.':'No data yet.')+'</p></div>';
-    } else {
-      sumEl.innerHTML=itemListFiltered.map(function(i){
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--ocean-50);border-radius:10px;margin-bottom:6px">'
-          +'<div style="flex:1;min-width:0">'
-            +'<div style="font-weight:700;font-size:13px;color:var(--ocean-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(i.name)+'</div>'
-            +'<div style="font-size:11px;color:var(--ocean-400)">Sold '+i.timesSold+' time'+(i.timesSold!==1?'s':'')+'</div>'
-          +'</div>'
-          +'<div style="font-weight:800;font-size:14px;color:var(--ocean-700);margin-left:10px">'+fmtEur(i.revenue)+'</div>'
-        +'</div>';
-      }).join('');
-    }
-  }
-
   // Daily records list
   var el=document.getElementById('bb-records-list'); if(!el) return;
   var sorted=filtered.slice().sort(function(a,b){return b.date.localeCompare(a.date);});
@@ -5367,6 +5350,50 @@ function renderBbRecords(){
       }).join('')+'</div>'
     +'</div>';
   }).join('');
+}
+function renderBbItemRecords(){
+  var db=getDB();
+  // Sync date range inputs
+  var fromInp=document.getElementById('bb-items-from');
+  var toInp=document.getElementById('bb-items-to');
+  if(fromInp&&fromInp.value!==bbItemsFrom) fromInp.value=bbItemsFrom;
+  if(toInp&&toInp.value!==bbItemsTo) toInp.value=bbItemsTo;
+  var srchInp=document.getElementById('bb-records-search');
+  if(srchInp&&srchInp.value!==bbRecordsSearch) srchInp.value=bbRecordsSearch;
+  // Filter entries by date range
+  var filtered=db.bbEntries.filter(function(e){
+    if(bbItemsFrom&&e.date<bbItemsFrom) return false;
+    if(bbItemsTo&&e.date>bbItemsTo) return false;
+    return true;
+  });
+  // Aggregate per item
+  var itemMap={};
+  filtered.forEach(function(entry){
+    entry.items.forEach(function(i){
+      if(!itemMap[i.id]) itemMap[i.id]={name:i.name,timesSold:0,revenue:0};
+      itemMap[i.id].timesSold+=i.qty;
+      itemMap[i.id].revenue+=i.subtotal;
+    });
+  });
+  var itemList=Object.keys(itemMap).map(function(id){return Object.assign({id:id},itemMap[id]);});
+  itemList.sort(function(a,b){return b.revenue-a.revenue;});
+  // Apply search filter
+  var searchLow=bbRecordsSearch.toLowerCase();
+  var itemListFiltered=searchLow?itemList.filter(function(i){return i.name.toLowerCase().indexOf(searchLow)!==-1;}):itemList;
+  var sumEl=document.getElementById('bb-item-summary-list'); if(!sumEl) return;
+  if(itemListFiltered.length===0){
+    sumEl.innerHTML='<div class="empty-state" style="padding:14px"><i class="fas fa-chart-bar"></i><p>'+(searchLow?'No items match your search.':'No data yet.')+'</p></div>';
+  } else {
+    sumEl.innerHTML=itemListFiltered.map(function(i){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--ocean-50);border-radius:10px;margin-bottom:6px">'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(i.name)+'</div>'
+          +'<div style="font-size:12px;color:var(--ocean-400)">Sold '+i.timesSold+' time'+(i.timesSold!==1?'s':'')+'</div>'
+        +'</div>'
+        +'<div style="font-weight:800;font-size:16px;color:var(--ocean-700);margin-left:10px">'+fmtEur(i.revenue)+'</div>'
+      +'</div>';
+    }).join('');
+  }
 }
 function editBbEntry(dateStr){
   var db=getDB();
@@ -5769,6 +5796,12 @@ document.addEventListener('click', function(e) {
     var tr=document.getElementById('bb-records-to'); if(tr) tr.value='';
     renderBbRecords(); return;
   }
+  if (t.closest('#btn-bb-items-clear-range')) {
+    bbItemsFrom=''; bbItemsTo='';
+    var fi=document.getElementById('bb-items-from'); if(fi) fi.value='';
+    var ti=document.getElementById('bb-items-to'); if(ti) ti.value='';
+    renderBbItemRecords(); return;
+  }
 
   // Settings
   if (t.closest('#btn-add-employee') || t.closest('#btn-shifts-add-employee')) { addEmployee(); return; }
@@ -5817,7 +5850,7 @@ document.addEventListener('input', function(e) {
   if (t.id === 'inv-search') { invSearchVal=t.value; renderInventory(); }
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
-  if (t.id === 'bb-records-search') { bbRecordsSearch=t.value; renderBbRecords(); }
+  if (t.id === 'bb-records-search') { bbRecordsSearch=t.value; renderBbItemRecords(); }
   // Finance live total update
   if (['fin-t51','fin-multibanco','fin-invoiced','fin-gen-expenses','fin-cash-notes','fin-coins'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
   // Finance date picker
@@ -5835,6 +5868,9 @@ document.addEventListener('change', function(e) {
   // BB records date range filter
   if (t.id === 'bb-records-from') { bbRecordsFrom=t.value; renderBbRecords(); }
   if (t.id === 'bb-records-to') { bbRecordsTo=t.value; renderBbRecords(); }
+  // BB item records date range filter
+  if (t.id === 'bb-items-from') { bbItemsFrom=t.value; renderBbItemRecords(); }
+  if (t.id === 'bb-items-to') { bbItemsTo=t.value; renderBbItemRecords(); }
   // Pre-fill shift rows when employee is selected in shift modal
   if (t.id === 'shift-employee' && t.value) { prefillShiftRows(t.value); }
   // Disable/enable time inputs when Day Off checkbox changes in shift modal
