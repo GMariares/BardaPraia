@@ -5376,7 +5376,7 @@ function renderBbItemRecords(){
     });
   });
   var itemList=Object.keys(itemMap).map(function(id){return Object.assign({id:id},itemMap[id]);});
-  itemList.sort(function(a,b){return b.revenue-a.revenue;});
+  itemList.sort(function(a,b){return b.timesSold-a.timesSold;});
   // Apply search filter
   var searchLow=bbRecordsSearch.toLowerCase();
   var itemListFiltered=searchLow?itemList.filter(function(i){return i.name.toLowerCase().indexOf(searchLow)!==-1;}):itemList;
