@@ -325,6 +325,8 @@ export function getAppHTML(): string {
     .bb-qty-minus { background:#fee2e2; color:#dc2626; }
     .bb-qty-plus { background:#dcfce7; color:#16a34a; }
     .bb-qty-val { font-size:15px; font-weight:700; color:var(--ocean-900); min-width:24px; text-align:center; }
+    .bb-qty-input { width:40px; border:1px solid var(--ocean-200); border-radius:6px; padding:2px 4px; background:var(--ocean-50); -moz-appearance:textfield; }
+    .bb-qty-input::-webkit-inner-spin-button, .bb-qty-input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
     .bb-daily-record { background:white; border-radius:var(--radius); padding:16px; margin-bottom:10px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
     .bb-daily-record-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
     .bb-total-box { background:linear-gradient(135deg,#0c4a6e,#0369a1); border-radius:14px; padding:16px; text-align:center; color:white; margin-bottom:14px; }
@@ -5232,7 +5234,7 @@ function renderBbMenuSelector(){
       +'</div>'
       +'<div class="bb-qty-ctrl" style="flex-shrink:0">'
         +'<button class="bb-qty-btn bb-qty-minus" data-bb-minus="'+esc(item.id)+'" style="'+(qty===0?'opacity:.3':'')+'">-</button>'
-        +'<span class="bb-qty-val">'+qty+'</span>'
+        +'<input type="number" class="bb-qty-val bb-qty-input" data-bb-qty-input="'+esc(item.id)+'" value="'+qty+'" min="0" step="1" />'
         +'<button class="bb-qty-btn bb-qty-plus" data-bb-plus="'+esc(item.id)+'">+</button>'
       +'</div>'
       +'<div class="bb-price">'+fmtEur(item.price)+'</div>'
@@ -5299,7 +5301,8 @@ function renderBbRecords(){
 
   // Determine filtered entries
   var hasRange=bbRecordsFrom||bbRecordsTo;
-  var filtered=db.bbEntries.filter(function(e){
+  var allEntries=db.bbEntries||[];
+  var filtered=allEntries.filter(function(e){
     if(bbRecordsFrom&&e.date<bbRecordsFrom) return false;
     if(bbRecordsTo&&e.date>bbRecordsTo) return false;
     return true;
@@ -5311,22 +5314,26 @@ function renderBbRecords(){
   var lbl1=document.getElementById('bb-sum-label-today');
   var lbl2=document.getElementById('bb-sum-label-week');
   var lbl3=document.getElementById('bb-sum-label-month');
+  var elSum1=document.getElementById('bb-today-sum');
+  var elSum2=document.getElementById('bb-week-sum');
+  var elSum3=document.getElementById('bb-month-sum');
   if(hasRange){
-    var rangeTotal=filtered.reduce(function(s,e){return s+e.total;},0);
+    var rangeTotal=filtered.reduce(function(s,e){return s+(parseFloat(e.total)||0);},0);
     var rangeCount=filtered.length;
-    document.getElementById('bb-today-sum').textContent=fmtEur(rangeTotal);
-    document.getElementById('bb-week-sum').textContent=String(rangeCount);
-    document.getElementById('bb-month-sum').textContent=rangeCount>0?fmtEur(rangeTotal/rangeCount):'€0';
+    if(elSum1) elSum1.textContent=fmtEur(rangeTotal);
+    if(elSum2) elSum2.textContent=String(rangeCount);
+    if(elSum3) elSum3.textContent=rangeCount>0?fmtEur(rangeTotal/rangeCount):'€0';
     if(lbl1) lbl1.textContent='Range Total';
     if(lbl2) lbl2.textContent='Days';
     if(lbl3) lbl3.textContent='Avg/Day';
   } else {
-    var todayEntry=db.bbEntries.find(function(e){return e.date===today;});
-    var weekEntries=db.bbEntries.filter(function(e){return e.date>=weekStart&&e.date<=today;});
-    var monthEntries=db.bbEntries.filter(function(e){return e.date>=monthStart&&e.date<=today;});
-    document.getElementById('bb-today-sum').textContent=fmtEur(todayEntry?todayEntry.total:0);
-    document.getElementById('bb-week-sum').textContent=fmtEur(weekEntries.reduce(function(s,e){return s+e.total;},0));
-    document.getElementById('bb-month-sum').textContent=fmtEur(monthEntries.reduce(function(s,e){return s+e.total;},0));
+    var entries=db.bbEntries||[];
+    var todayEntry=entries.find(function(e){return e.date===today;});
+    var weekEntries=entries.filter(function(e){return e.date>=weekStart&&e.date<=today;});
+    var monthEntries=entries.filter(function(e){return e.date>=monthStart&&e.date<=today;});
+    if(elSum1) elSum1.textContent=fmtEur(todayEntry?parseFloat(todayEntry.total)||0:0);
+    if(elSum2) elSum2.textContent=fmtEur(weekEntries.reduce(function(s,e){return s+(parseFloat(e.total)||0);},0));
+    if(elSum3) elSum3.textContent=fmtEur(monthEntries.reduce(function(s,e){return s+(parseFloat(e.total)||0);},0));
     if(lbl1) lbl1.textContent='Today';
     if(lbl2) lbl2.textContent='This Week';
     if(lbl3) lbl3.textContent='This Month';
@@ -5851,6 +5858,13 @@ document.addEventListener('input', function(e) {
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
   if (t.id === 'bb-records-search') { bbRecordsSearch=t.value; renderBbItemRecords(); }
+  if (t.dataset&&t.dataset.bbQtyInput) {
+    var qid=t.dataset.bbQtyInput;
+    var qval=parseInt(t.value,10);
+    if(isNaN(qval)||qval<0) qval=0;
+    if(qval===0) delete bbSelectedItems[qid]; else bbSelectedItems[qid]=qval;
+    renderBbSelectedList(); updateBbTotal();
+  }
   // Finance live total update
   if (['fin-t51','fin-multibanco','fin-invoiced','fin-gen-expenses','fin-cash-notes','fin-coins'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
   // Finance date picker
