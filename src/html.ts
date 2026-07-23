@@ -5878,7 +5878,13 @@ document.addEventListener('change', function(e) {
   if (t.id === 'fin-rec-day-picker') { finRecDayFilter=t.value||''; renderFinRecords(); }
   if (t.id === 'fin-range-from' || t.id === 'fin-range-to') { renderFinRecords(); }
   // BB entry date change — clear current selection
-  if (t.id === 'bb-entry-date' && t.value) { bbSelectedItems={}; renderBbDaily(); }
+  if (t.id === 'bb-entry-date' && t.value) {
+    var db=getDB();
+    var existing=db.bbEntries.find(function(e){return e.date===t.value;});
+    bbSelectedItems={};
+    if(existing) existing.items.forEach(function(i){bbSelectedItems[i.id]=i.qty;});
+    renderBbDaily();
+  }
   // BB records date range filter
   if (t.id === 'bb-records-from') { bbRecordsFrom=t.value; renderBbRecords(); }
   if (t.id === 'bb-records-to') { bbRecordsTo=t.value; renderBbRecords(); }
