@@ -5204,13 +5204,23 @@ function switchBbTab(t){
   if(t==='menu') renderBbMenuManage();
   refreshSection('blackbox');
 }
+function loadBbEntryForDate(dateStr){
+  var db=getDB();
+  var existing=(db.bbEntries||[]).find(function(e){return e.date===dateStr;});
+  bbSelectedItems={};
+  if(existing) existing.items.forEach(function(i){bbSelectedItems[i.id]=i.qty;});
+}
 function renderBbDaily(){
   var today=toDateStr(new Date());
   var dateInp=document.getElementById('bb-entry-date');
-  if(dateInp){
-    if(!dateInp.value) dateInp.value=today;
-  }
+  var prevDate=dateInp?dateInp.dataset.bbLoadedDate||'':'';
+  if(dateInp&&!dateInp.value) dateInp.value=today;
   var activeDateStr=(dateInp&&dateInp.value)?dateInp.value:today;
+  // Auto-load existing entry whenever the active date changes
+  if(activeDateStr!==prevDate){
+    loadBbEntryForDate(activeDateStr);
+    if(dateInp) dateInp.dataset.bbLoadedDate=activeDateStr;
+  }
   var isToday=activeDateStr===today;
   var todayLbl=document.getElementById('bb-today-date');
   if(todayLbl) todayLbl.textContent=isToday?'(Today)':'';
@@ -5279,7 +5289,10 @@ function saveDailyEntry(){
   var entry={id:uid(),date:entryDate,items:items,total:total,savedAt:new Date().toISOString()};
   if(idx!==-1) db.bbEntries[idx]=entry; else db.bbEntries.push(entry);
   saveDB(db); toast('Saving...','gold');
-  bbSelectedItems={}; renderBbDaily(); renderBbRecords();
+  bbSelectedItems={};
+  var diReset=document.getElementById('bb-entry-date');
+  if(diReset) diReset.dataset.bbLoadedDate='';
+  renderBbDaily(); renderBbRecords();
   // Use proper upsert header to handle both insert and update
   fetch(SB_URL+'/rest/v1/bb_entries', {
     method:'POST',
@@ -5287,7 +5300,12 @@ function saveDailyEntry(){
     body:JSON.stringify({date:entryDate,items:items,total:total,saved_at:new Date().toISOString()})
   }).then(function(){ toast('Entry saved for '+entryDate+'! '+fmtEur(total),'gold'); }).catch(function(){ toast('Saved locally only','error'); });
 }
-function clearDailyEntry(){ bbSelectedItems={}; renderBbDaily(); toast('Cleared.'); }
+function clearDailyEntry(){
+  bbSelectedItems={};
+  var dateInpEl=document.getElementById('bb-entry-date');
+  if(dateInpEl) dateInpEl.dataset.bbLoadedDate='';
+  renderBbDaily(); toast('Cleared.');
+}
 function renderBbRecords(){
   var db=getDB();
   var today=toDateStr(new Date());
@@ -5869,6 +5887,12 @@ document.addEventListener('input', function(e) {
   if (['fin-t51','fin-multibanco','fin-invoiced','fin-gen-expenses','fin-cash-notes','fin-coins'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
   // Finance date picker
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
+  // BB entry date — also handle on input for mobile browsers
+  if (t.id === 'bb-entry-date' && t.value) {
+    var dateInpEl2=document.getElementById('bb-entry-date');
+    if(dateInpEl2) dateInpEl2.dataset.bbLoadedDate='';
+    renderBbDaily();
+  }
 });
 document.addEventListener('change', function(e) {
   var t = e.target;
@@ -5877,12 +5901,10 @@ document.addEventListener('change', function(e) {
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
   if (t.id === 'fin-rec-day-picker') { finRecDayFilter=t.value||''; renderFinRecords(); }
   if (t.id === 'fin-range-from' || t.id === 'fin-range-to') { renderFinRecords(); }
-  // BB entry date change — clear current selection
+  // BB entry date change — load existing entry for selected date
   if (t.id === 'bb-entry-date' && t.value) {
-    var db=getDB();
-    var existing=db.bbEntries.find(function(e){return e.date===t.value;});
-    bbSelectedItems={};
-    if(existing) existing.items.forEach(function(i){bbSelectedItems[i.id]=i.qty;});
+    var dateInpEl=document.getElementById('bb-entry-date');
+    if(dateInpEl) dateInpEl.dataset.bbLoadedDate=''; // reset so renderBbDaily re-loads
     renderBbDaily();
   }
   // BB records date range filter
