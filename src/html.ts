@@ -6,6 +6,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Bar da Praia</title>
   <meta name="theme-color" content="#34525f" />
+  <link rel="preload" href="/fonts/hanken-grotesk-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Bar da Praia" />
   <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
@@ -14,406 +15,504 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
+    @font-face { font-family:'Hanken Grotesk'; font-style:normal; font-weight:400; font-display:swap; src:url(/fonts/hanken-grotesk-latin-400-normal.woff2) format('woff2'); }
+    @font-face { font-family:'Hanken Grotesk'; font-style:normal; font-weight:500; font-display:swap; src:url(/fonts/hanken-grotesk-latin-500-normal.woff2) format('woff2'); }
+    @font-face { font-family:'Hanken Grotesk'; font-style:normal; font-weight:600; font-display:swap; src:url(/fonts/hanken-grotesk-latin-600-normal.woff2) format('woff2'); }
+    @font-face { font-family:'Hanken Grotesk'; font-style:normal; font-weight:700; font-display:swap; src:url(/fonts/hanken-grotesk-latin-700-normal.woff2) format('woff2'); }
+    @font-face { font-family:'Hanken Grotesk'; font-style:normal; font-weight:800; font-display:swap; src:url(/fonts/hanken-grotesk-latin-800-normal.woff2) format('woff2'); }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --ocean-50: #f0f9ff; --ocean-100: #e0f2fe; --ocean-200: #bae6fd;
-      --ocean-300: #7dd3fc; --ocean-400: #38bdf8; --ocean-500: #0ea5e9;
-      --ocean-600: #0284c7; --ocean-700: #0369a1; --ocean-800: #075985;
-      --ocean-900: #0c4a6e;
-      --grad: linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0ea5e9 100%);
-      --grad-btn: linear-gradient(135deg, #0ea5e9, #0284c7);
-      --gold: #f59e0b; --gold-light: #fef9c3;
-      --radius: 14px; --radius-sm: 9px;
-      --shadow: 0 2px 16px rgba(0,0,0,.07);
-      --shadow-md: 0 4px 24px rgba(14,165,233,.14);
+      /* ── The whitewashed dining room ── */
+      --canvas: #f3f1ec;            /* sand-white floor */
+      --panel: #ffffff;             /* whitewashed wall */
+      --slate-900: #22363f; --slate-800: #2b434e; --slate-700: #34525f; --slate-600: #4a6572;
+      --slate-500: #5f7079; --slate-400: #8a9aa2; --slate-300: #b7c3c9; --slate-200: #d5dde1;
+      --slate-100: #e6ebee; --slate-50: #f2f5f6;
+      --mint-50: #edf9f5; --mint-100: #d6f2ea; --mint-200: #b7e7d2; --mint-300: #94dac3;
+      --teal-500: #2a9683; --teal-600: #1f8574; --teal-700: #17695c;
+      --pine: #b07b59; --rattan: #c9a680; --rattan-50: #f8f1e7; --rattan-200: #e9d6bb;
+      --gold: #a6741e; --gold-50: #fbf1dc; --gold-200: #ecd39a;
+      --purple: #6d4fc2; --purple-50: #efeafb; --purple-200: #cfc2f0;
+      --green: #2b8a4b; --green-50: #e3f4e8; --green-200: #a9dcb9;
+      --blue: #2f6fa8; --blue-50: #e6f0f9; --blue-200: #b5d0e8;
+      --red: #b4402f; --red-50: #fbeae7; --red-200: #f0b8ae;
+      --amber: #b7791f; --amber-50: #fdf3e1; --amber-200: #f0d391;
+      --radius: 12px; --radius-sm: 8px;
+      --rule: 1px solid var(--slate-200);
+      --shadow: none;
+      --shadow-md: none;
+      --shadow-overlay: 0 12px 32px rgba(34,54,63,.18);
+      --font: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --beam-w: 248px;
+      /* legacy aliases (inline styles in the page script) */
+      --ocean-50: var(--slate-50); --ocean-100: var(--slate-100); --ocean-200: var(--slate-200);
+      --ocean-300: var(--slate-300); --ocean-400: var(--slate-500); --ocean-500: var(--teal-500);
+      --ocean-600: var(--teal-600); --ocean-700: var(--slate-700); --ocean-800: var(--slate-800);
+      --ocean-900: var(--slate-900);
+      --grad: var(--slate-700);
+      --grad-btn: var(--teal-600);
+      --gold-light: var(--gold-50);
     }
     html, body { height: 100%; overflow: hidden; }
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--ocean-50); color: var(--ocean-900); -webkit-tap-highlight-color: transparent; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: var(--ocean-50); }
-    ::-webkit-scrollbar-thumb { background: var(--ocean-300); border-radius: 2px; }
+    body { font-family: var(--font); font-size: 15px; line-height: 1.4; background: var(--canvas); color: var(--slate-900); -webkit-tap-highlight-color: transparent; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1, "ss01" 0; -webkit-font-smoothing: antialiased; }
+    button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+    ::selection { background: var(--mint-200); color: var(--slate-900); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 3px; }
+    :focus-visible { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+    input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
+    i.fas, i.far, i.fab { line-height: 1; }
 
     /* ── LOGIN SCREEN ── */
-    #login-screen { position:fixed; inset:0; z-index:9999; background:var(--grad); display:flex; align-items:center; justify-content:center; padding:20px; }
+    #login-screen { position:fixed; inset:0; z-index:9999; background:var(--canvas); display:flex; align-items:center; justify-content:center; padding:20px; }
+    #login-screen::before { content:''; position:absolute; left:0; right:0; top:0; height:38vh; background:var(--slate-700); }
     #login-screen.hidden { display:none; }
-    .login-box { background:white; border-radius:20px; padding:32px 28px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
-    .login-logo { text-align:center; margin-bottom:24px; }
-    .login-logo-img { display:block; width:200px; max-width:72%; height:auto; margin:0 auto 6px; }
-    .login-logo h1 { font-size:20px; font-weight:800; color:var(--ocean-900); }
-    .login-logo p  { font-size:12px; color:var(--ocean-400); margin-top:2px; }
-    .login-field { margin-bottom:14px; }
-    .login-field label { font-size:11px; font-weight:700; color:var(--ocean-600); text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:5px; }
-    .login-field input { width:100%; border:1.5px solid var(--ocean-200); border-radius:10px; padding:12px 14px; font-size:15px; color:var(--ocean-900); outline:none; background:var(--ocean-50); }
-    .login-field input:focus { border-color:var(--ocean-500); background:white; box-shadow:0 0 0 3px rgba(14,165,233,.12); }
-    #login-error { color:#dc2626; font-size:13px; text-align:center; min-height:18px; margin-bottom:8px; }
-    .btn-login { width:100%; padding:13px; background:var(--grad-btn); color:white; border:none; border-radius:11px; font-size:15px; font-weight:700; cursor:pointer; transition:filter .15s; }
-    .btn-login:active { filter:brightness(1.1); }
+    .login-box { position:relative; background:var(--panel); border-radius:16px; padding:36px 28px 28px; width:100%; max-width:380px; border:var(--rule); box-shadow:var(--shadow-overlay); }
+    .login-logo { text-align:center; margin-bottom:28px; }
+    .login-logo-img { display:block; width:220px; max-width:76%; height:auto; margin:0 auto 10px; }
+    .login-logo h1 { font-size:20px; font-weight:700; color:var(--slate-900); }
+    .login-logo p  { font-size:12px; font-weight:600; color:var(--slate-500); letter-spacing:.14em; text-transform:uppercase; }
+    .login-field { margin-bottom:16px; }
+    .login-field label { font-size:11px; font-weight:700; color:var(--slate-600); text-transform:uppercase; letter-spacing:.1em; display:block; margin-bottom:6px; }
+    .login-field input { width:100%; border:var(--rule); border-radius:10px; padding:13px 14px; font-size:16px; color:var(--slate-900); outline:none; background:var(--panel); min-height:48px; transition:border-color .15s, box-shadow .15s; }
+    .login-field input::placeholder { color:var(--slate-400); }
+    .login-field input:focus { border-color:var(--teal-500); box-shadow:0 0 0 3px var(--mint-100); }
+    #login-error { color:var(--red); font-size:13px; font-weight:600; text-align:center; min-height:18px; margin-bottom:10px; }
+    .btn-login { width:100%; padding:14px; min-height:48px; background:var(--teal-600); color:white; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; transition:background .15s, transform .1s; }
+    .btn-login:hover { background:var(--teal-700); }
+    .btn-login:active { transform:scale(.99); }
 
-    /* ── ROLE BADGES ── */
-    .role-chip { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; margin:1px; }
-    .role-chip.admin     { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
-    .role-chip.finance   { background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; }
-    .role-chip.shift_mgr { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
-    .role-chip.employee  { background:#e0f2fe; color:#075985; border:1px solid #7dd3fc; }
+    /* ── ROLE STAMPS ── */
+    .role-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; margin:1px; border:1px solid transparent; line-height:1.3; }
+    .role-chip i { font-size:10px; }
+    .role-chip.admin     { background:var(--gold-50);   color:var(--gold);   border-color:var(--gold-200); }
+    .role-chip.finance   { background:var(--purple-50); color:var(--purple); border-color:var(--purple-200); }
+    .role-chip.shift_mgr { background:var(--green-50);  color:var(--green);  border-color:var(--green-200); }
+    .role-chip.employee  { background:var(--blue-50);   color:var(--blue);   border-color:var(--blue-200); }
 
     /* ── USER CARDS ── */
-    .user-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); margin-bottom:10px; display:flex; align-items:center; gap:12px; }
-    .user-avatar { width:42px; height:42px; border-radius:50%; background:var(--grad); color:white; font-size:16px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .user-card { background:var(--panel); border-radius:var(--radius); padding:14px 16px; border:var(--rule); margin-bottom:8px; display:flex; align-items:center; gap:14px; }
+    .user-avatar { width:44px; height:44px; border-radius:50%; background:var(--slate-700); color:white; font-size:16px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .user-info { flex:1; min-width:0; }
-    .user-name { font-size:14px; font-weight:700; color:var(--ocean-900); }
-    .user-username { font-size:11px; color:var(--ocean-400); margin-top:1px; }
-    .user-roles { margin-top:4px; }
+    .user-name { font-size:15px; font-weight:700; color:var(--slate-900); }
+    .user-username { font-size:12px; color:var(--slate-500); margin-top:1px; }
+    .user-roles { margin-top:6px; }
 
     /* ── ADMIN ROLE BADGE ── */
-    .role-badge-admin { background: linear-gradient(135deg,#f59e0b,#d97706); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:.05em; }
-    .role-badge-emp { background: var(--ocean-100); color:var(--ocean-700); font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+    .role-badge-admin { background:var(--gold-50); color:var(--gold); border:1px solid var(--gold-200); font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; letter-spacing:.06em; text-transform:uppercase; }
+    .role-badge-emp { background:var(--blue-50); color:var(--blue); border:1px solid var(--blue-200); font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; letter-spacing:.06em; text-transform:uppercase; }
 
-    /* ── TOP BAR ── */
-    #topbar { position:fixed; top:0; left:0; right:0; z-index:200; background:rgba(255,255,255,.95); backdrop-filter:blur(12px); border-bottom:1px solid var(--ocean-100); height:56px; display:flex; align-items:center; padding:0 16px; gap:10px; }
-    #hamburger-btn { width:38px; height:38px; border-radius:10px; border:none; background:var(--ocean-100); color:var(--ocean-700); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; transition:background .2s; }
-    #hamburger-btn:hover { background:var(--ocean-200); }
-    #topbar-title { font-weight:700; font-size:17px; color:var(--ocean-900); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    #topbar-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
-    #topbar-role-info { display:flex; align-items:center; gap:6px; }
-    #topbar-emp { font-size:13px; color:var(--ocean-700); background:var(--ocean-100); border:1px solid var(--ocean-200); border-radius:8px; padding:5px 10px; outline:none; cursor:pointer; max-width:110px; }
-    #admin-login-btn { background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
-    #admin-logout-btn { background:#fee2e2; color:#dc2626; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
-    #finance-login-btn { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
-    #finance-logout-btn { background:#ede9fe; color:#7c3aed; border:none; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
-    .role-badge-finance { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:.05em; }
+    /* ── THE BEAM (top bar) ── */
+    #topbar { position:fixed; top:0; left:0; right:0; z-index:200; background:var(--slate-700); color:white; height:56px; display:flex; align-items:center; padding:0 12px 0 10px; gap:10px; }
+    #hamburger-btn { width:44px; height:44px; border-radius:10px; border:none; background:transparent; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; transition:background .15s; }
+    #hamburger-btn:hover { background:rgba(255,255,255,.1); }
+    #topbar-title { font-weight:700; font-size:13px; letter-spacing:.16em; text-transform:uppercase; color:white; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #topbar-right { display:flex; align-items:center; gap:6px; flex-shrink:0; overflow:hidden; }
+    #topbar-role-info { display:flex; align-items:center; gap:4px; overflow-x:auto; scrollbar-width:none; }
+    #topbar-role-info::-webkit-scrollbar { display:none; }
+    #topbar .role-chip { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.18); color:white; }
+    #topbar .role-chip.admin i { color:var(--gold-200); }
+    #topbar .role-chip.finance i { color:var(--purple-200); }
+    #topbar .role-chip.shift_mgr i { color:var(--green-200); }
+    #topbar .role-chip.employee i { color:var(--blue-200); }
+    #topbar-emp { font-size:13px; font-weight:600; color:white; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:6px 10px; outline:none; cursor:pointer; max-width:120px; }
+    #topbar-emp option { color:var(--slate-900); }
+    #admin-login-btn { background:var(--gold-200); color:var(--slate-900); border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    #admin-logout-btn { background:rgba(255,255,255,.12); color:white; border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
+    #finance-login-btn { background:var(--purple-200); color:var(--slate-900); border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    #finance-logout-btn { background:rgba(255,255,255,.12); color:white; border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
+    .role-badge-finance { background:var(--purple-50); color:var(--purple); border:1px solid var(--purple-200); font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; letter-spacing:.06em; text-transform:uppercase; }
 
     /* ── FINANCE SECTION ── */
-    .fin-card { background:white; border-radius:var(--radius); padding:14px; margin-bottom:12px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); overflow:hidden; }
-    .fin-card h3 { font-size:14px; font-weight:700; color:var(--ocean-800); margin-bottom:14px; display:flex; align-items:center; gap:7px; }
-    .fin-total-box { background:linear-gradient(135deg,#4c1d95,#7c3aed); border-radius:14px; padding:18px; text-align:center; color:white; margin-bottom:14px; }
-    .fin-total-label { font-size:12px; opacity:.7; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
-    .fin-total-num { font-size:34px; font-weight:900; }
-    .fin-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--ocean-50); }
+    .fin-card { background:var(--panel); border-radius:var(--radius); padding:16px; margin-bottom:12px; border:var(--rule); overflow:hidden; }
+    .fin-card h3 { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+    .fin-card h3 i { color:var(--purple); }
+    .fin-total-box { background:var(--slate-700); border-radius:var(--radius); padding:20px 18px; text-align:center; color:white; margin-bottom:14px; }
+    .fin-total-label { font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--purple-200); margin-bottom:6px; }
+    .fin-total-num { font-size:40px; font-weight:800; letter-spacing:-.02em; line-height:1; }
+    .fin-row { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--slate-100); }
     .fin-row:last-child { border-bottom:none; }
-    .fin-row-label { font-size:13px; font-weight:600; color:var(--ocean-700); display:flex; align-items:center; gap:8px; }
-    .fin-row-val { font-size:16px; font-weight:800; color:var(--ocean-900); }
-    .fin-record { background:white; border-radius:var(--radius); padding:16px; margin-bottom:10px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
-    .fin-record-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--ocean-50); }
-    .fin-record-date { font-weight:700; font-size:15px; color:var(--ocean-900); }
-    .fin-record-total { font-weight:900; font-size:20px; color:#7c3aed; }
-    .fin-summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
-    .fin-summary-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); text-align:center; box-shadow:var(--shadow); }
-    .fin-summary-num { font-size:20px; font-weight:800; color:var(--ocean-900); }
-    .fin-summary-label { font-size:11px; color:var(--ocean-400); margin-top:2px; }
-    .fin-input-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; overflow:hidden; }
-    .fin-input-row label { font-size:12px; font-weight:700; color:var(--ocean-700); text-transform:uppercase; letter-spacing:.04em; width:120px; min-width:120px; flex-shrink:0; }
-    .fin-input-row input { flex:1; min-width:0; width:0; border:1.5px solid var(--ocean-200); border-radius:9px; padding:10px 12px; font-size:16px; font-weight:700; color:var(--ocean-900); background:var(--ocean-50); outline:none; text-align:right; -webkit-appearance:none; box-sizing:border-box; }
-    .fin-input-row input:focus { border-color:#8b5cf6; background:white; box-shadow:0 0 0 3px rgba(139,92,246,.1); }
-    .fin-section-title { font-size:11px; font-weight:800; color:var(--ocean-400); text-transform:uppercase; letter-spacing:.08em; margin:16px 0 10px; display:flex; align-items:center; gap:6px; }
-    .fin-section-title::after { content:''; flex:1; height:1px; background:var(--ocean-100); }
-    .fin-derived { background:var(--ocean-50); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; overflow:hidden; }
-    .fin-derived-label { font-size:12px; color:var(--ocean-600); font-weight:600; flex:1; min-width:0; }
-    .fin-derived-val { font-size:16px; font-weight:800; color:var(--ocean-800); flex-shrink:0; white-space:nowrap; }
+    .fin-row-label { font-size:13px; font-weight:600; color:var(--slate-600); display:flex; align-items:center; gap:8px; }
+    .fin-row-val { font-size:16px; font-weight:700; color:var(--slate-900); }
+    .fin-record { background:var(--panel); border-radius:var(--radius); padding:16px; margin-bottom:8px; border:var(--rule); }
+    .fin-record-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--slate-100); }
+    .fin-record-date { font-weight:700; font-size:15px; color:var(--slate-900); }
+    .fin-record-total { font-weight:800; font-size:20px; color:var(--purple); }
+    .fin-summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+    .fin-summary-card { background:var(--panel); border-radius:var(--radius); padding:14px 10px; border:var(--rule); text-align:center; }
+    .fin-summary-num { font-size:20px; font-weight:800; color:var(--slate-900); }
+    .fin-summary-label { font-size:11px; font-weight:600; color:var(--slate-500); margin-top:3px; text-transform:uppercase; letter-spacing:.06em; }
+    .fin-input-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; overflow:hidden; }
+    .fin-input-row label { font-size:11px; font-weight:700; color:var(--slate-600); text-transform:uppercase; letter-spacing:.08em; width:120px; min-width:120px; flex-shrink:0; }
+    .fin-input-row input { flex:1; min-width:0; width:0; border:var(--rule); border-radius:var(--radius-sm); padding:11px 12px; min-height:46px; font-size:17px; font-weight:700; color:var(--slate-900); background:var(--panel); outline:none; text-align:right; -webkit-appearance:none; box-sizing:border-box; transition:border-color .15s, box-shadow .15s; }
+    .fin-input-row input:focus { border-color:var(--purple); box-shadow:0 0 0 3px var(--purple-50); }
+    .fin-section-title { font-size:11px; font-weight:700; color:var(--slate-500); text-transform:uppercase; letter-spacing:.14em; margin:18px 0 10px; display:flex; align-items:center; gap:8px; }
+    .fin-section-title::after { content:''; flex:1; height:1px; background:var(--slate-200); }
+    .fin-derived { background:var(--slate-50); border-radius:var(--radius-sm); padding:11px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; overflow:hidden; border:1px solid var(--slate-100); }
+    .fin-derived-label { font-size:12px; color:var(--slate-600); font-weight:600; flex:1; min-width:0; }
+    .fin-derived-val { font-size:16px; font-weight:800; color:var(--slate-900); flex-shrink:0; white-space:nowrap; }
 
-    /* ── DRAWER ── */
-    #drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(3px); z-index:300; opacity:0; pointer-events:none; transition:opacity .25s; }
+    /* ── THE BEAM (drawer / desktop sidebar) ── */
+    #drawer-overlay { position:fixed; inset:0; background:rgba(34,54,63,.45); z-index:300; opacity:0; pointer-events:none; transition:opacity .2s; }
     #drawer-overlay.open { opacity:1; pointer-events:all; }
-    #drawer { position:fixed; top:0; left:0; bottom:0; width:280px; background:var(--grad); z-index:400; transform:translateX(-100%); transition:transform .28s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
+    #drawer { position:fixed; top:0; left:0; bottom:0; width:var(--beam-w); background:var(--slate-700); z-index:400; transform:translateX(-100%); transition:transform .22s cubic-bezier(.2,0,0,1); display:flex; flex-direction:column; color:white; }
     #drawer.open { transform:translateX(0); }
-    #drawer-header { padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,.12); }
+    #drawer-header { padding:18px 18px 16px; border-bottom:1px solid rgba(255,255,255,.12); }
     .logo-row { display:flex; align-items:center; gap:12px; }
-    .logo-icon { width:42px; height:42px; background:#fff; border-radius:12px; display:flex; align-items:center; justify-content:center; padding:5px; }
+    .logo-icon { width:44px; height:44px; background:#fff; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:6px; flex-shrink:0; }
     .logo-icon img { width:100%; height:100%; object-fit:contain; }
-    .logo-name { color:white; font-weight:700; font-size:17px; }
-    .logo-sub { color:rgba(255,255,255,.6); font-size:12px; }
-    #drawer nav { flex:1; padding:16px 12px; overflow-y:auto; }
-    .section-label { color:rgba(255,255,255,.45); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:0 12px; margin:8px 0 6px; }
-    .drawer-item { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:11px; cursor:pointer; border:none; background:none; color:rgba(255,255,255,.8); font-size:14px; font-weight:500; width:100%; text-align:left; transition:background .15s,color .15s; margin-bottom:2px; }
-    .drawer-item:hover { background:rgba(255,255,255,.1); color:white; }
-    .drawer-item.active { background:rgba(255,255,255,.2); color:white; box-shadow:0 2px 10px rgba(0,0,0,.15); }
-    .drawer-item i { width:20px; text-align:center; font-size:15px; opacity:.85; }
-    .drawer-item .admin-only-badge { background:rgba(245,158,11,.3); color:#fde68a; font-size:9px; font-weight:700; padding:1px 5px; border-radius:4px; margin-left:auto; }
-    #drawer-footer { padding:14px 16px; border-top:1px solid rgba(255,255,255,.1); }
-    #drawer-user-name { color:white; font-size:14px; font-weight:600; }
-    #drawer-user-sub { color:rgba(255,255,255,.5); font-size:11px; }
+    .logo-name { color:white; font-weight:700; font-size:13px; letter-spacing:.16em; text-transform:uppercase; }
+    .logo-sub { color:var(--slate-300); font-size:11px; letter-spacing:.08em; text-transform:uppercase; margin-top:2px; }
+    #drawer nav { flex:1; padding:12px 10px; overflow-y:auto; }
+    .section-label { color:var(--slate-300); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.16em; padding:0 12px; margin:10px 0 6px; }
+    .drawer-item { display:flex; align-items:center; gap:12px; padding:11px 12px; min-height:44px; border-radius:var(--radius-sm); cursor:pointer; border:none; background:none; color:rgba(255,255,255,.82); font-size:14px; font-weight:600; width:100%; text-align:left; transition:background .15s,color .15s; margin-bottom:2px; position:relative; }
+    .drawer-item:hover { background:rgba(255,255,255,.08); color:white; }
+    .drawer-item.active { background:var(--mint-300); color:var(--slate-900); }
+    .drawer-item i { width:20px; text-align:center; font-size:15px; }
+    .drawer-item .admin-only-badge { background:rgba(255,255,255,.14); color:var(--gold-200); font-size:9px; font-weight:700; letter-spacing:.08em; padding:2px 6px; border-radius:4px; margin-left:auto; }
+    .drawer-item.active .admin-only-badge { background:rgba(34,54,63,.12); color:var(--slate-900); }
+    #drawer-footer { padding:14px 16px; border-top:1px solid rgba(255,255,255,.12); }
+    #drawer-user-name { color:white; font-size:14px; font-weight:700; }
+    #drawer-user-sub { color:var(--slate-300); font-size:11px; }
+    #drawer-footer .btn { background:rgba(255,255,255,.1); color:white; border:1px solid rgba(255,255,255,.18); }
 
-    /* ── BOTTOM NAV ── */
-    #bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:200; background:rgba(255,255,255,.97); backdrop-filter:blur(12px); border-top:1px solid var(--ocean-100); height:60px; display:flex; align-items:stretch; padding:0 2px; padding-bottom:env(safe-area-inset-bottom,0); }
-    .bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; border:none; background:none; color:var(--ocean-400); font-size:9px; font-weight:600; border-radius:10px; transition:color .15s,background .15s; padding:4px 0; text-transform:uppercase; letter-spacing:.03em; min-width:0; }
-    .bnav-item i { font-size:17px; transition:transform .15s; }
-    .bnav-item.active { color:var(--ocean-600); }
-    .bnav-item.active i { transform:translateY(-1px); }
-    .bnav-item:active { background:var(--ocean-100); }
-    .bnav-item.admin-nav { color:#d97706; }
-    .bnav-item.admin-nav.active { color:#b45309; }
+    /* ── BOTTOM NAV (phone) ── */
+    #bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:200; background:var(--panel); border-top:var(--rule); height:64px; display:flex; align-items:stretch; padding:6px 4px 0; padding-bottom:env(safe-area-inset-bottom,0); }
+    .bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; border:none; background:none; color:var(--slate-500); font-size:10px; font-weight:700; border-radius:10px; transition:color .15s; padding:2px 0 6px; text-transform:uppercase; letter-spacing:.06em; min-width:0; position:relative; }
+    .bnav-item i { font-size:18px; width:44px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:14px; transition:background .2s cubic-bezier(.2,0,0,1), color .15s; }
+    .bnav-item.active { color:var(--slate-900); }
+    .bnav-item.active i { background:var(--mint-300); color:var(--slate-900); }
+    .bnav-item:active i { background:var(--slate-100); }
+    .bnav-item.admin-nav { color:var(--slate-500); }
+    .bnav-item.admin-nav.active { color:var(--slate-900); }
 
     /* ── MAIN CONTENT ── */
-    #content-wrap { position:fixed; top:56px; left:0; right:0; bottom:60px; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 8px; }
+    #content-wrap { position:fixed; top:56px; left:0; right:0; bottom:64px; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 12px; }
 
     /* ── SECTIONS ── */
     .page-section { display:none; }
     .page-section.active { display:block; }
 
-    /* ── CARDS ── */
-    .card { background:white; border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--ocean-100); }
+    /* ── PANELS ── */
+    .card { background:var(--panel); border-radius:var(--radius); border:var(--rule); }
 
     /* ── KPI GRID ── */
-    .kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
-    .kpi-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
-    .kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-    .kpi-icon { width:36px; height:36px; background:var(--ocean-100); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; }
-    .kpi-num { font-size:26px; font-weight:800; color:var(--ocean-900); line-height:1; }
-    .kpi-label { font-size:12px; color:var(--ocean-400); margin-top:2px; }
-    .kpi-sub { font-size:11px; color:#ef4444; margin-top:4px; min-height:14px; }
+    .kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+    .kpi-card { background:var(--panel); border-radius:var(--radius); padding:14px 16px 16px; border:var(--rule); }
+    .kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .kpi-icon { width:36px; height:36px; background:var(--mint-100); color:var(--teal-700); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+    .kpi-num { font-size:32px; font-weight:800; color:var(--slate-900); line-height:1; letter-spacing:-.02em; }
+    .kpi-label { font-size:12px; font-weight:600; color:var(--slate-500); margin-top:6px; }
+    .kpi-sub { font-size:11px; font-weight:600; color:var(--red); margin-top:4px; min-height:14px; }
 
-    /* ── BADGES ── */
-    .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; }
-    .badge-green { background:#dcfce7; color:#16a34a; }
-    .badge-red { background:#fee2e2; color:#dc2626; }
-    .badge-yellow { background:#fef9c3; color:#ca8a04; }
-    .badge-blue { background:#dbeafe; color:#1d4ed8; }
-    .badge-gray { background:#f3f4f6; color:#6b7280; }
-    .badge-orange { background:#ffedd5; color:#c2410c; }
-    .badge-gold { background:#fef9c3; color:#92400e; }
+    /* ── STAMPS (status badges) ── */
+    .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid transparent; line-height:1.4; white-space:nowrap; }
+    .badge-green  { background:var(--green-50);  color:var(--green);  border-color:var(--green-200); }
+    .badge-red    { background:var(--red-50);    color:var(--red);    border-color:var(--red-200); }
+    .badge-yellow { background:var(--amber-50);  color:var(--amber);  border-color:var(--amber-200); }
+    .badge-blue   { background:var(--blue-50);   color:var(--blue);   border-color:var(--blue-200); }
+    .badge-gray   { background:var(--slate-50);  color:var(--slate-600); border-color:var(--slate-200); }
+    .badge-orange { background:var(--rattan-50); color:var(--pine);   border-color:var(--rattan-200); }
+    .badge-gold   { background:var(--gold-50);   color:var(--gold);   border-color:var(--gold-200); }
 
     /* ── BUTTONS ── */
-    .btn { display:inline-flex; align-items:center; gap:6px; border:none; cursor:pointer; font-weight:600; font-size:13px; border-radius:var(--radius-sm); padding:9px 16px; transition:all .2s; white-space:nowrap; }
-    .btn-primary { background:var(--grad-btn); color:white; }
-    .btn-primary:active { opacity:.88; transform:scale(.97); }
-    .btn-secondary { background:white; color:var(--ocean-600); border:1.5px solid var(--ocean-200); }
-    .btn-secondary:active { background:var(--ocean-100); }
-    .btn-danger { background:#fee2e2; color:#dc2626; border:1.5px solid #fca5a5; }
-    .btn-gold { background:linear-gradient(135deg,#f59e0b,#d97706); color:white; }
-    .btn-sm { padding:6px 12px; font-size:12px; border-radius:8px; }
-    .btn-icon { width:32px; height:32px; padding:0; border-radius:8px; justify-content:center; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:1px solid transparent; cursor:pointer; font-weight:700; font-size:13px; border-radius:var(--radius-sm); padding:10px 16px; min-height:40px; transition:background .15s, border-color .15s, color .15s, transform .1s; white-space:nowrap; line-height:1.2; }
+    .btn:active { transform:scale(.98); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .btn-primary { background:var(--teal-600); color:white; }
+    .btn-primary:hover { background:var(--teal-700); }
+    .btn-secondary { background:var(--panel); color:var(--slate-700); border-color:var(--slate-200); }
+    .btn-secondary:hover { background:var(--slate-50); border-color:var(--slate-300); }
+    .btn-secondary:active { background:var(--slate-100); }
+    .btn-danger { background:var(--panel); color:var(--red); border-color:var(--red-200); }
+    .btn-danger:hover { background:var(--red-50); }
+    .btn-gold { background:var(--slate-700); color:white; }
+    .btn-gold:hover { background:var(--slate-800); }
+    .btn-sm { padding:7px 12px; min-height:34px; font-size:12px; border-radius:7px; }
+    .btn-icon { width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; justify-content:center; }
 
     /* ── INPUTS ── */
-    .input-field { width:100%; border:1.5px solid var(--ocean-200); border-radius:var(--radius-sm); padding:10px 14px; font-size:15px; color:var(--ocean-900); background:var(--ocean-50); outline:none; transition:border .2s; -webkit-appearance:none; appearance:none; }
-    .input-field:focus { border-color:var(--ocean-500); background:white; box-shadow:0 0 0 3px rgba(14,165,233,.1); }
-    .input-field::placeholder { color:var(--ocean-300); }
-    .select-field { width:100%; border:1.5px solid var(--ocean-200); border-radius:var(--radius-sm); padding:10px 14px; font-size:15px; color:var(--ocean-900); background:var(--ocean-50); outline:none; cursor:pointer; -webkit-appearance:none; appearance:none; }
-    .select-field:focus { border-color:var(--ocean-500); }
-    .label { font-size:11px; font-weight:700; color:var(--ocean-700); text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; display:block; }
+    .input-field { width:100%; border:var(--rule); border-radius:var(--radius-sm); padding:11px 14px; min-height:46px; font-size:16px; color:var(--slate-900); background:var(--panel); outline:none; transition:border-color .15s, box-shadow .15s; -webkit-appearance:none; appearance:none; }
+    .input-field:focus { border-color:var(--teal-500); box-shadow:0 0 0 3px var(--mint-100); }
+    .input-field::placeholder { color:var(--slate-400); }
+    .select-field { width:100%; border:var(--rule); border-radius:var(--radius-sm); padding:11px 38px 11px 14px; min-height:46px; font-size:16px; color:var(--slate-900); background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f7079' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center; outline:none; cursor:pointer; -webkit-appearance:none; appearance:none; }
+    .select-field:focus { border-color:var(--teal-500); box-shadow:0 0 0 3px var(--mint-100); }
+    .label { font-size:11px; font-weight:700; color:var(--slate-600); text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px; display:block; }
     .form-row { margin-bottom:14px; }
     .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
 
-    /* ── TABS ── */
-    .tab-row { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
-    .tab-btn { padding:7px 14px; border-radius:9px; font-weight:600; font-size:13px; cursor:pointer; border:none; transition:all .18s; }
-    .tab-btn.active { background:var(--grad-btn); color:white; }
-    .tab-btn:not(.active) { background:white; color:var(--ocean-600); border:1.5px solid var(--ocean-200); }
+    /* ── TABS (the pad's index tabs) ── */
+    .tab-row { display:flex; gap:0; margin-bottom:16px; flex-wrap:wrap; border-bottom:var(--rule); }
+    .tab-btn { padding:10px 14px 11px; min-height:44px; border-radius:0; font-weight:700; font-size:13px; letter-spacing:.02em; cursor:pointer; border:none; background:transparent; color:var(--slate-500); position:relative; transition:color .15s; margin-bottom:-1px; display:inline-flex; align-items:center; gap:6px; }
+    .tab-btn::after { content:''; position:absolute; left:8px; right:8px; bottom:0; height:3px; border-radius:3px 3px 0 0; background:transparent; transition:background .15s; }
+    .tab-btn.active { color:var(--slate-900); }
+    .tab-btn.active::after { background:var(--teal-500); }
+    .tab-btn:not(.active) { background:transparent; color:var(--slate-500); border:none; }
+    .tab-btn:not(.active):hover { color:var(--slate-800); }
 
     /* ── SECTION HEADER ── */
-    .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+    .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+    .section-header h2 { font-size:20px; font-weight:800; letter-spacing:-.01em; color:var(--slate-900); }
 
-    /* ── INVENTORY CARDS ── */
-    .inv-slicer { display:inline-flex; align-items:center; gap:5px; padding:6px 13px; border-radius:20px; border:1.5px solid var(--ocean-200); background:white; color:var(--ocean-600); font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; white-space:nowrap; }
-    .inv-slicer:active { transform:scale(.96); }
-    .inv-slicer.active { background:var(--ocean-600); color:white; border-color:var(--ocean-600); }
-    #inventory-list { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    @media(min-width:600px){ #inventory-list { grid-template-columns:repeat(4,1fr); gap:10px; } }
-    @media(min-width:900px){ #inventory-list { grid-template-columns:repeat(5,1fr); gap:12px; } }
-    .inv-card { background:white; border-radius:var(--radius); padding:10px 8px 8px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; position:relative; transition:background .25s,border-color .25s; }
-    .inv-card.inv-ordered { background:#f0faf3; border-color:#86efac; }
-    .supplier-card { background:white; border-radius:var(--radius); padding:12px 10px; border:2px solid var(--ocean-100); box-shadow:var(--shadow); cursor:pointer; transition:all .15s; position:relative; }
-    .supplier-card:active { transform:scale(.97); }
-    .supplier-card-active { border-color:var(--ocean-400); background:var(--ocean-50); box-shadow:0 0 0 3px rgba(14,165,233,.15); }
-    .log-sup-filter { background:var(--ocean-50); border:1.5px solid var(--ocean-200); color:var(--ocean-600); padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
-    .log-sup-filter.active { background:var(--ocean-500); border-color:var(--ocean-500); color:white; }
-    .inv-card.inv-ordered .inv-stat { background:#dcfce7; }
-    .inv-card.inv-ordered .inv-order-btn { background:linear-gradient(135deg,#4ade80,#22c55e); }
-    .inv-cat-icon { font-size:20px; }
-    .inv-name { font-weight:700; font-size:12px; color:var(--ocean-900); line-height:1.2; word-break:break-word; }
+    /* ── INVENTORY ── */
+    .inv-slicer { display:inline-flex; align-items:center; gap:6px; padding:8px 13px; min-height:36px; border-radius:18px; border:var(--rule); background:var(--panel); color:var(--slate-600); font-size:12px; font-weight:700; cursor:pointer; transition:background .15s, color .15s, border-color .15s; white-space:nowrap; }
+    .inv-slicer:active { transform:scale(.97); }
+    .inv-slicer.active { background:var(--slate-700); color:white; border-color:var(--slate-700); }
+    #inventory-list { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+    @media(min-width:480px){ #inventory-list { grid-template-columns:repeat(3,1fr); } }
+    @media(min-width:760px){ #inventory-list { grid-template-columns:repeat(4,1fr); gap:10px; } }
+    @media(min-width:1180px){ #inventory-list { grid-template-columns:repeat(5,1fr); gap:12px; } }
+    .inv-card { background:var(--panel); border-radius:var(--radius); padding:12px 10px 10px; border:var(--rule); display:flex; flex-direction:column; gap:8px; position:relative; transition:background .2s,border-color .2s; }
+    .inv-card.inv-ordered { background:var(--green-50); border-color:var(--green-200); }
+    .supplier-card { background:var(--panel); border-radius:var(--radius); padding:12px 12px; border:var(--rule); cursor:pointer; transition:border-color .15s, background .15s; position:relative; }
+    .supplier-card:active { transform:scale(.98); }
+    .supplier-card-active { border-color:var(--teal-500); background:var(--mint-50); box-shadow:0 0 0 2px var(--mint-100); }
+    .log-sup-filter { background:var(--panel); border:var(--rule); color:var(--slate-600); padding:6px 12px; min-height:32px; border-radius:16px; font-size:12px; font-weight:700; cursor:pointer; transition:background .15s, color .15s; }
+    .log-sup-filter.active { background:var(--slate-700); border-color:var(--slate-700); color:white; }
+    .inv-card.inv-ordered .inv-stat { background:var(--panel); }
+    .inv-card.inv-ordered .inv-order-btn { background:var(--green); }
+    .inv-cat-icon { font-size:14px; color:var(--teal-700); width:28px; height:28px; border-radius:8px; background:var(--mint-100); display:inline-flex; align-items:center; justify-content:center; }
+    .inv-name { font-weight:700; font-size:13px; color:var(--slate-900); line-height:1.25; word-break:break-word; }
     .inv-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; }
-    .inv-stat { background:var(--ocean-50); border-radius:6px; padding:4px 2px; text-align:center; }
-    .inv-stat-val { font-size:13px; font-weight:800; color:var(--ocean-900); }
-    .inv-stat-label { font-size:8px; color:var(--ocean-400); margin-top:1px; text-transform:uppercase; letter-spacing:.3px; }
+    .inv-stat { background:var(--slate-50); border-radius:6px; padding:5px 2px; text-align:center; }
+    .inv-stat-val { font-size:14px; font-weight:800; color:var(--slate-900); }
+    .inv-stat-label { font-size:9px; font-weight:700; color:var(--slate-500); margin-top:1px; text-transform:uppercase; letter-spacing:.06em; }
     .inv-actions { display:flex; gap:4px; }
-    .inv-order-btn { width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer; transition:filter .15s; flex-shrink:0; }
-    .inv-order-btn:active { filter:brightness(1.15); }
-    .inv-card-del { position:absolute; top:4px; right:4px; background:none; border:none; color:var(--ocean-300); font-size:10px; cursor:pointer; padding:2px 3px; line-height:1; transition:color .15s; }
-    .inv-card-del:hover { color:#ef4444; }
+    .inv-actions .btn-icon { flex:1; }
+    .inv-order-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:var(--teal-600); color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer; transition:background .15s; flex-shrink:0; }
+    .inv-order-btn:hover { background:var(--teal-700); }
+    .inv-card-del { position:absolute; top:6px; right:6px; background:none; border:none; color:var(--slate-300); font-size:11px; cursor:pointer; padding:4px 5px; line-height:1; transition:color .15s; }
+    .inv-card-del:hover { color:var(--red); }
 
     /* ── ORDER STANDBY ── */
-    .order-standby { border-left:4px solid #f59e0b; background:#fffbeb; border-radius:0 12px 12px 0; padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow); }
-    .order-confirmed { border-left:4px solid #22c55e; background:#f0fdf4; border-radius:0 12px 12px 0; padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow); }
+    .order-standby { border:var(--rule); border-color:var(--amber-200); background:var(--amber-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
+    .order-confirmed { border:var(--rule); border-color:var(--green-200); background:var(--green-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
 
     /* ── CALENDAR ── */
-    .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-    .cal-week-label { font-weight:700; font-size:14px; color:var(--ocean-800); }
+    .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .cal-week-label { font-weight:700; font-size:14px; color:var(--slate-800); letter-spacing:.02em; }
     .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:14px; }
-    .cal-day { border-radius:10px; padding:6px 2px; text-align:center; cursor:pointer; border:1.5px solid transparent; transition:all .15s; min-height:58px; }
-    .cal-day:active { background:var(--ocean-100); }
-    .cal-day.today { border-color:var(--ocean-400); background:var(--ocean-50); }
-    .cal-day.selected { background:var(--grad-btn); color:white; border-color:transparent; }
-    .cal-day-name { font-size:10px; font-weight:700; color:var(--ocean-400); margin-bottom:2px; }
-    .cal-day.selected .cal-day-name { color:rgba(255,255,255,.75); }
-    .cal-day-num { font-size:16px; font-weight:800; color:var(--ocean-900); }
-    .cal-day.today .cal-day-num { color:var(--ocean-600); }
+    .cal-day { border-radius:10px; padding:8px 2px; text-align:center; cursor:pointer; border:1px solid transparent; transition:background .15s, border-color .15s; min-height:62px; }
+    .cal-day:active { background:var(--slate-100); }
+    .cal-day.today { border-color:var(--teal-500); background:var(--panel); }
+    .cal-day.selected { background:var(--slate-700); color:white; border-color:var(--slate-700); }
+    .cal-day-name { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--slate-500); margin-bottom:3px; }
+    .cal-day.selected .cal-day-name { color:var(--slate-300); }
+    .cal-day-num { font-size:17px; font-weight:800; color:var(--slate-900); }
+    .cal-day.today .cal-day-num { color:var(--teal-700); }
     .cal-day.selected .cal-day-num { color:white; }
-    .cal-dots { display:flex; gap:2px; justify-content:center; margin-top:3px; flex-wrap:wrap; }
+    .cal-dots { display:flex; gap:2px; justify-content:center; margin-top:4px; flex-wrap:wrap; }
     .cal-dots span { width:5px; height:5px; border-radius:50%; display:inline-block; }
-    .cal-count { font-size:10px; color:var(--ocean-400); margin-top:1px; }
-    .cal-day.selected .cal-count { color:rgba(255,255,255,.7); }
+    .cal-count { font-size:10px; font-weight:600; color:var(--slate-500); margin-top:1px; }
+    .cal-day.selected .cal-count { color:var(--slate-300); }
 
     /* ── RESERVATION ITEMS ── */
-    .res-item { border-left:4px solid var(--ocean-400); background:white; border-radius:0 12px 12px 0; padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:transform .15s; box-shadow:var(--shadow); }
-    .res-item:active { transform:translateX(3px); }
-    .res-item.confirmed { border-left-color:#16a34a; background:#f0fdf4; }
-    .res-item.no-show { border-left-color:#dc2626; background:#fff5f5; }
+    .res-item { border:var(--rule); background:var(--panel); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:border-color .15s; }
+    .res-item:active { border-color:var(--slate-300); }
+    .res-item.confirmed { border-color:var(--green-200); background:var(--green-50); }
+    .res-item.no-show { border-color:var(--red-200); background:var(--red-50); }
     .res-item-top { display:flex; align-items:center; justify-content:space-between; }
-    .res-time { font-weight:800; font-size:15px; color:var(--ocean-800); margin-right:8px; }
-    .res-name { font-weight:600; font-size:15px; color:var(--ocean-900); }
-    .res-meta { font-size:12px; color:var(--ocean-400); margin-top:4px; display:flex; gap:12px; flex-wrap:wrap; }
+    .res-time { font-weight:800; font-size:15px; color:var(--slate-800); margin-right:8px; }
+    .res-name { font-weight:600; font-size:15px; color:var(--slate-900); }
+    .res-meta { font-size:12px; color:var(--slate-500); margin-top:4px; display:flex; gap:12px; flex-wrap:wrap; }
 
     /* ── ALL-RES LIST ── */
-    .res-list-item { display:flex; align-items:center; gap:12px; padding:13px 14px; border-bottom:1px solid var(--ocean-50); cursor:pointer; background:white; transition:background .15s; }
-    .res-list-item:active { background:var(--ocean-50); }
-    .res-date-box { width:44px; height:44px; background:var(--ocean-100); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
-    .res-date-box .rdb-d { font-size:12px; font-weight:800; color:var(--ocean-700); }
-    .res-date-box .rdb-t { font-size:10px; color:var(--ocean-500); }
+    .res-list-item { display:flex; align-items:center; gap:12px; padding:13px 14px; border-bottom:1px solid var(--slate-100); cursor:pointer; background:var(--panel); transition:background .15s; }
+    .res-list-item:active { background:var(--slate-50); }
+    .res-date-box { width:46px; height:46px; background:var(--slate-50); border:1px solid var(--slate-100); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
+    .res-date-box .rdb-d { font-size:12px; font-weight:800; color:var(--slate-800); }
+    .res-date-box .rdb-t { font-size:10px; font-weight:600; color:var(--slate-500); }
 
     /* ── TABLE MULTI-SELECT ── */
     .table-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
-    .table-chip { padding:8px 4px; border-radius:9px; text-align:center; cursor:pointer; border:1.5px solid var(--ocean-200); background:white; font-size:13px; font-weight:600; color:var(--ocean-600); transition:all .15s; -webkit-user-select:none; user-select:none; }
-    .table-chip:active { transform:scale(.94); }
-    .table-chip.selected { background:var(--grad-btn); color:white; border-color:transparent; }
-    .table-chip.occupied { background:#fee2e2; color:#dc2626; border-color:#fca5a5; cursor:not-allowed; }
+    .table-chip { padding:10px 4px; min-height:44px; border-radius:9px; text-align:center; cursor:pointer; border:var(--rule); background:var(--panel); font-size:13px; font-weight:700; color:var(--slate-700); transition:background .15s, color .15s, border-color .15s; -webkit-user-select:none; user-select:none; }
+    .table-chip:active { transform:scale(.96); }
+    .table-chip.selected { background:var(--slate-700); color:white; border-color:var(--slate-700); }
+    .table-chip.occupied { background:var(--red-50); color:var(--red); border-color:var(--red-200); cursor:not-allowed; }
 
     /* ── TASK ITEMS ── */
-    .task-item { background:white; border-radius:var(--radius); padding:14px; margin-bottom:10px; border:1.5px solid var(--ocean-100); box-shadow:var(--shadow); }
+    .task-item { background:var(--panel); border-radius:var(--radius); padding:14px 16px; margin-bottom:8px; border:var(--rule); }
     .task-item.done { opacity:.6; }
-    .task-top { display:flex; align-items:flex-start; gap:10px; }
-    .task-icon { font-size:22px; flex-shrink:0; margin-top:1px; }
+    .task-top { display:flex; align-items:flex-start; gap:12px; }
+    .task-icon { font-size:14px; flex-shrink:0; width:36px; height:36px; border-radius:10px; background:var(--slate-50); color:var(--slate-700); display:flex; align-items:center; justify-content:center; border:1px solid var(--slate-100); }
     .task-body { flex:1; min-width:0; }
-    .task-title { font-weight:700; font-size:15px; color:var(--ocean-900); margin-bottom:4px; }
+    .task-title { font-weight:700; font-size:15px; color:var(--slate-900); margin-bottom:5px; }
     .task-title.done-text { text-decoration:line-through; }
-    .task-badges { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:5px; }
-    .task-desc { font-size:13px; color:var(--ocean-500); margin-bottom:6px; }
-    .task-meta { font-size:12px; color:var(--ocean-400); display:flex; gap:12px; flex-wrap:wrap; }
-    .task-actions { display:flex; gap:7px; margin-top:10px; flex-wrap:wrap; }
-    .task-count-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
-    .task-count-card { background:white; border-radius:var(--radius); padding:12px; border:1px solid var(--ocean-100); display:flex; align-items:center; gap:10px; }
-    .tc-icon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; }
-    .tc-num { font-size:20px; font-weight:800; color:var(--ocean-900); }
-    .tc-label { font-size:11px; color:var(--ocean-400); }
+    .task-badges { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:6px; }
+    .task-desc { font-size:13px; color:var(--slate-600); margin-bottom:6px; }
+    .task-meta { font-size:12px; font-weight:600; color:var(--slate-500); display:flex; gap:12px; flex-wrap:wrap; }
+    .task-actions { display:flex; gap:7px; margin-top:12px; flex-wrap:wrap; }
+    .task-count-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
+    .task-count-card { background:var(--panel); border-radius:var(--radius); padding:12px; border:var(--rule); display:flex; align-items:center; gap:10px; }
+    .tc-icon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+    .tc-num { font-size:22px; font-weight:800; color:var(--slate-900); line-height:1; }
+    .tc-label { font-size:11px; font-weight:600; color:var(--slate-500); margin-top:2px; }
 
-    /* ── SHIFTS GANTT ── */
-    .gantt-wrap { background:white; border-radius:var(--radius); border:1px solid var(--ocean-100); box-shadow:var(--shadow); overflow:hidden; margin-bottom:12px; }
-    .gantt-day-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 8px; border-bottom:1px solid var(--ocean-50); }
-    .gantt-day-name { font-weight:700; font-size:14px; color:var(--ocean-900); }
-    .gantt-day-date { font-size:11px; color:var(--ocean-400); margin-top:1px; }
-    .gantt-timeline { position:relative; padding:0 14px 10px; }
-    .gantt-hours { display:flex; align-items:flex-end; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--ocean-100); }
-    .gantt-hours-spacer { width:60px; flex-shrink:0; }
+    /* ── SHIFTS TIMELINE ── */
+    .gantt-wrap { background:var(--panel); border-radius:var(--radius); border:var(--rule); overflow:hidden; margin-bottom:10px; }
+    .gantt-day-header { display:flex; align-items:center; justify-content:space-between; padding:12px 14px 10px; border-bottom:1px solid var(--slate-100); }
+    .gantt-day-name { font-weight:800; font-size:14px; color:var(--slate-900); }
+    .gantt-day-date { font-size:11px; font-weight:600; color:var(--slate-500); margin-top:1px; }
+    .gantt-timeline { position:relative; padding:0 14px 12px; }
+    .gantt-hours { display:flex; align-items:flex-end; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--slate-200); }
+    .gantt-hours-spacer { width:64px; flex-shrink:0; }
     .gantt-hours-track { flex:1; position:relative; height:14px; }
-    .gantt-hour-label { position:absolute; font-size:9px; font-weight:700; color:var(--ocean-300); white-space:nowrap; transform:translateX(-50%); }
+    .gantt-hour-label { position:absolute; font-size:9px; font-weight:700; color:var(--slate-400); white-space:nowrap; transform:translateX(-50%); }
     .gantt-rows { position:relative; }
     .gantt-grid-lines { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; }
-    .gantt-grid-line { position:absolute; top:0; bottom:0; width:1px; background:rgba(186,230,253,.5); }
-    .gantt-row { position:relative; height:28px; margin-bottom:5px; display:flex; align-items:center; }
-    .gantt-emp-label { width:60px; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ocean-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:6px; }
-    .gantt-track { flex:1; position:relative; height:22px; border-radius:4px; background:var(--ocean-50); overflow:visible; }
-    .gantt-bar { position:absolute; top:0; height:100%; border-radius:6px; display:flex; align-items:center; padding:0 6px; font-size:10px; font-weight:700; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; transition:filter .15s; box-shadow:0 1px 4px rgba(0,0,0,.15); min-width:4px; }
+    .gantt-grid-line { position:absolute; top:0; bottom:0; width:1px; background:var(--slate-100); }
+    .gantt-row { position:relative; height:30px; margin-bottom:4px; display:flex; align-items:center; }
+    .gantt-emp-label { width:64px; flex-shrink:0; font-size:11px; font-weight:700; color:var(--slate-700); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:6px; letter-spacing:.02em; }
+    .gantt-track { flex:1; position:relative; height:24px; border-radius:4px; background:var(--slate-50); overflow:visible; }
+    .gantt-bar { position:absolute; top:0; height:100%; border-radius:5px; display:flex; align-items:center; padding:0 7px; font-size:10px; font-weight:700; letter-spacing:.02em; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; transition:filter .15s; min-width:4px; }
     .gantt-bar:active { filter:brightness(1.1); }
-    .gantt-empty { font-size:12px; color:var(--ocean-300); font-style:italic; padding:6px 0 4px; }
-    .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:#ef4444; z-index:10; pointer-events:none; }
-    .gantt-now-dot { position:absolute; top:-4px; left:-4px; width:10px; height:10px; border-radius:50%; background:#ef4444; }
-    .shift-empty { font-size:13px; color:var(--ocean-300); font-style:italic; }
+    .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; }
+    .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:10; pointer-events:none; }
+    .gantt-now-dot { position:absolute; top:-4px; left:-4px; width:10px; height:10px; border-radius:50%; background:var(--red); }
+    .shift-empty { font-size:13px; color:var(--slate-400); }
 
     /* ── BLACK BOX ── */
-    .bb-item { display:flex; align-items:center; gap:12px; padding:10px 12px; background:white; border-radius:10px; margin-bottom:7px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); cursor:pointer; transition:all .15s; }
-    .bb-item:active { background:var(--ocean-50); }
-    .bb-item.selected { background:linear-gradient(135deg,#0c4a6e,#0369a1); color:white; border-color:transparent; }
-    .bb-item.selected .bb-price { color:rgba(255,255,255,.8); }
+    .bb-item { display:flex; align-items:center; gap:12px; padding:10px 12px; min-height:56px; background:var(--panel); border-radius:10px; margin-bottom:6px; border:var(--rule); cursor:pointer; transition:background .15s, border-color .15s; }
+    .bb-item:active { background:var(--slate-50); }
+    .bb-item.selected { background:var(--slate-700); color:white; border-color:var(--slate-700); }
+    .bb-item.selected .bb-price { color:var(--mint-300); }
     .bb-item.selected .bb-name { color:white; }
-    .bb-item.selected .bb-cat { color:rgba(255,255,255,.6); }
-    .bb-name { font-weight:700; font-size:14px; color:var(--ocean-900); flex:1; }
-    .bb-cat { font-size:11px; color:var(--ocean-400); }
-    .bb-price { font-weight:800; font-size:16px; color:var(--ocean-600); margin-left:auto; white-space:nowrap; }
-    .bb-qty-ctrl { display:flex; align-items:center; gap:8px; }
-    .bb-qty-btn { width:28px; height:28px; border-radius:8px; border:none; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-    .bb-qty-minus { background:#fee2e2; color:#dc2626; }
-    .bb-qty-plus { background:#dcfce7; color:#16a34a; }
-    .bb-qty-val { font-size:15px; font-weight:700; color:var(--ocean-900); min-width:24px; text-align:center; }
-    .bb-qty-input { width:40px; border:1px solid var(--ocean-200); border-radius:6px; padding:2px 4px; background:var(--ocean-50); -moz-appearance:textfield; }
+    .bb-item.selected .bb-cat { color:var(--slate-300); }
+    .bb-name { font-weight:700; font-size:14px; color:var(--slate-900); flex:1; }
+    .bb-cat { font-size:11px; font-weight:600; color:var(--slate-500); text-transform:uppercase; letter-spacing:.06em; }
+    .bb-price { font-weight:800; font-size:16px; color:var(--teal-700); margin-left:auto; white-space:nowrap; }
+    .bb-qty-ctrl { display:flex; align-items:center; gap:6px; }
+    .bb-qty-btn { width:36px; height:36px; border-radius:8px; border:var(--rule); font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; background:var(--panel); transition:background .15s; }
+    .bb-qty-minus { color:var(--red); }
+    .bb-qty-minus:active { background:var(--red-50); }
+    .bb-qty-plus { color:var(--teal-700); border-color:var(--mint-200); background:var(--mint-50); }
+    .bb-qty-plus:active { background:var(--mint-100); }
+    .bb-qty-val { font-size:16px; font-weight:800; color:var(--slate-900); min-width:26px; text-align:center; }
+    .bb-qty-input { width:44px; min-height:36px; border:var(--rule); border-radius:6px; padding:2px 4px; background:var(--panel); text-align:center; font-weight:700; -moz-appearance:textfield; }
     .bb-qty-input::-webkit-inner-spin-button, .bb-qty-input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-    .bb-daily-record { background:white; border-radius:var(--radius); padding:16px; margin-bottom:10px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
+    .bb-daily-record { background:var(--panel); border-radius:var(--radius); padding:16px; margin-bottom:8px; border:var(--rule); }
     .bb-daily-record-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-    .bb-total-box { background:linear-gradient(135deg,#0c4a6e,#0369a1); border-radius:14px; padding:16px; text-align:center; color:white; margin-bottom:14px; }
-    .bb-total-label { font-size:12px; opacity:.7; margin-bottom:4px; }
-    .bb-total-num { font-size:32px; font-weight:900; }
-    .bb-summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
-    .bb-summary-card { background:white; border-radius:var(--radius); padding:14px; border:1px solid var(--ocean-100); text-align:center; }
-    .bb-summary-num { font-size:22px; font-weight:800; color:var(--ocean-900); }
-    .bb-summary-label { font-size:11px; color:var(--ocean-400); margin-top:2px; }
+    .bb-total-box { background:var(--slate-700); border-radius:var(--radius); padding:20px 18px; text-align:center; color:white; margin-bottom:14px; }
+    .bb-total-label { font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--mint-300); margin-bottom:6px; }
+    .bb-total-num { font-size:40px; font-weight:800; letter-spacing:-.02em; line-height:1; }
+    .bb-summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+    .bb-summary-card { background:var(--panel); border-radius:var(--radius); padding:14px 10px; border:var(--rule); text-align:center; }
+    .bb-summary-num { font-size:22px; font-weight:800; color:var(--slate-900); }
+    .bb-summary-label { font-size:11px; font-weight:600; color:var(--slate-500); margin-top:3px; text-transform:uppercase; letter-spacing:.06em; }
 
     /* ── SETTINGS ── */
-    .settings-card { background:white; border-radius:var(--radius); padding:18px; margin-bottom:14px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
-    .settings-card h3 { font-size:15px; font-weight:700; color:var(--ocean-800); margin-bottom:14px; display:flex; align-items:center; gap:7px; }
-    .emp-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--ocean-50); border-radius:10px; margin-bottom:6px; }
-    .emp-avatar { width:30px; height:30px; border-radius:50%; background:var(--ocean-200); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--ocean-700); }
+    .settings-card { background:var(--panel); border-radius:var(--radius); padding:18px; margin-bottom:12px; border:var(--rule); }
+    .settings-card h3 { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+    .settings-card h3 i { color:var(--teal-600); }
+    .emp-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; min-height:48px; background:var(--panel); border:var(--rule); border-radius:10px; margin-bottom:6px; }
+    .emp-avatar { width:32px; height:32px; border-radius:50%; background:var(--slate-100); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--slate-700); }
 
     /* ── TABLE NUMBER CONFIG ── */
     .table-num-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-    .table-num-chip { position:relative; width:52px; height:52px; border-radius:10px; background:var(--ocean-50); border:1.5px solid var(--ocean-200); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--ocean-700); }
-    .table-num-chip .del-chip { position:absolute; top:-6px; right:-6px; width:17px; height:17px; background:#ef4444; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; border:none; }
+    .table-num-chip { position:relative; width:52px; height:52px; border-radius:10px; background:var(--panel); border:var(--rule); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--slate-700); }
+    .table-num-chip .del-chip { position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:var(--red); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; border:2px solid var(--panel); }
 
-    /* ── MODAL ── */
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(5px); z-index:500; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+    /* ── MODAL (sheet) ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(34,54,63,.5); z-index:500; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
     .modal-overlay.open { opacity:1; pointer-events:all; }
-    .modal { background:white; border-radius:22px 22px 0 0; padding:22px 20px; width:100%; max-width:600px; max-height:92vh; overflow-y:auto; transform:translateY(40px); transition:transform .28s cubic-bezier(.4,0,.2,1); padding-bottom:max(22px,env(safe-area-inset-bottom,22px)); }
+    .modal { background:var(--panel); border-radius:18px 18px 0 0; padding:20px 20px; width:100%; max-width:600px; max-height:92vh; overflow-y:auto; transform:translateY(24px); transition:transform .22s cubic-bezier(.2,0,0,1); padding-bottom:max(22px,env(safe-area-inset-bottom,22px)); box-shadow:var(--shadow-overlay); }
     .modal-overlay.open .modal { transform:translateY(0); }
-    .modal-handle { width:36px; height:4px; background:var(--ocean-200); border-radius:2px; margin:0 auto 18px; }
-    .modal h2 { font-size:18px; font-weight:800; color:var(--ocean-900); margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+    .modal-handle { width:36px; height:4px; background:var(--slate-200); border-radius:2px; margin:0 auto 18px; }
+    .modal h2 { font-size:18px; font-weight:800; color:var(--slate-900); margin-bottom:18px; display:flex; align-items:center; gap:8px; letter-spacing:-.01em; }
+    .modal h2 i { color:var(--teal-600); font-size:16px; }
     .modal-center { align-items:center; justify-content:center; }
-    .modal-center .modal { border-radius:22px; max-width:360px; }
-    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
-    .detail-cell { background:var(--ocean-50); border-radius:10px; padding:11px 12px; }
-    .detail-cell-label { font-size:11px; color:var(--ocean-400); font-weight:600; text-transform:uppercase; margin-bottom:3px; }
-    .detail-cell-val { font-size:14px; font-weight:700; color:var(--ocean-900); }
+    .modal-center .modal { border-radius:16px; max-width:380px; }
+    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+    .detail-cell { background:var(--slate-50); border:1px solid var(--slate-100); border-radius:10px; padding:11px 12px; }
+    .detail-cell-label { font-size:10px; color:var(--slate-500); font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px; }
+    .detail-cell-val { font-size:14px; font-weight:700; color:var(--slate-900); }
     .detail-cell.full { grid-column:1/-1; }
     .action-row { display:flex; gap:8px; flex-wrap:wrap; }
 
     /* ── PIN PAD ── */
-    .pin-display { display:flex; gap:10px; justify-content:center; margin-bottom:20px; }
-    .pin-dot { width:16px; height:16px; border-radius:50%; background:var(--ocean-200); transition:background .2s; }
-    .pin-dot.filled { background:var(--ocean-600); }
-    .pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-    .pin-key { height:56px; border-radius:12px; border:none; background:var(--ocean-50); color:var(--ocean-900); font-size:22px; font-weight:700; cursor:pointer; transition:background .15s; display:flex; align-items:center; justify-content:center; }
-    .pin-key:active { background:var(--ocean-200); }
-    .pin-key.del { font-size:16px; background:#fee2e2; color:#dc2626; }
-    .pin-error { color:#dc2626; font-size:13px; text-align:center; margin-top:10px; min-height:20px; }
+    .pin-display { display:flex; gap:12px; justify-content:center; margin-bottom:22px; }
+    .pin-dot { width:14px; height:14px; border-radius:50%; background:var(--panel); border:2px solid var(--slate-300); transition:background .15s, border-color .15s; }
+    .pin-dot.filled { background:var(--slate-700); border-color:var(--slate-700); }
+    .pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .pin-key { height:56px; border-radius:12px; border:var(--rule); background:var(--panel); color:var(--slate-900); font-size:22px; font-weight:700; cursor:pointer; transition:background .12s; display:flex; align-items:center; justify-content:center; }
+    .pin-key:active { background:var(--slate-100); }
+    .pin-key.del { font-size:16px; background:var(--panel); color:var(--red); border-color:var(--red-200); }
+    .pin-error { color:var(--red); font-size:13px; font-weight:600; text-align:center; margin-top:10px; min-height:20px; }
 
     /* ── SEARCH BAR ── */
-    .search-bar { background:white; border-radius:var(--radius); padding:10px 14px; display:flex; align-items:center; gap:10px; border:1px solid var(--ocean-100); margin-bottom:12px; box-shadow:var(--shadow); }
-    .search-bar i { color:var(--ocean-400); font-size:14px; }
-    .search-bar input { flex:1; border:none; outline:none; font-size:14px; color:var(--ocean-900); background:transparent; }
-    .search-bar input::placeholder { color:var(--ocean-300); }
+    .search-bar { background:var(--panel); border-radius:var(--radius-sm); padding:0 14px; min-height:46px; display:flex; align-items:center; gap:10px; border:var(--rule); margin-bottom:12px; transition:border-color .15s, box-shadow .15s; }
+    .search-bar:focus-within { border-color:var(--teal-500); box-shadow:0 0 0 3px var(--mint-100); }
+    .search-bar i { color:var(--slate-400); font-size:14px; }
+    .search-bar input { flex:1; border:none; outline:none; font-size:16px; color:var(--slate-900); background:transparent; min-height:44px; }
+    .search-bar input::placeholder { color:var(--slate-400); }
 
     /* ── TOAST ── */
-    #toast { position:fixed; bottom:76px; left:50%; transform:translateX(-50%) translateY(10px); background:var(--ocean-900); color:white; padding:10px 20px; border-radius:22px; font-size:14px; font-weight:600; z-index:9999; white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .25s,transform .25s; }
+    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(8px); background:var(--slate-900); color:white; padding:11px 20px; border-radius:10px; font-size:14px; font-weight:600; z-index:9999; white-space:nowrap; box-shadow:var(--shadow-overlay); opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; max-width:calc(100vw - 32px); overflow:hidden; text-overflow:ellipsis; }
     #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
     /* ── MISC ── */
-    .alert-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:#fff5f5; border-radius:10px; margin-bottom:7px; }
-    .today-res-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--ocean-50); border-radius:10px; margin-bottom:7px; cursor:pointer; }
-    .dash-panel { background:white; border-radius:var(--radius); padding:16px; margin-bottom:12px; border:1px solid var(--ocean-100); box-shadow:var(--shadow); }
-    .dash-panel h3 { font-size:14px; font-weight:700; color:var(--ocean-800); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
-    .sb-status { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; margin-top:12px; }
+    .alert-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--red-50); border:1px solid var(--red-200); border-radius:10px; margin-bottom:6px; }
+    .today-res-item { display:flex; align-items:center; gap:12px; padding:12px 4px; min-height:52px; background:transparent; border-bottom:1px solid var(--slate-100); border-radius:0; margin-bottom:0; cursor:pointer; }
+    .today-res-item:last-child { border-bottom:none; }
+    .dash-panel { background:var(--panel); border-radius:var(--radius); padding:16px 16px 8px; margin-bottom:12px; border:var(--rule); }
+    .dash-panel h3 { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate-700); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+    .dash-panel h3 i { color:var(--teal-600); }
+    .sb-status { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:var(--radius-sm); margin-top:12px; font-size:12px; font-weight:600; color:var(--slate-500); }
     .pulse-dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; }
-    .pulse-dot.green { background:#22c55e; }
-    .pulse-dot.red { background:#ef4444; animation:pulse 1.5s infinite; }
-    .pulse-dot.yellow { background:#f59e0b; }
+    .pulse-dot.green { background:var(--green); }
+    .pulse-dot.red { background:var(--red); animation:pulse 1.5s infinite; }
+    .pulse-dot.yellow { background:var(--amber); }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-    .log-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--ocean-50); border-radius:10px; margin-bottom:7px; }
-    .log-icon { width:30px; height:30px; background:white; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .order-item { background:white; border-radius:12px; padding:12px 14px; margin-bottom:8px; border:1px solid var(--ocean-100); }
-    .order-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--ocean-100); border-radius:10px; margin-bottom:8px; background:white; }
-    .empty-state { text-align:center; padding:36px 20px; color:var(--ocean-300); }
-    .empty-state i { font-size:32px; margin-bottom:10px; display:block; }
-    .empty-state p { font-size:14px; }
-    .locked-overlay { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 20px; color:var(--ocean-300); text-align:center; }
-    .locked-overlay i { font-size:48px; margin-bottom:14px; color:#f59e0b; }
-    .locked-overlay h3 { font-size:18px; font-weight:700; color:var(--ocean-900); margin-bottom:8px; }
+    .log-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--panel); border:var(--rule); border-radius:10px; margin-bottom:6px; }
+    .log-icon { width:32px; height:32px; background:var(--slate-50); border:1px solid var(--slate-100); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--slate-700); }
+    .order-item { background:var(--panel); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; border:var(--rule); }
+    .order-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:var(--rule); border-radius:10px; margin-bottom:8px; background:var(--panel); }
+    .empty-state { text-align:center; padding:32px 20px; color:var(--slate-500); background-image:repeating-linear-gradient(to bottom, transparent 0 27px, var(--slate-100) 27px 28px); border-radius:8px; }
+    .empty-state i { font-size:26px; margin-bottom:10px; display:block; color:var(--slate-300); background:var(--panel); width:56px; height:44px; line-height:44px; margin-left:auto; margin-right:auto; border-radius:8px; }
+    .empty-state p { font-size:14px; font-weight:600; background:var(--panel); display:inline-block; padding:0 8px; }
+    .locked-overlay { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 20px; color:var(--slate-500); text-align:center; }
+    .locked-overlay i { font-size:40px; margin-bottom:14px; color:var(--slate-700); }
+    .locked-overlay h3 { font-size:18px; font-weight:800; color:var(--slate-900); margin-bottom:8px; }
     .locked-overlay p { font-size:14px; margin-bottom:20px; }
-    .divider { height:1px; background:var(--ocean-100); margin:14px 0; }
+    .divider { height:1px; background:var(--slate-200); margin:14px 0; }
+
+    /* ── ROUND ONE ── */
+    @media (max-width:640px) {
+      #topbar-role-info .role-chip { display:none; }
+      #topbar-title { font-size:12px; letter-spacing:.12em; min-width:0; }
+    }
+    @media (max-width:1023px) {
+      .tab-row { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-left:-16px; margin-right:-16px; padding:0 16px; }
+      .tab-row::-webkit-scrollbar { display:none; }
+      .tab-btn { flex-shrink:0; }
+    }
+    .empty-state { background-image:repeating-linear-gradient(to bottom, transparent 0 27px, var(--slate-100) 27px 28px); }
+    .empty-state i { width:64px; }
+
+    /* ── DESKTOP: the beam becomes a sidebar ── */
+    @media (min-width:1024px) {
+      #drawer { transform:none; box-shadow:none; }
+      #drawer-overlay { display:none; }
+      #hamburger-btn { display:none; }
+      #topbar { left:var(--beam-w); padding-left:24px; }
+      #content-wrap { left:var(--beam-w); bottom:0; padding:24px 32px 32px; }
+      #content-wrap > .page-section { max-width:1200px; margin:0 auto; }
+      #bottom-nav { display:none; }
+      #toast { bottom:32px; left:calc(50% + var(--beam-w) / 2); }
+      .modal-overlay { align-items:center; }
+      .modal { border-radius:16px; max-height:88vh; }
+      .kpi-grid { grid-template-columns:repeat(4,1fr); gap:12px; }
+      #section-dashboard.active { display:grid; grid-template-columns:1fr 1fr; grid-auto-flow:row dense; gap:16px; align-items:start; }
+      #section-dashboard > .kpi-grid { grid-column:1; grid-template-columns:1fr 1fr; margin-bottom:0; }
+      #section-dashboard > .dash-panel { margin-bottom:0; grid-column:1; }
+      #section-dashboard > .dash-panel:nth-of-type(4) { grid-column:2; grid-row:1 / span 3; }
+      .task-count-row, .fin-summary-grid, .bb-summary-grid { gap:12px; }
+    }
+    @media (max-width:1023px) {
+      .modal { padding-bottom:max(24px,env(safe-area-inset-bottom,24px)); }
+    }
   </style>
 </head>
 <body>
@@ -446,7 +545,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <div id="topbar-right">
     <div id="topbar-role-info"></div>
     <select id="topbar-emp"><option value="">Staff</option></select>
-    <button id="btn-app-logout" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;display:none"><i class="fas fa-sign-out-alt"></i> <span id="topbar-username"></span></button>
+    <button id="btn-app-logout" style="background:#fbeae7;color:#b4402f;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;display:none"><i class="fas fa-sign-out-alt"></i> <span id="topbar-username"></span></button>
   </div>
 </header>
 
@@ -468,7 +567,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts</button>
     <div class="section-label" style="margin-top:12px">Admin</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
-    <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#ddd6fe">FINANCE</span></button>
+    <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
     <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Users <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
   </nav>
@@ -494,25 +593,25 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <section id="section-dashboard" class="page-section active">
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon">🪑</div><span class="badge badge-blue">Today</span></div>
+        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-chair"></i></div><span class="badge badge-blue">Today</span></div>
         <div class="kpi-num" id="dash-res-count">0</div>
         <div class="kpi-label">Reservations Today</div>
         <div class="kpi-sub"></div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon">✅</div><span class="badge badge-yellow" id="dash-task-badge">Open</span></div>
+        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-list-check"></i></div><span class="badge badge-yellow" id="dash-task-badge">Open</span></div>
         <div class="kpi-num" id="dash-task-count">0</div>
         <div class="kpi-label">Open Tasks</div>
         <div class="kpi-sub"></div>
       </div>
     </div>
     <div class="dash-panel" id="dash-orders-panel" style="display:none">
-      <h3><i class="fas fa-truck" style="color:#f59e0b"></i> Pending Orders <span class="badge badge-orange" id="dash-orders-badge"></span></h3>
+      <h3><i class="fas fa-truck" style="color:#b7791f"></i> Pending Orders <span class="badge badge-orange" id="dash-orders-badge"></span></h3>
       <div id="dash-pending-orders"></div>
     </div>
     <div class="dash-panel">
       <h3><i class="fas fa-clipboard-list" style="color:var(--ocean-500)"></i> Open Tasks <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
-      <div id="dash-tasks-panel"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#22c55e;font-size:22px"></i><p>All done!</p></div></div>
+      <div id="dash-tasks-panel"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#2b8a4b;font-size:22px"></i><p>All done!</p></div></div>
     </div>
     <div class="dash-panel">
       <h3><i class="fas fa-calendar-day" style="color:var(--ocean-500)"></i> Today's Reservations</h3>
@@ -526,10 +625,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <div class="tab-row" style="margin-bottom:0">
         <button class="tab-btn active" id="inv-tab-stock" data-inv-tab="stock"><i class="fas fa-warehouse"></i> Stock</button>
         <button class="tab-btn" id="inv-tab-log" data-inv-tab="log"><i class="fas fa-clock-rotate-left"></i> Log</button>
-        <button class="tab-btn" id="inv-tab-orders" data-inv-tab="orders"><i class="fas fa-truck"></i> Orders <span id="orders-standby-badge" style="display:none;background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
+        <button class="tab-btn" id="inv-tab-orders" data-inv-tab="orders"><i class="fas fa-truck"></i> Orders <span id="orders-standby-badge" style="display:none;background:#b7791f;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary btn-sm" id="btn-open-order"><i class="fas fa-cart-shopping"></i> Cart <span id="cart-badge" style="display:none;background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
+        <button class="btn btn-secondary btn-sm" id="btn-open-order"><i class="fas fa-cart-shopping"></i> Cart <span id="cart-badge" style="display:none;background:#b7791f;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
         <button class="btn btn-primary btn-sm" id="btn-add-inventory"><i class="fas fa-plus"></i> Add</button>
       </div>
     </div>
@@ -537,11 +636,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <!-- Category filter chips -->
       <div id="inv-cat-slicers" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
         <button class="inv-slicer active" data-inv-cat="">All</button>
-        <button class="inv-slicer" data-inv-cat="beverages">🍹 Bar</button>
-        <button class="inv-slicer" data-inv-cat="food">🍔 Cozinha</button>
-        <button class="inv-slicer" data-inv-cat="supplies">🧹 Limpeza</button>
-        <button class="inv-slicer" data-inv-cat="equipment">🔧 Economato</button>
-        <button class="inv-slicer" data-inv-cat="other">📦 Other</button>
+        <button class="inv-slicer" data-inv-cat="beverages"><i class="fas fa-martini-glass-citrus"></i> Bar</button>
+        <button class="inv-slicer" data-inv-cat="food"><i class="fas fa-utensils"></i> Cozinha</button>
+        <button class="inv-slicer" data-inv-cat="supplies"><i class="fas fa-broom"></i> Limpeza</button>
+        <button class="inv-slicer" data-inv-cat="equipment"><i class="fas fa-screwdriver-wrench"></i> Economato</button>
+        <button class="inv-slicer" data-inv-cat="other"><i class="fas fa-box"></i> Other</button>
       </div>
       <!-- Supplier cards section -->
       <div id="inv-supplier-section" style="margin-bottom:16px">
@@ -628,9 +727,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <button class="btn btn-primary btn-sm" id="btn-add-task"><i class="fas fa-plus"></i> New</button>
     </div>
     <div class="task-count-row">
-      <div class="task-count-card"><div class="tc-icon" style="background:#fef9c3">⏳</div><div><div class="tc-num" id="task-count-pending">0</div><div class="tc-label">Pending</div></div></div>
-      <div class="task-count-card"><div class="tc-icon" style="background:#dbeafe">🔄</div><div><div class="tc-num" id="task-count-progress">0</div><div class="tc-label">Active</div></div></div>
-      <div class="task-count-card"><div class="tc-icon" style="background:#dcfce7">✅</div><div><div class="tc-num" id="task-count-done">0</div><div class="tc-label">Done</div></div></div>
+      <div class="task-count-card"><div class="tc-icon" style="background:#fdf3e1">⏳</div><div><div class="tc-num" id="task-count-pending">0</div><div class="tc-label">Pending</div></div></div>
+      <div class="task-count-card"><div class="tc-icon" style="background:#e6f0f9;color:#2f6fa8"><i class="fas fa-rotate"></i></div><div><div class="tc-num" id="task-count-progress">0</div><div class="tc-label">Active</div></div></div>
+      <div class="task-count-card"><div class="tc-icon" style="background:#e3f4e8;color:#2b8a4b"><i class="fas fa-check"></i></div><div><div class="tc-num" id="task-count-done">0</div><div class="tc-label">Done</div></div></div>
     </div>
     <div id="task-list"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No tasks yet!</p></div></div>
   </section>
@@ -663,12 +762,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);margin-bottom:12px;font-size:11px;color:var(--ocean-400);flex-wrap:wrap">
         <i class="fas fa-circle-info" style="color:var(--ocean-300)"></i>
         Timeline: 07:00 – 24:00 &nbsp;·&nbsp;
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#0ea5e9;display:inline-block"></span> Morning</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block"></span> Afternoon</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#8b5cf6;display:inline-block"></span> Evening</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#374151;display:inline-block"></span> Night</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#1f2937;border:1px solid #374151;display:inline-block"></span> Day Off</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#dc2626;display:inline-block"></span> Absent</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#2a9683;display:inline-block"></span> Morning</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#b7791f;display:inline-block"></span> Afternoon</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#6d4fc2;display:inline-block"></span> Evening</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#2b434e;display:inline-block"></span> Night</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#1f2937;border:1px solid #2b434e;display:inline-block"></span> Day Off</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#b4402f;display:inline-block"></span> Absent</span>
       </div>
       <div id="shifts-list"></div>
     </div>
@@ -677,10 +776,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div id="shifts-panel-tips" style="display:none">
       <div class="shifts-tips-card" style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
         <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
-          <i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Weekly Tips Distribution
+          <i class="fas fa-hand-holding-dollar" style="color:#b7791f"></i> Weekly Tips Distribution
         </div>
-        <div id="tips-locked-notice" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#78350f;display:flex;align-items:center;gap:8px">
-          <i class="fas fa-lock" style="color:#f59e0b"></i> Tips already generated for this week — field is locked.
+        <div id="tips-locked-notice" style="display:none;background:#fdf3e1;border:1px solid #fde047;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#7a4f10;display:flex;align-items:center;gap:8px">
+          <i class="fas fa-lock" style="color:#b7791f"></i> Tips already generated for this week — field is locked.
           <button id="btn-tips-unlock" class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:11px"><i class="fas fa-unlock"></i> Edit</button>
         </div>
         <div id="tips-input-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
@@ -720,10 +819,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <!-- ═══ FINANCE ═══ -->
   <section id="section-finance" class="page-section">
     <div id="finance-locked" class="locked-overlay" style="display:none">
-      <i class="fas fa-euro-sign" style="color:#8b5cf6"></i>
+      <i class="fas fa-euro-sign" style="color:#6d4fc2"></i>
       <h3>Finance Access Required</h3>
       <p>Enter the Finance PIN to access daily records.</p>
-      <button class="btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white" id="fin-login-prompt-btn"><i class="fas fa-key"></i> Enter Finance PIN</button>
+      <button class="btn" style="background:#6d4fc2;color:white" id="fin-login-prompt-btn"><i class="fas fa-key"></i> Enter Finance PIN</button>
     </div>
     <div id="finance-content" style="display:none">
       <div class="tab-row" style="margin-bottom:14px">
@@ -743,19 +842,19 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         </div>
 
         <!-- Missing days warning -->
-        <div id="fin-missing-warning" style="display:none;background:#fef2f2;border:2px solid #dc2626;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px">
+        <div id="fin-missing-warning" style="display:none;background:#fdf5f3;border:2px solid #b4402f;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px">
           <div style="display:flex;align-items:flex-start;gap:10px">
-            <i class="fas fa-triangle-exclamation" style="color:#dc2626;font-size:18px;margin-top:1px;flex-shrink:0"></i>
+            <i class="fas fa-triangle-exclamation" style="color:#b4402f;font-size:18px;margin-top:1px;flex-shrink:0"></i>
             <div>
-              <div style="font-weight:800;font-size:13px;color:#dc2626;margin-bottom:4px">Missing previous entries</div>
-              <div id="fin-missing-days-list" style="font-size:12px;color:#b91c1c;line-height:1.7"></div>
+              <div style="font-weight:800;font-size:13px;color:#b4402f;margin-bottom:4px">Missing previous entries</div>
+              <div id="fin-missing-days-list" style="font-size:12px;color:#8f3223;line-height:1.7"></div>
             </div>
           </div>
         </div>
 
         <!-- Invoiced FIRST -->
         <div class="fin-card">
-          <h3><i class="fas fa-file-invoice-dollar" style="color:#10b981"></i> Invoiced</h3>
+          <h3><i class="fas fa-file-invoice-dollar" style="color:#2b8a4b"></i> Invoiced</h3>
           <div class="fin-input-row" style="margin-bottom:0">
             <label>Total Facturado</label>
             <input type="text" id="fin-invoiced" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
@@ -781,7 +880,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Expenses -->
         <div class="fin-card">
-          <h3><i class="fas fa-arrow-down" style="color:#ef4444"></i> Expenses</h3>
+          <h3><i class="fas fa-arrow-down" style="color:#b4402f"></i> Expenses</h3>
           <div class="fin-input-row">
             <label>Tips</label>
             <input type="text" id="fin-tips" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
@@ -799,7 +898,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Cash Details -->
         <div class="fin-card">
-          <h3><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Details</h3>
+          <h3><i class="fas fa-coins" style="color:#b7791f"></i> Cash Details</h3>
           <div class="fin-input-row">
             <label>Notes</label>
             <input type="text" id="fin-cash-notes" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
@@ -818,7 +917,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Surf -->
         <div class="fin-card">
-          <h3><i class="fas fa-umbrella-beach" style="color:#0ea5e9"></i> Surf</h3>
+          <h3><i class="fas fa-umbrella-beach" style="color:#2a9683"></i> Surf</h3>
           <div class="fin-input-row" style="margin-bottom:0">
             <label>Surf</label>
             <input type="text" id="fin-surf" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
@@ -827,7 +926,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Action buttons — shown when entry is NOT yet saved for this date -->
         <div id="fin-entry-actions">
-          <button class="btn btn-primary" style="width:100%;justify-content:center;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border-color:#7c3aed;margin-bottom:8px" id="btn-save-finance-entry">
+          <button class="btn btn-primary" style="width:100%;justify-content:center;background:#6d4fc2;border-color:#6d4fc2;margin-bottom:8px" id="btn-save-finance-entry">
             <i class="fas fa-save"></i> Save Daily Entry
           </button>
           <button class="btn btn-secondary" style="width:100%;justify-content:center" id="btn-clear-finance-entry">
@@ -835,13 +934,13 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
           </button>
         </div>
         <!-- Locked banner — shown when entry is already saved for this date -->
-        <div id="fin-entry-locked" style="display:none;background:#f0fdf4;border:2px solid #16a34a;border-radius:var(--radius);padding:14px 16px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
-          <i class="fas fa-circle-check" style="color:#16a34a;font-size:22px;flex-shrink:0"></i>
+        <div id="fin-entry-locked" style="display:none;background:#e3f4e8;border:2px solid #2b8a4b;border-radius:var(--radius);padding:14px 16px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
+          <i class="fas fa-circle-check" style="color:#2b8a4b;font-size:22px;flex-shrink:0"></i>
           <div style="flex:1;min-width:0">
-            <div style="font-weight:800;font-size:14px;color:#15803d">Entry Saved</div>
-            <div style="font-size:12px;color:#16a34a;margin-top:2px">This day is locked. Finance users can edit.</div>
+            <div style="font-weight:800;font-size:14px;color:#236f3c">Entry Saved</div>
+            <div style="font-size:12px;color:#2b8a4b;margin-top:2px">This day is locked. Finance users can edit.</div>
           </div>
-          <button id="btn-fin-edit-entry" style="display:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;align-items:center;gap:6px">
+          <button id="btn-fin-edit-entry" style="display:none;background:#b7791f;color:white;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;align-items:center;gap:6px">
             <i class="fas fa-pen"></i> Edit
           </button>
         </div>
@@ -852,7 +951,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Section 1: Total of Day -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-receipt" style="color:#7c3aed"></i> Total of the Day</div>
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-receipt" style="color:#6d4fc2"></i> Total of the Day</div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card" style="position:relative">
               <div class="fin-summary-num" id="fin-stat-day-month">€0</div>
@@ -883,7 +982,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Section 2: T51 -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-cash-register" style="color:#0ea5e9"></i> T 51</div>
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-cash-register" style="color:#2a9683"></i> T 51</div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-month">€0</div>
@@ -907,7 +1006,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Section 3: Surf -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-water" style="color:#06b6d4"></i> Surf</div>
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-water" style="color:#2a9683"></i> Surf</div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-month">€0</div>
@@ -931,25 +1030,25 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
         <!-- Section 4: Cash Over / Under Log -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-scale-unbalanced" style="color:#dc2626"></i> Cash Over / Under Log</div>
+          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-scale-unbalanced" style="color:#b4402f"></i> Cash Over / Under Log</div>
           <div class="fin-summary-grid" style="margin-bottom:10px">
             <div class="fin-summary-card" style="border:1px solid #fecaca">
-              <div class="fin-summary-num" id="fin-stat-short-month" style="color:#dc2626">€0</div>
+              <div class="fin-summary-num" id="fin-stat-short-month" style="color:#b4402f">€0</div>
               <div class="fin-summary-label">Short This Month</div>
               <div id="fin-stat-short-month-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
             </div>
             <div class="fin-summary-card" style="border:1px solid #fecaca">
-              <div class="fin-summary-num" id="fin-stat-short-year" style="color:#dc2626">€0</div>
+              <div class="fin-summary-num" id="fin-stat-short-year" style="color:#b4402f">€0</div>
               <div class="fin-summary-label">Short This Year</div>
               <div id="fin-stat-short-year-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
             </div>
-            <div class="fin-summary-card" style="border:1px solid #bbf7d0">
-              <div class="fin-summary-num" id="fin-stat-over-month" style="color:#16a34a">€0</div>
+            <div class="fin-summary-card" style="border:1px solid #a9dcb9">
+              <div class="fin-summary-num" id="fin-stat-over-month" style="color:#2b8a4b">€0</div>
               <div class="fin-summary-label">Over This Month</div>
               <div id="fin-stat-over-month-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
             </div>
-            <div class="fin-summary-card" style="border:1px solid #bbf7d0">
-              <div class="fin-summary-num" id="fin-stat-over-year" style="color:#16a34a">€0</div>
+            <div class="fin-summary-card" style="border:1px solid #a9dcb9">
+              <div class="fin-summary-num" id="fin-stat-over-year" style="color:#2b8a4b">€0</div>
               <div class="fin-summary-label">Over This Year</div>
               <div id="fin-stat-over-year-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
             </div>
@@ -1085,11 +1184,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <!-- ═══ SETTINGS ═══ -->
   <section id="section-settings" class="page-section">
     <!-- Migration notice — always visible when migration is needed (admin must see this) -->
-    <div id="sb-migration-banner" style="display:none;margin:0 0 14px 0;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:14px">
-      <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:8px;display:flex;align-items:center;gap:7px">
-        <i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Database migration required
+    <div id="sb-migration-banner" style="display:none;margin:0 0 14px 0;background:#fdf3e1;border:1.5px solid #b7791f;border-radius:12px;padding:14px">
+      <div style="font-weight:700;font-size:13px;color:#7a4f10;margin-bottom:8px;display:flex;align-items:center;gap:7px">
+        <i class="fas fa-triangle-exclamation" style="color:#b7791f"></i> Database migration required
       </div>
-      <p style="font-size:12px;color:#78350f;margin-bottom:10px">Some columns or tables are missing in your Supabase database. This prevents Finance data and Settings (Finance PIN, Fundo de Caixa) from syncing across devices. Run the script below <strong>once</strong> in your Supabase SQL Editor to fix this.</p>
+      <p style="font-size:12px;color:#7a4f10;margin-bottom:10px">Some columns or tables are missing in your Supabase database. This prevents Finance data and Settings (Finance PIN, Fundo de Caixa) from syncing across devices. Run the script below <strong>once</strong> in your Supabase SQL Editor to fix this.</p>
       <a href="https://supabase.com/dashboard/project/eurcdnyhwqofnddhxrpf/sql/new" target="_blank" class="btn btn-gold btn-sm" style="width:100%;justify-content:center;margin-bottom:10px"><i class="fas fa-external-link-alt"></i> Open Supabase SQL Editor</a>
       <div style="position:relative">
         <pre id="sb-migration-sql" style="background:#1e1e2e;color:#cdd6f4;font-size:11px;border-radius:8px;padding:12px;overflow-x:auto;white-space:pre;margin:0;line-height:1.6"></pre>
@@ -1100,8 +1199,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div class="settings-card" id="notif-settings-card">
       <h3><i class="fas fa-bell" style="color:var(--ocean-500)"></i> Push Notifications</h3>
       <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Receive alerts when a task is assigned to you.</p>
-      <div id="notif-status-row" style="font-size:13px;color:#64748b;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-        <i class="fas fa-circle" id="notif-status-dot" style="font-size:8px;color:#94a3b8"></i>
+      <div id="notif-status-row" style="font-size:13px;color:#5f7079;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <i class="fas fa-circle" id="notif-status-dot" style="font-size:8px;color:#8a9aa2"></i>
         <span id="notif-status-text">Checking...</span>
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-enable-notif">
@@ -1118,7 +1217,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div id="settings-content" style="display:none">
       <!-- Change PIN -->
       <div class="settings-card">
-        <h3><i class="fas fa-key" style="color:#f59e0b"></i> Admin PIN</h3>
+        <h3><i class="fas fa-key" style="color:#b7791f"></i> Admin PIN</h3>
         <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Change the 4-digit admin PIN.</p>
         <div class="form-grid-2" style="margin-bottom:12px">
           <div><label class="label">New PIN</label><input type="password" id="new-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
@@ -1128,7 +1227,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       </div>
       <!-- Fundo de Caixa -->
       <div class="settings-card">
-        <h3><i class="fas fa-vault" style="color:#10b981"></i> Fundo de Caixa</h3>
+        <h3><i class="fas fa-vault" style="color:#2b8a4b"></i> Fundo de Caixa</h3>
         <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Set the base cash fund amount used in Finance calculations.</p>
         <div class="fin-input-row" style="margin-bottom:12px">
           <label>Fundo de Caixa (€)</label>
@@ -1138,26 +1237,26 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       </div>
       <!-- Finance PIN -->
       <div class="settings-card">
-        <h3><i class="fas fa-euro-sign" style="color:#8b5cf6"></i> Finance PIN</h3>
+        <h3><i class="fas fa-euro-sign" style="color:#6d4fc2"></i> Finance PIN</h3>
         <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Change the 4-digit Finance tab PIN.</p>
         <div class="form-grid-2" style="margin-bottom:12px">
           <div><label class="label">New Finance PIN</label><input type="password" id="new-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
           <div><label class="label">Confirm PIN</label><input type="password" id="confirm-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
         </div>
-        <button class="btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;display:flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700" id="btn-change-finance-pin"><i class="fas fa-save"></i> Update Finance PIN</button>
+        <button class="btn" style="background:#6d4fc2;color:white;display:flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700" id="btn-change-finance-pin"><i class="fas fa-save"></i> Update Finance PIN</button>
       </div>
       <!-- Finance Budgets -->
       <div class="settings-card">
-        <h3><i class="fas fa-chart-line" style="color:#16a34a"></i> Finance Budgets</h3>
+        <h3><i class="fas fa-chart-line" style="color:#2b8a4b"></i> Finance Budgets</h3>
         <p style="font-size:13px;color:var(--ocean-400);margin-bottom:10px">Set a monthly budget for each metric. The year total is calculated automatically.</p>
         <div style="overflow-x:auto;margin-bottom:14px">
           <table style="width:100%;border-collapse:collapse;font-size:12px">
             <thead>
               <tr style="background:var(--ocean-50)">
                 <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:60px">Month</th>
-                <th style="padding:6px 4px;font-weight:700;color:#7c3aed;text-align:right;min-width:80px">Total Day</th>
-                <th style="padding:6px 4px;font-weight:700;color:#0ea5e9;text-align:right;min-width:80px">T 51</th>
-                <th style="padding:6px 4px;font-weight:700;color:#06b6d4;text-align:right;min-width:80px">Surf</th>
+                <th style="padding:6px 4px;font-weight:700;color:#6d4fc2;text-align:right;min-width:80px">Total Day</th>
+                <th style="padding:6px 4px;font-weight:700;color:#2a9683;text-align:right;min-width:80px">T 51</th>
+                <th style="padding:6px 4px;font-weight:700;color:#2a9683;text-align:right;min-width:80px">Surf</th>
               </tr>
             </thead>
             <tbody id="budget-months-body">
@@ -1166,9 +1265,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
             <tfoot>
               <tr style="background:var(--ocean-50);border-top:2px solid var(--ocean-200)">
                 <td style="padding:6px 8px;font-weight:800;color:var(--ocean-800);font-size:12px">Year Total</td>
-                <td id="budget-year-day"  style="padding:6px 4px;font-weight:800;color:#7c3aed;text-align:right;font-size:12px">€0</td>
-                <td id="budget-year-t51"  style="padding:6px 4px;font-weight:800;color:#0ea5e9;text-align:right;font-size:12px">€0</td>
-                <td id="budget-year-surf" style="padding:6px 4px;font-weight:800;color:#06b6d4;text-align:right;font-size:12px">€0</td>
+                <td id="budget-year-day"  style="padding:6px 4px;font-weight:800;color:#6d4fc2;text-align:right;font-size:12px">€0</td>
+                <td id="budget-year-t51"  style="padding:6px 4px;font-weight:800;color:#2a9683;text-align:right;font-size:12px">€0</td>
+                <td id="budget-year-surf" style="padding:6px 4px;font-weight:800;color:#2a9683;text-align:right;font-size:12px">€0</td>
               </tr>
             </tfoot>
           </table>
@@ -1193,9 +1292,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <div class="form-row"><label class="label">Project URL</label><input type="text" id="sb-url" class="input-field" readonly style="background:var(--ocean-50);color:var(--ocean-600);font-size:13px" /></div>
         <div class="form-row"><label class="label">Anon Key</label><input type="text" id="sb-key" class="input-field" readonly style="background:var(--ocean-50);color:var(--ocean-600);font-size:13px" /></div>
         <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-save-supabase"><i class="fas fa-rotate"></i> Re-sync from Supabase</button>
-        <div class="sb-status" id="sb-status-box" style="background:#fefce8">
+        <div class="sb-status" id="sb-status-box" style="background:#fdf3e1">
           <span class="pulse-dot yellow"></span>
-          <span style="font-size:13px;color:#ca8a04" id="sb-status-text">Connecting...</span>
+          <span style="font-size:13px;color:#9a6a14" id="sb-status-text">Connecting...</span>
         </div>
         <!-- Migration notice moved to banner above settings-locked -->
       </div>
@@ -1212,7 +1311,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <button class="bnav-item" id="bnav-tasks" data-nav="tasks"><i class="fas fa-list-check"></i>Tasks</button>
   <button class="bnav-item" id="bnav-shifts" data-nav="shifts"><i class="fas fa-clock"></i>Shifts</button>
   <button class="bnav-item admin-nav" id="bnav-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i>Box</button>
-  <button class="bnav-item" id="bnav-finance" data-nav="finance" style="color:#8b5cf6"><i class="fas fa-euro-sign"></i>Finance</button>
+  <button class="bnav-item" id="bnav-finance" data-nav="finance" style="color:#6d4fc2"><i class="fas fa-euro-sign"></i>Finance</button>
 </nav>
 
 <!-- ═══════════ MODALS ═══════════ -->
@@ -1221,7 +1320,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <div class="modal-overlay modal-center" id="modal-admin-login">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2 style="justify-content:center"><i class="fas fa-shield-halved" style="color:#f59e0b"></i> Admin Login</h2>
+    <h2 style="justify-content:center"><i class="fas fa-shield-halved" style="color:#b7791f"></i> Admin Login</h2>
     <p style="text-align:center;font-size:13px;color:var(--ocean-400);margin-bottom:20px">Enter your 4-digit PIN</p>
     <div class="pin-display" id="pin-display">
       <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
@@ -1249,7 +1348,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <div class="modal-overlay modal-center" id="modal-finance-login">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2 style="justify-content:center"><i class="fas fa-euro-sign" style="color:#8b5cf6"></i> Finance Login</h2>
+    <h2 style="justify-content:center"><i class="fas fa-euro-sign" style="color:#6d4fc2"></i> Finance Login</h2>
     <p style="text-align:center;font-size:13px;color:var(--ocean-400);margin-bottom:20px">Enter your 4-digit Finance PIN</p>
     <div class="pin-display" id="fin-pin-display">
       <div class="pin-dot" id="fpd0"></div><div class="pin-dot" id="fpd1"></div>
@@ -1292,16 +1391,16 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div style="background:var(--ocean-50);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.06em">Roles *</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" id="user-roles-wrap">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-admin">
-        <input type="checkbox" value="admin" class="user-role-cb" style="accent-color:#f59e0b" /> 👑 Admin
+        <input type="checkbox" value="admin" class="user-role-cb" style="accent-color:#a6741e" /> <i class="fas fa-crown" style="color:#a6741e"></i> Admin
       </label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-finance">
-        <input type="checkbox" value="finance" class="user-role-cb" style="accent-color:#8b5cf6" /> 💶 Finance
+        <input type="checkbox" value="finance" class="user-role-cb" style="accent-color:#6d4fc2" /> <i class="fas fa-euro-sign" style="color:#6d4fc2"></i> Finance
       </label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-shift_mgr">
-        <input type="checkbox" value="shift_mgr" class="user-role-cb" style="accent-color:#10b981" /> 📅 Shift Manager
+        <input type="checkbox" value="shift_mgr" class="user-role-cb" style="accent-color:#2b8a4b" /> <i class="fas fa-calendar-days" style="color:#2b8a4b"></i> Shift Manager
       </label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-employee">
-        <input type="checkbox" value="employee" class="user-role-cb" style="accent-color:#0ea5e9" /> 👤 Employee
+        <input type="checkbox" value="employee" class="user-role-cb" style="accent-color:#2f6fa8" /> <i class="fas fa-user" style="color:#2f6fa8"></i> Employee
       </label>
     </div>
 
@@ -1350,30 +1449,30 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <div class="modal-overlay" id="modal-add-supplier">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-truck" style="color:#0ea5e9"></i><span id="supplier-modal-title">Add Supplier</span></h2>
+    <h2><i class="fas fa-truck" style="color:#2a9683"></i><span id="supplier-modal-title">Add Supplier</span></h2>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Name *</label><input type="text" class="input-field" id="supplier-name" placeholder="Supplier name" /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Email</label><input type="email" class="input-field" id="supplier-email" placeholder="supplier@example.com" /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Phone</label><input type="text" class="input-field" id="supplier-phone" placeholder="+351..." /></div>
     <div style="margin-bottom:12px">
       <label class="label">Categories Supplied</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="supplier-cat-checks">
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="beverages"> 🍹 Bar</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="food"> 🍔 Cozinha</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="supplies"> 🧹 Limpeza</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="equipment"> 🔧 Economato</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="other"> 📦 Other</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="beverages"> <i class="fas fa-martini-glass-citrus"></i> Bar</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="food"> <i class="fas fa-utensils"></i> Cozinha</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="supplies"> <i class="fas fa-broom"></i> Limpeza</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="equipment"> <i class="fas fa-screwdriver-wrench"></i> Economato</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="other"> <i class="fas fa-box"></i> Other</label>
       </div>
     </div>
     <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px;background:var(--ocean-50);border-radius:10px;padding:12px">
       <input type="checkbox" id="supplier-send-email" style="width:18px;height:18px;accent-color:var(--ocean-500)" />
-      <div><div style="font-size:13px;font-weight:700;color:var(--ocean-800)">📧 Send orders by email</div><div style="font-size:11px;color:var(--ocean-400)">When enabled, orders to this supplier can be sent by email</div></div>
+      <div><div style="font-size:13px;font-weight:700;color:var(--ocean-800)"><i class="fas fa-envelope"></i> Send orders by email</div><div style="font-size:11px;color:var(--ocean-400)">When enabled, orders to this supplier can be sent by email</div></div>
     </label>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-supplier"><i class="fas fa-save"></i> Save</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-supplier">Cancel</button>
     </div>
     <div id="supplier-delete-row" style="display:none;margin-top:10px">
-      <button class="btn" style="width:100%;justify-content:center;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" id="btn-delete-supplier-modal"><i class="fas fa-trash"></i> Delete Supplier</button>
+      <button class="btn" style="width:100%;justify-content:center;background:#fbeae7;color:#b4402f;border:1px solid #f0b8ae" id="btn-delete-supplier-modal"><i class="fas fa-trash"></i> Delete Supplier</button>
     </div>
   </div>
 </div>
@@ -1387,11 +1486,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <div><label class="label">Item Name *</label><input type="text" class="input-field" id="inv-item-name" placeholder="e.g. Water Bottle" /></div>
       <div><label class="label">Category</label>
         <select class="select-field" id="inv-category">
-          <option value="beverages">🍹 Bar</option>
-          <option value="food">🍔 Cozinha</option>
-          <option value="supplies">🧹 Limpeza</option>
-          <option value="equipment">🔧 Economato</option>
-          <option value="other">📦 Other</option>
+          <option value="beverages">Bar</option>
+          <option value="food">Cozinha</option>
+          <option value="supplies">Limpeza</option>
+          <option value="equipment">Economato</option>
+          <option value="other">Other</option>
         </select>
       </div>
     </div>
@@ -1412,7 +1511,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <div class="modal-overlay" id="modal-quick-order">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-cart-plus" style="color:#0ea5e9"></i> Add to Order</h2>
+    <h2><i class="fas fa-cart-plus" style="color:#2a9683"></i> Add to Order</h2>
     <input type="hidden" id="quick-order-id" />
     <div style="background:var(--ocean-50);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
       <div style="font-size:28px" id="quick-order-icon"></div>
@@ -1436,7 +1535,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <div class="modal-overlay" id="modal-set-order-amount">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-euro-sign" style="color:#16a34a"></i> Set Order Amount</h2>
+    <h2><i class="fas fa-euro-sign" style="color:#2b8a4b"></i> Set Order Amount</h2>
     <input type="hidden" id="set-amount-order-id" />
     <div class="form-row" style="margin-bottom:18px">
       <label class="label">Amount (€)</label>
@@ -1530,31 +1629,31 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Category</label>
         <select class="select-field" id="task-category">
-          <option value="maintenance">🔧 Maintenance</option>
-          <option value="cleaning">🧹 Cleaning</option>
-          <option value="call">📞 Call Someone</option>
-          <option value="purchase">🛒 Purchase</option>
-          <option value="admin">📋 Admin</option>
-          <option value="staff">👥 Staff</option>
-          <option value="other">📌 Other</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="cleaning">Cleaning</option>
+          <option value="call">Call Someone</option>
+          <option value="purchase">Purchase</option>
+          <option value="admin">Admin</option>
+          <option value="staff">Staff</option>
+          <option value="other">Other</option>
         </select>
       </div>
       <div><label class="label">Priority</label>
         <select class="select-field" id="task-priority">
-          <option value="low">🟢 Low</option>
-          <option value="medium">🟡 Medium</option>
-          <option value="high">🔴 High</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
         </select>
       </div>
     </div>
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Assigned To</label>
-        <div id="task-assigned-list" style="background:#f8fafc;border:1.5px solid var(--ocean-200);border-radius:var(--radius);padding:8px;max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+        <div id="task-assigned-list" style="background:#f2f5f6;border:1.5px solid var(--ocean-200);border-radius:var(--radius);padding:8px;max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
       </div>
       <div><label class="label">Deadline</label><input type="date" class="input-field" id="task-deadline" /></div>
     </div>
     <div class="form-row" style="margin-bottom:16px">
-      <label class="label"><i class="fas fa-repeat" style="color:#8b5cf6;margin-right:4px"></i> Recurrence</label>
+      <label class="label"><i class="fas fa-repeat" style="color:#6d4fc2;margin-right:4px"></i> Recurrence</label>
       <select class="select-field" id="task-recurrence">
         <option value="">None (one-time)</option>
         <option value="daily">Every Day</option>
@@ -1591,14 +1690,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px" id="shift-action-edit">
       <i class="fas fa-pen" style="color:var(--ocean-500)"></i> Edit Shift
     </button>
-    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fffbeb;color:#92400e;border:1px solid #fde68a" id="shift-action-absent-unjust">
-      <i class="fas fa-user-slash" style="color:#dc2626"></i> Mark Absent — Unjustified
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:#7a4f10;border:1px solid #f0d391" id="shift-action-absent-unjust">
+      <i class="fas fa-user-slash" style="color:#b4402f"></i> Mark Absent — Unjustified
     </button>
-    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fefce8;color:#713f12;border:1px solid #fde047" id="shift-action-absent-just">
-      <i class="fas fa-user-clock" style="color:#f59e0b"></i> Mark Absent — Justified
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:#713f12;border:1px solid #fde047" id="shift-action-absent-just">
+      <i class="fas fa-user-clock" style="color:#b7791f"></i> Mark Absent — Justified
     </button>
-    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fef2f2;color:#991b1b;border:1px solid #fca5a5" id="shift-action-delete">
-      <i class="fas fa-trash" style="color:#dc2626"></i> Delete Shift
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf5f3;color:#991b1b;border:1px solid #f0b8ae" id="shift-action-delete">
+      <i class="fas fa-trash" style="color:#b4402f"></i> Delete Shift
     </button>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:14px" data-close-modal="modal-shift-action">Cancel</button>
   </div>
@@ -1620,16 +1719,16 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
           <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">Start</th>
           <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">End</th>
           <th style="padding:6px 4px;font-weight:700;color:var(--ocean-500);min-width:90px">Zone</th>
-          <th style="padding:6px 4px;font-weight:700;color:#dc2626;white-space:nowrap">Day Off</th>
+          <th style="padding:6px 4px;font-weight:700;color:#b4402f;white-space:nowrap">Day Off</th>
         </tr></thead>
         <tbody id="shift-days-body">
-          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
-          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">🍽️ Dishes</option><option value="Kitchen">👨‍🍳 Kitchen</option><option value="Bar">🍹 Bar</option><option value="Service">🛎️ Service</option><option value="Foccaceria">🫓 Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#dc2626"/></td></tr>
+          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">Dishes</option><option value="Kitchen">‍Kitchen</option><option value="Bar">Bar</option><option value="Service">Service</option><option value="Foccaceria">Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">Dishes</option><option value="Kitchen">‍Kitchen</option><option value="Bar">Bar</option><option value="Service">Service</option><option value="Foccaceria">Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">Dishes</option><option value="Kitchen">‍Kitchen</option><option value="Bar">Bar</option><option value="Service">Service</option><option value="Foccaceria">Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">Dishes</option><option value="Kitchen">‍Kitchen</option><option value="Bar">Bar</option><option value="Service">Service</option><option value="Foccaceria">Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">Dishes</option><option value="Kitchen">‍Kitchen</option><option value="Bar">Bar</option><option value="Service">Service</option><option value="Foccaceria">Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">Dishes</option><option value="Kitchen">‍Kitchen</option><option value="Bar">Bar</option><option value="Service">Service</option><option value="Foccaceria">Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:11px"><option value="">—</option><option value="Dishes">Dishes</option><option value="Kitchen">‍Kitchen</option><option value="Bar">Bar</option><option value="Service">Service</option><option value="Foccaceria">Foccaceria</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
         </tbody>
       </table>
     </div>
@@ -1647,20 +1746,20 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <div class="modal-overlay" id="modal-add-bb-item">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-tag" style="color:#f59e0b"></i><span id="bb-item-modal-title">Add Menu Item</span></h2>
+    <h2><i class="fas fa-tag" style="color:#b7791f"></i><span id="bb-item-modal-title">Add Menu Item</span></h2>
     <input type="hidden" id="bb-item-edit-id" />
     <div class="form-row"><label class="label">Item Name *</label><input type="text" class="input-field" id="bb-item-name" placeholder="e.g. Sangria" /></div>
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Price (€) *</label><input type="number" class="input-field" id="bb-item-price" min="0" step="0.01" placeholder="0.00" /></div>
       <div><label class="label">Category</label>
         <select class="select-field" id="bb-item-category">
-          <option value="beverages">🍹 Beverages</option>
-          <option value="food">🍔 Food</option>
-          <option value="cocktails">🍸 Cocktails</option>
-          <option value="beer">🍺 Beer</option>
-          <option value="wine">🍷 Wine</option>
-          <option value="spirits">🥃 Spirits</option>
-          <option value="other">📦 Other</option>
+          <option value="beverages">Beverages</option>
+          <option value="food">Food</option>
+          <option value="cocktails">Cocktails</option>
+          <option value="beer">Beer</option>
+          <option value="wine">Wine</option>
+          <option value="spirits">Spirits</option>
+          <option value="other">Other</option>
         </select>
       </div>
     </div>
@@ -1797,19 +1896,19 @@ function setSbStatus(ok, msg) {
   var txt = document.getElementById('sb-status-text');
   if (!box || !txt) return;
   if (ok === true) {
-    box.style.background = '#eff6ff';
+    box.style.background = '#e6f0f9';
     box.querySelector('.pulse-dot').className = 'pulse-dot green';
-    txt.style.color = '#1d4ed8';
+    txt.style.color = '#2f6fa8';
     txt.textContent = msg || 'Connected to Supabase';
   } else if (ok === false) {
-    box.style.background = '#fff5f5';
+    box.style.background = '#fdf5f3';
     box.querySelector('.pulse-dot').className = 'pulse-dot red';
-    txt.style.color = '#dc2626';
+    txt.style.color = '#b4402f';
     txt.textContent = msg || 'Connection error';
   } else {
-    box.style.background = '#fefce8';
+    box.style.background = '#fdf3e1';
     box.querySelector('.pulse-dot').className = 'pulse-dot yellow';
-    txt.style.color = '#ca8a04';
+    txt.style.color = '#9a6a14';
     txt.textContent = msg || 'Syncing...';
   }
 }
@@ -2193,7 +2292,7 @@ var toastTimer;
 function toast(msg, type) {
   var el = document.getElementById('toast');
   el.textContent = msg;
-  el.style.background = type==='error' ? '#dc2626' : type==='gold' ? '#d97706' : 'var(--ocean-900)';
+  el.style.background = type==='error' ? '#b4402f' : type==='gold' ? '#b7791f' : 'var(--ocean-900)';
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2800);
@@ -2311,10 +2410,10 @@ function updateNotifStatusUI() {
   swRegistration.pushManager.getSubscription().then(function(sub) {
     if (!sub || isLegacyEndpoint(sub.endpoint)) {
       dot.style.color = 'rgba(255,200,0,.8)';
-      label.textContent = sub ? 'Refresh Notifications ⚠' : 'Enable Notifications';
+      label.textContent = sub ? 'Refresh notifications' : 'Enable Notifications';
     } else {
       dot.style.color = 'rgba(100,255,150,.9)';
-      label.textContent = 'Notifications Active ✓';
+      label.textContent = 'Notifications active';
     }
   });
 }
@@ -2382,7 +2481,7 @@ function registerPushSubscription() {
     .then(function(r) {
       if (r.ok) {
         console.log('[Push] Saved for', username);
-        toast('Notifications enabled! ✓', 'success');
+        toast('Notifications enabled', 'success');
       } else {
         console.warn('[Push] Server rejected subscription');
         toast('Could not save subscription', 'error');
@@ -2413,7 +2512,7 @@ function sendTaskPush(taskTitle, assignedUserIds) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       userIds: assignedUserIds,
-      title: '📋 New Task: ' + taskTitle,
+      title: 'New task: ' + taskTitle,
       body: 'You have been assigned a new task.',
       url: '/'
     })
@@ -2452,7 +2551,7 @@ function updateSessionUI() {
     if (logoutBtn) logoutBtn.style.display = 'flex';
     if (unameSpan) unameSpan.textContent = currentUser.name.split(' ')[0];
     var badges = (currentUser.roles||[]).map(function(r){
-      var labels = {admin:'👑 Admin',finance:'💶 Finance',shift_mgr:'📅 Shifts',employee:'👤 Employee'};
+      var labels = {admin:'<i class="fas fa-crown"></i> Admin',finance:'<i class="fas fa-euro-sign"></i> Finance',shift_mgr:'<i class="fas fa-calendar-days"></i> Shifts',employee:'<i class="fas fa-user"></i> Employee'};
       var cls    = {admin:'admin',finance:'finance',shift_mgr:'shift_mgr',employee:'employee'};
       return '<span class="role-chip '+(cls[r]||'employee')+'">'+(labels[r]||r)+'</span>';
     }).join('');
@@ -2737,8 +2836,8 @@ function showSection(name) {
 // ================================================
 // USERS MANAGEMENT
 // ================================================
-var ROLE_LABELS = {admin:'👑 Admin', finance:'💶 Finance', shift_mgr:'📅 Shift Mgr', employee:'👤 Employee'};
-var ROLE_COLORS = {admin:'#f59e0b', finance:'#8b5cf6', shift_mgr:'#10b981', employee:'#0ea5e9'};
+var ROLE_LABELS = {admin:'<i class="fas fa-crown"></i> Admin', finance:'<i class="fas fa-euro-sign"></i> Finance', shift_mgr:'<i class="fas fa-calendar-days"></i> Shift Mgr', employee:'<i class="fas fa-user"></i> Employee'};
+var ROLE_COLORS = {admin:'#b7791f', finance:'#6d4fc2', shift_mgr:'#2b8a4b', employee:'#2a9683'};
 
 function renderUsers() {
   var el = document.getElementById('users-list');
@@ -2751,7 +2850,7 @@ function renderUsers() {
   }
   el.innerHTML = users.map(function(u) {
     var roleBadges = (u.roles||[]).map(function(r) {
-      return '<span style="background:'+( ROLE_COLORS[r]||'#64748b')+'22;color:'+(ROLE_COLORS[r]||'#64748b')+';border:1px solid '+(ROLE_COLORS[r]||'#64748b')+'44;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">'+(ROLE_LABELS[r]||r)+'</span>';
+      return '<span style="background:'+( ROLE_COLORS[r]||'#5f7079')+'22;color:'+(ROLE_COLORS[r]||'#5f7079')+';border:1px solid '+(ROLE_COLORS[r]||'#5f7079')+'44;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">'+(ROLE_LABELS[r]||r)+'</span>';
     }).join('');
     var isSelf = currentUser && currentUser.id === u.id;
     var contractInfo = '';
@@ -2759,15 +2858,15 @@ function renderUsers() {
     if (u.hours) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-clock"></i> '+esc(u.hours)+'h/wk</span> ';
     if (u.amount) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-euro-sign"></i> '+esc(u.amount)+'</span>';
     return '<div style="background:white;border:1.5px solid var(--ocean-100);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">'
-      +'<div style="width:40px;height:40px;background:linear-gradient(135deg,var(--ocean-500),var(--ocean-700));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
+      +'<div style="width:40px;height:40px;background:var(--ocean-500));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
         +esc(u.name.charAt(0).toUpperCase())
       +'</div>'
       +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
           +'<span style="font-weight:800;font-size:14px;color:var(--ocean-900)">'+esc(u.name)+'</span>'
           +'<span style="font-size:12px;color:var(--ocean-400)">@'+esc(u.username)+'</span>'
-          +(u.active===false?'<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Inactive</span>':'<span style="background:#dcfce7;color:#16a34a;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Active</span>')
-          +(isSelf?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
+          +(u.active===false?'<span style="background:#fbeae7;color:#b4402f;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Inactive</span>':'<span style="background:#e3f4e8;color:#2b8a4b;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Active</span>')
+          +(isSelf?'<span style="background:#fdf3e1;color:#7a4f10;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
         +'</div>'
         +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+roleBadges+'</div>'
         +(contractInfo?'<div style="display:flex;gap:10px;flex-wrap:wrap">'+contractInfo+'</div>':'')
@@ -2775,7 +2874,7 @@ function renderUsers() {
       +'</div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0">'
         +'<button class="btn btn-sm" style="background:var(--ocean-50);color:var(--ocean-700);border:1px solid var(--ocean-200)" data-edit-user="'+esc(u.id)+'"><i class="fas fa-pen"></i></button>'
-        +(isSelf?'':'<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" data-delete-user="'+esc(u.id)+'"><i class="fas fa-trash"></i></button>')
+        +(isSelf?'':'<button class="btn btn-sm" style="background:#fbeae7;color:#b4402f;border:1px solid #f0b8ae" data-delete-user="'+esc(u.id)+'"><i class="fas fa-trash"></i></button>')
       +'</div>'
     +'</div>';
   }).join('');
@@ -2967,7 +3066,7 @@ function syncUserToSb(user, method) {
       // Show full raw response so we know exactly what happened
       console.log('[syncUserToSb] HTTP '+status+' response: '+text);
       if (status === 200 || status === 201) {
-        toast('User synced ✓ (HTTP '+status+')');
+        toast('User synced (HTTP '+status+')');
       } else {
         toast('Sync FAILED HTTP '+status+': '+text.slice(0,120), 'error');
       }
@@ -3126,9 +3225,9 @@ function renderSettings() {
       var iStyle='width:100%;border:1px solid var(--ocean-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
       return '<tr style="border-bottom:1px solid var(--ocean-50)">'
         +'<td style="padding:5px 8px;font-weight:700;color:var(--ocean-700)">'+MONTH_NAMES[i]+'</td>'
-        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-day-'+m+'" value="'+(d||'')+'" placeholder="0" style="'+iStyle+'color:#7c3aed" /></td>'
-        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-t51-'+m+'" value="'+(t||'')+'" placeholder="0" style="'+iStyle+'color:#0ea5e9" /></td>'
-        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-surf-'+m+'" value="'+(s||'')+'" placeholder="0" style="'+iStyle+'color:#06b6d4" /></td>'
+        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-day-'+m+'" value="'+(d||'')+'" placeholder="0" style="'+iStyle+'color:#6d4fc2" /></td>'
+        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-t51-'+m+'" value="'+(t||'')+'" placeholder="0" style="'+iStyle+'color:#2a9683" /></td>'
+        +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-surf-'+m+'" value="'+(s||'')+'" placeholder="0" style="'+iStyle+'color:#2a9683" /></td>'
         +'</tr>';
     }).join('');
     var yd=document.getElementById('budget-year-day');  if(yd)  yd.textContent=fmtEur(yearDay);
@@ -3234,7 +3333,7 @@ function checkFinMissingDays(dateStr) {
     listEl.innerHTML = missing.map(function(s){
       var parts = s.split('-');
       var label = parseInt(parts[2],10) + ' ' + months[parseInt(parts[1],10)-1] + ' ' + parts[0];
-      return '<div style="display:flex;align-items:center;gap:6px"><i class="fas fa-circle" style="font-size:5px;color:#dc2626"></i> ' + label + '</div>';
+      return '<div style="display:flex;align-items:center;gap:6px"><i class="fas fa-circle" style="font-size:5px;color:#b4402f"></i> ' + label + '</div>';
     }).join('');
     warnEl.style.display = 'block';
   }
@@ -3251,7 +3350,7 @@ function applyFinLockState(dateStr) {
 
   if (hasSaved && !finEditMode) {
     // Locked state — entry exists, not in edit mode
-    FIN_INPUTS.forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=true; el.style.opacity='0.6'; el.style.background='#f8fafc'; } });
+    FIN_INPUTS.forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=true; el.style.opacity='0.6'; el.style.background='#f2f5f6'; } });
     if (actionsEl) actionsEl.style.display = 'none';
     if (lockedEl)  { lockedEl.style.display = 'flex'; }
     if (editBtnEl) { editBtnEl.style.display = (isAdmin || isFinance) ? 'flex' : 'none'; }
@@ -3346,16 +3445,16 @@ function updateFinDayTotal() {
     var absDiff = Math.abs(diff);
     var fundoNote = fundo ? ' <span style="font-size:11px;opacity:.75">(incl. Fundo '+fmtEur(fundo)+')</span>' : '';
     if (absDiff < 0.005) {
-      balEl.style.background = '#dcfce7';
-      balEl.innerHTML = '<i class="fas fa-circle-check" style="color:#16a34a;font-size:18px"></i><span style="color:#16a34a">Balanced — OK</span>'+fundoNote;
+      balEl.style.background = '#e3f4e8';
+      balEl.innerHTML = '<i class="fas fa-circle-check" style="color:#2b8a4b;font-size:18px"></i><span style="color:#2b8a4b">Balanced — OK</span>'+fundoNote;
     } else if (diff < 0) {
-      balEl.style.background = '#fef2f2';
-      balEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:#dc2626;font-size:18px"></i>'
-        +'<span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span>'+fundoNote;
+      balEl.style.background = '#fdf5f3';
+      balEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:#b4402f;font-size:18px"></i>'
+        +'<span style="color:#b4402f">Short by '+fmtEur(absDiff)+'</span>'+fundoNote;
     } else {
-      balEl.style.background = '#f0fdf4';
-      balEl.innerHTML = '<i class="fas fa-arrow-trend-up" style="color:#16a34a;font-size:18px"></i>'
-        +'<span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span>'+fundoNote;
+      balEl.style.background = '#e3f4e8';
+      balEl.innerHTML = '<i class="fas fa-arrow-trend-up" style="color:#2b8a4b;font-size:18px"></i>'
+        +'<span style="color:#2b8a4b">Over by '+fmtEur(absDiff)+'</span>'+fundoNote;
     }
   }
 }
@@ -3411,7 +3510,7 @@ var finRecDayFilter = '';
 function finBudgetDeviation(actual, budget){
   if(!budget||budget<=0) return '';
   var pct = ((actual - budget) / budget * 100);
-  var color = pct >= 0 ? '#16a34a' : '#dc2626';
+  var color = pct >= 0 ? '#2b8a4b' : '#b4402f';
   var sign = pct >= 0 ? '+' : '';
   return '<span style="font-size:11px;font-weight:700;color:'+color+'">'+sign+pct.toFixed(1)+'% vs budget</span>';
 }
@@ -3492,13 +3591,13 @@ function renderFinRecords() {
   if (diffLogEl) {
     var diffEntries = allEntries.filter(function(e){ return Math.abs(e.cashDiff||0) >= 0.005; });
     if (!diffEntries.length) {
-      diffLogEl.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:13px;color:var(--ocean-300)"><i class="fas fa-check-circle" style="margin-right:6px;color:#16a34a"></i>No discrepancies recorded</div>';
+      diffLogEl.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:13px;color:var(--ocean-300)"><i class="fas fa-check-circle" style="margin-right:6px;color:#2b8a4b"></i>No discrepancies recorded</div>';
     } else {
       diffLogEl.innerHTML = diffEntries.map(function(e){
         var cd = e.cashDiff || 0;
         var isShort = cd < 0;
-        var color = isShort ? '#dc2626' : '#16a34a';
-        var bg    = isShort ? '#fef2f2' : '#f0fdf4';
+        var color = isShort ? '#b4402f' : '#2b8a4b';
+        var bg    = isShort ? '#fdf5f3' : '#e3f4e8';
         var icon  = isShort ? 'fa-triangle-exclamation' : 'fa-arrow-trend-up';
         var label = isShort ? 'Short' : 'Over';
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:'+bg+';gap:10px">'
@@ -3529,25 +3628,25 @@ function renderFinRecords() {
     var fundoNote = fundo ? ' <span style="font-size:11px;opacity:.75">(incl. Fundo '+fmtEur(fundo)+')</span>' : '';
     var balHtml;
     if (absDiff < 0.005) {
-      balHtml = '<div style="background:#dcfce7;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-circle-check" style="color:#16a34a"></i><span style="color:#16a34a">Balanced — OK</span>'+fundoNote+'</div>';
+      balHtml = '<div style="background:#e3f4e8;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-circle-check" style="color:#2b8a4b"></i><span style="color:#2b8a4b">Balanced — OK</span>'+fundoNote+'</div>';
     } else if (diff < 0) {
-      balHtml = '<div style="background:#fef2f2;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i><span style="color:#dc2626">Short by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
+      balHtml = '<div style="background:#fdf5f3;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-triangle-exclamation" style="color:#b4402f"></i><span style="color:#b4402f">Short by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
     } else {
-      balHtml = '<div style="background:#f0fdf4;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-arrow-trend-up" style="color:#16a34a"></i><span style="color:#16a34a">Over by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
+      balHtml = '<div style="background:#e3f4e8;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-arrow-trend-up" style="color:#2b8a4b"></i><span style="color:#2b8a4b">Over by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
     }
     return '<div class="fin-record">'
       +'<div class="fin-record-header">'
         +'<span class="fin-record-date">'+fmtDateShort(e.date)+'</span>'
         +'<span class="fin-record-total">'+fmtEur(total)+'</span>'
       +'</div>'
-      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#10b981"></i> Total Facturado</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#2b8a4b"></i> Total Facturado</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-cash-register" style="color:var(--ocean-400)"></i> T 51</span><span class="fin-row-val">'+fmtEur(e.t51||0)+'</span></div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-credit-card" style="color:var(--ocean-400)"></i> MultiBanco</span><span class="fin-row-val">'+fmtEur(e.multibanco||0)+'</span></div>'
-      +(e.genExpenses ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-receipt" style="color:#ef4444"></i> Despesas</span><span class="fin-row-val">'+fmtEur(e.genExpenses||0)+'</span></div>' : '')
-      +(e.surf ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-water" style="color:#06b6d4"></i> Surf</span><span class="fin-row-val">'+fmtEur(e.surf||0)+'</span></div>' : '')
-      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-hand-holding-dollar" style="color:#f59e0b"></i> Tips</span><span class="fin-row-val">'+fmtEur(e.tips||0)+'</span></div>'
-      +'<div class="fin-row"><span class="fin-row-label" style="color:#7c3aed;font-weight:800"><i class="fas fa-arrow-right" style="color:#7c3aed"></i> Entregar</span><span class="fin-row-val" style="color:#7c3aed">'+fmtEur(e.entregar||0)+'</span></div>'
-      +(cashTotal ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-coins" style="color:#f59e0b"></i> Cash Total</span><span class="fin-row-val">'+fmtEur(cashTotal)+'</span></div>' : '')
+      +(e.genExpenses ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-receipt" style="color:#b4402f"></i> Despesas</span><span class="fin-row-val">'+fmtEur(e.genExpenses||0)+'</span></div>' : '')
+      +(e.surf ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-water" style="color:#2a9683"></i> Surf</span><span class="fin-row-val">'+fmtEur(e.surf||0)+'</span></div>' : '')
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-hand-holding-dollar" style="color:#b7791f"></i> Tips</span><span class="fin-row-val">'+fmtEur(e.tips||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label" style="color:#6d4fc2;font-weight:800"><i class="fas fa-arrow-right" style="color:#6d4fc2"></i> Entregar</span><span class="fin-row-val" style="color:#6d4fc2">'+fmtEur(e.entregar||0)+'</span></div>'
+      +(cashTotal ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-coins" style="color:#b7791f"></i> Cash Total</span><span class="fin-row-val">'+fmtEur(cashTotal)+'</span></div>' : '')
       +balHtml
     +'</div>';
   }).join('');
@@ -3556,7 +3655,7 @@ function renderFinRecords() {
 // ================================================
 // INVENTORY
 // ================================================
-var catIconMap={beverages:'🍹',food:'🍔',supplies:'🧹',equipment:'🔧',other:'📦'};
+var catIconMap={beverages:'<i class="fas fa-martini-glass-citrus"></i>',food:'<i class="fas fa-utensils"></i>',supplies:'<i class="fas fa-broom"></i>',equipment:'<i class="fas fa-screwdriver-wrench"></i>',other:'<i class="fas fa-box"></i>'};
 var catLabelMap={beverages:'Bar',food:'Cozinha',supplies:'Limpeza',equipment:'Economato',other:'Other'};
 function switchInvTab(t) {
   ['stock','log','orders'].forEach(function(x){
@@ -3676,7 +3775,7 @@ function renderSuppliers(){
   el.innerHTML=filtered.map(function(s){
     var itemCount=(db.inventory||[]).filter(function(i){return i.supplierId===s.id;}).length;
     var isActive=invSupplierFilter===s.id;
-    var cats=(s.categories||[]).map(function(c){return catIconMap[c]||'📦';}).join('');
+    var cats=(s.categories||[]).map(function(c){return catIconMap[c]||'<i class="fas fa-box"></i>';}).join('');
     return '<div class="supplier-card'+(isActive?' supplier-card-active':'')+'" data-supplier-filter="'+esc(s.id)+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
         +'<div style="font-weight:700;font-size:13px;color:var(--ocean-900);flex:1;line-height:1.3">'+esc(s.name)+'</div>'
@@ -3687,7 +3786,7 @@ function renderSuppliers(){
       +(cats?'<div style="font-size:14px;margin-bottom:5px">'+cats+'</div>':'')
       +'<div style="font-size:11px;color:var(--ocean-400);display:flex;justify-content:space-between;align-items:center">'
         +'<span><i class="fas fa-box" style="margin-right:3px"></i>'+itemCount+' items</span>'
-        +(s.sendEmail?'<span style="color:#0ea5e9"><i class="fas fa-envelope"></i></span>':'')
+        +(s.sendEmail?'<span style="color:#2a9683"><i class="fas fa-envelope"></i></span>':'')
       +'</div>'
       +(s.phone?'<div style="font-size:10px;color:var(--ocean-400);margin-top:3px">'+esc(s.phone)+'</div>':'')
     +'</div>';
@@ -3791,7 +3890,7 @@ var pendingOrderItems = [];
 function openQuickOrderModal(id){
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;}); if(!item) return;
   document.getElementById('quick-order-id').value=id;
-  document.getElementById('quick-order-icon').textContent=catIconMap[item.category]||'📦';
+  document.getElementById('quick-order-icon').innerHTML=catIconMap[item.category]||'<i class="fas fa-box"></i>';
   document.getElementById('quick-order-name').textContent=item.name;
   var total=item.qtyBar+item.qtyStorage;
   document.getElementById('quick-order-stock').textContent='Bar: '+item.qtyBar+' · Storage: '+item.qtyStorage+' · Total: '+total+(item.unit?' '+item.unit:'');
@@ -3830,7 +3929,7 @@ function renderInventory(){
     return '<div class="inv-card'+(isPending?' inv-ordered':'')+'" data-inv-id="'+esc(item.id)+'">'
       +(isAdmin?'<button class="inv-card-del" data-delete-inv="'+esc(item.id)+'" title="Delete"><i class="fas fa-times"></i></button>':'')
       +'<div style="display:flex;align-items:center;gap:4px;'+(isAdmin?'padding-right:14px':'')+'">'
-        +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'📦')+'</div>'
+        +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'<i class="fas fa-box"></i>')+'</div>'
         +'<div style="flex:1;min-width:0">'
           +'<div class="inv-name">'+esc(item.name)+'</div>'
           +(item.unit?'<div style="font-size:9px;color:var(--ocean-400);margin-top:1px">'+esc(item.unit)+'</div>':'')
@@ -3859,9 +3958,9 @@ function renderInvLog(){
     logs=logs.filter(function(l){return supItems.indexOf(l.item)!==-1;});
   }
   if(logs.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No log entries.</p></div>';return;}
-  var icons={add:'<i class="fas fa-plus" style="color:#16a34a"></i>',update:'<i class="fas fa-pen" style="color:#1d4ed8"></i>',delete:'<i class="fas fa-trash" style="color:#dc2626"></i>'};
+  var icons={add:'<i class="fas fa-plus" style="color:#2b8a4b"></i>',update:'<i class="fas fa-pen" style="color:#2f6fa8"></i>',delete:'<i class="fas fa-trash" style="color:#b4402f"></i>'};
   el.innerHTML=logs.map(function(l){
-    return '<div class="log-item"><div class="log-icon">'+(icons[l.action]||'📝')+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ocean-900)">'+esc(l.item)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(l.action)+' · '+esc(l.employee||'System')+'</div></div><div style="font-size:11px;color:var(--ocean-400)">'+fmtDate(l.timestamp)+'</div></div>';
+    return '<div class="log-item"><div class="log-icon">'+(icons[l.action]||'<i class="fas fa-note-sticky"></i>')+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ocean-900)">'+esc(l.item)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(l.action)+' · '+esc(l.employee||'System')+'</div></div><div style="font-size:11px;color:var(--ocean-400)">'+fmtDate(l.timestamp)+'</div></div>';
   }).join('');
 }
 function updateOrdersBadge(){
@@ -3914,12 +4013,12 @@ function renderOrderHistory(){
       var sup=sid!=='_none'?db.suppliers.find(function(s){return s.id===sid;})||null:null;
       var supName=sup?sup.name:'No Supplier';
       var items=draftGroups[sid];
-      html+='<div style="border:2px dashed var(--ocean-200);border-radius:12px;padding:14px;margin-bottom:14px;background:#fffbeb">'
+      html+='<div style="border:2px dashed var(--ocean-200);border-radius:12px;padding:14px;margin-bottom:14px;background:#fdf3e1">'
         // Supplier header
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
-          +'<i class="fas fa-truck" style="color:#f59e0b"></i>'
+          +'<i class="fas fa-truck" style="color:#b7791f"></i>'
           +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">'+esc(supName)+'</span>'
-          +'<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:8px;font-weight:700">Draft</span>'
+          +'<span style="font-size:11px;background:#fdf3e1;color:#7a4f10;padding:2px 8px;border-radius:8px;font-weight:700">Draft</span>'
         +'</div>'
         // Items list with editable qty + remove
         +'<div style="margin-bottom:12px">'
@@ -3952,7 +4051,7 @@ function renderOrderHistory(){
         +'<div data-toggle-sup="'+esc(sid)+'" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ocean-50);border-radius:10px;cursor:pointer;user-select:none">'
           +'<i class="fas fa-truck" style="color:var(--ocean-400);flex-shrink:0"></i>'
           +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">'+esc(sup.name)+'</span>'
-          +(standbyCount>0?'<span style="background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px">'+standbyCount+' pending</span>':'')
+          +(standbyCount>0?'<span style="background:#b7791f;color:white;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px">'+standbyCount+' pending</span>':'')
           +(sup.totalSpend>0?'<span style="font-size:11px;color:var(--ocean-500);margin-left:4px">\u20ac'+sup.totalSpend.toFixed(2)+'</span>':'')
           +'<i class="fas fa-chevron-down sup-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s;margin-left:4px"></i>'
         +'</div>'
@@ -3989,9 +4088,9 @@ function renderOrderCard(o,db,sup){
     +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
         +'<span style="font-weight:700;color:var(--ocean-800);font-size:13px">Order #'+shortId+'</span>'
-        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'" style="font-size:10px">'+(isStandby?'⏳ Standby':'✓ Approved')+'</span>'
+        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'" style="font-size:10px">'+(isStandby?'<i class="fas fa-hourglass-half"></i> Standby':'<i class="fas fa-check"></i> Approved')+'</span>'
       +'</div>'
-      +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'+fmtDate(o.date)+' · '+itemCount+' item'+(itemCount!==1?'s':'')+(o.amount>0?' · <span style="color:#16a34a;font-weight:600">\u20ac'+o.amount.toFixed(2)+'</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'+fmtDate(o.date)+' · '+itemCount+' item'+(itemCount!==1?'s':'')+(o.amount>0?' · <span style="color:#2b8a4b;font-weight:600">\u20ac'+o.amount.toFixed(2)+'</span>':'')+'</div>'
     +'</div>'
     +'<i class="fas fa-chevron-down order-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s;flex-shrink:0"></i>'
   +'</div>';
@@ -4008,7 +4107,7 @@ function renderOrderCard(o,db,sup){
     // Action buttons inside the detail panel
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
       +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
-      +(isStandby&&!isAdmin?'<span style="font-size:11px;color:#92400e;font-style:italic;align-self:center">Awaiting admin approval</span>':'')
+      +(isStandby&&!isAdmin?'<span style="font-size:11px;color:#7a4f10;font-style:italic;align-self:center">Awaiting admin approval</span>':'')
       +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'"><i class="fas fa-envelope"></i> Email</button>':'')
       +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'"><i class="fas fa-euro-sign"></i> Amount</button>':'')
     +'</div>'
@@ -4131,9 +4230,9 @@ function renderCalendar(){
     el.className='cal-day'+(isToday?' today':'')+(isSel?' selected':'');
     el.dataset.calDay=dateStr;
     var dots='';
-    for(var c=0;c<Math.min(conf,3);c++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#22c55e')+'"></span>';
-    for(var p=0;p<Math.min(pend,3);p++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#f59e0b')+'"></span>';
-    for(var n=0;n<Math.min(nos,3);n++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#ef4444')+'"></span>';
+    for(var c=0;c<Math.min(conf,3);c++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#2b8a4b')+'"></span>';
+    for(var p=0;p<Math.min(pend,3);p++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#b7791f')+'"></span>';
+    for(var n=0;n<Math.min(nos,3);n++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#b4402f')+'"></span>';
     el.innerHTML='<div class="cal-day-name">'+dnames[i]+'</div><div class="cal-day-num">'+day.getDate()+'</div>'+(dots?'<div class="cal-dots">'+dots+'</div>':'')+(dayRes.length>0?'<div class="cal-count">'+dayRes.length+'</div>':'');
     grid.appendChild(el);
   }
@@ -4177,7 +4276,7 @@ function openResDetail(id){
   actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-clock"></i> Pending',function(){setResStatus(id,'pending');}));
   actEl.appendChild(mkBtn('btn btn-secondary btn-sm btn-icon','<i class="fas fa-pen"></i>',function(){closeModal('modal-res-detail');openEditReservation(id);}));
   actEl.appendChild(mkBtn('btn btn-danger btn-sm btn-icon','<i class="fas fa-trash"></i>',function(){deleteReservation(id);}));
-  actEl.children[0].style.cssText='background:linear-gradient(135deg,#22c55e,#16a34a);color:white;flex:1;justify-content:center';
+  actEl.children[0].style.cssText='background:#2b8a4b;color:white;flex:1;justify-content:center';
   actEl.children[1].style.cssText='flex:1;justify-content:center';
   actEl.children[2].style.cssText='flex:1;justify-content:center';
   openModal('modal-res-detail');
@@ -4268,7 +4367,7 @@ function renderAllReservations(){
 // ================================================
 // TASKS
 // ================================================
-var taskCatIcons={maintenance:'🔧',cleaning:'🧹',call:'📞',purchase:'🛒',admin:'📋',staff:'👥',other:'📌'};
+var taskCatIcons={maintenance:'<i class="fas fa-wrench"></i>',cleaning:'<i class="fas fa-broom"></i>',call:'<i class="fas fa-phone"></i>',purchase:'<i class="fas fa-cart-shopping"></i>',admin:'<i class="fas fa-clipboard-list"></i>',staff:'<i class="fas fa-users"></i>',other:'<i class="fas fa-thumbtack"></i>'};
 var priColors={high:'badge-red',medium:'badge-yellow',low:'badge-green'};
 
 // Helper: get assignedTo as array always (handles legacy string or array)
@@ -4298,7 +4397,7 @@ function renderTaskAssigneePicker(selectedIds){
   }
   el.innerHTML=users.map(function(u){
     var checked=selectedIds.indexOf(u.id)!==-1;
-    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 4px;border-radius:6px;'+(checked?'background:#eff6ff':'')+'\">'
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 4px;border-radius:6px;'+(checked?'background:#e6f0f9':'')+'\">'
       +'<input type="checkbox" class="task-assignee-cb" value="'+esc(u.id)+'" '+(checked?'checked':'')+' style="width:15px;height:15px;accent-color:var(--ocean-500)">'
       +'<span style="font-size:13px;font-weight:600;color:var(--ocean-800)">'+esc(u.name)+'</span>'
       +'<span style="font-size:11px;color:var(--ocean-400)">'+esc('@'+u.username)+'</span>'
@@ -4442,13 +4541,13 @@ function renderTasks(){
   var recurLabels={daily:'Daily',weekly:'Weekly',biweekly:'Every 2 wks',monthly:'Monthly',monday:'Every Mon',tuesday:'Every Tue',wednesday:'Every Wed',thursday:'Every Thu',friday:'Every Fri',saturday:'Every Sat',sunday:'Every Sun'};
   el.innerHTML=tasks.map(function(t){
     var isOverdue=t.deadline&&new Date(t.deadline)<now&&t.status!=='done';
-    var recurBadge=t.recurrence?'<span class="badge" style="background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe"><i class="fas fa-repeat" style="margin-right:3px;font-size:9px"></i>'+(recurLabels[t.recurrence]||esc(t.recurrence))+'</span>':'';
+    var recurBadge=t.recurrence?'<span class="badge" style="background:#efeafb;color:#5a3fa8;border:1px solid #cfc2f0"><i class="fas fa-repeat" style="margin-right:3px;font-size:9px"></i>'+(recurLabels[t.recurrence]||esc(t.recurrence))+'</span>':'';
     var ids=taskAssignees(t);
     var names=assigneeNames(ids);
-    var assignedBadges=names.map(function(n){return '<span style="background:#e0f2fe;color:#0369a1;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600"><i class="fas fa-user" style="margin-right:3px;font-size:9px"></i>'+esc(n)+'</span>';}).join('');
+    var assignedBadges=names.map(function(n){return '<span style="background:#e6ebee;color:#17695c;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600"><i class="fas fa-user" style="margin-right:3px;font-size:9px"></i>'+esc(n)+'</span>';}).join('');
     var canEdit=isAdmin;
     return '<div class="task-item'+(t.status==='done'?' done':'')+'">'
-      +'<div class="task-top"><div class="task-icon">'+(taskCatIcons[t.category]||'📌')+'</div>'
+      +'<div class="task-top"><div class="task-icon">'+(taskCatIcons[t.category]||'<i class="fas fa-thumbtack"></i>')+'</div>'
       +'<div class="task-body"><div class="task-title'+(t.status==='done'?' done-text':'')+'">'+esc(t.title)+'</div>'
       +'<div class="task-badges"><span class="badge '+(priColors[t.priority]||'badge-gray')+'">'+esc(t.priority||'medium')+'</span><span class="badge '+(t.status==='done'?'badge-green':t.status==='in-progress'?'badge-blue':'badge-yellow')+'">'+esc(t.status)+'</span>'+(isOverdue?'<span class="badge badge-red">Overdue</span>':'')+recurBadge+'</div>'
       +(t.description?'<div class="task-desc">'+esc(t.description)+'</div>':'')
@@ -4458,8 +4557,8 @@ function renderTasks(){
       +'</div>'
       +'</div></div>'
       +'<div class="task-actions">'
-        +(t.status!=='done'?'<button class="btn btn-sm" style="background:#dcfce7;color:#16a34a;border:1.5px solid #bbf7d0;flex:1;justify-content:center" data-task-done="'+esc(t.id)+'"><i class="fas fa-check"></i> Done</button>':'')
-        +(t.status==='pending'?'<button class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:1.5px solid #bfdbfe" data-task-progress="'+esc(t.id)+'"><i class="fas fa-play"></i></button>':'')
+        +(t.status!=='done'?'<button class="btn btn-sm" style="background:#e3f4e8;color:#2b8a4b;border:1.5px solid #a9dcb9;flex:1;justify-content:center" data-task-done="'+esc(t.id)+'"><i class="fas fa-check"></i> Done</button>':'')
+        +(t.status==='pending'?'<button class="btn btn-sm" style="background:#e6f0f9;color:#2f6fa8;border:1.5px solid #b5d0e8" data-task-progress="'+esc(t.id)+'"><i class="fas fa-play"></i></button>':'')
         +(canEdit?'<button class="btn btn-secondary btn-sm" data-edit-task="'+esc(t.id)+'"><i class="fas fa-pen"></i></button>':'')
         +(canEdit?'<button class="btn btn-danger btn-sm btn-icon" data-delete-task="'+esc(t.id)+'"><i class="fas fa-trash"></i></button>':'')
       +'</div>'
@@ -4482,17 +4581,17 @@ var GANTT_HOUR_MARKS = [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24];
 
 // Color palette per employee (cycles through)
 var GANTT_COLORS = [
-  '#0ea5e9','#f59e0b','#8b5cf6','#22c55e','#ef4444',
-  '#06b6d4','#f97316','#a855f7','#14b8a6','#ec4899'
+  '#2a9683','#b7791f','#6d4fc2','#2b8a4b','#b4402f',
+  '#2a9683','#b07b59','#a855f7','#2a9683','#b04a7a'
 ];
 
 // Zone colours
 var ZONE_COLORS = {
-  'Dishes':    '#64748b',
-  'Kitchen':   '#ef4444',
-  'Bar':       '#0ea5e9',
-  'Service':   '#22c55e',
-  'Foccaceria':'#f59e0b'
+  'Dishes':    '#5f7079',
+  'Kitchen':   '#b4402f',
+  'Bar':       '#2a9683',
+  'Service':   '#2b8a4b',
+  'Foccaceria':'#b7791f'
 };
 var ZONES_ORDER = ['Dishes','Kitchen','Bar','Service','Foccaceria',''];
 
@@ -4623,10 +4722,10 @@ function renderShifts(){
         if (zone !== lastZone) {
           lastZone = zone;
           if (zone && zone !== 'day-off') {
-            var zColor = ZONE_COLORS[zone] || '#64748b';
+            var zColor = ZONE_COLORS[zone] || '#5f7079';
             zoneHeader = '<div style="font-size:10px;font-weight:800;color:'+zColor+';text-transform:uppercase;letter-spacing:.8px;padding:4px 0 2px;margin-top:4px">'+esc(zone)+'</div>';
           } else if (zone === 'day-off') {
-            zoneHeader = '<div style="font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;padding:4px 0 2px;margin-top:4px">Day Off</div>';
+            zoneHeader = '<div style="font-size:10px;font-weight:800;color:#5f7079;text-transform:uppercase;letter-spacing:.8px;padding:4px 0 2px;margin-top:4px">Day Off</div>';
           }
         }
 
@@ -4636,7 +4735,7 @@ function renderShifts(){
           rowHTML = '<div class="gantt-row">'
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
-              +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#9ca3af;font-size:10px" title="'+offLabel+' — Day Off"'
+              +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#8a9aa2;font-size:10px" title="'+offLabel+' — Day Off"'
                 +' data-action-shift="'+esc(s.id)+'" data-action-shift-date="'+esc(dateStr)+'" data-action-shift-ws="'+esc(wsStr)+'">'
                 +'<i class="fas fa-ban" style="margin-right:3px"></i>'+offLabel
               +'</div>'
@@ -4672,12 +4771,12 @@ function renderShifts(){
     if (unallocated.length > 0) {
       var unallocBtns = unallocated.map(function(e) {
         var absBtns = canShiftEdit
-          ? ' <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;font-size:10px;padding:2px 6px" data-mark-absent="'+esc(e)+'" data-absent-date="'+esc(dateStr)+'" data-absent-ws="'+esc(wsStr)+'" title="Mark absent"><i class="fas fa-user-slash"></i></button>'
+          ? ' <button class="btn btn-sm" style="background:#fdf5f3;color:#b4402f;border:1px solid #f0b8ae;font-size:10px;padding:2px 6px" data-mark-absent="'+esc(e)+'" data-absent-date="'+esc(dateStr)+'" data-absent-ws="'+esc(wsStr)+'" title="Mark absent"><i class="fas fa-user-slash"></i></button>'
           : '';
-        return '<span style="display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;color:#475569;font-weight:600">'+esc(e)+absBtns+'</span>';
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:#f2f5f6;border:1px solid #d5dde1;border-radius:6px;padding:3px 8px;font-size:12px;color:#4a6572;font-weight:600">'+esc(e)+absBtns+'</span>';
       }).join(' ');
-      unallocatedHTML = '<div style="padding:6px 10px;background:#fffbeb;border:1px dashed #fbbf24;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
-        +'<span style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
+      unallocatedHTML = '<div style="padding:6px 10px;background:#fdf3e1;border:1px dashed #fbbf24;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
+        +'<span style="font-size:10px;font-weight:800;color:#7a4f10;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
         +unallocBtns+'</div>';
     }
     // Absent employees section
@@ -4685,19 +4784,19 @@ function renderShifts(){
     if (absentEmps.length > 0) {
       var absentBtns = absentEmps.map(function(e) {
         var absObj = (db.absences||[]).find(function(a){ return a.date===dateStr && a.employee===e; });
-        var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:#fef2f2;color:#991b1b;border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
-        var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f8fafc;border:1px solid #cbd5e1" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-rotate"></i></button>' : '';
-        var removeBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f8fafc;border:1px solid #cbd5e1" data-remove-absent="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-times"></i></button>' : '';
-        return '<span style="display:inline-flex;align-items:center;gap:4px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:3px 8px;font-size:12px;color:#dc2626;font-weight:600">'
+        var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#e3f4e8;color:#1f6b3a;border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:#fdf5f3;color:#991b1b;border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
+        var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-rotate"></i></button>' : '';
+        var removeBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-remove-absent="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-times"></i></button>' : '';
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:#fdf5f3;border:1px solid #f0b8ae;border-radius:6px;padding:3px 8px;font-size:12px;color:#b4402f;font-weight:600">'
           +esc(e)+' '+justLabel+toggleBtn+removeBtn+'</span>';
       }).join(' ');
-      absentHTML = '<div style="padding:6px 10px;background:#fef2f2;border:1px dashed #f87171;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
+      absentHTML = '<div style="padding:6px 10px;background:#fdf5f3;border:1px dashed #d0715f;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
         +'<span style="font-size:10px;font-weight:800;color:#991b1b;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-user-slash" style="margin-right:3px"></i>Absent:</span>'
         +absentBtns+'</div>';
     }
 
     return '<div class="gantt-wrap"'
-        +(isToday?' style="border-left:3px solid var(--ocean-400)"':'')+'>' 
+        +(isToday?' style="border-color:var(--teal-500)"':'')+'>' 
       +'<div class="gantt-day-header">'
         +'<div>'
           +'<div class="gantt-day-name">'+day+(isToday?' <span class="badge badge-blue" style="font-size:10px;vertical-align:middle">Today</span>':'')+'</div>'
@@ -4766,11 +4865,11 @@ function renderShiftsTipsTab() {
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
           +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
           +'<div style="font-size:11px;color:var(--ocean-400)">'+hoursMap[e].toFixed(1)+' hrs ('+Math.round(hoursMap[e]/totalHrs*100)+'%)</div></div>'
-          +'<div style="font-weight:800;font-size:16px;color:#f59e0b">'+fmtEur(share)+'</div>'
+          +'<div style="font-weight:800;font-size:16px;color:#b7791f">'+fmtEur(share)+'</div>'
           +'</div>';
       }).join('');
-      weekHTML = '<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a;margin-bottom:14px">'
-        +'<div style="font-size:12px;color:#78350f;font-weight:600;margin-bottom:8px"><i class="fas fa-calendar-week" style="margin-right:4px"></i>This Week — Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' hrs</div>'
+      weekHTML = '<div style="background:#fdf3e1;border-radius:10px;padding:12px;border:1px solid #f0d391;margin-bottom:14px">'
+        +'<div style="font-size:12px;color:#7a4f10;font-weight:600;margin-bottom:8px"><i class="fas fa-calendar-week" style="margin-right:4px"></i>This Week — Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' hrs</div>'
         +wRows+'</div>';
     }
   }
@@ -4817,8 +4916,8 @@ function renderShiftsTipsTab() {
     var yTip = empTipsYear[e]||0;
     return '<tr style="border-bottom:1px solid var(--ocean-50)">'
       +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
-      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#d97706">'+(mTip>0?fmtEur(mTip):'—')+'</td>'
-      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#f59e0b">'+(yTip>0?fmtEur(yTip):'—')+'</td>'
+      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#b7791f">'+(mTip>0?fmtEur(mTip):'—')+'</td>'
+      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#b7791f">'+(yTip>0?fmtEur(yTip):'—')+'</td>'
       +'</tr>';
   }).join('');
 
@@ -4826,19 +4925,19 @@ function renderShiftsTipsTab() {
   if (allEmps.length > 0) {
     periodHTML = '<div style="background:white;border-radius:10px;border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
       +'<div style="padding:10px 12px;background:var(--ocean-50);display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--ocean-800)">'
-        +'<i class="fas fa-chart-bar" style="color:#f59e0b"></i> Tips by Employee'
+        +'<i class="fas fa-chart-bar" style="color:#b7791f"></i> Tips by Employee'
       +'</div>'
       +'<table style="width:100%;border-collapse:collapse">'
       +'<thead><tr style="background:var(--ocean-50)">'
         +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--ocean-600)">Employee</th>'
-        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#d97706">'+monthLabel+'</th>'
-        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#f59e0b">'+curYear+' Total</th>'
+        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#b7791f">'+monthLabel+'</th>'
+        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#b7791f">'+curYear+' Total</th>'
       +'</tr></thead>'
       +'<tbody>'+periodRows+'</tbody>'
       +'<tfoot><tr style="background:var(--ocean-50);border-top:2px solid var(--ocean-200)">'
         +'<td style="padding:8px 10px;font-weight:800;font-size:12px;color:var(--ocean-700)">TOTAL</td>'
-        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#d97706">'+(mTotal>0?fmtEur(mTotal):'—')+'</td>'
-        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#f59e0b">'+(yTotal>0?fmtEur(yTotal):'—')+'</td>'
+        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#b7791f">'+(mTotal>0?fmtEur(mTotal):'—')+'</td>'
+        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#b7791f">'+(yTotal>0?fmtEur(yTotal):'—')+'</td>'
       +'</tr></tfoot>'
       +'</table></div>';
   }
@@ -4883,8 +4982,8 @@ function renderShiftsHoursTab() {
     return '<tr style="border-bottom:1px solid var(--ocean-50)">'
       +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
       +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:var(--ocean-600)">'+st.hours.toFixed(1)+'h</td>'
-      +'<td style="padding:9px 8px;text-align:center;font-weight:700;color:#10b981">'+st.days+'d</td>'
-      +'<td style="padding:9px 8px;font-size:11px;color:#64748b">'+esc(zonesStr)+'</td>'
+      +'<td style="padding:9px 8px;text-align:center;font-weight:700;color:#2b8a4b">'+st.days+'d</td>'
+      +'<td style="padding:9px 8px;font-size:11px;color:#5f7079">'+esc(zonesStr)+'</td>'
       +'</tr>';
   }).join('');
 
@@ -4947,19 +5046,19 @@ function renderShiftsAttendanceTab() {
     var pctYear = eSchYear > 0 ? Math.round((eWorkedYear/eSchYear)*100) : 100;
 
     function pctBadge(p) {
-      var c = p>=90?'#22c55e':p>=75?'#f59e0b':'#dc2626';
+      var c = p>=90?'#2b8a4b':p>=75?'#b7791f':'#b4402f';
       return '<span style="font-weight:800;font-size:13px;color:'+c+'">'+p+'%</span>';
     }
 
     var weekAbsStr = weekAbs.length===0
-      ? '<span style="color:#22c55e;font-weight:700;font-size:12px">✓ Present</span>'
-      : (weekAbsJ>0?'<span style="color:#f59e0b;font-weight:700;font-size:12px">'+weekAbsJ+'J </span>':'')
-       +(weekAbsU>0?'<span style="color:#dc2626;font-weight:700;font-size:12px">'+weekAbsU+'U</span>':'');
+      ? '<span style="color:#2b8a4b;font-weight:700;font-size:12px"><i class="fas fa-check"></i> Present</span>'
+      : (weekAbsJ>0?'<span style="color:#b7791f;font-weight:700;font-size:12px">'+weekAbsJ+'J </span>':'')
+       +(weekAbsU>0?'<span style="color:#b4402f;font-weight:700;font-size:12px">'+weekAbsU+'U</span>':'');
 
     return '<tr style="border-bottom:1px solid var(--ocean-50)">'
       +'<td style="padding:8px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+weekAbsStr+'</td>'
-      +'<td style="padding:8px 6px;text-align:center;font-weight:800;color:#dc2626;font-size:13px">'+eAbsAll.length+'</td>'
+      +'<td style="padding:8px 6px;text-align:center;font-weight:800;color:#b4402f;font-size:13px">'+eAbsAll.length+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctMonth)+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctYear)+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctAll)+'</td>'
@@ -4971,9 +5070,9 @@ function renderShiftsAttendanceTab() {
     +'<thead><tr style="background:var(--ocean-50)">'
     +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--ocean-600)">Employee</th>'
     +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--ocean-600)">This Week</th>'
-    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#dc2626">Absences</th>'
-    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#d97706">'+monthLabel+'</th>'
-    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#f59e0b">'+curYear+'</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#b4402f">Absences</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#b7791f">'+monthLabel+'</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#b7791f">'+curYear+'</th>'
     +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--ocean-500)">All-time</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
@@ -5189,7 +5288,7 @@ function generateTips(){
   });
   var emps=Object.keys(hoursMap);
   var el=document.getElementById('shifts-tips-result');
-  if(emps.length===0){if(el)el.innerHTML='<p style="font-size:13px;color:#dc2626">No worked shifts found for this week.</p>';return;}
+  if(emps.length===0){if(el)el.innerHTML='<p style="font-size:13px;color:#b4402f">No worked shifts found for this week.</p>';return;}
   var totalHrs=emps.reduce(function(s,e){return s+hoursMap[e];},0);
   // Save tips + lock for this week
   db.weekTips[ws]=total;
@@ -5202,11 +5301,11 @@ function generateTips(){
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
       +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
       +'<div style="font-size:11px;color:var(--ocean-400)">'+hoursMap[e].toFixed(1)+' hrs ('+Math.round(hoursMap[e]/totalHrs*100)+'%)</div></div>'
-      +'<div style="font-weight:800;font-size:16px;color:#f59e0b">'+fmtEur(share)+'</div>'
+      +'<div style="font-weight:800;font-size:16px;color:#b7791f">'+fmtEur(share)+'</div>'
       +'</div>';
   }).join('');
-  if(el) el.innerHTML='<div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a">'
-    +'<div style="font-size:12px;color:#78350f;font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
+  if(el) el.innerHTML='<div style="background:#fdf3e1;border-radius:10px;padding:12px;border:1px solid #f0d391">'
+    +'<div style="font-size:12px;color:#7a4f10;font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
     +rows+'</div>';
   // Lock the input row and show notice
   renderShiftsTipsTab();
@@ -5216,7 +5315,7 @@ function generateTips(){
 // ================================================
 // BLACK BOX
 // ================================================
-var bbCatIcons={beverages:'🍹',food:'🍔',cocktails:'🍸',beer:'🍺',wine:'🍷',spirits:'🥃',other:'📦'};
+var bbCatIcons={beverages:'<i class="fas fa-glass-water"></i>',food:'<i class="fas fa-burger"></i>',cocktails:'<i class="fas fa-martini-glass"></i>',beer:'<i class="fas fa-beer-mug-empty"></i>',wine:'<i class="fas fa-wine-glass"></i>',spirits:'<i class="fas fa-whiskey-glass"></i>',other:'<i class="fas fa-box"></i>'};
 function renderBlackBox(){
   var locked=document.getElementById('blackbox-locked');
   var content=document.getElementById('blackbox-content');
@@ -5269,7 +5368,7 @@ function renderBbMenuSelector(){
   el.innerHTML=items.map(function(item){
     var qty=bbSelectedItems[item.id]||0;
     return '<div class="bb-item" data-bb-item-id="'+esc(item.id)+'">'
-      +'<div style="font-size:20px;flex-shrink:0">'+(bbCatIcons[item.category]||'📦')+'</div>'
+      +'<div style="font-size:20px;flex-shrink:0">'+(bbCatIcons[item.category]||'<i class="fas fa-box"></i>')+'</div>'
       +'<div style="flex:1;min-width:0">'
         +'<div class="bb-name">'+esc(item.name)+'</div>'
         +'<div class="bb-cat">'+esc(item.category)+'</div>'
@@ -5470,7 +5569,7 @@ function renderBbMenuManage(){
   if(db.bbMenu.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-tag"></i><p>No menu items.</p></div>';return;}
   el.innerHTML=db.bbMenu.map(function(item){
     return '<div class="bb-item" style="cursor:default">'
-      +'<div style="font-size:20px">'+(bbCatIcons[item.category]||'📦')+'</div>'
+      +'<div style="font-size:20px">'+(bbCatIcons[item.category]||'<i class="fas fa-box"></i>')+'</div>'
       +'<div style="flex:1;min-width:0"><div class="bb-name">'+esc(item.name)+'</div><div class="bb-cat">'+esc(item.category)+'</div></div>'
       +'<div class="bb-price">'+fmtEur(item.price)+'</div>'
       +'<button class="btn btn-secondary btn-sm btn-icon" data-edit-bb-item="'+esc(item.id)+'"><i class="fas fa-pen"></i></button>'
@@ -5559,13 +5658,13 @@ function renderDashboard(){
   if(tasksBadgeEl){ tasksBadgeEl.textContent=openTasks.length; tasksBadgeEl.style.display=openTasks.length>0?'inline':'none'; }
   if(tasksPanelEl){
     if(openTasks.length===0){
-      tasksPanelEl.innerHTML='<div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#22c55e;font-size:22px"></i><p>All done!</p></div>';
+      tasksPanelEl.innerHTML='<div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#2b8a4b;font-size:22px"></i><p>All done!</p></div>';
     } else {
       var now2=new Date();
       tasksPanelEl.innerHTML=openTasks.slice(0,6).map(function(t){
         var isOverdue=t.deadline&&new Date(t.deadline)<now2;
         var priColor=t.priority==='high'?'badge-red':t.priority==='low'?'badge-gray':'badge-yellow';
-        return '<div class="today-res-item" data-nav="tasks" style="cursor:pointer;gap:10px">'          +'<div style="width:34px;height:34px;background:var(--ocean-100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(taskCatIcons[t.category]||'📌')+'</div>'          +'<div style="flex:1;min-width:0">'            +'<div style="font-size:13px;font-weight:700;color:var(--ocean-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'            +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'              +(t.deadline?'<i class="fas fa-calendar-check" style="margin-right:3px'+(isOverdue?';color:#dc2626':'')+'"></i><span style="'+(isOverdue?'color:#dc2626;font-weight:700':'')+'">'+esc(t.deadline)+'</span>':'<span style="color:var(--ocean-300)">No deadline</span>')            +'</div>'          +'</div>'          +'<span class="badge '+priColor+'" style="flex-shrink:0;align-self:center">'+esc(t.priority||'medium')+'</span>'        +'</div>';
+        return '<div class="today-res-item" data-nav="tasks" style="cursor:pointer;gap:10px">'          +'<div style="width:34px;height:34px;background:var(--ocean-100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(taskCatIcons[t.category]||'<i class="fas fa-thumbtack"></i>')+'</div>'          +'<div style="flex:1;min-width:0">'            +'<div style="font-size:13px;font-weight:700;color:var(--ocean-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'            +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'              +(t.deadline?'<i class="fas fa-calendar-check" style="margin-right:3px'+(isOverdue?';color:#b4402f':'')+'"></i><span style="'+(isOverdue?'color:#b4402f;font-weight:700':'')+'">'+esc(t.deadline)+'</span>':'<span style="color:var(--ocean-300)">No deadline</span>')            +'</div>'          +'</div>'          +'<span class="badge '+priColor+'" style="flex-shrink:0;align-self:center">'+esc(t.priority||'medium')+'</span>'        +'</div>';
       }).join('')
       +(openTasks.length>6?'<div style="text-align:center;padding:8px;font-size:12px;color:var(--ocean-400);cursor:pointer" data-nav="tasks">+' +(openTasks.length-6)+' more tasks →</div>':'');
     }
@@ -5583,7 +5682,7 @@ function renderDashboard(){
       pendingEl.innerHTML=standbyOrders.slice().reverse().map(function(o){
         return '<div class="order-standby" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
           +'<div style="flex:1">'
-            +'<div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:#92400e">· '+fmtDate(o.date)+'</span></div>'
+            +'<div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:#7a4f10">· '+fmtDate(o.date)+'</span></div>'
             +'<div>'+o.items.map(function(i){return '<span style="font-size:12px;color:var(--ocean-700);margin-right:8px">'+esc(i.name)+' ('+i.orderQty+(i.unit?' '+esc(i.unit):'')+')  </span>';}).join('')+'</div>'
           +'</div>'
           +(isAdmin?'<button class="btn btn-sm btn-gold" style="flex-shrink:0" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'<span class="badge badge-orange" style="flex-shrink:0;align-self:center">⏳ Standby</span>')
@@ -5996,7 +6095,7 @@ updateSessionUI();
     }
     if (syncStatus) {
       if (offline) {
-        syncStatus.style.color = 'var(--red-400,#f87171)';
+        syncStatus.style.color = 'var(--red-400,#d0715f)';
         syncStatus.textContent = 'Offline \u2014 using local data';
       } else {
         syncStatus.textContent = '';
@@ -6009,7 +6108,7 @@ updateSessionUI();
     if (!syncReady) {
       syncReady = true;
       unlockLogin(true);
-      if (syncStatus) { syncStatus.style.color='var(--red-400,#f87171)'; syncStatus.textContent='Sync timeout — using local data'; }
+      if (syncStatus) { syncStatus.style.color='var(--red-400,#d0715f)'; syncStatus.textContent='Sync timeout — using local data'; }
     }
   }, 12000);
 
