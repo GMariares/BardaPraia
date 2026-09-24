@@ -38,3 +38,6 @@ backups/
 # impeccable engine binary + font index (restored with: npx impeccable install)
 .claude/skills/impeccable/scripts/bin/
 .claude/skills/impeccable/scripts/data/
+
+# impeccable review captures (evidence, regenerated each run)
+.impeccable/review/
