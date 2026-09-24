@@ -36,7 +36,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       --green: #2b8a4b; --green-50: #e3f4e8; --green-200: #a9dcb9;
       --blue: #2f6fa8; --blue-50: #e6f0f9; --blue-200: #b5d0e8;
       --red: #b4402f; --red-50: #fbeae7; --red-200: #f0b8ae;
-      --amber: #b7791f; --amber-50: #fdf3e1; --amber-200: #f0d391;
+      --amber: #b7791f; --amber-50: #fdf3e1; --amber-200: #f0d391; --amber-700: #7a4f10;
+      --red-400: #d0715f; --red-700: #8f3223; --green-700: #1f6b3a;
       --radius: 12px; --radius-sm: 8px;
       --rule: 1px solid var(--slate-200);
       --shadow: none;
@@ -180,10 +181,13 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     /* ── BOTTOM NAV (phone) ── */
     #bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:200; background:var(--panel); border-top:var(--rule); height:64px; display:flex; align-items:stretch; padding:6px 4px 0; padding-bottom:env(safe-area-inset-bottom,0); }
     .bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; border:none; background:none; color:var(--slate-500); font-size:10px; font-weight:700; border-radius:10px; transition:color .15s; padding:2px 0 6px; text-transform:uppercase; letter-spacing:.06em; min-width:0; position:relative; }
-    .bnav-item i { font-size:18px; width:44px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:14px; transition:background .2s cubic-bezier(.2,0,0,1), color .15s; }
+    .bnav-item i { font-size:18px; width:44px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:14px; position:relative; z-index:1; transition:color .15s; }
     .bnav-item.active { color:var(--slate-900); }
-    .bnav-item.active i { background:var(--mint-300); color:var(--slate-900); }
+    .bnav-item.active i { color:var(--slate-900); }
     .bnav-item:active i { background:var(--slate-100); }
+    #bnav-marker { position:absolute; left:0; top:0; width:44px; height:28px; border-radius:14px; background:var(--mint-300); transform:translate(-200px,0); transition:transform .2s cubic-bezier(.2,0,0,1); pointer-events:none; }
+    #bnav-marker.settled { }
+    @media (prefers-reduced-motion: reduce) { #bnav-marker { transition:none; } }
     .bnav-item.admin-nav { color:var(--slate-500); }
     .bnav-item.admin-nav.active { color:var(--slate-900); }
 
@@ -196,6 +200,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
     /* ── PANELS ── */
     .card { background:var(--panel); border-radius:var(--radius); border:var(--rule); }
+
+    /* ── DASHBOARD DATE LINE ── */
+    .dash-date { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:2px 2px 0; margin-bottom:12px; border-bottom:var(--rule); padding-bottom:10px; }
+    .dash-date b { font-size:20px; font-weight:800; letter-spacing:-.01em; color:var(--slate-900); }
+    .dash-date span { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--slate-500); white-space:nowrap; }
 
     /* ── KPI GRID ── */
     .kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
@@ -504,10 +513,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       .modal-overlay { align-items:center; }
       .modal { border-radius:16px; max-height:88vh; }
       .kpi-grid { grid-template-columns:repeat(4,1fr); gap:12px; }
-      #section-dashboard.active { display:grid; grid-template-columns:1fr 1fr; grid-auto-flow:row dense; gap:16px; align-items:start; }
-      #section-dashboard > .kpi-grid { grid-column:1; grid-template-columns:1fr 1fr; margin-bottom:0; }
-      #section-dashboard > .dash-panel { margin-bottom:0; grid-column:1; }
-      #section-dashboard > .dash-panel:nth-of-type(4) { grid-column:2; grid-row:1 / span 3; }
+      #section-dashboard.active { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+      #section-dashboard > .dash-date { grid-column:1 / -1; margin-bottom:0; }
+      #section-dashboard > .kpi-grid { grid-column:1; grid-row:2; grid-template-columns:1fr 1fr; margin-bottom:0; }
+      #section-dashboard > .dash-panel { margin-bottom:0; }
+      #dash-res-panel { grid-column:2; grid-row:2; }
+      #dash-tasks-card, #dash-orders-panel { grid-column:1 / -1; }
       .task-count-row, .fin-summary-grid, .bb-summary-grid { gap:12px; }
     }
     @media (max-width:1023px) {
@@ -555,7 +566,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <div id="drawer-header">
     <div class="logo-row">
       <div class="logo-icon"><img src="/brand/mark.png" alt="" width="200" height="110" /></div>
-      <div><div class="logo-name">Bar da Praia</div><div class="logo-sub">Management System</div></div>
+      <div><div class="logo-name">Bar da Praia</div><div class="logo-sub">Team app</div></div>
     </div>
   </div>
   <nav style="padding:14px 10px;flex:1;overflow-y:auto;">
@@ -591,15 +602,16 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
   <!-- ═══ DASHBOARD ═══ -->
   <section id="section-dashboard" class="page-section active">
+    <div class="dash-date" id="dash-date"><b id="dash-date-day"></b><span id="dash-date-full"></span></div>
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-chair"></i></div><span class="badge badge-blue">Today</span></div>
+        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-chair"></i></div><span class="badge badge-gray">Today</span></div>
         <div class="kpi-num" id="dash-res-count">0</div>
         <div class="kpi-label">Reservations Today</div>
         <div class="kpi-sub"></div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-list-check"></i></div><span class="badge badge-yellow" id="dash-task-badge">Open</span></div>
+        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-list-check"></i></div><span class="badge badge-gray" id="dash-task-badge">Open</span></div>
         <div class="kpi-num" id="dash-task-count">0</div>
         <div class="kpi-label">Open Tasks</div>
         <div class="kpi-sub"></div>
@@ -609,13 +621,13 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <h3><i class="fas fa-truck" style="color:#b7791f"></i> Pending Orders <span class="badge badge-orange" id="dash-orders-badge"></span></h3>
       <div id="dash-pending-orders"></div>
     </div>
-    <div class="dash-panel">
+    <div class="dash-panel" id="dash-tasks-card">
       <h3><i class="fas fa-clipboard-list" style="color:var(--ocean-500)"></i> Open Tasks <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
       <div id="dash-tasks-panel"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#2b8a4b;font-size:22px"></i><p>All done!</p></div></div>
     </div>
-    <div class="dash-panel">
+    <div class="dash-panel" id="dash-res-panel">
       <h3><i class="fas fa-calendar-day" style="color:var(--ocean-500)"></i> Today's Reservations</h3>
-      <div id="dash-today-res"><div class="empty-state" style="padding:14px"><i class="fas fa-calendar-xmark"></i><p>No reservations today</p></div></div>
+      <div id="dash-today-res"><div class="empty-state" style="padding:14px"><i class="fas fa-calendar-xmark"></i><p>No reservations today. Add one in Book.</p></div></div>
     </div>
   </section>
 
@@ -762,12 +774,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);margin-bottom:12px;font-size:11px;color:var(--ocean-400);flex-wrap:wrap">
         <i class="fas fa-circle-info" style="color:var(--ocean-300)"></i>
         Timeline: 07:00 – 24:00 &nbsp;·&nbsp;
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#2a9683;display:inline-block"></span> Morning</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#b7791f;display:inline-block"></span> Afternoon</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#6d4fc2;display:inline-block"></span> Evening</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#2b434e;display:inline-block"></span> Night</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#1f2937;border:1px solid #2b434e;display:inline-block"></span> Day Off</span>
-        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#b4402f;display:inline-block"></span> Absent</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#5f7079;display:inline-block"></span> Dishes</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#b07b59;display:inline-block"></span> Kitchen</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#2a9683;display:inline-block"></span> Bar</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#2f6fa8;display:inline-block"></span> Service</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--slate-800);display:inline-block"></span> Day Off</span>
+        <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--red);display:inline-block"></span> Absent</span>
       </div>
       <div id="shifts-list"></div>
     </div>
@@ -778,7 +790,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
           <i class="fas fa-hand-holding-dollar" style="color:#b7791f"></i> Weekly Tips Distribution
         </div>
-        <div id="tips-locked-notice" style="display:none;background:#fdf3e1;border:1px solid #fde047;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#7a4f10;display:flex;align-items:center;gap:8px">
+        <div id="tips-locked-notice" style="display:none;background:#fdf3e1;border:1px solid var(--amber-200);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber-700);display:flex;align-items:center;gap:8px">
           <i class="fas fa-lock" style="color:#b7791f"></i> Tips already generated for this week — field is locked.
           <button id="btn-tips-unlock" class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:11px"><i class="fas fa-unlock"></i> Edit</button>
         </div>
@@ -842,12 +854,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         </div>
 
         <!-- Missing days warning -->
-        <div id="fin-missing-warning" style="display:none;background:#fdf5f3;border:2px solid #b4402f;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px">
+        <div id="fin-missing-warning" style="display:none;background:var(--red-50);border:2px solid #b4402f;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px">
           <div style="display:flex;align-items:flex-start;gap:10px">
             <i class="fas fa-triangle-exclamation" style="color:#b4402f;font-size:18px;margin-top:1px;flex-shrink:0"></i>
             <div>
               <div style="font-weight:800;font-size:13px;color:#b4402f;margin-bottom:4px">Missing previous entries</div>
-              <div id="fin-missing-days-list" style="font-size:12px;color:#8f3223;line-height:1.7"></div>
+              <div id="fin-missing-days-list" style="font-size:12px;color:var(--red-700);line-height:1.7"></div>
             </div>
           </div>
         </div>
@@ -937,7 +949,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <div id="fin-entry-locked" style="display:none;background:#e3f4e8;border:2px solid #2b8a4b;border-radius:var(--radius);padding:14px 16px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
           <i class="fas fa-circle-check" style="color:#2b8a4b;font-size:22px;flex-shrink:0"></i>
           <div style="flex:1;min-width:0">
-            <div style="font-weight:800;font-size:14px;color:#236f3c">Entry Saved</div>
+            <div style="font-weight:800;font-size:14px;color:var(--green-700)">Entry Saved</div>
             <div style="font-size:12px;color:#2b8a4b;margin-top:2px">This day is locked. Finance users can edit.</div>
           </div>
           <button id="btn-fin-edit-entry" style="display:none;background:#b7791f;color:white;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;align-items:center;gap:6px">
@@ -1032,12 +1044,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
           <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-scale-unbalanced" style="color:#b4402f"></i> Cash Over / Under Log</div>
           <div class="fin-summary-grid" style="margin-bottom:10px">
-            <div class="fin-summary-card" style="border:1px solid #fecaca">
+            <div class="fin-summary-card" style="border:1px solid var(--red-200)">
               <div class="fin-summary-num" id="fin-stat-short-month" style="color:#b4402f">€0</div>
               <div class="fin-summary-label">Short This Month</div>
               <div id="fin-stat-short-month-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
             </div>
-            <div class="fin-summary-card" style="border:1px solid #fecaca">
+            <div class="fin-summary-card" style="border:1px solid var(--red-200)">
               <div class="fin-summary-num" id="fin-stat-short-year" style="color:#b4402f">€0</div>
               <div class="fin-summary-label">Short This Year</div>
               <div id="fin-stat-short-year-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
@@ -1185,14 +1197,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <section id="section-settings" class="page-section">
     <!-- Migration notice — always visible when migration is needed (admin must see this) -->
     <div id="sb-migration-banner" style="display:none;margin:0 0 14px 0;background:#fdf3e1;border:1.5px solid #b7791f;border-radius:12px;padding:14px">
-      <div style="font-weight:700;font-size:13px;color:#7a4f10;margin-bottom:8px;display:flex;align-items:center;gap:7px">
+      <div style="font-weight:700;font-size:13px;color:var(--amber-700);margin-bottom:8px;display:flex;align-items:center;gap:7px">
         <i class="fas fa-triangle-exclamation" style="color:#b7791f"></i> Database migration required
       </div>
-      <p style="font-size:12px;color:#7a4f10;margin-bottom:10px">Some columns or tables are missing in your Supabase database. This prevents Finance data and Settings (Finance PIN, Fundo de Caixa) from syncing across devices. Run the script below <strong>once</strong> in your Supabase SQL Editor to fix this.</p>
+      <p style="font-size:12px;color:var(--amber-700);margin-bottom:10px">Some columns or tables are missing in your Supabase database. This prevents Finance data and Settings (Finance PIN, Fundo de Caixa) from syncing across devices. Run the script below <strong>once</strong> in your Supabase SQL Editor to fix this.</p>
       <a href="https://supabase.com/dashboard/project/eurcdnyhwqofnddhxrpf/sql/new" target="_blank" class="btn btn-gold btn-sm" style="width:100%;justify-content:center;margin-bottom:10px"><i class="fas fa-external-link-alt"></i> Open Supabase SQL Editor</a>
       <div style="position:relative">
-        <pre id="sb-migration-sql" style="background:#1e1e2e;color:#cdd6f4;font-size:11px;border-radius:8px;padding:12px;overflow-x:auto;white-space:pre;margin:0;line-height:1.6"></pre>
-        <button id="btn-copy-sql" class="btn btn-sm" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.1);color:#cdd6f4;border:1px solid rgba(255,255,255,.2);font-size:11px"><i class="fas fa-copy"></i> Copy</button>
+        <pre id="sb-migration-sql" style="background:var(--slate-800);color:var(--slate-200);font-size:11px;border-radius:8px;padding:12px;overflow-x:auto;white-space:pre;margin:0;line-height:1.6"></pre>
+        <button id="btn-copy-sql" class="btn btn-sm" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.1);color:var(--slate-200);border:1px solid rgba(255,255,255,.2);font-size:11px"><i class="fas fa-copy"></i> Copy</button>
       </div>
     </div>
     <!-- Notifications card — visible to ALL users -->
@@ -1294,7 +1306,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-save-supabase"><i class="fas fa-rotate"></i> Re-sync from Supabase</button>
         <div class="sb-status" id="sb-status-box" style="background:#fdf3e1">
           <span class="pulse-dot yellow"></span>
-          <span style="font-size:13px;color:#9a6a14" id="sb-status-text">Connecting...</span>
+          <span style="font-size:13px;color:var(--amber)" id="sb-status-text">Connecting...</span>
         </div>
         <!-- Migration notice moved to banner above settings-locked -->
       </div>
@@ -1305,6 +1317,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
 <!-- BOTTOM NAV -->
 <nav id="bottom-nav">
+  <span id="bnav-marker" aria-hidden="true"></span>
   <button class="bnav-item active" id="bnav-dashboard" data-nav="dashboard"><i class="fas fa-home"></i>Home</button>
   <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Stock</button>
   <button class="bnav-item" id="bnav-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i>Book</button>
@@ -1690,13 +1703,13 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px" id="shift-action-edit">
       <i class="fas fa-pen" style="color:var(--ocean-500)"></i> Edit Shift
     </button>
-    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:#7a4f10;border:1px solid #f0d391" id="shift-action-absent-unjust">
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:var(--amber-700);border:1px solid #f0d391" id="shift-action-absent-unjust">
       <i class="fas fa-user-slash" style="color:#b4402f"></i> Mark Absent — Unjustified
     </button>
-    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:#713f12;border:1px solid #fde047" id="shift-action-absent-just">
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:var(--amber-700);border:1px solid var(--amber-200)" id="shift-action-absent-just">
       <i class="fas fa-user-clock" style="color:#b7791f"></i> Mark Absent — Justified
     </button>
-    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf5f3;color:#991b1b;border:1px solid #f0b8ae" id="shift-action-delete">
+    <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:var(--red-50);color:var(--red-700);border:1px solid #f0b8ae" id="shift-action-delete">
       <i class="fas fa-trash" style="color:#b4402f"></i> Delete Shift
     </button>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:14px" data-close-modal="modal-shift-action">Cancel</button>
@@ -1901,14 +1914,14 @@ function setSbStatus(ok, msg) {
     txt.style.color = '#2f6fa8';
     txt.textContent = msg || 'Connected to Supabase';
   } else if (ok === false) {
-    box.style.background = '#fdf5f3';
+    box.style.background = 'var(--red-50)';
     box.querySelector('.pulse-dot').className = 'pulse-dot red';
     txt.style.color = '#b4402f';
     txt.textContent = msg || 'Connection error';
   } else {
     box.style.background = '#fdf3e1';
     box.querySelector('.pulse-dot').className = 'pulse-dot yellow';
-    txt.style.color = '#9a6a14';
+    txt.style.color = 'var(--amber)';
     txt.textContent = msg || 'Syncing...';
   }
 }
@@ -2791,6 +2804,17 @@ function refreshSection(name) {
   }
 }
 
+function moveBnavMarker() {
+  var nav = document.getElementById('bottom-nav'), marker = document.getElementById('bnav-marker');
+  if (!nav || !marker) return;
+  var icon = nav.querySelector('.bnav-item.active i');
+  if (!icon) return;
+  var nr = nav.getBoundingClientRect(), ir = icon.getBoundingClientRect();
+  if (!nr.width || !ir.width) return;
+  marker.style.transform = 'translate(' + (ir.left - nr.left) + 'px,' + (ir.top - nr.top) + 'px)';
+}
+window.addEventListener('resize', function(){ moveBnavMarker(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ moveBnavMarker(); });
 function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
@@ -2813,8 +2837,9 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + name);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Bar da Praia',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',users:'Users',settings:'Settings'};
+  var titles = {dashboard:'Dashboard',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',users:'Users',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
+  moveBnavMarker();
   currentSection = name;
   closeDrawer();
 
@@ -2866,7 +2891,7 @@ function renderUsers() {
           +'<span style="font-weight:800;font-size:14px;color:var(--ocean-900)">'+esc(u.name)+'</span>'
           +'<span style="font-size:12px;color:var(--ocean-400)">@'+esc(u.username)+'</span>'
           +(u.active===false?'<span style="background:#fbeae7;color:#b4402f;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Inactive</span>':'<span style="background:#e3f4e8;color:#2b8a4b;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Active</span>')
-          +(isSelf?'<span style="background:#fdf3e1;color:#7a4f10;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
+          +(isSelf?'<span style="background:#fdf3e1;color:var(--amber-700);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
         +'</div>'
         +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+roleBadges+'</div>'
         +(contractInfo?'<div style="display:flex;gap:10px;flex-wrap:wrap">'+contractInfo+'</div>':'')
@@ -3448,7 +3473,7 @@ function updateFinDayTotal() {
       balEl.style.background = '#e3f4e8';
       balEl.innerHTML = '<i class="fas fa-circle-check" style="color:#2b8a4b;font-size:18px"></i><span style="color:#2b8a4b">Balanced — OK</span>'+fundoNote;
     } else if (diff < 0) {
-      balEl.style.background = '#fdf5f3';
+      balEl.style.background = 'var(--red-50)';
       balEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:#b4402f;font-size:18px"></i>'
         +'<span style="color:#b4402f">Short by '+fmtEur(absDiff)+'</span>'+fundoNote;
     } else {
@@ -3597,7 +3622,7 @@ function renderFinRecords() {
         var cd = e.cashDiff || 0;
         var isShort = cd < 0;
         var color = isShort ? '#b4402f' : '#2b8a4b';
-        var bg    = isShort ? '#fdf5f3' : '#e3f4e8';
+        var bg    = isShort ? 'var(--red-50)' : '#e3f4e8';
         var icon  = isShort ? 'fa-triangle-exclamation' : 'fa-arrow-trend-up';
         var label = isShort ? 'Short' : 'Over';
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:'+bg+';gap:10px">'
@@ -3630,7 +3655,7 @@ function renderFinRecords() {
     if (absDiff < 0.005) {
       balHtml = '<div style="background:#e3f4e8;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-circle-check" style="color:#2b8a4b"></i><span style="color:#2b8a4b">Balanced — OK</span>'+fundoNote+'</div>';
     } else if (diff < 0) {
-      balHtml = '<div style="background:#fdf5f3;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-triangle-exclamation" style="color:#b4402f"></i><span style="color:#b4402f">Short by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
+      balHtml = '<div style="background:var(--red-50);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-triangle-exclamation" style="color:#b4402f"></i><span style="color:#b4402f">Short by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
     } else {
       balHtml = '<div style="background:#e3f4e8;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i class="fas fa-arrow-trend-up" style="color:#2b8a4b"></i><span style="color:#2b8a4b">Over by '+fmtEur(absDiff)+'</span>'+fundoNote+'</div>';
     }
@@ -4018,7 +4043,7 @@ function renderOrderHistory(){
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
           +'<i class="fas fa-truck" style="color:#b7791f"></i>'
           +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">'+esc(supName)+'</span>'
-          +'<span style="font-size:11px;background:#fdf3e1;color:#7a4f10;padding:2px 8px;border-radius:8px;font-weight:700">Draft</span>'
+          +'<span style="font-size:11px;background:#fdf3e1;color:var(--amber-700);padding:2px 8px;border-radius:8px;font-weight:700">Draft</span>'
         +'</div>'
         // Items list with editable qty + remove
         +'<div style="margin-bottom:12px">'
@@ -4107,7 +4132,7 @@ function renderOrderCard(o,db,sup){
     // Action buttons inside the detail panel
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
       +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
-      +(isStandby&&!isAdmin?'<span style="font-size:11px;color:#7a4f10;font-style:italic;align-self:center">Awaiting admin approval</span>':'')
+      +(isStandby&&!isAdmin?'<span style="font-size:11px;color:var(--amber-700);font-style:italic;align-self:center">Awaiting admin approval</span>':'')
       +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'"><i class="fas fa-envelope"></i> Email</button>':'')
       +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'"><i class="fas fa-euro-sign"></i> Amount</button>':'')
     +'</div>'
@@ -4246,7 +4271,7 @@ function renderDayReservations(dateStr){
   var mnames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('res-day-label').textContent=dnames[d.getDay()]+', '+mnames[d.getMonth()]+' '+d.getDate();
   var el=document.getElementById('res-day-list'); if(!el) return;
-  if(res.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-calendar-xmark"></i><p>No reservations this day.</p></div>';return;}
+  if(res.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-calendar-xmark"></i><p>No reservations this day. Tap New to add one.</p></div>';return;}
   el.innerHTML=res.map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="res-item '+(r.status==='no-show'?'no-show':r.status==='confirmed'?'confirmed':'')+'" data-open-res-detail="'+esc(r.id)+'">'
@@ -4541,7 +4566,7 @@ function renderTasks(){
   var recurLabels={daily:'Daily',weekly:'Weekly',biweekly:'Every 2 wks',monthly:'Monthly',monday:'Every Mon',tuesday:'Every Tue',wednesday:'Every Wed',thursday:'Every Thu',friday:'Every Fri',saturday:'Every Sat',sunday:'Every Sun'};
   el.innerHTML=tasks.map(function(t){
     var isOverdue=t.deadline&&new Date(t.deadline)<now&&t.status!=='done';
-    var recurBadge=t.recurrence?'<span class="badge" style="background:#efeafb;color:#5a3fa8;border:1px solid #cfc2f0"><i class="fas fa-repeat" style="margin-right:3px;font-size:9px"></i>'+(recurLabels[t.recurrence]||esc(t.recurrence))+'</span>':'';
+    var recurBadge=t.recurrence?'<span class="badge" style="background:#efeafb;color:var(--purple);border:1px solid #cfc2f0"><i class="fas fa-repeat" style="margin-right:3px;font-size:9px"></i>'+(recurLabels[t.recurrence]||esc(t.recurrence))+'</span>':'';
     var ids=taskAssignees(t);
     var names=assigneeNames(ids);
     var assignedBadges=names.map(function(n){return '<span style="background:#e6ebee;color:#17695c;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600"><i class="fas fa-user" style="margin-right:3px;font-size:9px"></i>'+esc(n)+'</span>';}).join('');
@@ -4582,16 +4607,16 @@ var GANTT_HOUR_MARKS = [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24];
 // Color palette per employee (cycles through)
 var GANTT_COLORS = [
   '#2a9683','#b7791f','#6d4fc2','#2b8a4b','#b4402f',
-  '#2a9683','#b07b59','#a855f7','#2a9683','#b04a7a'
+  '#2a9683','#b07b59','#6d4fc2','#2f6fa8','#a6741e'
 ];
 
 // Zone colours
 var ZONE_COLORS = {
   'Dishes':    '#5f7079',
-  'Kitchen':   '#b4402f',
+  'Kitchen':   '#b07b59',
   'Bar':       '#2a9683',
-  'Service':   '#2b8a4b',
-  'Foccaceria':'#b7791f'
+  'Service':   '#2f6fa8',
+  'Foccaceria':'#a6741e'
 };
 var ZONES_ORDER = ['Dishes','Kitchen','Bar','Service','Foccaceria',''];
 
@@ -4735,7 +4760,7 @@ function renderShifts(){
           rowHTML = '<div class="gantt-row">'
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
-              +'<div class="gantt-bar" style="left:0%;width:100%;background:#1f2937;color:#8a9aa2;font-size:10px" title="'+offLabel+' — Day Off"'
+              +'<div class="gantt-bar" style="left:0%;width:100%;background:var(--slate-800);color:var(--slate-300);font-size:10px" title="'+offLabel+' — Day Off"'
                 +' data-action-shift="'+esc(s.id)+'" data-action-shift-date="'+esc(dateStr)+'" data-action-shift-ws="'+esc(wsStr)+'">'
                 +'<i class="fas fa-ban" style="margin-right:3px"></i>'+offLabel
               +'</div>'
@@ -4771,12 +4796,12 @@ function renderShifts(){
     if (unallocated.length > 0) {
       var unallocBtns = unallocated.map(function(e) {
         var absBtns = canShiftEdit
-          ? ' <button class="btn btn-sm" style="background:#fdf5f3;color:#b4402f;border:1px solid #f0b8ae;font-size:10px;padding:2px 6px" data-mark-absent="'+esc(e)+'" data-absent-date="'+esc(dateStr)+'" data-absent-ws="'+esc(wsStr)+'" title="Mark absent"><i class="fas fa-user-slash"></i></button>'
+          ? ' <button class="btn btn-sm" style="background:var(--red-50);color:#b4402f;border:1px solid #f0b8ae;font-size:10px;padding:2px 6px" data-mark-absent="'+esc(e)+'" data-absent-date="'+esc(dateStr)+'" data-absent-ws="'+esc(wsStr)+'" title="Mark absent"><i class="fas fa-user-slash"></i></button>'
           : '';
         return '<span style="display:inline-flex;align-items:center;gap:4px;background:#f2f5f6;border:1px solid #d5dde1;border-radius:6px;padding:3px 8px;font-size:12px;color:#4a6572;font-weight:600">'+esc(e)+absBtns+'</span>';
       }).join(' ');
-      unallocatedHTML = '<div style="padding:6px 10px;background:#fdf3e1;border:1px dashed #fbbf24;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
-        +'<span style="font-size:10px;font-weight:800;color:#7a4f10;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
+      unallocatedHTML = '<div style="padding:6px 10px;background:#fdf3e1;border:1px dashed var(--amber-200);border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
+        +'<span style="font-size:10px;font-weight:800;color:var(--amber-700);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
         +unallocBtns+'</div>';
     }
     // Absent employees section
@@ -4784,14 +4809,14 @@ function renderShifts(){
     if (absentEmps.length > 0) {
       var absentBtns = absentEmps.map(function(e) {
         var absObj = (db.absences||[]).find(function(a){ return a.date===dateStr && a.employee===e; });
-        var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#e3f4e8;color:#1f6b3a;border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:#fdf5f3;color:#991b1b;border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
+        var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#e3f4e8;color:var(--green-700);border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:var(--red-50);color:var(--red-700);border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
         var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-rotate"></i></button>' : '';
         var removeBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-remove-absent="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-times"></i></button>' : '';
-        return '<span style="display:inline-flex;align-items:center;gap:4px;background:#fdf5f3;border:1px solid #f0b8ae;border-radius:6px;padding:3px 8px;font-size:12px;color:#b4402f;font-weight:600">'
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--red-50);border:1px solid #f0b8ae;border-radius:6px;padding:3px 8px;font-size:12px;color:#b4402f;font-weight:600">'
           +esc(e)+' '+justLabel+toggleBtn+removeBtn+'</span>';
       }).join(' ');
-      absentHTML = '<div style="padding:6px 10px;background:#fdf5f3;border:1px dashed #d0715f;border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
-        +'<span style="font-size:10px;font-weight:800;color:#991b1b;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-user-slash" style="margin-right:3px"></i>Absent:</span>'
+      absentHTML = '<div style="padding:6px 10px;background:var(--red-50);border:1px dashed var(--red-400);border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
+        +'<span style="font-size:10px;font-weight:800;color:var(--red-700);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-user-slash" style="margin-right:3px"></i>Absent:</span>'
         +absentBtns+'</div>';
     }
 
@@ -4869,7 +4894,7 @@ function renderShiftsTipsTab() {
           +'</div>';
       }).join('');
       weekHTML = '<div style="background:#fdf3e1;border-radius:10px;padding:12px;border:1px solid #f0d391;margin-bottom:14px">'
-        +'<div style="font-size:12px;color:#7a4f10;font-weight:600;margin-bottom:8px"><i class="fas fa-calendar-week" style="margin-right:4px"></i>This Week — Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' hrs</div>'
+        +'<div style="font-size:12px;color:var(--amber-700);font-weight:600;margin-bottom:8px"><i class="fas fa-calendar-week" style="margin-right:4px"></i>This Week — Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' hrs</div>'
         +wRows+'</div>';
     }
   }
@@ -5305,7 +5330,7 @@ function generateTips(){
       +'</div>';
   }).join('');
   if(el) el.innerHTML='<div style="background:#fdf3e1;border-radius:10px;padding:12px;border:1px solid #f0d391">'
-    +'<div style="font-size:12px;color:#7a4f10;font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
+    +'<div style="font-size:12px;color:var(--amber-700);font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
     +rows+'</div>';
   // Lock the input row and show notice
   renderShiftsTipsTab();
@@ -5495,7 +5520,7 @@ function renderBbRecords(){
   el.innerHTML=sorted.map(function(entry){
     return '<div class="bb-daily-record">'
       +'<div class="bb-daily-record-header">'
-        +'<div style="font-weight:700;font-size:15px;color:var(--ocean-900)">'+fmtDateShort(entry.date)+(entry.date===today?' <span class="badge badge-blue">Today</span>':'')+'</div>'
+        +'<div style="font-weight:700;font-size:15px;color:var(--ocean-900)">'+fmtDateShort(entry.date)+(entry.date===today?' <span class="badge badge-gray">Today</span>':'')+'</div>'
         +'<div style="display:flex;align-items:center;gap:8px">'
           +'<div style="font-weight:800;font-size:16px;color:var(--ocean-700)">'+fmtEur(entry.total)+'</div>'
           +'<button class="btn btn-secondary btn-sm btn-icon" data-edit-bb-entry="'+esc(entry.date)+'" title="Edit entry"><i class="fas fa-pen"></i></button>'
@@ -5625,12 +5650,18 @@ function deleteBbItem(id){
 // DASHBOARD
 // ================================================
 function renderDashboard(){
+  try {
+    var dNow = new Date();
+    var dayEl = document.getElementById('dash-date-day'), fullEl = document.getElementById('dash-date-full');
+    if (dayEl) dayEl.textContent = dNow.toLocaleDateString('en-GB', { weekday: 'long' });
+    if (fullEl) fullEl.textContent = dNow.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch(e) {}
   var db=getDB();
   var today=toDateStr(new Date());
   var todayRes=db.reservations.filter(function(r){return r.date===today;}).sort(function(a,b){return a.time.localeCompare(b.time);});
   document.getElementById('dash-res-count').textContent=todayRes.length;
   var todayEl=document.getElementById('dash-today-res');
-  if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-calendar-xmark" style="font-size:22px"></i><p>No reservations today</p></div>';}
+  if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-calendar-xmark" style="font-size:22px"></i><p>No reservations today. Add one in Book.</p></div>';}
   else todayEl.innerHTML=todayRes.slice(0,5).map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--ocean-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ocean-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ocean-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
@@ -5650,7 +5681,7 @@ function renderDashboard(){
     return a.deadline.localeCompare(b.deadline);
   });
   document.getElementById('dash-task-count').textContent=openTasks.length;
-  document.getElementById('dash-task-badge').className='badge '+(openTasks.length>0?'badge-yellow':'badge-green');
+  document.getElementById('dash-task-badge').className='badge '+(openTasks.length>0?'badge-gray':'badge-green');
   document.getElementById('dash-task-badge').textContent=openTasks.length>0?'Open':'All Done';
   // Render open tasks panel on dashboard
   var tasksPanelEl=document.getElementById('dash-tasks-panel');
@@ -5682,7 +5713,7 @@ function renderDashboard(){
       pendingEl.innerHTML=standbyOrders.slice().reverse().map(function(o){
         return '<div class="order-standby" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
           +'<div style="flex:1">'
-            +'<div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:#7a4f10">· '+fmtDate(o.date)+'</span></div>'
+            +'<div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:var(--amber-700)">· '+fmtDate(o.date)+'</span></div>'
             +'<div>'+o.items.map(function(i){return '<span style="font-size:12px;color:var(--ocean-700);margin-right:8px">'+esc(i.name)+' ('+i.orderQty+(i.unit?' '+esc(i.unit):'')+')  </span>';}).join('')+'</div>'
           +'</div>'
           +(isAdmin?'<button class="btn btn-sm btn-gold" style="flex-shrink:0" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'<span class="badge badge-orange" style="flex-shrink:0;align-self:center">⏳ Standby</span>')
@@ -6095,7 +6126,7 @@ updateSessionUI();
     }
     if (syncStatus) {
       if (offline) {
-        syncStatus.style.color = 'var(--red-400,#d0715f)';
+        syncStatus.style.color = 'var(--red-400,var(--red-400))';
         syncStatus.textContent = 'Offline \u2014 using local data';
       } else {
         syncStatus.textContent = '';
@@ -6108,7 +6139,7 @@ updateSessionUI();
     if (!syncReady) {
       syncReady = true;
       unlockLogin(true);
-      if (syncStatus) { syncStatus.style.color='var(--red-400,#d0715f)'; syncStatus.textContent='Sync timeout — using local data'; }
+      if (syncStatus) { syncStatus.style.color='var(--red-400,var(--red-400))'; syncStatus.textContent='Sync timeout — using local data'; }
     }
   }, 12000);
 
