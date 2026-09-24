@@ -627,7 +627,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     </div>
     <div class="dash-panel" id="dash-res-panel">
       <h3><i class="fas fa-calendar-day" style="color:var(--ocean-500)"></i> Today's Reservations</h3>
-      <div id="dash-today-res"><div class="empty-state" style="padding:14px"><i class="fas fa-calendar-xmark"></i><p>No reservations today. Add one in Book.</p></div></div>
+      <div id="dash-today-res"><div class="empty-state" style="padding:14px"><i class="fas fa-calendar-xmark"></i><p>No reservations today. Add one from Reservations.</p></div></div>
     </div>
   </section>
 
@@ -5661,7 +5661,7 @@ function renderDashboard(){
   var todayRes=db.reservations.filter(function(r){return r.date===today;}).sort(function(a,b){return a.time.localeCompare(b.time);});
   document.getElementById('dash-res-count').textContent=todayRes.length;
   var todayEl=document.getElementById('dash-today-res');
-  if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-calendar-xmark" style="font-size:22px"></i><p>No reservations today. Add one in Book.</p></div>';}
+  if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-calendar-xmark" style="font-size:22px"></i><p>No reservations today. Add one from Reservations.</p></div>';}
   else todayEl.innerHTML=todayRes.slice(0,5).map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--ocean-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ocean-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ocean-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
