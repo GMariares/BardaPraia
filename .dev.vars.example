@@ -1,0 +1,9 @@
+# Copy to .dev.vars for local development (wrangler pages dev reads it).
+# In production set these in Cloudflare Pages → Settings → Variables and Secrets.
+# Public values (optional, defaults built into src/index.tsx):
+# SB_URL=https://eurcdnyhwqofnddhxrpf.supabase.co
+# SB_KEY=<supabase anon key>
+# VAPID_PUBLIC=BJ302ZJZf1kKxra5TvjiV-33Yx07KRR8oCfsQobjgtxu-oan78YJr2YTUAzVSyXolJO-V_ktqcQZe9g9RjZuqes
+# VAPID_SUBJECT=mailto:admin@bardapraia.com
+# Secret (required for sending push notifications). Use the existing key, never generate a new one:
+VAPID_PRIVATE=

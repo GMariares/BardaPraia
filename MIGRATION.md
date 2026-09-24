@@ -125,28 +125,27 @@ From here on, treat GitHub `main` as the only source of truth.
 
 ---
 
-## 4. Prepare the code for your own hosting (small, safe changes)
+## 4. Prepare the code for your own hosting — DONE on this branch
 
-These are code changes I can make on this branch when you say go:
+- The VAPID private key is no longer in the source. It is read from the `VAPID_PRIVATE` environment
+  variable (Cloudflare Pages → Settings → Variables and Secrets). Supabase URL/key and the VAPID
+  public key keep built-in defaults and can be overridden the same way. Keep the **same VAPID keys**.
+- `ecosystem.config.cjs` (Genspark sandbox only) deleted; project renamed from `webapp` to `bardapraia`.
+- `.dev.vars.example` documents the variables; `README.md` has the deploy steps.
+- Note: the private key remains in the git history of earlier commits. Rotating it would invalidate all
+  push subscriptions, so it stays; the repo should simply remain private.
 
-- Move the VAPID private key and Supabase URL/key out of the source into environment variables
-  (Cloudflare "Variables and Secrets" / Vercel "Environment Variables"). Keep the **same VAPID keys**.
-- Delete `ecosystem.config.cjs` (Genspark sandbox only).
-- Add a `manifest.json` + icons so the app can be installed to the home screen on the new domain
-  (optional, but it makes the new address feel like an app).
-- If you choose Vercel: swap the Cloudflare build adapter for the Vercel one (Hono supports both).
-
-None of these touch data.
+Optional later: a `manifest.json` + icons so the app installs to the home screen on the new domain.
 
 ---
 
-## 5. Deploy under your own account
+## 5. Deploy under your own account — decision: Cloudflare Pages
 
-### Option A — Cloudflare Pages (recommended)
+### Option A — Cloudflare Pages (chosen)
 The app is already built for it, so no code changes are needed.
 1. https://dash.cloudflare.com → Workers & Pages → Create → Pages → Connect to Git → pick `GMariares/BardaPraia`.
 2. Build settings: framework **None**, build command `npm run build`, output directory `dist`.
-3. Add the environment variables from step 4 (if done).
+3. Add `VAPID_PRIVATE` (encrypted secret) with the existing key value.
 4. Deploy. You get `https://<project>.pages.dev`. Every push to `main` redeploys automatically.
 
 ### Option B — Vercel

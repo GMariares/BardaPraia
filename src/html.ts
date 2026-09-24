@@ -1,4 +1,4 @@
-export function getAppHTML(): string {
+export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1675,8 +1675,8 @@ export function getAppHTML(): string {
 // ================================================
 // SUPABASE CONFIG
 // ================================================
-var SB_URL = 'https://eurcdnyhwqofnddhxrpf.supabase.co';
-var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1cmNkbnlod3FvZm5kZGh4cnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIyNDMsImV4cCI6MjA5MDM1ODI0M30.sqap9onVY3z8AJO9bATT8jXShOxe7h6g0uXWTUN4kK0';
+var SB_URL = '${cfg.sbUrl}';
+var SB_KEY = '${cfg.sbKey}';
 var sb = null;
 var sbReady = false;
 

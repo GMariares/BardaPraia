@@ -2,18 +2,39 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { getAppHTML } from './html'
 
-const app = new Hono()
+type Bindings = {
+  SB_URL?: string
+  SB_KEY?: string
+  VAPID_PUBLIC?: string
+  VAPID_PRIVATE?: string
+  VAPID_SUBJECT?: string
+}
+
+const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('*', cors())
 
-// VAPID keys (generated once, fixed)
-const VAPID_PUBLIC  = 'BJ302ZJZf1kKxra5TvjiV-33Yx07KRR8oCfsQobjgtxu-oan78YJr2YTUAzVSyXolJO-V_ktqcQZe9g9RjZuqes'
-const VAPID_PRIVATE = 'XpUJ_Vn3j-5KStotIa0lC4eFwHl6LVdiRxoL6vplqAk'
-const VAPID_SUBJECT = 'mailto:admin@bardapraia.com'
-
-// Supabase config (same as frontend)
-const SB_URL = 'https://eurcdnyhwqofnddhxrpf.supabase.co'
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1cmNkbnlod3FvZm5kZGh4cnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIyNDMsImV4cCI6MjA5MDM1ODI0M30.sqap9onVY3z8AJO9bATT8jXShOxe7h6g0uXWTUN4kK0'
+// ── Configuration ─────────────────────────────────────────────
+// Public values have built-in defaults so the app runs with zero config.
+// VAPID_PRIVATE is a secret and MUST be set in the hosting environment
+// (Cloudflare Pages → Settings → Variables and Secrets; locally in .dev.vars).
+// The VAPID key pair must never change: existing push subscriptions are bound to it.
+const DEFAULTS = {
+  SB_URL: 'https://eurcdnyhwqofnddhxrpf.supabase.co',
+  SB_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1cmNkbnlod3FvZm5kZGh4cnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIyNDMsImV4cCI6MjA5MDM1ODI0M30.sqap9onVY3z8AJO9bATT8jXShOxe7h6g0uXWTUN4kK0',
+  VAPID_PUBLIC: 'BJ302ZJZf1kKxra5TvjiV-33Yx07KRR8oCfsQobjgtxu-oan78YJr2YTUAzVSyXolJO-V_ktqcQZe9g9RjZuqes',
+  VAPID_SUBJECT: 'mailto:admin@bardapraia.com'
+}
+function getConfig(env: Bindings | undefined) {
+  const e = env || {}
+  return {
+    SB_URL: e.SB_URL || DEFAULTS.SB_URL,
+    SB_KEY: e.SB_KEY || DEFAULTS.SB_KEY,
+    VAPID_PUBLIC: e.VAPID_PUBLIC || DEFAULTS.VAPID_PUBLIC,
+    VAPID_PRIVATE: e.VAPID_PRIVATE || '',
+    VAPID_SUBJECT: e.VAPID_SUBJECT || DEFAULTS.VAPID_SUBJECT
+  }
+}
 
 // ── Favicon ───────────────────────────────────────────────────
 app.get('/favicon.ico', (c) => new Response('', { status: 204 }))
@@ -68,15 +89,19 @@ self.addEventListener('notificationclick', function(e) {
 // Served from /public/sw.js automatically by Cloudflare Pages
 
 // ── SPA ───────────────────────────────────────────────────────
-app.get('/', (c) => c.html(getAppHTML()))
+app.get('/', (c) => {
+  const { SB_URL, SB_KEY } = getConfig(c.env)
+  return c.html(getAppHTML({ sbUrl: SB_URL, sbKey: SB_KEY }))
+})
 
 // ── VAPID public key (frontend needs it to subscribe) ─────────
 app.get('/api/push/vapid-public-key', (c) => {
-  return c.json({ key: VAPID_PUBLIC })
+  return c.json({ key: getConfig(c.env).VAPID_PUBLIC })
 })
 
 // ── Save a push subscription for a user ──────────────────────
 app.post('/api/push/subscribe', async (c) => {
+  const { SB_URL, SB_KEY } = getConfig(c.env)
   try {
     const { userId, subscription } = await c.req.json()
     if (!userId || !subscription || !subscription.endpoint) {
@@ -113,6 +138,10 @@ app.post('/api/push/subscribe', async (c) => {
 
 // ── Send push notifications to a list of user IDs ─────────────
 app.post('/api/push/send', async (c) => {
+  const { SB_URL, SB_KEY, VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT } = getConfig(c.env)
+  if (!VAPID_PRIVATE) {
+    return c.json({ error: 'VAPID_PRIVATE is not configured on the server (set it as a secret in the hosting environment)' }, 500)
+  }
   try {
     const { userIds, title, body, url } = await c.req.json()
     if (!userIds || !userIds.length || !title) {
