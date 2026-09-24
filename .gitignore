@@ -31,3 +31,6 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# database backups (contain PINs / password hashes)
+backups/
