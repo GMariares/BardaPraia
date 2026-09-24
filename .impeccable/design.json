@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-24T22:10:00Z",
+  "title": "Design System: Bar da Praia Team App",
+  "extensions": {
+    "colorMeta": {
+      "canvas": { "role": "neutral", "displayName": "Sand canvas", "canonical": "#f3f1ec", "tonalRamp": ["#2a2825", "#4a4640", "#6d675e", "#918a7f", "#b3ada2", "#d3cec4", "#e8e4dc", "#f3f1ec"] },
+      "panel": { "role": "neutral", "displayName": "Whitewash panel", "canonical": "#ffffff", "tonalRamp": ["#262626", "#404040", "#5c5c5c", "#7a7a7a", "#9a9a9a", "#bcbcbc", "#dedede", "#ffffff"] },
+      "slate-900": { "role": "neutral", "displayName": "Slate ink", "canonical": "#22363f", "tonalRamp": ["#22363f", "#2b434e", "#34525f", "#4a6572", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1"] },
+      "slate-800": { "role": "neutral", "displayName": "Slate ink, hover", "canonical": "#2b434e", "tonalRamp": ["#22363f", "#2b434e", "#34525f", "#4a6572", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1"] },
+      "slate-700": { "role": "secondary", "displayName": "Beam slate", "canonical": "#34525f", "tonalRamp": ["#22363f", "#2b434e", "#34525f", "#4a6572", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1"] },
+      "slate-600": { "role": "neutral", "displayName": "Label slate", "canonical": "#4a6572", "tonalRamp": ["#22363f", "#2b434e", "#34525f", "#4a6572", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1"] },
+      "slate-500": { "role": "neutral", "displayName": "Tinted slate text", "canonical": "#5f7079", "tonalRamp": ["#22363f", "#2b434e", "#34525f", "#4a6572", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1"] },
+      "slate-400": { "role": "neutral", "displayName": "Placeholder slate", "canonical": "#8a9aa2", "tonalRamp": ["#22363f", "#2b434e", "#34525f", "#4a6572", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1"] },
+      "slate-300": { "role": "neutral", "displayName": "Muted slate", "canonical": "#b7c3c9", "tonalRamp": ["#22363f", "#2b434e", "#34525f", "#4a6572", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1"] },
+      "slate-200": { "role": "neutral", "displayName": "Hairline", "canonical": "#d5dde1", "tonalRamp": ["#22363f", "#34525f", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1", "#e6ebee", "#f2f5f6"] },
+      "slate-100": { "role": "neutral", "displayName": "Inner rule", "canonical": "#e6ebee", "tonalRamp": ["#22363f", "#34525f", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1", "#e6ebee", "#f2f5f6"] },
+      "slate-50": { "role": "neutral", "displayName": "Sunken tile", "canonical": "#f2f5f6", "tonalRamp": ["#22363f", "#34525f", "#5f7079", "#8a9aa2", "#b7c3c9", "#d5dde1", "#e6ebee", "#f2f5f6"] },
+      "mint-50": { "role": "primary", "displayName": "Mint wash", "canonical": "#edf9f5", "tonalRamp": ["#17695c", "#1f8574", "#2a9683", "#5fbca6", "#94dac3", "#b7e7d2", "#d6f2ea", "#edf9f5"] },
+      "mint-100": { "role": "primary", "displayName": "Mint tile", "canonical": "#d6f2ea", "tonalRamp": ["#17695c", "#1f8574", "#2a9683", "#5fbca6", "#94dac3", "#b7e7d2", "#d6f2ea", "#edf9f5"] },
+      "mint-200": { "role": "primary", "displayName": "Sign mint", "canonical": "#b7e7d2", "tonalRamp": ["#17695c", "#1f8574", "#2a9683", "#5fbca6", "#94dac3", "#b7e7d2", "#d6f2ea", "#edf9f5"] },
+      "mint-300": { "role": "primary", "displayName": "Sea-mint marker", "canonical": "#94dac3", "tonalRamp": ["#17695c", "#1f8574", "#2a9683", "#5fbca6", "#94dac3", "#b7e7d2", "#d6f2ea", "#edf9f5"] },
+      "teal-500": { "role": "primary", "displayName": "Focus teal", "canonical": "#2a9683", "tonalRamp": ["#17695c", "#1f8574", "#2a9683", "#5fbca6", "#94dac3", "#b7e7d2", "#d6f2ea", "#edf9f5"] },
+      "teal-600": { "role": "primary", "displayName": "Sign teal", "canonical": "#1f8574", "tonalRamp": ["#17695c", "#1f8574", "#2a9683", "#5fbca6", "#94dac3", "#b7e7d2", "#d6f2ea", "#edf9f5"] },
+      "teal-700": { "role": "primary", "displayName": "Deep teal", "canonical": "#17695c", "tonalRamp": ["#17695c", "#1f8574", "#2a9683", "#5fbca6", "#94dac3", "#b7e7d2", "#d6f2ea", "#edf9f5"] },
+      "pine": { "role": "tertiary", "displayName": "Pine bench", "canonical": "#b07b59", "tonalRamp": ["#3d2a1e", "#5e4130", "#7f5842", "#b07b59", "#c9a680", "#dcc3a3", "#e9d6bb", "#f8f1e7"] },
+      "rattan": { "role": "tertiary", "displayName": "Rattan shade", "canonical": "#c9a680", "tonalRamp": ["#3d2a1e", "#5e4130", "#7f5842", "#b07b59", "#c9a680", "#dcc3a3", "#e9d6bb", "#f8f1e7"] },
+      "rattan-50": { "role": "tertiary", "displayName": "Rattan wash", "canonical": "#f8f1e7", "tonalRamp": ["#3d2a1e", "#5e4130", "#7f5842", "#b07b59", "#c9a680", "#dcc3a3", "#e9d6bb", "#f8f1e7"] },
+      "rattan-200": { "role": "tertiary", "displayName": "Rattan rule", "canonical": "#e9d6bb", "tonalRamp": ["#3d2a1e", "#5e4130", "#7f5842", "#b07b59", "#c9a680", "#dcc3a3", "#e9d6bb", "#f8f1e7"] },
+      "gold": { "role": "tertiary", "displayName": "Admin gold", "canonical": "#a6741e", "tonalRamp": ["#3a2708", "#5c3f0d", "#805813", "#a6741e", "#c9973f", "#ecd39a", "#f4e4bd", "#fbf1dc"] },
+      "gold-50": { "role": "tertiary", "displayName": "Admin gold wash", "canonical": "#fbf1dc", "tonalRamp": ["#3a2708", "#5c3f0d", "#805813", "#a6741e", "#c9973f", "#ecd39a", "#f4e4bd", "#fbf1dc"] },
+      "gold-200": { "role": "tertiary", "displayName": "Admin gold rule", "canonical": "#ecd39a", "tonalRamp": ["#3a2708", "#5c3f0d", "#805813", "#a6741e", "#c9973f", "#ecd39a", "#f4e4bd", "#fbf1dc"] },
+      "purple": { "role": "tertiary", "displayName": "Finance purple", "canonical": "#6d4fc2", "tonalRamp": ["#251a45", "#3b2a6e", "#523c97", "#6d4fc2", "#9a86d7", "#cfc2f0", "#e0d7f6", "#efeafb"] },
+      "purple-50": { "role": "tertiary", "displayName": "Finance purple wash", "canonical": "#efeafb", "tonalRamp": ["#251a45", "#3b2a6e", "#523c97", "#6d4fc2", "#9a86d7", "#cfc2f0", "#e0d7f6", "#efeafb"] },
+      "purple-200": { "role": "tertiary", "displayName": "Finance purple rule", "canonical": "#cfc2f0", "tonalRamp": ["#251a45", "#3b2a6e", "#523c97", "#6d4fc2", "#9a86d7", "#cfc2f0", "#e0d7f6", "#efeafb"] },
+      "green": { "role": "tertiary", "displayName": "Shifts green", "canonical": "#2b8a4b", "tonalRamp": ["#0f3019", "#1f6b3a", "#2b8a4b", "#4fa86a", "#7fc596", "#a9dcb9", "#c9e9d2", "#e3f4e8"] },
+      "green-50": { "role": "tertiary", "displayName": "Shifts green wash", "canonical": "#e3f4e8", "tonalRamp": ["#0f3019", "#1f6b3a", "#2b8a4b", "#4fa86a", "#7fc596", "#a9dcb9", "#c9e9d2", "#e3f4e8"] },
+      "green-200": { "role": "tertiary", "displayName": "Shifts green rule", "canonical": "#a9dcb9", "tonalRamp": ["#0f3019", "#1f6b3a", "#2b8a4b", "#4fa86a", "#7fc596", "#a9dcb9", "#c9e9d2", "#e3f4e8"] },
+      "green-700": { "role": "tertiary", "displayName": "Shifts green ink", "canonical": "#1f6b3a", "tonalRamp": ["#0f3019", "#1f6b3a", "#2b8a4b", "#4fa86a", "#7fc596", "#a9dcb9", "#c9e9d2", "#e3f4e8"] },
+      "blue": { "role": "tertiary", "displayName": "Employee blue", "canonical": "#2f6fa8", "tonalRamp": ["#11283d", "#1e4a72", "#2f6fa8", "#5590c0", "#86b0d4", "#b5d0e8", "#cfe0f1", "#e6f0f9"] },
+      "blue-50": { "role": "tertiary", "displayName": "Employee blue wash", "canonical": "#e6f0f9", "tonalRamp": ["#11283d", "#1e4a72", "#2f6fa8", "#5590c0", "#86b0d4", "#b5d0e8", "#cfe0f1", "#e6f0f9"] },
+      "blue-200": { "role": "tertiary", "displayName": "Employee blue rule", "canonical": "#b5d0e8", "tonalRamp": ["#11283d", "#1e4a72", "#2f6fa8", "#5590c0", "#86b0d4", "#b5d0e8", "#cfe0f1", "#e6f0f9"] },
+      "red": { "role": "tertiary", "displayName": "Danger terracotta", "canonical": "#b4402f", "tonalRamp": ["#3f1610", "#8f3223", "#b4402f", "#d0715f", "#e2988a", "#f0b8ae", "#f6d3cc", "#fbeae7"] },
+      "red-50": { "role": "tertiary", "displayName": "Terracotta wash", "canonical": "#fbeae7", "tonalRamp": ["#3f1610", "#8f3223", "#b4402f", "#d0715f", "#e2988a", "#f0b8ae", "#f6d3cc", "#fbeae7"] },
+      "red-200": { "role": "tertiary", "displayName": "Terracotta rule", "canonical": "#f0b8ae", "tonalRamp": ["#3f1610", "#8f3223", "#b4402f", "#d0715f", "#e2988a", "#f0b8ae", "#f6d3cc", "#fbeae7"] },
+      "red-400": { "role": "tertiary", "displayName": "Soft terracotta", "canonical": "#d0715f", "tonalRamp": ["#3f1610", "#8f3223", "#b4402f", "#d0715f", "#e2988a", "#f0b8ae", "#f6d3cc", "#fbeae7"] },
+      "red-700": { "role": "tertiary", "displayName": "Terracotta ink", "canonical": "#8f3223", "tonalRamp": ["#3f1610", "#8f3223", "#b4402f", "#d0715f", "#e2988a", "#f0b8ae", "#f6d3cc", "#fbeae7"] },
+      "amber": { "role": "tertiary", "displayName": "Warning amber", "canonical": "#b7791f", "tonalRamp": ["#3d2708", "#7a4f10", "#b7791f", "#d09a3d", "#e2b968", "#f0d391", "#f6e3b9", "#fdf3e1"] },
+      "amber-50": { "role": "tertiary", "displayName": "Amber wash", "canonical": "#fdf3e1", "tonalRamp": ["#3d2708", "#7a4f10", "#b7791f", "#d09a3d", "#e2b968", "#f0d391", "#f6e3b9", "#fdf3e1"] },
+      "amber-200": { "role": "tertiary", "displayName": "Amber rule", "canonical": "#f0d391", "tonalRamp": ["#3d2708", "#7a4f10", "#b7791f", "#d09a3d", "#e2b968", "#f0d391", "#f6e3b9", "#fdf3e1"] },
+      "amber-700": { "role": "tertiary", "displayName": "Amber ink", "canonical": "#7a4f10", "tonalRamp": ["#3d2708", "#7a4f10", "#b7791f", "#d09a3d", "#e2b968", "#f0d391", "#f6e3b9", "#fdf3e1"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The euro total in the Finance and Black Box beam boxes; white on slate-700." },
+      "headline": { "displayName": "Headline", "purpose": "KPI numerals on the dashboard stat panels." },
+      "title": { "displayName": "Title", "purpose": "Section headings inside content, the dashboard day name, modal titles (18px)." },
+      "panel-title": { "displayName": "Panel title", "purpose": "Tracked uppercase heading of every white panel, with a leading Font Awesome icon in teal-600 (purple in Finance)." },
+      "beam-title": { "displayName": "Beam title", "purpose": "Section name on the top bar and the wordmark in the drawer; 12px/0.12em under 640px." },
+      "body": { "displayName": "Body", "purpose": "Default text; descriptions at 13px, meta at 12px/600 slate-500." },
+      "label": { "displayName": "Label", "purpose": "Form labels, finance row labels, login labels; tracked uppercase slate-600." },
+      "stamp": { "displayName": "Stamp", "purpose": "Role chips and status badges; 10px inside the beam." }
+    },
+    "shadows": [
+      { "name": "shadow", "value": "none", "purpose": "Resting panels, cards and buttons carry no shadow; separation is the 1px slate-200 hairline." },
+      { "name": "shadow-overlay", "value": "0 12px 32px rgba(34,54,63,.18)", "purpose": "Only on things that float over the room: the bottom sheet, the centred dialog, the login card, the toast." },
+      { "name": "focus-halo", "value": "0 0 0 3px var(--mint-100)", "purpose": "Inputs, selects and the search bar on focus, with a teal-500 border. Finance inputs use a purple border with 0 0 0 3px var(--purple-50)." },
+      { "name": "selection-ring", "value": "0 0 0 2px var(--mint-100)", "purpose": "The selected supplier card, with a teal-500 border and mint-50 fill." },
+      { "name": "scrim", "value": "rgba(34,54,63,.45) / rgba(34,54,63,.5)", "purpose": "Drawer scrim (45%) and modal scrim (50%): beam-slate alpha, never black." }
+    ],
+    "motion": [
+      { "name": "ease-beam", "value": "cubic-bezier(.2,0,0,1)", "purpose": "Drawer slide (220ms), sheet rise (220ms) and the bottom-nav mint marker slide (200ms)." },
+      { "name": "duration-marker", "value": "200ms", "purpose": "The signature interaction: the mint-300 lozenge sliding between bottom-nav sections. Disabled under prefers-reduced-motion." },
+      { "name": "duration-state", "value": "150ms", "purpose": "Background, border and colour feedback on buttons, tabs, slicers, inputs; press scale is 100ms." },
+      { "name": "duration-overlay", "value": "200ms", "purpose": "Scrim and toast opacity; toast also translates 8px." },
+      { "name": "pulse", "value": "pulse 1.5s infinite (opacity 1 to .35)", "purpose": "Only the red sync dot when the connection is down." }
+    ],
+    "breakpoints": [
+      { "name": "phone-tight", "value": "640px", "purpose": "max-width: role stamps leave the beam; beam title 12px/0.12em." },
+      { "name": "drawer", "value": "1023px", "purpose": "max-width: tab rows bleed edge to edge and scroll; sheet keeps safe-area bottom padding." },
+      { "name": "desktop", "value": "1024px", "purpose": "min-width: drawer becomes a fixed 248px sidebar; bottom nav and hamburger hidden; content max 1200px centred; dashboard two-column; KPIs four-up; sheets become centred dialogs." },
+      { "name": "inventory-3", "value": "480px", "purpose": "Inventory grid 3 columns." },
+      { "name": "inventory-4", "value": "760px", "purpose": "Inventory grid 4 columns, 10px gap." },
+      { "name": "inventory-5", "value": "1180px", "purpose": "Inventory grid 5 columns, 12px gap." }
+    ],
+    "layout": {
+      "beamHeight": "56px",
+      "beamWidth": "248px",
+      "bottomNavHeight": "64px",
+      "contentMaxWidth": "1200px",
+      "contentPaddingPhone": "16px 16px 12px",
+      "contentPaddingDesktop": "24px 32px 32px",
+      "touchTargetMin": "44px",
+      "grid": "8px with 4px half-steps"
+    },
+    "aliases": {
+      "note": "The page script's inline styles still use --ocean-* names; :root maps them onto the slate/teal tokens on purpose (ocean-50..300 to slate-50..300, ocean-400 to slate-500, ocean-500/600 to teal-500/600, ocean-700..900 to slate-700..900). --grad and --grad-btn resolve to flat slate-700 and teal-600."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Sign teal for the one thing to tap next: Add, New, Save, Sign In, order.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Add</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:1px solid transparent; cursor:pointer; font-family:'Hanken Grotesk', system-ui, sans-serif; font-weight:700; font-size:13px; line-height:1.2; border-radius:8px; padding:10px 16px; min-height:40px; white-space:nowrap; transition:background .15s, border-color .15s, color .15s, transform .1s; } .ds-btn:active { transform:scale(.98); } .ds-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; } .ds-btn:focus-visible { outline:2px solid #2a9683; outline-offset:2px; } .ds-btn-primary { background:#1f8574; color:#fff; } .ds-btn-primary:hover { background:#17695c; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "White with a hairline for everything that is not the next action: Cart, Repeat, Add Supplier, edit.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Cart</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:1px solid transparent; cursor:pointer; font-family:'Hanken Grotesk', system-ui, sans-serif; font-weight:700; font-size:13px; line-height:1.2; border-radius:8px; padding:10px 16px; min-height:40px; white-space:nowrap; transition:background .15s, border-color .15s, color .15s, transform .1s; } .ds-btn:active { transform:scale(.98); } .ds-btn:focus-visible { outline:2px solid #2a9683; outline-offset:2px; } .ds-btn-secondary { background:#fff; color:#34525f; border-color:#d5dde1; } .ds-btn-secondary:hover { background:#f2f5f6; border-color:#b7c3c9; } .ds-btn-secondary:active { background:#e6ebee; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Terracotta outline for delete and destructive actions; the 36px icon variant is the common form.",
+      "html": "<button class=\"ds-btn ds-btn-danger ds-btn-icon\" aria-label=\"Delete\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14\"/></svg></button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:1px solid transparent; cursor:pointer; font-family:'Hanken Grotesk', system-ui, sans-serif; font-weight:700; font-size:13px; line-height:1.2; border-radius:8px; padding:10px 16px; min-height:40px; transition:background .15s, border-color .15s, color .15s, transform .1s; } .ds-btn:active { transform:scale(.98); } .ds-btn:focus-visible { outline:2px solid #2a9683; outline-offset:2px; } .ds-btn-danger { background:#fff; color:#b4402f; border-color:#f0b8ae; } .ds-btn-danger:hover { background:#fbeae7; } .ds-btn-icon { width:36px; height:36px; min-height:36px; padding:0; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White field on a hairline; focus turns the border teal with a 3px mint halo. 16px text so phones do not zoom.",
+      "html": "<label class=\"ds-label\" for=\"ds-in\">Guest name</label><input id=\"ds-in\" class=\"ds-input\" placeholder=\"Enter name\" />",
+      "css": ".ds-label { display:block; font-family:'Hanken Grotesk', system-ui, sans-serif; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#4a6572; margin-bottom:6px; } .ds-input { width:100%; max-width:320px; font-family:'Hanken Grotesk', system-ui, sans-serif; font-size:16px; color:#22363f; background:#fff; border:1px solid #d5dde1; border-radius:8px; padding:11px 14px; min-height:46px; outline:none; appearance:none; transition:border-color .15s, box-shadow .15s; } .ds-input::placeholder { color:#8a9aa2; } .ds-input:focus { border-color:#2a9683; box-shadow:0 0 0 3px #d6f2ea; }"
+    },
+    {
+      "name": "Role Stamp",
+      "kind": "chip",
+      "refersTo": "stamp-admin",
+      "description": "Inked stamp: 50 fill, 200 border, full-ink uppercase text with an icon. Admin gold, finance purple, shift manager green, employee blue.",
+      "html": "<span class=\"ds-stamp ds-stamp-admin\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M3 18h18l-2-9-5 4-2-7-2 7-5-4z\"/></svg>Admin</span> <span class=\"ds-stamp ds-stamp-finance\">€ Finance</span> <span class=\"ds-stamp ds-stamp-shifts\">Shift Mgr</span> <span class=\"ds-stamp ds-stamp-employee\">Employee</span>",
+      "css": ".ds-stamp { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; margin:1px; border-radius:6px; border:1px solid transparent; font-family:'Hanken Grotesk', system-ui, sans-serif; font-size:11px; font-weight:700; letter-spacing:.04em; line-height:1.3; text-transform:uppercase; } .ds-stamp-admin { background:#fbf1dc; color:#a6741e; border-color:#ecd39a; } .ds-stamp-finance { background:#efeafb; color:#6d4fc2; border-color:#cfc2f0; } .ds-stamp-shifts { background:#e3f4e8; color:#2b8a4b; border-color:#a9dcb9; } .ds-stamp-employee { background:#e6f0f9; color:#2f6fa8; border-color:#b5d0e8; }"
+    },
+    {
+      "name": "Status Stamp",
+      "kind": "chip",
+      "refersTo": "stamp-danger",
+      "description": "Same stamp construction for states: overdue terracotta, pending amber, done green, in-progress blue, neutral slate.",
+      "html": "<span class=\"ds-badge ds-badge-red\">Overdue</span> <span class=\"ds-badge ds-badge-amber\">Pending</span> <span class=\"ds-badge ds-badge-green\">Done</span> <span class=\"ds-badge ds-badge-blue\">In-progress</span> <span class=\"ds-badge ds-badge-gray\">Today</span>",
+      "css": ".ds-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:6px; border:1px solid transparent; font-family:'Hanken Grotesk', system-ui, sans-serif; font-size:11px; font-weight:700; letter-spacing:.04em; line-height:1.4; text-transform:uppercase; white-space:nowrap; } .ds-badge-red { background:#fbeae7; color:#b4402f; border-color:#f0b8ae; } .ds-badge-amber { background:#fdf3e1; color:#b7791f; border-color:#f0d391; } .ds-badge-green { background:#e3f4e8; color:#2b8a4b; border-color:#a9dcb9; } .ds-badge-blue { background:#e6f0f9; color:#2f6fa8; border-color:#b5d0e8; } .ds-badge-gray { background:#f2f5f6; color:#4a6572; border-color:#d5dde1; }"
+    },
+    {
+      "name": "KPI Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "White panel on a hairline: mint icon tile, neutral stamp, 32px tabular numeral, slate-500 label. No shadow.",
+      "html": "<div class=\"ds-kpi\"><div class=\"ds-kpi-top\"><span class=\"ds-kpi-icon\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 6h16M4 12h16M4 18h10\"/></svg></span><span class=\"ds-kpi-stamp\">Open</span></div><div class=\"ds-kpi-num\">4</div><div class=\"ds-kpi-label\">Open Tasks</div></div>",
+      "css": ".ds-kpi { width:200px; background:#fff; border:1px solid #d5dde1; border-radius:12px; padding:14px 16px 16px; font-family:'Hanken Grotesk', system-ui, sans-serif; font-variant-numeric:tabular-nums; color:#22363f; } .ds-kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; } .ds-kpi-icon { width:36px; height:36px; border-radius:10px; background:#d6f2ea; color:#17695c; display:inline-flex; align-items:center; justify-content:center; } .ds-kpi-stamp { padding:2px 8px; border-radius:6px; background:#f2f5f6; color:#4a6572; border:1px solid #d5dde1; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; } .ds-kpi-num { font-size:32px; font-weight:800; line-height:1; letter-spacing:-.02em; } .ds-kpi-label { font-size:12px; font-weight:600; color:#5f7079; margin-top:6px; }"
+    },
+    {
+      "name": "Beam Sidebar",
+      "kind": "nav",
+      "refersTo": "beam",
+      "description": "The slate beam as the desktop sidebar: white logo tile, tracked wordmark, group labels, 44px items, the active item filled sea-mint.",
+      "html": "<nav class=\"ds-beam\"><div class=\"ds-beam-head\"><span class=\"ds-beam-logo\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"#34525f\"><path d=\"M2 12c4-1 7-4 9-7 1 3 3 5 6 6l5 1-4 1c-3 1-6 3-8 6-1-3-4-6-8-7z\"/></svg></span><span><span class=\"ds-beam-name\">Bar da Praia</span><span class=\"ds-beam-sub\">Team app</span></span></div><div class=\"ds-beam-group\">Main</div><button class=\"ds-beam-item ds-active\">Dashboard</button><button class=\"ds-beam-item\">Inventory</button><button class=\"ds-beam-item\">Tasks</button><div class=\"ds-beam-group\">Admin</div><button class=\"ds-beam-item\">Finance <span class=\"ds-beam-badge\">Finance</span></button></nav>",
+      "css": ".ds-beam { width:248px; background:#34525f; color:#fff; font-family:'Hanken Grotesk', system-ui, sans-serif; padding-bottom:12px; border-radius:0; } .ds-beam-head { display:flex; align-items:center; gap:12px; padding:18px 18px 16px; border-bottom:1px solid rgba(255,255,255,.12); } .ds-beam-logo { width:44px; height:44px; background:#fff; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; } .ds-beam-name { display:block; font-size:13px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; } .ds-beam-sub { display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#b7c3c9; margin-top:2px; } .ds-beam-group { color:#b7c3c9; font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:0 22px; margin:16px 0 6px; } .ds-beam-item { display:flex; align-items:center; gap:12px; width:calc(100% - 20px); margin:0 10px 2px; padding:11px 12px; min-height:44px; border:none; border-radius:8px; background:none; color:rgba(255,255,255,.82); font-family:inherit; font-size:14px; font-weight:600; text-align:left; cursor:pointer; transition:background .15s, color .15s; } .ds-beam-item:hover { background:rgba(255,255,255,.08); color:#fff; } .ds-beam-item:focus-visible { outline:2px solid #2a9683; outline-offset:2px; } .ds-beam-item.ds-active { background:#94dac3; color:#22363f; } .ds-beam-badge { margin-left:auto; background:rgba(255,255,255,.14); color:#ecd39a; font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:2px 6px; border-radius:4px; }"
+    },
+    {
+      "name": "Bottom Nav",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Phone bottom nav: 64px white on a hairline, slate icons over 10px tracked labels, a mint-300 lozenge behind the active icon that slides between sections in 200ms.",
+      "html": "<div class=\"ds-bnav\"><button class=\"ds-bnav-item ds-active\"><i><span class=\"ds-bnav-marker\"></span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 3l9 8h-3v9h-4v-6h-4v6H6v-9H3z\"/></svg></i>Home</button><button class=\"ds-bnav-item\"><i><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M4 4h16v6H4zM4 12h16v8H4z\"/></svg></i>Stock</button><button class=\"ds-bnav-item\"><i><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M5 4h14v16H5zM8 9h8M8 13h8\"/></svg></i>Tasks</button></div>",
+      "css": ".ds-bnav { display:flex; width:320px; height:64px; background:#fff; border-top:1px solid #d5dde1; padding:6px 4px 0; font-family:'Hanken Grotesk', system-ui, sans-serif; } .ds-bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:none; background:none; color:#5f7079; font-family:inherit; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 0 6px; cursor:pointer; transition:color .15s; } .ds-bnav-item i { position:relative; width:44px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:14px; } .ds-bnav-item i svg { position:relative; z-index:1; } .ds-bnav-item.ds-active { color:#22363f; } .ds-bnav-marker { position:absolute; inset:0; border-radius:14px; background:#94dac3; transition:transform .2s cubic-bezier(.2,0,0,1); } .ds-bnav-item:focus-visible { outline:2px solid #2a9683; outline-offset:2px; }"
+    },
+    {
+      "name": "Underline Tabs",
+      "kind": "nav",
+      "refersTo": "panel",
+      "description": "Section tabs on a hairline row; the active tab is slate-900 with a 3px teal-500 bar.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab ds-active\">Stock</button><button class=\"ds-tab\">Log</button><button class=\"ds-tab\">Orders</button></div>",
+      "css": ".ds-tabs { display:flex; border-bottom:1px solid #d5dde1; font-family:'Hanken Grotesk', system-ui, sans-serif; } .ds-tab { position:relative; padding:10px 14px 11px; min-height:44px; border:none; background:transparent; color:#5f7079; font-family:inherit; font-size:13px; font-weight:700; letter-spacing:.02em; cursor:pointer; margin-bottom:-1px; transition:color .15s; } .ds-tab::after { content:''; position:absolute; left:8px; right:8px; bottom:0; height:3px; border-radius:3px 3px 0 0; background:transparent; transition:background .15s; } .ds-tab:hover { color:#2b434e; } .ds-tab.ds-active { color:#22363f; } .ds-tab.ds-active::after { background:#2a9683; } .ds-tab:focus-visible { outline:2px solid #2a9683; outline-offset:2px; }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Ruled rows that teach: a 28px hairline pattern under a slate-300 icon and one sentence, both on white patches.",
+      "html": "<div class=\"ds-empty\"><i><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M3 10h18M8 3v4M16 3v4M10 14l4 4M14 14l-4 4\"/></svg></i><p>No reservations today. Add one from Reservations.</p></div>",
+      "css": ".ds-empty { width:320px; text-align:center; padding:32px 20px; color:#5f7079; background:#fff; background-image:repeating-linear-gradient(to bottom, transparent 0 27px, #e6ebee 27px 28px); border-radius:8px; font-family:'Hanken Grotesk', system-ui, sans-serif; } .ds-empty i { display:flex; align-items:center; justify-content:center; width:64px; height:44px; margin:0 auto 10px; border-radius:8px; background:#fff; color:#b7c3c9; } .ds-empty p { display:inline-block; margin:0; padding:0 8px; background:#fff; font-size:14px; font-weight:600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The whitewashed dining room",
+    "overview": "The app is the bar itself, as its staff know it from the inside: whitewashed walls that hold the work, a dark slate-blue ceiling beam that carries the structure, and sea-mint from the sign at the one place a hand reaches. Pure white panels sit on a sand-white canvas and are separated by hairlines rather than lifted by shadows; the only dark fill on any screen is the beam (top bar, drawer, desktop sidebar, the money \"total of the day\" boxes, selected calendar days and slicers). Warmth appears only where hands touch: teal on the button you press next, a mint marker under the section you are in.\n\nDensity is operational, not editorial. Numbers are large, tabular and tight-tracked so a waiter can read a stock count in sunlight; everything else is small, bold and quiet. Colour is never decoration: every tint on the screen encodes a role (admin gold, finance purple, shift manager green, employee blue) or a state (danger terracotta, warning amber, done green, ordered green), and every such tint is a stamp with a word or an icon on it, so no meaning depends on hue alone. One workhorse sans, Hanken Grotesk, does every job from the 40px euro total to the 9px stat caption.\n\nThe world explicitly replaced a sky-blue gradient dashboard of emoji tiles and same-size cards. It has no gradients of colour, no emoji, no resting shadows and no dark theme.",
+    "keyCharacteristics": [
+      "White panels on a sand-white canvas, ruled by 1px slate-200 hairlines; shadows only under overlays (sheet, login card, toast).",
+      "One dark fill, the beam slate (#34525f), used for structure and for \"selected\" in dark tiles.",
+      "Sea-mint marks where you are (mint-300 fill); teal marks what you tap next (teal-600 fill).",
+      "Roles and states as inked stamps: 50-tint fill, 200-tint border, full ink text, uppercase 11px, always with a word or icon.",
+      "Hanken Grotesk throughout, tabular numerals on by default, tracked uppercase for titles echoing the wordmark.",
+      "12px panels, 8px controls, 6px stamps; an 8px spacing grid."
+    ],
+    "rules": [
+      { "name": "The One Beam Rule", "body": "Slate-700 is the only dark fill on a screen. It carries structure (top bar, sidebar, total boxes) and \"selected\" on dense pickers (calendar day, table chip, slicer, Black Box row). Nothing else is filled dark.", "section": "colors" },
+      { "name": "The Mint Marks, Teal Acts Rule", "body": "Mint-300 fill means \"you are here\" and appears once per navigation surface. Teal-600 fill means \"the thing to tap next\". Neither is used for decoration, headings or panel tints.", "section": "colors" },
+      { "name": "The Inked Stamp Rule", "body": "Every role and state is a stamp: 50-tint background, 200-tint border, full-ink uppercase text, and a word or icon. Colour never carries a meaning alone; the stamp text does.", "section": "colors" },
+      { "name": "The Materials Only Rule", "body": "Pine and rattan belong to the venue and appear only as the orange stamp and the Kitchen bar. They are never a page or panel tint.", "section": "colors" },
+      { "name": "The Tabular Numbers Rule", "body": "Numerals are tabular everywhere; counts, prices and times align in columns without extra markup.", "section": "typography" },
+      { "name": "The Tracked Caps Rule", "body": "Anything that names a place or a group (beam title, panel title, form label, stamp) is bold uppercase with 0.04–0.16em tracking and never larger than 13px. Content headings are sentence case, heavy and slightly tight. Do not track large text.", "section": "typography" },
+      { "name": "The Hairline Rule", "body": "Surfaces separate by a 1px slate-200 rule, never by a shadow. If a new surface needs to look raised while resting, it is a panel with a hairline.", "section": "elevation" },
+      { "name": "The Overlay Only Rule", "body": "The overlay shadow appears only on things that float over the page: sheets, dialogs, the login card, toasts.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do put every surface on white with a 1px slate-200 hairline and 12px corners; reserve shadows for sheets, dialogs, the login card and toasts.",
+      "Do use slate-700 for structure and selection in dark tiles, and nowhere else as a fill.",
+      "Do mark the current location with a single mint-300 fill and the next action with a teal-600 fill.",
+      "Do express every role and state as a stamp (50 fill, 200 border, full-ink uppercase text, word or icon), keeping today's meanings: admin gold, finance purple, shift manager green, employee blue, danger terracotta, warning amber.",
+      "Do set numbers in Hanken Grotesk 800 at 32–40px with -0.02em tracking, tabular; keep labels at 11–13px bold uppercase with 0.04–0.16em tracking.",
+      "Do keep touch targets at 44px or more and inputs at 46px with 16px text; hold the 8px spacing grid.",
+      "Do draw empty states as ruled rows with a short sentence that says what to do next.",
+      "Do use Font Awesome glyphs for category, section and action icons, one per stamp or panel title, in the panel's ink colour.",
+      "Do use the supplied logo files unaltered (seagull mark in a white 44px tile on the beam, full logo on the login card)."
+    ],
+    "donts": [
+      "Don't use colour gradients (tonal blends) on any fill or text; the only permitted gradient is the repeating hairline pattern that draws ruled rows in empty states.",
+      "Don't add shadows, glows or borders thicker than 1px to resting panels, cards or buttons.",
+      "Don't use emoji anywhere; every pictogram is a Font Awesome glyph.",
+      "Don't let colour carry a meaning alone: a state or role always has its word or icon.",
+      "Don't use pine, rattan, gold, purple, green, blue, red or amber as page, panel or heading tints; they are stamp and bar inks only.",
+      "Don't introduce a second typeface, italics or weights below 400; Hanken Grotesk 400–800 covers every role.",
+      "Don't track text larger than 13px, and don't set large numbers in anything lighter than 800.",
+      "Don't add a dark theme, recolour or redraw the logo, or replace the bottom nav on phones."
+    ]
+  }
+}
