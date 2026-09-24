@@ -2205,16 +2205,42 @@ function closeModal(id) { var el=document.getElementById(id); if(!el) return; el
 function hashPw(pw) { return btoa(unescape(encodeURIComponent(pw))); }
 function hasRole(role) { return currentUser && Array.isArray(currentUser.roles) && currentUser.roles.indexOf(role) !== -1; }
 
+function sbRowToUser(x) {
+  return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',active:x.active!==false,createdAt:x.created_at};
+}
+
+var loginInFlight = false;
 function doLogin() {
   var uname = (document.getElementById('login-username').value||'').trim().toLowerCase();
   var pw    = document.getElementById('login-password').value;
   var errEl = document.getElementById('login-error');
   if (!uname || !pw) { errEl.textContent = 'Please enter username and password.'; return; }
+  if (loginInFlight) return;
   var db = getDB();
   var user = db.appUsers.find(function(u){ return u.username.toLowerCase() === uname; });
-  if (!user || !user.active) { errEl.textContent = 'Invalid username or password.'; return; }
-  if (user.passwordHash !== hashPw(pw)) { errEl.textContent = 'Invalid username or password.'; return; }
-  applyLogin(user, true);
+  if (user && user.active && user.passwordHash === hashPw(pw)) { applyLogin(user, true); return; }
+
+  // Not in the local cache (fresh device / new domain / sync still running) or the cached
+  // password is stale: ask Supabase directly for this username before rejecting.
+  loginInFlight = true;
+  errEl.textContent = 'Checking\u2026';
+  sbFetch('GET', 'app_users', null, 'username=ilike.' + encodeURIComponent(uname) + '&limit=1').then(function(rows) {
+    loginInFlight = false;
+    var remote = rows && rows[0] ? sbRowToUser(rows[0]) : null;
+    if (!remote || !remote.active || remote.passwordHash !== hashPw(pw)) {
+      errEl.textContent = 'Invalid username or password.';
+      return;
+    }
+    // Merge into the local cache so the session can be restored on reload
+    var db2 = getDB();
+    var idx = db2.appUsers.findIndex(function(u){ return u.id === remote.id || u.username.toLowerCase() === uname; });
+    if (idx === -1) db2.appUsers.push(remote); else db2.appUsers[idx] = remote;
+    saveDB(db2);
+    applyLogin(remote, true);
+  }).catch(function() {
+    loginInFlight = false;
+    errEl.textContent = (user ? 'Invalid username or password.' : 'Cannot reach the server. Check your connection and try again.');
+  });
 }
 
 function applyLogin(user, showWelcome) {
