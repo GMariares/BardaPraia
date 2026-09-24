@@ -480,7 +480,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .order-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:var(--rule); border-radius:10px; margin-bottom:8px; background:var(--panel); }
     .empty-state { text-align:center; padding:32px 20px; color:var(--slate-500); background-image:repeating-linear-gradient(to bottom, transparent 0 27px, var(--slate-100) 27px 28px); border-radius:8px; }
     .empty-state i { font-size:26px; margin-bottom:10px; display:block; color:var(--slate-300); background:var(--panel); width:56px; height:44px; line-height:44px; margin-left:auto; margin-right:auto; border-radius:8px; }
-    .empty-state p { font-size:14px; font-weight:600; background:var(--panel); display:inline-block; padding:0 8px; }
+    .empty-state p { font-size:14px; font-weight:600; background:var(--panel); display:inline-block; padding:0 8px; text-wrap:balance; max-width:32ch; }
     .locked-overlay { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 20px; color:var(--slate-500); text-align:center; }
     .locked-overlay i { font-size:40px; margin-bottom:14px; color:var(--slate-700); }
     .locked-overlay h3 { font-size:18px; font-weight:800; color:var(--slate-900); margin-bottom:8px; }
