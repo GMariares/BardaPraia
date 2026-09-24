@@ -158,15 +158,29 @@ Pick Cloudflare unless you already pay for / prefer Vercel. Both are free at thi
 
 ---
 
-## 6. Custom domain
-1. Buy the domain (Cloudflare Registrar is simplest if you go with Cloudflare; any registrar works).
-2. Cloudflare Pages: project → Custom domains → add `app.yourdomain.com` (it creates the DNS record
-   for you if the domain is on Cloudflare; otherwise add the CNAME it shows).
-   Vercel: project → Settings → Domains → add the domain → create the CNAME/A record it shows.
-3. Wait for the certificate (minutes), open the domain, log in, check every tab.
-4. Push notifications require HTTPS, which both providers give you automatically.
+## 6. Custom domain — bardapraia.org
 
----
+Two domain names: **bardapraia.org** (the one staff will use) and **www.bardapraia.org** (redirect).
+
+### 6a. Get the domain onto Cloudflare DNS
+- **Not registered yet:** Cloudflare dashboard → Domain Registration → Register Domains → `bardapraia.org`.
+  It lands directly in your account with DNS already on Cloudflare. Done.
+- **Already registered elsewhere:** Cloudflare dashboard → Add a domain → `bardapraia.org` → Free plan.
+  Cloudflare shows two nameservers; set them at your registrar (replacing the existing ones).
+  Wait until Cloudflare emails "your site is active" (minutes to a few hours). Keeping DNS at the old
+  registrar also works, but then only `www` can point at Pages (a bare domain needs Cloudflare DNS).
+
+### 6b. Attach it to the Pages project
+1. Workers & Pages → `bardapraia` → Custom domains → Set up a custom domain → `bardapraia.org` → Activate.
+   Cloudflare creates the DNS record itself and issues the certificate (a few minutes).
+2. Repeat for `www.bardapraia.org`.
+3. Make `www` redirect to the bare domain: Rules → Redirect Rules → template "Redirect from WWW to root".
+4. Open https://bardapraia.org, log in, check every tab, allow notifications and send yourself a test task.
+
+### 6c. Reminders for this app
+- Push notifications only work on HTTPS, which Pages gives automatically.
+- Staff must use exactly one address (`https://bardapraia.org`). The `www` and `*.pages.dev` addresses
+  are separate browser origins with their own login and notification state, so the redirect matters.
 
 ## 7. Cutover checklist (the day you switch staff to the new address)
 
