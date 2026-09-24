@@ -5,6 +5,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Bar da Praia</title>
+  <meta name="theme-color" content="#34525f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Bar da Praia" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
@@ -32,7 +38,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     #login-screen.hidden { display:none; }
     .login-box { background:white; border-radius:20px; padding:32px 28px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
     .login-logo { text-align:center; margin-bottom:24px; }
-    .login-logo .logo-icon-lg { width:64px; height:64px; background:var(--grad); border-radius:18px; display:inline-flex; align-items:center; justify-content:center; font-size:30px; margin-bottom:10px; }
+    .login-logo-img { display:block; width:200px; max-width:72%; height:auto; margin:0 auto 6px; }
     .login-logo h1 { font-size:20px; font-weight:800; color:var(--ocean-900); }
     .login-logo p  { font-size:12px; color:var(--ocean-400); margin-top:2px; }
     .login-field { margin-bottom:14px; }
@@ -111,7 +117,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     #drawer.open { transform:translateX(0); }
     #drawer-header { padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,.12); }
     .logo-row { display:flex; align-items:center; gap:12px; }
-    .logo-icon { width:42px; height:42px; background:rgba(255,255,255,.18); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .logo-icon { width:42px; height:42px; background:#fff; border-radius:12px; display:flex; align-items:center; justify-content:center; padding:5px; }
+    .logo-icon img { width:100%; height:100%; object-fit:contain; }
     .logo-name { color:white; font-weight:700; font-size:17px; }
     .logo-sub { color:rgba(255,255,255,.6); font-size:12px; }
     #drawer nav { flex:1; padding:16px 12px; overflow-y:auto; }
@@ -415,9 +422,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">
-      <div class="logo-icon-lg">🌊</div>
-      <h1>Bar da Praia</h1>
-      <p>Management System</p>
+      <img class="login-logo-img" src="/brand/logo-transparent.png" alt="Bar da Praia, Arrifana" width="476" height="250" />
+      <p>Team app</p>
     </div>
     <div class="login-field">
       <label>Username</label>
@@ -449,7 +455,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 <nav id="drawer">
   <div id="drawer-header">
     <div class="logo-row">
-      <div class="logo-icon">🌊</div>
+      <div class="logo-icon"><img src="/brand/mark.png" alt="" width="200" height="110" /></div>
       <div><div class="logo-name">Bar da Praia</div><div class="logo-sub">Management System</div></div>
     </div>
   </div>

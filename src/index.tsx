@@ -37,7 +37,7 @@ function getConfig(env: Bindings | undefined) {
 }
 
 // ── Favicon ───────────────────────────────────────────────────
-app.get('/favicon.ico', (c) => new Response('', { status: 204 }))
+app.get('/favicon.ico', (c) => c.redirect('/brand/favicon-32.png', 301))
 
 // ── Service Worker (must be served from root scope) ───────────
 app.get('/sw.js', async (c) => {
@@ -56,7 +56,7 @@ self.addEventListener('push', function(e) {
   var tag   = data.tag   || 'bardapraia-push';
   e.waitUntil(
     self.registration.showNotification(title, {
-      body: body, icon: '/favicon.ico', badge: '/favicon.ico',
+      body: body, icon: '/brand/icon-192.png', badge: '/brand/icon-192.png',
       tag: tag, data: { url: data.url || '/' }
     })
   );
@@ -166,7 +166,7 @@ app.post('/api/push/send', async (c) => {
       title,
       body: body || '',
       url: url || '/',
-      icon: '/favicon.ico',
+      icon: '/brand/icon-192.png',
       tag: 'bardapraia-task-' + Date.now()
     })
 
