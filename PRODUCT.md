@@ -45,15 +45,20 @@ One shared, always-current picture of the bar for everyone on the team, from the
 
 ## Brand Commitments
 
-- Name: **Bar da Praia**.
-- A logo and brand colours exist and will be provided by the owner; until they arrive, no identity may be invented to replace them. Record them here when received (files under `public/brand/`).
+- Name: **Bar da Praia**, Arrifana (Aljezur, Algarve west coast). The logo carries "ARRIFANA" as a sub-line.
+- **Logo (binding):** a flying seagull silhouette above wide-tracked uppercase "BAR DA PRAIA", with "ARRIFANA" smaller beneath, in a single slate blue-grey ink on white. Files: `public/brand/logo.png` (white background), `public/brand/logo-transparent.png`, `public/brand/mark.png` (seagull only), app icons `public/brand/icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon-32.png`. Do not redraw, recolour or add effects to the logo.
+- **Colours measured from the owner's material** (medians of the actual pixels; the first two are binding, the rest describe the venue):
+  - Logo ink, slate blue-grey: `#34525f` (seagull), `#395158` (wordmark). Same family as the painted ceiling beams inside the bar: `#313a3e`.
+  - Sign teal-mint on the building (wave motif and "Restaurante da Praia" lettering): `#94dac3` to `#b7e7d2`.
+  - Venue materials: pine bench wood `#b07b59`, rattan lamp shades `#c9a680`, stone wall `#9c9169`, terracotta roof edge `#793430`, whitewashed walls, pale sea `#c7d5da`, sand `#cbbeb5`, deep Algarve sky.
+- **Overall look the owner wants the app to belong to** (reference photos `brand/reference-exterior.jpg`, `brand/reference-interior.jpg`): a whitewashed beach restaurant on a stone base above the sand; inside, dark blue-grey beamed ceiling, hand-woven rattan pendant lamps, pale pine picnic benches with glass tops, open glass front onto the sea. Calm, natural, sunlit, unfussy. Materials over decoration; the sea is the colour, the interior stays neutral.
 - Voice today: short, friendly, practical; staff-facing rather than customer-facing.
 
 ## Evidence on Hand
 
 - Real production data in Supabase (baseline 2026-09-24): 19 employees, 17 user accounts, 111 stock items, 172 menu items, 3,393 shift rows, 207 finance days, 59 tasks. Useful for realistic screens; never to be shown outside the team.
 - No customer-facing content, testimonials, or marketing material exists and none should be fabricated.
-- No logo or colour files in the repository yet (pending from the owner).
+- Logo and two venue photographs supplied by the owner on 2026-09-24 (see Brand Commitments for paths). No customer-facing photography licence has been discussed; the photos are references for the team's app only.
 
 ## Product Principles
 

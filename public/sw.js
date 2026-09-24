@@ -14,7 +14,7 @@ self.addEventListener('push', function(e) {
 
   var title   = data.title   || 'Bar da Praia';
   var body    = data.body    || 'You have a new task.';
-  var icon    = data.icon    || '/favicon.ico';
+  var icon    = data.icon    || '/brand/icon-192.png';
   var tag     = data.tag     || 'bardapraia-push';
   var url     = data.url     || '/';
 
