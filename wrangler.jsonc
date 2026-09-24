@@ -1,34 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bardapraia",
+  "main": "dist/index.js",
   "compatibility_date": "2026-03-29",
-  "pages_build_output_dir": "./dist",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
-  // }
+  "compatibility_flags": ["nodejs_compat"],
+  // Static files in public/ (sw.js, static/style.css) are served directly by Cloudflare;
+  // every other request (/, /api/*) goes to the Hono worker.
+  "assets": {
+    "directory": "./public"
+  }
+  // Secrets (VAPID_PRIVATE) are set in the Cloudflare dashboard:
+  // Workers & Pages → bardapraia → Settings → Variables and Secrets.
+  // Locally they come from .dev.vars (see .dev.vars.example).
 }

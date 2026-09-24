@@ -11,7 +11,7 @@ until a verified backup exists and you know who owns the Supabase project.
 | Piece | Where it lives today | Has to move? |
 |---|---|---|
 | Source code | GitHub `GMariares/BardaPraia` (this repo) | Already yours. Just confirm it is up to date (step 2). |
-| Web app / API | Hono app built for **Cloudflare Pages** (`dist/_worker.js`). Genspark deploys it to a `*.pages.dev` URL. | Yes: redeploy under your own Cloudflare or Vercel account (step 5). |
+| Web app / API | Hono app, now built as a **Cloudflare Worker** (`dist/index.js` + static assets). Genspark deployed it to a `*.pages.dev` URL. | Yes: deploy under your own Cloudflare account (step 5). |
 | Data | Supabase project `eurcdnyhwqofnddhxrpf` (14 tables). All business data is here. | Only if that project is not in an account you control (step 3). |
 | Push notifications | VAPID keys hard-coded in `src/index.tsx`, subscriptions in table `push_subscriptions`. | Keys must stay **identical** or every existing subscription breaks. |
 | Browser cache | `localStorage` on each phone/laptop (key `bardapraia_v6`), used as a fast cache of Supabase. | Cache only, except the two items in step 7. |
@@ -128,7 +128,7 @@ From here on, treat GitHub `main` as the only source of truth.
 ## 4. Prepare the code for your own hosting — DONE on this branch
 
 - The VAPID private key is no longer in the source. It is read from the `VAPID_PRIVATE` environment
-  variable (Cloudflare Pages → Settings → Variables and Secrets). Supabase URL/key and the VAPID
+  variable (Cloudflare → Workers & Pages → bardapraia → Settings → Variables and Secrets). Supabase URL/key and the VAPID
   public key keep built-in defaults and can be overridden the same way. Keep the **same VAPID keys**.
 - `ecosystem.config.cjs` (Genspark sandbox only) deleted; project renamed from `webapp` to `bardapraia`.
 - `.dev.vars.example` documents the variables; `README.md` has the deploy steps.
@@ -139,22 +139,16 @@ Optional later: a `manifest.json` + icons so the app installs to the home screen
 
 ---
 
-## 5. Deploy under your own account — decision: Cloudflare Pages
+## 5. Deploy under your own account — Cloudflare Workers (Git integration)
 
-### Option A — Cloudflare Pages (chosen)
-The app is already built for it, so no code changes are needed.
-1. https://dash.cloudflare.com → Workers & Pages → Create → Pages → Connect to Git → pick `GMariares/BardaPraia`.
-2. Build settings: framework **None**, build command `npm run build`, output directory `dist`.
-3. Add `VAPID_PRIVATE` (encrypted secret) with the existing key value.
-4. Deploy. You get `https://<project>.pages.dev`. Every push to `main` redeploys automatically.
+The project was created in Cloudflare as a **Worker** (deploy command `npx wrangler deploy`), so the repo
+is now built as a Worker with static assets. That is Cloudflare's current recommended setup; Pages is the
+older product. Nothing to change in the dashboard.
 
-### Option B — Vercel
-1. https://vercel.com/new → import `GMariares/BardaPraia`.
-2. Needs the adapter change from step 4 first (`@hono/vite-build/vercel`), otherwise the build
-   output is a Cloudflare worker Vercel cannot run.
-3. Add environment variables, deploy, get `https://<project>.vercel.app`.
-
-Pick Cloudflare unless you already pay for / prefer Vercel. Both are free at this app's size.
+1. Workers & Pages → Create → Workers → Import a repository → `GMariares/BardaPraia` (already done).
+2. Build settings: build command `npm run build`, deploy command `npx wrangler deploy`, branch `main`.
+3. Settings → Variables and Secrets → add `VAPID_PRIVATE` (type Secret) with the existing key value.
+4. Every push to `main` builds and deploys. You get `https://bardapraia.<account>.workers.dev`.
 
 ---
 
@@ -168,18 +162,18 @@ Two domain names: **bardapraia.org** (the one staff will use) and **www.bardapra
 - **Already registered elsewhere:** Cloudflare dashboard → Add a domain → `bardapraia.org` → Free plan.
   Cloudflare shows two nameservers; set them at your registrar (replacing the existing ones).
   Wait until Cloudflare emails "your site is active" (minutes to a few hours). Keeping DNS at the old
-  registrar also works, but then only `www` can point at Pages (a bare domain needs Cloudflare DNS).
+  registrar also works, but then only `www` can point at the Worker (a bare domain needs Cloudflare DNS).
 
-### 6b. Attach it to the Pages project
-1. Workers & Pages → `bardapraia` → Custom domains → Set up a custom domain → `bardapraia.org` → Activate.
+### 6b. Attach it to the Worker
+1. Workers & Pages → `bardapraia` → Settings → Domains & Routes → Add → Custom domain → `bardapraia.org`.
    Cloudflare creates the DNS record itself and issues the certificate (a few minutes).
 2. Repeat for `www.bardapraia.org`.
 3. Make `www` redirect to the bare domain: Rules → Redirect Rules → template "Redirect from WWW to root".
 4. Open https://bardapraia.org, log in, check every tab, allow notifications and send yourself a test task.
 
 ### 6c. Reminders for this app
-- Push notifications only work on HTTPS, which Pages gives automatically.
-- Staff must use exactly one address (`https://bardapraia.org`). The `www` and `*.pages.dev` addresses
+- Push notifications only work on HTTPS, which Cloudflare gives automatically.
+- Staff must use exactly one address (`https://bardapraia.org`). The `www` and `*.workers.dev` addresses
   are separate browser origins with their own login and notification state, so the redirect matters.
 
 ## 7. Cutover checklist (the day you switch staff to the new address)
