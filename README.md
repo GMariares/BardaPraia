@@ -1,7 +1,7 @@
 # Bar da Praia
 
 Staff app for Bar da Praia: inventory, orders, suppliers, reservations, tasks, shifts, tips, finance and the
-"Black Box" daily sales. Built with [Hono](https://hono.dev) and deployed on **Cloudflare Pages**.
+"Black Box" daily sales. Built with [Hono](https://hono.dev) and deployed as a **Cloudflare Worker** (with static assets).
 Data lives in Supabase (project `eurcdnyhwqofnddhxrpf`); the browser keeps a local cache only.
 
 ## Development
@@ -9,14 +9,14 @@ Data lives in Supabase (project `eurcdnyhwqofnddhxrpf`); the browser keeps a loc
 ```bash
 npm install
 cp .dev.vars.example .dev.vars   # fill in VAPID_PRIVATE
-npm run build && npm run preview  # http://localhost:8788 (wrangler pages dev)
+npm run build && npm run preview  # http://localhost:8787 (wrangler dev)
 ```
 
 `npm run dev` runs the Vite dev server without Cloudflare bindings (push notifications disabled).
 
 ## Configuration
 
-Set in Cloudflare Pages → Settings → Variables and Secrets (production and preview):
+Set in Cloudflare dashboard → Workers & Pages → `bardapraia` → Settings → Variables and Secrets:
 
 | Variable | Required | Notes |
 |---|---|---|
@@ -24,11 +24,12 @@ Set in Cloudflare Pages → Settings → Variables and Secrets (production and p
 | `SB_URL`, `SB_KEY` | no | Supabase URL and anon key. Defaults built in. |
 | `VAPID_PUBLIC`, `VAPID_SUBJECT` | no | Defaults built in. Must match the private key. |
 
-## Deploy (Cloudflare Pages, Git integration)
+## Deploy (Cloudflare Workers, Git integration)
 
-1. Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → `GMariares/BardaPraia`.
-2. Production branch `main`, framework preset **None**, build command `npm run build`, output directory `dist`.
-3. Add `VAPID_PRIVATE` as an encrypted secret, then deploy. Every push to `main` redeploys.
+1. Cloudflare dashboard → Workers & Pages → Create → Workers → Import a repository → `GMariares/BardaPraia`.
+2. Build command `npm run build`, deploy command `npx wrangler deploy` (the defaults), production branch `main`.
+3. Settings → Variables and Secrets → add `VAPID_PRIVATE` as a secret. Every push to `main` redeploys.
+4. Custom domain: Settings → Domains & Routes → Add → Custom domain.
 
 Manual deploy from a machine with a Cloudflare login: `npm run deploy`.
 
