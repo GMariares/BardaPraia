@@ -38,6 +38,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       --red: #b4402f; --red-50: #fbeae7; --red-200: #f0b8ae;
       --amber: #b7791f; --amber-50: #fdf3e1; --amber-200: #f0d391; --amber-700: #7a4f10;
       --red-400: #d0715f; --red-700: #8f3223; --green-700: #1f6b3a;
+      --chart-teal: #1f9f86;        /* data fill: validated for chroma, lightness and 3:1 on white */
       --radius: 12px; --radius-sm: 8px;
       --rule: 1px solid var(--slate-200);
       --shadow: none;
@@ -153,6 +154,41 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .fin-derived { background:var(--slate-50); border-radius:var(--radius-sm); padding:11px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; overflow:hidden; border:1px solid var(--slate-100); }
     .fin-derived-label { font-size:12px; color:var(--slate-600); font-weight:600; flex:1; min-width:0; }
     .fin-derived-val { font-size:16px; font-weight:800; color:var(--slate-900); flex-shrink:0; white-space:nowrap; }
+
+    /* ── FINANCE YEAR CHARTS ── */
+    .fin-chart { margin:0 0 12px; }
+    .fin-chart-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
+    .fin-chart-title { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--slate-500); }
+    .fin-chart-legend { display:flex; gap:12px; font-size:11px; font-weight:600; color:var(--slate-600); }
+    .fin-chart-legend span { display:inline-flex; align-items:center; gap:5px; }
+    .fin-chart-legend .sw-bar { width:10px; height:10px; border-radius:2px; background:var(--chart-teal); display:inline-block; }
+    .fin-chart-legend .sw-line { width:14px; height:0; border-top:2px solid var(--slate-700); display:inline-block; }
+    .fin-chart svg { display:block; width:100%; height:auto; overflow:visible; font-family:var(--font); }
+    .fin-chart svg text { font-variant-numeric:tabular-nums; }
+    .fin-chart .fc-grid { stroke:var(--slate-100); stroke-width:1; }
+    .fin-chart .fc-axis { stroke:var(--slate-200); stroke-width:1; }
+    .fin-chart .fc-tick { fill:var(--slate-500); font-size:10px; font-weight:600; }
+    .fin-chart .fc-month { fill:var(--slate-500); font-size:10px; font-weight:700; letter-spacing:.04em; }
+    .fin-chart .fc-month.now { fill:var(--slate-900); }
+    .fin-chart .fc-bar { fill:var(--chart-teal); }
+    .fin-chart .fc-budget { stroke:var(--slate-700); stroke-width:2; stroke-linecap:round; }
+    .fin-chart .fc-hit { fill:transparent; cursor:default; }
+    .fin-chart .fc-month-g:hover .fc-hit, .fin-chart .fc-month-g:focus .fc-hit { fill:var(--slate-50); }
+    .fin-chart .fc-month-g:focus { outline:none; }
+    .fin-chart .fc-label { fill:var(--slate-900); font-size:10px; font-weight:700; }
+    .fin-chart .fc-tip { position:absolute; pointer-events:none; background:var(--slate-900); color:white; font-size:11px; font-weight:600; padding:6px 9px; border-radius:6px; white-space:nowrap; transform:translate(-50%,-100%); opacity:0; transition:opacity .12s; z-index:5; line-height:1.4; }
+    .fin-chart .fc-tip b { color:var(--mint-300); font-weight:700; }
+    .fin-chart .fc-wrap { position:relative; }
+    .fin-chart details { margin-top:6px; }
+    .fin-chart summary { font-size:11px; font-weight:700; color:var(--teal-700); cursor:pointer; letter-spacing:.04em; list-style:none; display:inline-flex; align-items:center; gap:5px; }
+    .fin-chart summary::-webkit-details-marker { display:none; }
+    .fin-chart table { width:100%; border-collapse:collapse; margin-top:6px; font-size:12px; }
+    .fin-chart th { text-align:right; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--slate-500); padding:4px 6px; border-bottom:var(--rule); }
+    .fin-chart th:first-child, .fin-chart td:first-child { text-align:left; }
+    .fin-chart td { text-align:right; padding:4px 6px; border-bottom:1px solid var(--slate-100); color:var(--slate-800); font-variant-numeric:tabular-nums; }
+    .fin-chart td.neg { color:var(--red); }
+    .fin-chart td.pos { color:var(--green); }
+    .fin-chart tr.now td { font-weight:700; color:var(--slate-900); }
 
     /* ── THE BEAM (drawer / desktop sidebar) ── */
     #drawer-overlay { position:fixed; inset:0; background:rgba(34,54,63,.45); z-index:300; opacity:0; pointer-events:none; transition:opacity .2s; }
@@ -964,6 +1000,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <!-- Section 1: Total of Day -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
           <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-receipt" style="color:#6d4fc2"></i> Total of the Day</div>
+          <div class="fin-chart" id="fin-chart-day" data-line="day"></div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card" style="position:relative">
               <div class="fin-summary-num" id="fin-stat-day-month">€0</div>
@@ -995,6 +1032,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <!-- Section 2: T51 -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
           <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-cash-register" style="color:#2a9683"></i> T 51</div>
+          <div class="fin-chart" id="fin-chart-t51" data-line="t51"></div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-month">€0</div>
@@ -1019,6 +1057,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <!-- Section 3: Surf -->
         <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
           <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-water" style="color:#2a9683"></i> Surf</div>
+          <div class="fin-chart" id="fin-chart-surf" data-line="surf"></div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-month">€0</div>
@@ -3544,6 +3583,105 @@ function finStatBox(sumId, avgId, budgetDevId, total, count, budget){
   var avgEl=document.getElementById(avgId); if(avgEl) avgEl.textContent=count>0?('avg '+fmtEur(total/count)+'/day'):'';
   var bEl=document.getElementById(budgetDevId); if(bEl) bEl.innerHTML=finBudgetDeviation(total,budget);
 }
+// ── Year charts: budget vs actual per month (one per finance line) ──
+var FIN_CHART_LABELS = { day:'Total of the day', t51:'T 51', surf:'Surf' };
+function finNiceMax(v) {
+  if (!(v > 0)) return 1000;
+  var p = Math.pow(10, Math.floor(Math.log10(v)));
+  var m = v / p;
+  var step = m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10;
+  return step * p;
+}
+function fmtEurShort(v) {
+  if (Math.abs(v) >= 1000) { var k = v / 1000; return '€' + (k >= 100 ? Math.round(k) : (Math.round(k * 10) / 10)) + 'k'; }
+  return '€' + Math.round(v);
+}
+function renderFinYearCharts(db, yearStr, curMon) {
+  var actual = { day:[], t51:[], surf:[] };
+  MONTH_KEYS.forEach(function(){ actual.day.push(0); actual.t51.push(0); actual.surf.push(0); });
+  var hasData = { day:[], t51:[], surf:[] };
+  MONTH_KEYS.forEach(function(){ hasData.day.push(false); hasData.t51.push(false); hasData.surf.push(false); });
+  (db.finEntries||[]).forEach(function(e){
+    if (!e.date || e.date.slice(0,4) !== yearStr) return;
+    var mi = parseInt(e.date.slice(5,7), 10) - 1; if (mi < 0 || mi > 11) return;
+    actual.day[mi] += (e.totalDay||0); actual.t51[mi] += (e.t51||0); actual.surf[mi] += (e.surf||0);
+    hasData.day[mi] = hasData.t51[mi] = hasData.surf[mi] = true;
+  });
+  var bud = db.budgets || { day:{}, t51:{}, surf:{} };
+  ['day','t51','surf'].forEach(function(line){
+    var el = document.getElementById('fin-chart-' + line); if (!el) return;
+    var budget = MONTH_KEYS.map(function(m){ return (bud[line] && bud[line][m]) || 0; });
+    el._finChart = { line: line, year: yearStr, curMon: curMon, actual: actual[line], budget: budget, hasData: hasData[line] };
+    drawFinYearChart(el);
+  });
+}
+function drawFinYearChart(el) {
+  var d = el._finChart; if (!d) return;
+  var W = Math.max(280, Math.floor(el.clientWidth || 0)); if (!el.clientWidth) W = 600;
+  var H = 150, padL = 40, padR = 6, padT = 16, padB = 22;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+  var maxV = 0; d.actual.forEach(function(v){ if (v > maxV) maxV = v; }); d.budget.forEach(function(v){ if (v > maxV) maxV = v; });
+  var yMax = finNiceMax(maxV * 1.05);
+  var y = function(v){ return padT + plotH - (v / yMax) * plotH; };
+  var band = plotW / 12, barW = Math.min(24, Math.round(band * 0.55));
+  var curIdx = parseInt(d.curMon, 10) - 1;
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="' + FIN_CHART_LABELS[d.line] + ' ' + d.year + ', budget versus actual per month">';
+  // grid: 0, half, max
+  [0, 0.5, 1].forEach(function(f){
+    var gy = y(yMax * f);
+    svg += '<line class="' + (f === 0 ? 'fc-axis' : 'fc-grid') + '" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + gy + '" y2="' + gy + '"/>';
+    svg += '<text class="fc-tick" x="' + (padL - 6) + '" y="' + (gy + 3) + '" text-anchor="end">' + fmtEurShort(yMax * f) + '</text>';
+  });
+  for (var i = 0; i < 12; i++) {
+    var cx = padL + band * i + band / 2, a = d.actual[i], b = d.budget[i];
+    var isNow = i === curIdx;
+    var diff = b > 0 ? Math.round((a - b) / b * 100) : null;
+    var tip = MONTH_NAMES[i] + ' ' + d.year + ': actual ' + fmtEur(a) + (b > 0 ? ' · budget ' + fmtEur(b) + ' (' + (diff >= 0 ? '+' : '') + diff + '%)' : ' · no budget');
+    svg += '<g class="fc-month-g" tabindex="0" data-i="' + i + '"><title>' + tip + '</title>';
+    svg += '<rect class="fc-hit" x="' + (padL + band * i) + '" y="' + padT + '" width="' + band + '" height="' + plotH + '"/>';
+    if (d.hasData[i] && a > 0) {
+      var top = y(a), x0 = cx - barW / 2, r = Math.min(4, barW / 2), h = padT + plotH - top;
+      if (h > r) svg += '<path class="fc-bar' + (isNow ? ' now' : '') + '" d="M' + x0 + ' ' + (padT + plotH) + ' V' + (top + r) + ' a' + r + ' ' + r + ' 0 0 1 ' + r + ' -' + r + ' h' + (barW - 2 * r) + ' a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + ' V' + (padT + plotH) + ' Z"/>';
+      else svg += '<rect class="fc-bar' + (isNow ? ' now' : '') + '" x="' + x0 + '" y="' + top + '" width="' + barW + '" height="' + h + '"/>';
+      if (isNow) { var labelY = Math.min(top, b > 0 ? y(b) : top) - 6; svg += '<text class="fc-label" x="' + cx + '" y="' + labelY + '" text-anchor="middle">' + fmtEurShort(a) + '</text>'; }
+    }
+    if (b > 0) { var by = y(b); svg += '<line class="fc-budget" x1="' + (cx - barW / 2 - 3) + '" x2="' + (cx + barW / 2 + 3) + '" y1="' + by + '" y2="' + by + '"/>'; }
+    svg += '<text class="fc-month' + (isNow ? ' now' : '') + '" x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle">' + (band >= 40 ? MONTH_NAMES[i] : MONTH_NAMES[i].charAt(0)) + '</text>';
+    svg += '</g>';
+  }
+  svg += '</svg>';
+  var rows = ''; var totA = 0, totB = 0;
+  for (var j = 0; j < 12; j++) {
+    var a2 = d.actual[j], b2 = d.budget[j]; totA += a2; totB += b2;
+    var df = (d.hasData[j] && b2 > 0) ? a2 - b2 : null;
+    rows += '<tr' + (j === curIdx ? ' class="now"' : '') + '><td>' + MONTH_NAMES[j] + '</td><td>' + (d.hasData[j] ? fmtEur(a2) : '—') + '</td><td>' + (b2 > 0 ? fmtEur(b2) : '—') + '</td><td class="' + (df === null ? '' : df < 0 ? 'neg' : 'pos') + '">' + (df === null ? '—' : (df >= 0 ? '+' : '−') + fmtEur(Math.abs(df))) + '</td></tr>';
+  }
+  rows += '<tr><td><b>Year</b></td><td><b>' + fmtEur(totA) + '</b></td><td><b>' + fmtEur(totB) + '</b></td><td class="' + (totA - totB < 0 ? 'neg' : 'pos') + '"><b>' + (totA - totB >= 0 ? '+' : '−') + fmtEur(Math.abs(totA - totB)) + '</b></td></tr>';
+  el.innerHTML = '<div class="fin-chart-head"><div class="fin-chart-title">' + d.year + ' · budget vs actual</div>'
+    + '<div class="fin-chart-legend"><span><i class="sw-bar"></i>Actual</span><span><i class="sw-line"></i>Budget</span></div></div>'
+    + '<div class="fc-wrap">' + svg + '<div class="fc-tip" aria-hidden="true"></div></div>'
+    + '<details><summary><i class="fas fa-table"></i> Monthly table</summary><table><thead><tr><th>Month</th><th>Actual</th><th>Budget</th><th>Diff</th></tr></thead><tbody>' + rows + '</tbody></table></details>';
+  // hover / focus tooltip (title carries the same text for assistive tech)
+  var tipEl = el.querySelector('.fc-tip'), wrap = el.querySelector('.fc-wrap');
+  el.querySelectorAll('.fc-month-g').forEach(function(g){
+    var show = function(){
+      var i = parseInt(g.getAttribute('data-i'), 10), a = d.actual[i], b = d.budget[i];
+      var pct = b > 0 ? Math.round((a - b) / b * 100) : null;
+      tipEl.innerHTML = '<b>' + MONTH_NAMES[i] + '</b> actual ' + fmtEur(a) + (b > 0 ? '<br>budget ' + fmtEur(b) + ' · ' + (pct >= 0 ? '+' : '') + pct + '%' : '<br>no budget set');
+      var r = g.querySelector('.fc-hit').getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+      var lx = r.left - wr.left + r.width / 2; lx = Math.max(70, Math.min(wr.width - 70, lx));
+      tipEl.style.left = lx + 'px'; tipEl.style.top = (padT - 4) + 'px'; tipEl.style.opacity = '1';
+    };
+    var hide = function(){ tipEl.style.opacity = '0'; };
+    g.addEventListener('mouseenter', show); g.addEventListener('mouseleave', hide);
+    g.addEventListener('focus', show); g.addEventListener('blur', hide);
+    g.addEventListener('touchstart', function(){ show(); setTimeout(hide, 1800); }, { passive: true });
+  });
+}
+if (typeof ResizeObserver !== 'undefined') {
+  var finChartRO = new ResizeObserver(function(entries){ entries.forEach(function(en){ if (en.contentRect.width > 0 && en.target._finChart && Math.abs((en.target._finChartW||0) - en.contentRect.width) > 8) { en.target._finChartW = en.contentRect.width; drawFinYearChart(en.target); } }); });
+  ['day','t51','surf'].forEach(function(l){ var el = document.getElementById('fin-chart-' + l); if (el) finChartRO.observe(el); });
+}
 function renderFinRecords() {
   var db = getDB();
   var allEntries = (db.finEntries||[]).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
@@ -3591,6 +3729,7 @@ function renderFinRecords() {
     }
   });
 
+  renderFinYearCharts(db, yearStr, curMon);
   finStatBox('fin-stat-day-month','fin-stat-day-month-avg','fin-stat-day-month-budget', dayMonth, cntMonth, budgetDay);
   finStatBox('fin-stat-day-year', 'fin-stat-day-year-avg', 'fin-stat-day-year-budget',  dayYear,  cntYear,  budgetDayYear);
   finStatBox('fin-stat-day-range','fin-stat-day-range-avg','fin-stat-day-range-budget', dayRange, cntRange, 0);
