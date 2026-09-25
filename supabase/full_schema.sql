@@ -108,6 +108,8 @@ CREATE TABLE IF NOT EXISTS shifts (
 );
 ALTER TABLE shifts ADD COLUMN IF NOT EXISTS day_off BOOLEAN DEFAULT false;
 ALTER TABLE shifts ADD COLUMN IF NOT EXISTS zone TEXT DEFAULT '';
+-- one shift per person per day (see supabase/migrations/2026-09-25-b-one-shift-per-day.sql)
+CREATE UNIQUE INDEX IF NOT EXISTS shifts_one_per_person_per_day ON shifts (employee, week_start, day);
 
 CREATE TABLE IF NOT EXISTS bb_menu (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
