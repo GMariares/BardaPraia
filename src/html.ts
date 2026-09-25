@@ -3158,8 +3158,15 @@ function addEmployee() {
   }).catch(function(){ toast('Saved locally (sync later)','error'); });
 }
 function removeEmployee(name) {
-  if (!confirm('Remove '+name+'?')) return;
-  var db=getDB(); db.employees=db.employees.filter(function(e){return e!==name;}); saveDB(db);
+  if (!confirm('Remove '+name+' from the team?')) return;
+  var db=getDB(); db.employees=db.employees.filter(function(e){return e!==name;});
+  var fromWs=toDateStr(getWeekStart(0));
+  var future=db.shifts.filter(function(s){return s.employee===name&&s.weekStart>=fromWs;});
+  if (future.length>0 && confirm('Also remove '+name+"'s "+future.length+' shifts from this week onwards? Earlier weeks are kept for hours and tips.')) {
+    db.shifts=db.shifts.filter(function(s){return !(s.employee===name&&s.weekStart>=fromWs);});
+    sbFetch('DELETE','shifts',null,'employee=eq.'+encodeURIComponent(name)+'&week_start=gte.'+fromWs).catch(function(){ toast('Shifts removed locally only','error'); });
+  }
+  saveDB(db); if (typeof renderShifts==='function') renderShifts();
   renderShiftsTeamTab(); updateAllDropdowns();
   sbFetch('DELETE','employees',null,'name=eq.'+encodeURIComponent(name)).then(function(){
     toast('Removed.');
@@ -5351,28 +5358,47 @@ function openAddShiftModal(preDay){
   });
   openModal('modal-add-shift');
 }
+// A shift slot is one person on one day of one week. Server writes always clear the whole
+// slot first and only then insert, so a slow or failed request can never leave two rows.
+function shiftSlotFilter(emp, weekStart, day) {
+  return 'employee=eq.'+encodeURIComponent(emp)+'&week_start=eq.'+weekStart+'&day=eq.'+encodeURIComponent(day);
+}
+// Bars carry the shift id; when the server id replaces the temporary one, redraw once so taps keep working
+var shiftsRerenderTimer=null;
+function rerenderShiftsSoon() {
+  clearTimeout(shiftsRerenderTimer);
+  shiftsRerenderTimer=setTimeout(function(){ var sec=document.getElementById('section-shifts'); if(sec&&sec.classList.contains('active')) renderShifts(); }, 120);
+}
+function shiftToRow(s) {
+  return {employee:s.employee,day:s.day,start_time:s.start,end_time:s.end,role:s.role||'',zone:s.zone||'',day_off:!!s.dayOff,week_start:s.weekStart};
+}
+var repeatBusy=false;
 function repeatWeek(){
+  if(repeatBusy){ toast('Still copying the previous week, one moment','error'); return; }
   var db=getDB();
   var curWs=toDateStr(getWeekStart(shiftsWeekOffset));
   var prevWs=toDateStr(getWeekStart(shiftsWeekOffset-1));
   var prevShifts=db.shifts.filter(function(s){return s.weekStart===prevWs;});
   if(prevShifts.length===0){toast('No shifts found in previous week','error');return;}
-  // Remove existing shifts for current week first
-  var toDelete=db.shifts.filter(function(s){return s.weekStart===curWs;});
-  toDelete.forEach(function(s){ sbFetch('DELETE','shifts',null,'id=eq.'+s.id).catch(function(){}); });
-  db.shifts=db.shifts.filter(function(s){return s.weekStart!==curWs;});
-  // Copy prev week shifts to current week
-  var saved=0;
+  // Only people still on the Team are copied; one row per person per day even if the source had repeats
+  var team=db.employees||[]; var seen={}; var copies=[];
   prevShifts.forEach(function(s){
-    var newId=uid();
-    var ns={id:newId,employee:s.employee,day:s.day,start:s.start,end:s.end,role:s.role||'',zone:s.zone||'',dayOff:!!s.dayOff,weekStart:curWs,createdAt:new Date().toISOString()};
-    db.shifts.push(ns);
-    sbFetch('POST','shifts',{employee:ns.employee,day:ns.day,start_time:ns.start,end_time:ns.end,role:ns.role,zone:ns.zone,day_off:ns.dayOff,week_start:curWs})
-      .then(function(rows2){ if(rows2&&rows2[0]){var si=db.shifts.findIndex(function(x){return x.id===newId;}); if(si!==-1){db.shifts[si].id=rows2[0].id; saveDB(db);}} })
-      .catch(function(){});
-    saved++;
+    if(team.indexOf(s.employee)===-1) return;
+    var k=s.employee+'|'+s.day; if(seen[k]) return; seen[k]=true;
+    copies.push({id:uid(),employee:s.employee,day:s.day,start:s.start,end:s.end,role:s.role||'',zone:s.zone||'',dayOff:!!s.dayOff,weekStart:curWs,createdAt:new Date().toISOString()});
   });
-  saveDB(db); renderShifts(); toast(saved+' shifts copied from previous week!','gold');
+  if(copies.length===0){toast('Nobody on the Team has shifts in the previous week','error');return;}
+  db.shifts=db.shifts.filter(function(s){return s.weekStart!==curWs;}).concat(copies);
+  saveDB(db); renderShifts();
+  repeatBusy=true;
+  sbFetch('DELETE','shifts',null,'week_start=eq.'+curWs)
+    .then(function(){ return sbFetch('POST','shifts',copies.map(shiftToRow)); })
+    .then(function(rows2){
+      var d2=getDB();
+      (rows2||[]).forEach(function(r){ var si=d2.shifts.findIndex(function(x){return x.weekStart===curWs&&x.employee===r.employee&&x.day===r.day;}); if(si!==-1) d2.shifts[si].id=r.id; });
+      saveDB(d2); repeatBusy=false; rerenderShiftsSoon(); toast(copies.length+' shifts copied from previous week!','gold');
+    })
+    .catch(function(){ repeatBusy=false; toast('Copy not saved online. Check the connection and try again.','error'); });
 }
 function saveShift(){
   var emp=document.getElementById('shift-employee').value; if(!emp){toast('Select employee!','error');return;}
@@ -5389,14 +5415,16 @@ function saveShift(){
     var zoneEl=row.querySelector('.shift-day-zone');
     var zone=zoneEl?zoneEl.value:'';
     if(!isDayOff&&(!start||!end)) return;
-    var existing=db.shifts.filter(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
-    existing.forEach(function(s){ sbFetch('DELETE','shifts',null,'id=eq.'+s.id).catch(function(){}); });
     db.shifts=db.shifts.filter(function(s){return !(s.employee===emp&&s.day===day&&s.weekStart===ws);});
     var newId=uid();
-    db.shifts.push({id:newId,employee:emp,day:day,start:start,end:end,role:role,zone:zone,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()});
-    sbFetch('POST','shifts',{employee:emp,day:day,start_time:start,end_time:end,role:role,zone:zone,day_off:isDayOff,week_start:ws}).then(function(rows2){
-      if(rows2&&rows2[0]){var si=db.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1){db.shifts[si].id=rows2[0].id; saveDB(db);}}
-    }).catch(function(){});
+    var ns={id:newId,employee:emp,day:day,start:start,end:end,role:role,zone:zone,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()};
+    db.shifts.push(ns);
+    sbFetch('DELETE','shifts',null,shiftSlotFilter(emp,ws,day))
+      .then(function(){ return sbFetch('POST','shifts',shiftToRow(ns)); })
+      .then(function(rows2){
+        if(rows2&&rows2[0]){var d2=getDB(); var si=d2.shifts.findIndex(function(s){return s.id===newId;}); if(si!==-1){d2.shifts[si].id=rows2[0].id; saveDB(d2); rerenderShiftsSoon();}}
+      })
+      .catch(function(){ toast(emp+' '+day+' not saved online. Check the connection and save again.','error'); });
     saved++;
   });
   saveDB(db); closeModal('modal-add-shift'); renderShifts();
@@ -5432,9 +5460,10 @@ function openShiftActionSheet(shiftId, dateStr, wsStr) {
 }
 function deleteShift(id){
   if(!confirm('Remove shift?')) return;
-  var db=getDB(); db.shifts=db.shifts.filter(function(s){return s.id!==id;}); saveDB(db);
+  var db=getDB(); var s=db.shifts.find(function(x){return x.id===id;}); if(!s) return;
+  db.shifts=db.shifts.filter(function(x){return !(x.employee===s.employee&&x.day===s.day&&x.weekStart===s.weekStart);}); saveDB(db);
   renderShifts(); toast('Removing...');
-  sbFetch('DELETE','shifts',null,'id=eq.'+id).then(function(){ toast('Shift removed.'); }).catch(function(){ toast('Removed locally','error'); });
+  sbFetch('DELETE','shifts',null,shiftSlotFilter(s.employee,s.weekStart,s.day)).then(function(){ toast('Shift removed.'); }).catch(function(){ toast('Removed locally','error'); });
 }
 function generateTips(){
   var raw=(document.getElementById('shifts-tips-input').value||'').trim().replace(',','.');
