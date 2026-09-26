@@ -1,4 +1,4 @@
-export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
+export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -657,6 +657,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .wk-num { font-weight:800; font-variant-numeric:tabular-nums; color:var(--slate-900); }
     .wk-off { color:var(--slate-500); font-weight:600; }
     .week-sheet-meta { display:none; }
+    #update-bar { position:fixed; left:12px; right:12px; bottom:calc(84px + env(safe-area-inset-bottom, 0px)); z-index:3000; background:var(--slate-900); color:#fff; border-radius:12px; padding:10px 12px 10px 16px; display:flex; align-items:center; gap:12px; font-size:14px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.25); }
+    #update-bar span { flex:1; }
+    @media (min-width:900px) { #update-bar { left:auto; right:24px; bottom:24px; max-width:420px; } }
     /* ── Notifications: test help, iPhone steps, Users status ── */
     .notif-help { font-size:12.5px; color:var(--slate-600); background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-top:10px; line-height:1.45; }
     .notif-help.is-ok { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
@@ -2164,6 +2167,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 // ================================================
 var SB_URL = '${cfg.sbUrl}';
 var SB_KEY = '${cfg.sbKey}';
+var APP_BUILD = '${cfg.build || ''}';
 var sb = null;
 var sbReady = false;
 
@@ -2793,6 +2797,28 @@ function appLogout() {
 
 // ── Push Notifications (Web Push via Service Worker) ───────────
 var swRegistration = null;
+
+// ── Stay on the latest version ──────────────────────────────────
+// Home-screen apps resume the old page from memory, so check the build when the app comes back
+// to the foreground: reload straight away, or offer it when someone is in the middle of a form.
+var lastVersionCheck = 0;
+function checkForUpdate() {
+  if (!APP_BUILD || Date.now() - lastVersionCheck < 60000) return;
+  lastVersionCheck = Date.now();
+  fetch('/api/version', { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(d) {
+    if (!d || !d.build || d.build === APP_BUILD) return;
+    var ae = document.activeElement;
+    var busy = document.querySelector('.modal-overlay.open') || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
+    if (!busy) { location.reload(); return; }
+    if (document.getElementById('update-bar')) return;
+    var bar = document.createElement('div'); bar.id = 'update-bar';
+    bar.innerHTML = '<span>A new version of the app is ready.</span><button class="btn btn-sm btn-primary" id="btn-update-reload">Reload</button>';
+    document.body.appendChild(bar);
+  }).catch(function(){});
+}
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') checkForUpdate(); });
+window.addEventListener('focus', checkForUpdate);
+setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=requests/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
@@ -2857,7 +2883,7 @@ function updateNotifStatusUI() {
   if (!swRegistration) { drawNotifState('off'); return; }
   swRegistration.pushManager.getSubscription().then(function(sub) {
     drawNotifState(sub ? 'active' : 'off');
-  });
+  }).catch(function(){ drawNotifState('off'); });
 }
 // Where to look when a notification does not show, for this kind of device
 function notifSettingsHint() {
@@ -7376,6 +7402,7 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-budgets')) { saveBudgets(); return; }
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
   if (t.closest('[data-test-notif]')) { sendTestNotification(); return; }
+  if (t.closest('#btn-update-reload')) { location.reload(); return; }
   if (t.closest('#btn-enable-notif') || t.closest('#btn-enable-notif-2')) {
     if (notifState === 'ios-install') { openModal('modal-ios-install'); return; }
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {

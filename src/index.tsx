@@ -12,6 +12,10 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+// Set at build time (vite.config.ts); changes with every deploy
+declare const __BUILD_ID__: string
+const BUILD_ID = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'
+
 app.use('*', cors())
 
 // ── Configuration ─────────────────────────────────────────────
@@ -47,7 +51,15 @@ app.get('/favicon.ico', (c) => c.redirect('/brand/favicon-32.png', 301))
 // ── SPA ───────────────────────────────────────────────────────
 app.get('/', (c) => {
   const { SB_URL, SB_KEY } = getConfig(c.env)
-  return c.html(getAppHTML({ sbUrl: SB_URL, sbKey: SB_KEY }))
+  // never reuse a stored copy of the page: a home-screen app must pick up new versions
+  c.header('Cache-Control', 'no-cache')
+  return c.html(getAppHTML({ sbUrl: SB_URL, sbKey: SB_KEY, build: BUILD_ID }))
+})
+
+// ── Current build (the page reloads itself when this differs from its own) ──
+app.get('/api/version', (c) => {
+  c.header('Cache-Control', 'no-store')
+  return c.json({ build: BUILD_ID })
 })
 
 // ── VAPID public key (frontend needs it to subscribe) ─────────
