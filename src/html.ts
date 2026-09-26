@@ -376,6 +376,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .table-chip:active { transform:scale(.96); }
     .table-chip.selected { background:var(--slate-700); color:white; border-color:var(--slate-700); }
     .table-chip.occupied { background:var(--red-50); color:var(--red); border-color:var(--red-200); cursor:not-allowed; }
+    .table-chip small { display:block; font-size:10px; font-weight:600; margin-top:1px; opacity:.9; }
+    .table-chip.occupied.selected { background:var(--red); color:#fff; border-color:var(--red); }
+    .res-table-hint { font-size:12px; color:var(--slate-500); margin-top:8px; line-height:1.4; }
+    .res-table-hint b { color:var(--red); }
 
     /* ── TASK ITEMS ── */
     .task-item { background:var(--panel); border-radius:var(--radius); padding:14px 16px; margin-bottom:8px; border:var(--rule); }
@@ -1850,14 +1854,18 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div><label class="label">Guest Name *</label><input type="text" class="input-field" id="res-guest-name" placeholder="Full name" /></div>
       <div><label class="label">Phone</label><input type="tel" class="input-field" id="res-phone" placeholder="+351..." /></div>
     </div>
-    <div class="form-grid-3" style="margin-bottom:14px">
-      <div><label class="label">Date *</label><input type="date" class="input-field" id="res-date" /></div>
-      <div><label class="label">Time *</label><input type="time" class="input-field" id="res-time" /></div>
-      <div><label class="label">Guests</label><input type="number" class="input-field" id="res-guests" min="1" max="200" value="2" /></div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div style="min-width:0"><label class="label" for="res-date">Date *</label><input type="date" class="input-field" id="res-date" style="min-width:0" /></div>
+      <div style="min-width:0"><label class="label" for="res-guests">Guests</label><input type="number" class="input-field" id="res-guests" min="1" max="200" value="2" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div style="min-width:0"><label class="label" for="res-time">From *</label><input type="time" class="input-field" id="res-time" style="min-width:0" /></div>
+      <div style="min-width:0"><label class="label" for="res-end">Until <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></label><input type="time" class="input-field" id="res-end" style="min-width:0" /></div>
     </div>
     <div class="form-row">
       <label class="label">Tables * (tap to select multiple)</label>
       <div class="table-grid" id="res-table-grid" style="margin-top:6px"></div>
+      <div class="res-table-hint" id="res-table-hint"></div>
     </div>
     <div class="form-row"><label class="label">Notes</label><input type="text" class="input-field" id="res-notes" placeholder="Allergies, occasion..." /></div>
     <div style="display:flex;gap:10px">
@@ -2539,9 +2547,10 @@ function syncFromSupabase() {
     sbFetch('GET', 'reservations', null, 'order=date.asc,time.asc').then(function(rows) {
       if (rows) db.reservations = rows.map(function(r){ return {
         id: r.id, guestName: r.guest_name, phone: r.phone||'', date: r.date,
-        time: r.time ? r.time.slice(0,5) : '', guests: r.guests,
+        time: r.time ? r.time.slice(0,5) : '', endTime: r.end_time ? r.end_time.slice(0,5) : '', guests: r.guests,
         tables: r.tables||[], notes: r.notes||'', status: r.status, createdAt: r.created_at
       }; });
+      if (rows && rows.length) sbCols.resEnd = ('end_time' in rows[0]);
     }).catch(function(){}),   // silent fail
     sbFetch('GET', 'tasks', null, 'order=created_at.desc').catch(function(){ return null; }).then(function(rows) {
       if (rows) db.tasks = rows.map(function(r){
@@ -2825,10 +2834,15 @@ setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
+  if (m[1] === 'reservations') {
+    var rd = /date=(\\d{4}-\\d{2}-\\d{2})/.exec(url);
+    if (rd) { calendarWeekStart = getMonday(new Date(rd[1] + 'T12:00:00')); selectedCalendarDay = rd[1]; }
+    showSection('reservations'); return;
+  }
   if (m[1] === 'requests') { showSection('shifts'); switchShiftsTab('requests'); return; }
   var wk = /week=(\\d{4}-\\d{2}-\\d{2})/.exec(url);
   if (wk) shiftsWeekOffset = Math.round((new Date(wk[1] + 'T00:00:00') - getWeekStart(0)) / (7 * 864e5));
@@ -3184,7 +3198,8 @@ function refreshSection(name) {
     ];
     Promise.all(fetches).then(function(res) {
       var db = getDB();
-      if (res[0]) db.reservations = res[0].map(function(x){ return {id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at}; });
+      if (res[0] && res[0].length) sbCols.resEnd = ('end_time' in res[0][0]);
+      if (res[0]) db.reservations = res[0].map(function(x){ return {id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',endTime:x.end_time?x.end_time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at}; });
       if (res[1]) db.tasks = res[1].map(function(x){ var a=x.assigned_to||[]; if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[];}} if(!Array.isArray(a))a=[]; return {id:x.id,title:x.title,description:x.description||'',category:x.category,priority:x.priority,status:x.status,assignedTo:a,deadline:x.deadline||'',doneAt:x.done_at||'',createdAt:x.created_at,recurrence:x.recurrence||''}; });
       if (res[2]) db.inventory = res[2].map(function(x){ return {id:x.id,name:x.name,category:x.category,unit:x.unit||'',qtyBar:x.qty_bar,qtyStorage:x.qty_storage,minimum:x.minimum,lastEmployee:x.last_employee||'',supplierId:x.supplier_id||'',createdAt:x.created_at,updatedAt:x.updated_at}; });
       if (res[3]) db.orders = res[3].map(function(x){ return {id:x.id,date:x.date||x.created_at,items:Array.isArray(x.items)?x.items:[],status:x.status,supplierId:x.supplier_id||'',amount:parseFloat(x.amount)||0,createdAt:x.created_at}; });
@@ -3210,7 +3225,8 @@ function refreshSection(name) {
     sbFetch('GET','reservations',null,'order=date.asc,time.asc').then(function(rows) {
       if (!rows) return;
       var db = getDB();
-      db.reservations = rows.map(function(x){ return {id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at}; });
+      sbCols.resEnd = rows.length ? ('end_time' in rows[0]) : sbCols.resEnd;
+      db.reservations = rows.map(function(x){ return {id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',endTime:x.end_time?x.end_time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at}; });
       saveDB(db);
       if (currentSection === name) { renderCalendar(); renderAllReservations(); }
     }).catch(function(){});
@@ -3701,17 +3717,48 @@ function removeTableNum(val) {
   renderSettings(); toast('Table removed.');
   saveTablesToSb(db.tables);
 }
-function renderTableGrid(gridId, selectedArr) {
+function renderTableGrid(gridId, selectedArr, busy) {
   var tables = getTables();
   var grid = document.getElementById(gridId); if (!grid) return;
   grid.innerHTML = '';
+  busy = busy || {};
   tables.forEach(function(t) {
-    var chip = document.createElement('div');
-    chip.className = 'table-chip' + (selectedArr.indexOf(t)!==-1 ? ' selected' : '');
+    var chip = document.createElement('div'), b = busy[t];
+    chip.className = 'table-chip' + (selectedArr.indexOf(t)!==-1 ? ' selected' : '') + (b ? ' occupied' : '');
     chip.textContent = t;
+    if (b) { var sm = document.createElement('small'); sm.textContent = b.label; chip.appendChild(sm); chip.title = 'Booked ' + b.label + ' · ' + b.guest; }
     chip.dataset.tableVal = t;
     grid.appendChild(chip);
   });
+}
+// ── Table availability for reservations ─────────────────────────
+var RES_DEFAULT_MINUTES = 120;   // a reservation without an end time holds its tables this long
+function resWindow(r) {
+  var st = timeToMins(r.time), en = r.endTime ? timeToMins(r.endTime) : st + RES_DEFAULT_MINUTES;
+  if (r.endTime && en <= st) en += 24 * 60;   // ends after midnight
+  return [st, en];
+}
+function resLabel(r) { var w = resWindow(r); var f = function(m){ m = m % (24*60); return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0'); }; return f(w[0]) + '–' + f(w[1]); }
+// tables taken by other reservations overlapping [date, from, until]
+function busyTables(date, time, endTime, exceptId) {
+  var out = {}; if (!date || !time) return out;
+  var me = resWindow({ time:time, endTime:endTime });
+  (getDB().reservations || []).forEach(function(r){
+    if (r.id === exceptId || r.date !== date || r.status === 'no-show' || r.status === 'cancelled') return;
+    var w = resWindow(r); if (!(me[0] < w[1] && w[0] < me[1])) return;
+    (Array.isArray(r.tables) ? r.tables : (r.table ? [r.table] : [])).forEach(function(t){ if (!out[t]) out[t] = { label: resLabel(r), guest: r.guestName }; });
+  });
+  return out;
+}
+function refreshResTableGrid() {
+  var date = document.getElementById('res-date').value, time = document.getElementById('res-time').value, end = document.getElementById('res-end').value;
+  var busy = busyTables(date, time, end, document.getElementById('res-edit-id').value);
+  renderTableGrid('res-table-grid', selectedTables, busy);
+  var clash = selectedTables.filter(function(t){ return busy[t]; });
+  var hint = document.getElementById('res-table-hint');
+  if (hint) hint.innerHTML = (clash.length ? '<b>' + esc(clash.join(', ')) + ' ' + (clash.length === 1 ? 'is' : 'are') + ' already booked then.</b> ' : '')
+    + (Object.keys(busy).length ? 'Red tables are booked at that time. ' : '')
+    + (end ? '' : 'Without an end time a table is held for ' + (RES_DEFAULT_MINUTES / 60) + ' hours.');
 }
 
 // ================================================
@@ -4913,7 +4960,7 @@ function renderDayReservations(dateStr){
   el.innerHTML=res.map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="res-item '+(r.status==='no-show'?'no-show':r.status==='confirmed'?'confirmed':'')+'" data-open-res-detail="'+esc(r.id)+'">'
-      +'<div class="res-item-top"><div><span class="res-time">'+esc(r.time)+'</span><span class="res-name">'+esc(r.guestName)+'</span></div>'
+      +'<div class="res-item-top"><div><span class="res-time">'+esc(r.time+(r.endTime?'–'+r.endTime:''))+'</span><span class="res-name">'+esc(r.guestName)+'</span></div>'
       +'<span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>'
       +'<div class="res-meta"><span><i class="fas fa-users" style="margin-right:3px"></i>'+r.guests+'</span><span><i class="fas fa-chair" style="margin-right:3px"></i>'+esc(tables)+'</span>'+(r.phone?'<span><i class="fas fa-phone" style="margin-right:3px"></i>'+esc(r.phone)+'</span>':'')+'</div>'
     +'</div>';
@@ -4926,7 +4973,7 @@ function openResDetail(id){
     +'<div class="detail-cell"><div class="detail-cell-label">Guest</div><div class="detail-cell-val">'+esc(r.guestName)+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Status</div><div class="detail-cell-val"><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Date</div><div class="detail-cell-val">'+esc(r.date)+'</div></div>'
-    +'<div class="detail-cell"><div class="detail-cell-label">Time</div><div class="detail-cell-val">'+esc(r.time)+'</div></div>'
+    +'<div class="detail-cell"><div class="detail-cell-label">Time</div><div class="detail-cell-val">'+esc(r.time+(r.endTime?' – '+r.endTime:''))+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Guests</div><div class="detail-cell-val">'+r.guests+' people</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Tables</div><div class="detail-cell-val">'+esc(tables)+'</div></div>'
     +(r.phone?'<div class="detail-cell"><div class="detail-cell-label">Phone</div><div class="detail-cell-val">'+esc(r.phone)+'</div></div>':'')
@@ -4959,8 +5006,10 @@ function openAddReservationModal(){
   document.getElementById('res-phone').value='';
   document.getElementById('res-date').value=toDateStr(new Date());
   document.getElementById('res-time').value='12:00';
+  document.getElementById('res-end').value='';
   document.getElementById('res-guests').value='2';
   document.getElementById('res-notes').value='';
+  refreshResTableGrid();
   openModal('modal-add-reservation');
 }
 function openEditReservation(id){
@@ -4973,8 +5022,10 @@ function openEditReservation(id){
   document.getElementById('res-phone').value=r.phone||'';
   document.getElementById('res-date').value=r.date;
   document.getElementById('res-time').value=r.time;
+  document.getElementById('res-end').value=r.endTime||'';
   document.getElementById('res-guests').value=r.guests;
   document.getElementById('res-notes').value=r.notes||'';
+  refreshResTableGrid();
   openModal('modal-add-reservation');
 }
 function saveReservation(){
@@ -4983,11 +5034,18 @@ function saveReservation(){
   if(!date||!time){toast('Date and time required!','error');return;}
   if(selectedTables.length===0){toast('Select at least one table!','error');return;}
   var db=getDB(); var editId=document.getElementById('res-edit-id').value;
+  var endTime=document.getElementById('res-end').value;
+  if(endTime && endTime<=time && endTime>='06:00'){toast('The end time must be after the start','error');return;}
+  var busy=busyTables(date,time,endTime,editId), clash=selectedTables.filter(function(t){return busy[t];});
+  if(clash.length){ refreshResTableGrid(); toast(clash.map(function(t){return t+' is booked '+busy[t].label+' ('+busy[t].guest+')';}).join(' · '),'error'); return; }
+  var prevRes=editId?(db.reservations.find(function(r){return r.id===editId;})||{}):{};
+  var status=prevRes.status||'pending';
   var phone=document.getElementById('res-phone').value.trim();
   var guests=parseInt(document.getElementById('res-guests').value)||1;
   var notes=document.getElementById('res-notes').value.trim();
-  var res={guestName:guestName,phone:phone,date:date,time:time,guests:guests,tables:selectedTables.slice(),notes:notes,status:'pending'};
-  var sbRes={guest_name:guestName,phone:phone,date:date,time:time,guests:guests,tables:selectedTables.slice(),notes:notes,status:'pending'};
+  var res={guestName:guestName,phone:phone,date:date,time:time,endTime:endTime,guests:guests,tables:selectedTables.slice(),notes:notes,status:status};
+  var sbRes={guest_name:guestName,phone:phone,date:date,time:time,guests:guests,tables:selectedTables.slice(),notes:notes,status:status};
+  if(sbCols.resEnd) sbRes.end_time=endTime||null;   // column added by the reservations migration
   if(editId){
     var idx=db.reservations.findIndex(function(r){return r.id===editId;});
     if(idx!==-1) db.reservations[idx]=Object.assign({},db.reservations[idx],res);
@@ -5001,6 +5059,7 @@ function saveReservation(){
       if(rows&&rows[0]){var ri=db.reservations.findIndex(function(r){return r.id===newId;}); if(ri!==-1) db.reservations[ri].id=rows[0].id; saveDB(db);}
       toast('Reservation saved!');
     }).catch(function(){ toast('Saved locally','error'); });
+    notifyNewReservation(res);
   }
 }
 function deleteReservation(id){
@@ -5019,7 +5078,7 @@ function renderAllReservations(){
   el.innerHTML=res.map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="res-list-item" data-open-res-detail="'+esc(r.id)+'">'
-      +'<div class="res-date-box"><div class="rdb-d">'+esc(r.date.slice(5))+'</div><div class="rdb-t">'+esc(r.time)+'</div></div>'
+      +'<div class="res-date-box"><div class="rdb-d">'+esc(r.date.slice(5))+'</div><div class="rdb-t">'+esc(r.time)+'</div>'+(r.endTime?'<div class="rdb-t" style="opacity:.7">–'+esc(r.endTime)+'</div>':'')+'</div>'
       +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(r.guestName)+'</div>'
       +'<div style="font-size:12px;color:var(--ocean-400);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px"><span><i class="fas fa-users" style="margin-right:3px"></i>'+r.guests+'</span><span><i class="fas fa-chair" style="margin-right:3px"></i>'+esc(tables)+'</span></div></div>'
       +'<span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span>'
@@ -5268,7 +5327,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -6352,6 +6411,16 @@ function applyShiftRequest(q) {
   }).catch(function(){ toast('Could not update the schedule, so the request was not approved. Try again.', 'error'); refreshSection('shifts'); return false; });
 }
 
+// A reservation was booked: tell everyone (not the person who booked it); tapping opens that day
+function notifyNewReservation(r) {
+  var db = getDB(), me = currentUser ? currentUser.id : '';
+  var ids = (db.appUsers || []).filter(function(u){ return u.active !== false && u.id !== me; }).map(function(u){ return u.id; });
+  var d = new Date(r.date + 'T00:00:00');
+  var when = DAYS[(d.getDay() + 6) % 7].slice(0,3) + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()] + ', ' + r.time + (r.endTime ? '–' + r.endTime : '');
+  var tables = (r.tables || []).join(', ');
+  sendPush(ids, 'New reservation: ' + r.guestName, r.guests + (r.guests == 1 ? ' person' : ' people') + ' · ' + when + (tables ? ' · ' + tables : '') + (r.notes ? ' · ' + r.notes : ''), '/?open=reservations&date=' + r.date);
+}
+
 // ── Tell the team a week's shifts are ready ──────────────────────
 // Everyone active gets a push; people on the schedule see their own days in it.
 // Weeks the team was told about: shared in settings.week_notices (all managers' devices), with a per-device copy
@@ -7323,9 +7392,10 @@ document.addEventListener('click', function(e) {
   el = t.closest('.table-chip[data-table-val]');
   if (el) {
     var tv = el.dataset.tableVal;
+    if (el.classList.contains('occupied') && selectedTables.indexOf(tv) === -1) { toast(tv + ' is booked ' + (el.querySelector('small') ? el.querySelector('small').textContent : 'then'), 'error'); return; }
     var idx2 = selectedTables.indexOf(tv);
     if (idx2 === -1) selectedTables.push(tv); else selectedTables.splice(idx2,1);
-    el.classList.toggle('selected', selectedTables.indexOf(tv) !== -1);
+    if (el.closest('#res-table-grid')) refreshResTableGrid(); else el.classList.toggle('selected', selectedTables.indexOf(tv) !== -1);
     return;
   }
 
@@ -7553,6 +7623,7 @@ document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.name === 'req-kind') { reqKindChanged(); }
+  if (t.id === 'res-date' || t.id === 'res-time' || t.id === 'res-end') { refreshResTableGrid(); }
   if (t.id === 'req-colleague') { reqSwapHint(); }
   if (t.id === 'topbar-emp') { document.getElementById('drawer-user-name').textContent=t.value||'Staff'; }
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
