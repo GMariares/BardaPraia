@@ -954,6 +954,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="btn btn-secondary btn-sm" id="btn-shifts-next-week"><i class="fas fa-chevron-right"></i></button>
         <button class="btn btn-gold btn-sm" id="btn-add-shift" style="display:none"><i class="fas fa-plus"></i> Add</button>
         <button class="btn btn-secondary btn-sm" id="btn-repeat-week" style="display:none" title="Copy shifts from one week to another"><i class="fas fa-copy"></i> Repeat</button>
+        <button class="btn btn-secondary btn-sm" id="btn-notify-week" style="display:none" title="Tell the team this week's shifts are ready"><i class="fas fa-bullhorn"></i> <span id="notify-week-label">Notify team</span></button>
       </div>
     </div>
     <!-- Shifts tabs -->
@@ -2820,12 +2821,16 @@ document.addEventListener('visibilitychange', function(){ if (document.visibilit
 window.addEventListener('focus', checkForUpdate);
 setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
-var pendingDeepLink = /open=requests/.test(location.search) ? location.search : '';
+var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  if (!/open=requests/.test(url || '')) return;
+  var m = /open=(requests|tasks|shifts)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
-  showSection('shifts'); switchShiftsTab('requests');
+  if (m[1] === 'tasks') { showSection('tasks'); return; }
+  if (m[1] === 'requests') { showSection('shifts'); switchShiftsTab('requests'); return; }
+  var wk = /week=(\\d{4}-\\d{2}-\\d{2})/.exec(url);
+  if (wk) shiftsWeekOffset = Math.round((new Date(wk[1] + 'T00:00:00') - getWeekStart(0)) / (7 * 864e5));
+  currentShiftsTab = 'gantt'; showSection('shifts');
 }
 // Keep this device's push subscription on the server's current key and owned by whoever is logged in
 var pushChecked = '';
@@ -3014,22 +3019,14 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // Called after task is saved — sends push to assigned users via /api/push/send
-function sendTaskPush(taskTitle, assignedUserIds) {
+// A task was assigned: push to those people (not to whoever assigned it); tapping opens Tasks
+function sendTaskPush(taskTitle, assignedUserIds, deadline, priority) {
   if (!assignedUserIds || !assignedUserIds.length) return;
-  fetch('/api/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userIds: assignedUserIds,
-      title: 'New task: ' + taskTitle,
-      body: 'You have been assigned a new task.',
-      url: '/'
-    })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    console.log('[Push] Sent:', d);
-  }).catch(function(e){
-    console.warn('[Push] Send failed:', e.message);
-  });
+  var bits = [];
+  if (deadline) { var d = new Date(deadline + 'T00:00:00'); bits.push('Due ' + DAYS[(d.getDay() + 6) % 7].slice(0,3) + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()]); }
+  if (priority === 'high' || priority === 'urgent') bits.push(priority.charAt(0).toUpperCase() + priority.slice(1) + ' priority');
+  var by = currentUser ? 'From ' + currentUser.name : '';
+  sendPush(assignedUserIds, 'New task: ' + taskTitle, (bits.length ? bits.join(' · ') + '. ' : '') + by, '/?open=tasks');
 }
 
 // Register the service worker on page load (force update to clear stale SW)
@@ -5108,6 +5105,8 @@ function saveTask(){
   var dl=document.getElementById('task-deadline').value;
   var rec=document.getElementById('task-recurrence').value;
   var isNew=!editId;
+  var before=editId?(db.tasks.find(function(t){return t.id===editId;})||{}):{};
+  var newlyAssigned=asn.filter(function(id){ return taskAssignees(before).indexOf(id)===-1; });
   var task={title:title,description:desc,category:cat,priority:pri,assignedTo:asn,deadline:dl,recurrence:rec};
   var sbTask={title:title,description:desc,category:cat,priority:pri,assigned_to:JSON.stringify(asn),deadline:dl||null,recurrence:rec||null};
   if(editId){
@@ -5123,8 +5122,8 @@ function saveTask(){
       toast('Task created!');
     }).catch(function(){ toast('Saved locally','error'); });
   }
-  // Send Web Push to all assigned users (cross-device)
-  if(asn.length) sendTaskPush(title, asn);
+  // Push to the people this save assigns (not everyone again on every edit)
+  if(newlyAssigned.length) sendTaskPush(title, newlyAssigned, dl, pri);
 }
 
 function nextRecurDeadline(baseDate, recurrence){
@@ -5162,6 +5161,7 @@ function setTaskStatus(id,status){
         .then(function(rows){ if(rows&&rows[0]){var ti=db.tasks.findIndex(function(x){return x.id===newId;}); if(ti!==-1){db.tasks[ti].id=rows[0].id;saveDB(db);}} })
         .catch(function(){});
       toast('Next recurrence scheduled for '+nextDl+'!','gold');
+      sendTaskPush(newTask.title, asnArr, nextDl, newTask.priority);
     }
   }
 }
@@ -5415,6 +5415,12 @@ function renderShifts(){
   if (addBtn) addBtn.style.display = canShiftEdit ? 'flex' : 'none';
   var repBtn = document.getElementById('btn-repeat-week');
   if (repBtn) repBtn.style.display = canShiftEdit ? 'flex' : 'none';
+  var ntBtn = document.getElementById('btn-notify-week');
+  if (ntBtn) {
+    ntBtn.style.display = canShiftEdit ? 'flex' : 'none';
+    var sentAt = weekNotified()[toDateStr(ws)];
+    document.getElementById('notify-week-label').textContent = sentAt ? 'Notified ' + reqWhen(sentAt).split(', ')[0] : 'Notify team';
+  }
   // Team tab only for shift_mgr / admin
   var teamTabBtn = document.getElementById('shifts-tab-team-btn');
   if (teamTabBtn) teamTabBtn.style.display = canShiftEdit ? '' : 'none';
@@ -6342,6 +6348,42 @@ function applyShiftRequest(q) {
   }).catch(function(){ toast('Could not update the schedule, so the request was not approved. Try again.', 'error'); refreshSection('shifts'); return false; });
 }
 
+// ── Tell the team a week's shifts are ready ──────────────────────
+// Everyone active gets a push; people on the schedule see their own days in it.
+function weekNotified() { try { return JSON.parse(localStorage.getItem('bdp_week_notified') || '{}'); } catch (e) { return {}; } }
+function pushOne(userId, title, body, url) {
+  return fetch('/api/push/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userIds:[userId], title:title, body:body, url:url }) })
+    .then(function(r){ return r.json(); }).then(function(d){ return (d && d.sent) || 0; }).catch(function(){ return 0; });
+}
+function myWeekLine(db, emp, wsStr) {
+  return DAYS.map(function(d){
+    var s = shiftAt(db, emp, wsStr, d); if (!s) return '';
+    return d.slice(0,3) + ' ' + (s.dayOff ? 'off' : wkTime(s.start) + '–' + wkTime(s.end));
+  }).filter(Boolean).join(' · ');
+}
+function notifyWeekShifts(wsStr) {
+  var db = getDB(), me = currentUser ? currentUser.id : '';
+  var working = db.shifts.filter(function(s){ return s.weekStart === wsStr; });
+  if (!working.length) { toast('No shifts in ' + weekRangeLabel(wsStr) + ' yet', 'error'); return; }
+  var people = (db.appUsers || []).filter(function(u){ return u.active !== false && u.id !== me; });
+  var prev = weekNotified()[wsStr];
+  if (!confirm((prev ? 'The team was already told on ' + reqWhen(prev) + '. Send again? ' : '')
+    + 'Tell ' + people.length + ' people that the shifts for ' + weekRangeLabel(wsStr) + ' are ready? Everyone on the schedule sees their own days.')) return;
+  var url = '/?open=shifts&week=' + wsStr, range = weekRangeLabel(wsStr, true);
+  toast('Sending…');
+  Promise.all(people.map(function(u){
+    var emp = employeeForUser(u, db), line = emp ? myWeekLine(db, emp, wsStr) : '';
+    return line ? pushOne(u.id, 'Your shifts: ' + range, line, url)
+                : pushOne(u.id, 'Shifts are out: ' + range, 'The schedule for the week is ready. Tap to see it.', url);
+  })).then(function(counts){
+    var reached = counts.filter(function(n){ return n > 0; }).length;
+    var map = weekNotified(); map[wsStr] = new Date().toISOString();
+    try { localStorage.setItem('bdp_week_notified', JSON.stringify(map)); } catch (e) {}
+    if (currentSection === 'shifts') renderShifts();
+    toast('Sent to ' + reached + ' of ' + people.length + ' people' + (reached < people.length ? '. The others have not turned notifications on.' : ''), reached ? 'success' : 'error');
+  });
+}
+
 // ── Week one-pager: areas/sections × Monday–Sunday ─────────────
 function wkTime(t) { t = t || ''; return /:00$/.test(t) ? t.slice(0, t.length - 3).replace(/^0/, '') : t.replace(/^0/, ''); }
 function weekSheetHTML(db, wsStr) {
@@ -6526,6 +6568,7 @@ function repeatWeek() {
       (rows2||[]).forEach(function(r){ var si = d2.shifts.findIndex(function(x){ return x.weekStart === p.toWs && x.employee === r.employee && x.day === r.day; }); if (si !== -1) d2.shifts[si].id = r.id; });
       saveDB(d2); repeatBusy = false; rerenderShiftsSoon();
       toast('Copied ' + names.length + ' ' + (names.length === 1 ? 'person' : 'people') + ' to ' + weekRangeLabel(p.toWs) + (skip.length ? ' · skipped ' + skip.length : ''), 'gold');
+      setTimeout(function(){ notifyWeekShifts(p.toWs); }, 400);
     })
     .catch(function(){ repeatBusy = false; toast('Copy not saved online. Check the connection and try again.', 'error'); });
 }
@@ -7403,6 +7446,7 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
   if (t.closest('[data-test-notif]')) { sendTestNotification(); return; }
   if (t.closest('#btn-update-reload')) { location.reload(); return; }
+  if (t.closest('#btn-notify-week')) { notifyWeekShifts(toDateStr(getWeekStart(shiftsWeekOffset))); return; }
   if (t.closest('#btn-enable-notif') || t.closest('#btn-enable-notif-2')) {
     if (notifState === 'ios-install') { openModal('modal-ios-install'); return; }
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
