@@ -10,7 +10,7 @@ web
 
 - **Bar and floor staff** (about 15 people, e.g. waiters and bartenders) on their **phones during service**: check and adjust stock, see their shifts and tips, tick off tasks, look up reservations. Often one-handed, in a hurry, sometimes outdoors in bright light.
 - **Owner and managers** (a few people) on a **laptop**: finance close of day, weekly shift planning, orders to suppliers, user administration, settings. They also use the phone version when on the floor.
-- Roles in the app: `admin`, `finance`, `shift_mgr`, `employee`. One person can hold several. Admin sees everything; finance unlocks the Finance section (extra PIN); shift manager unlocks shift planning and tips; employee is the floor view.
+- Roles in the app: `admin`, `finance`, `shift_mgr`, `employee`, `chef`. One person can hold several. Admin sees everything (Accounting is admin only); finance unlocks the Finance section; shift manager unlocks shift planning and tips; chef unlocks Food Cost (ingredients, recipes, food cost %); employee is the floor view.
 
 ## Product Purpose
 

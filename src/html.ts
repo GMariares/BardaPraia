@@ -92,6 +92,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .role-chip.finance   { background:var(--purple-50); color:var(--purple); border-color:var(--purple-200); }
     .role-chip.shift_mgr { background:var(--green-50);  color:var(--green);  border-color:var(--green-200); }
     .role-chip.employee  { background:var(--blue-50);   color:var(--blue);   border-color:var(--blue-200); }
+    .role-chip.chef      { background:#f6ede6;          color:#8a5a3c;       border-color:#e6cdb9; }
 
     /* ── USER CARDS ── */
     .user-card { background:var(--panel); border-radius:var(--radius); padding:14px 16px; border:var(--rule); margin-bottom:8px; display:flex; align-items:center; gap:14px; }
@@ -118,6 +119,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     #topbar .role-chip.finance i { color:var(--purple-200); }
     #topbar .role-chip.shift_mgr i { color:var(--green-200); }
     #topbar .role-chip.employee i { color:var(--blue-200); }
+    #topbar .role-chip.chef i { color:#e6cdb9; }
     #topbar-emp { font-size:13px; font-weight:600; color:white; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:6px 10px; outline:none; cursor:pointer; max-width:120px; }
     #topbar-emp option { color:var(--slate-900); }
     #admin-login-btn { background:var(--gold-200); color:var(--slate-900); border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
@@ -736,6 +738,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .fc-switch button span { font-weight:600; color:var(--slate-400); margin-left:3px; }
     .fc-switch button.active { background:var(--slate-800); color:#fff; }
     .fc-switch button.active span { color:var(--mint-300); }
+    .fc-target-ro { font-size:13px; font-weight:700; color:var(--slate-500); padding:0 6px; }
     .fc-search { flex:1; min-width:140px; max-width:260px; min-height:38px; padding:7px 12px; }
     .fc-table tbody th small { display:block; font-size:11.5px; font-weight:500; color:var(--slate-500); }
     .fc-table tbody th { white-space:normal; min-width:160px; }
@@ -872,6 +875,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="section-label" style="margin-top:12px">Admin</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
+    <button class="drawer-item" id="ditem-foodcost" data-nav="foodcost"><i class="fas fa-utensils"></i> Food Cost <span class="admin-only-badge" style="background:rgba(176,123,89,.35);color:#f1dccd">CHEF</span></button>
     <button class="drawer-item" id="ditem-accounting" data-nav="accounting"><i class="fas fa-scale-balanced"></i> Accounting <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Users <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
@@ -1154,6 +1158,16 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </section>
 
   <!-- ═══ FINANCE ═══ -->
+  <!-- ═══ FOOD COST (admins + chefs) ═══ -->
+  <section id="section-foodcost" class="page-section">
+    <div id="fc-locked" class="locked-overlay" style="display:none">
+      <i class="fas fa-utensils" style="color:#8a5a3c"></i>
+      <h3>Chefs and admins only</h3>
+      <p>Food Cost can be opened by users with the Chef role or by an administrator.</p>
+    </div>
+    <div id="fc-content" style="display:none"><div id="fc-body"></div></div>
+  </section>
+
   <!-- ═══ ACCOUNTING ═══ -->
   <section id="section-accounting" class="page-section">
     <div id="acc-locked" class="locked-overlay" style="display:none">
@@ -1177,7 +1191,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn" data-acc-tab="suppliers"><i class="fas fa-truck"></i> Suppliers</button>
         <button class="tab-btn" data-acc-tab="fixed"><i class="fas fa-house"></i> Fixed costs</button>
         <button class="tab-btn" data-acc-tab="expenses"><i class="fas fa-receipt"></i> Daily expenses</button>
-        <button class="tab-btn" data-acc-tab="foodcost"><i class="fas fa-utensils"></i> Food cost</button>
       </div>
       <div id="acc-body"></div>
     </div>
@@ -1790,6 +1803,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       </label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-employee">
         <input type="checkbox" value="employee" class="user-role-cb" style="accent-color:#2f6fa8" /> <i class="fas fa-user" style="color:#2f6fa8"></i> Employee
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-chef">
+        <input type="checkbox" value="chef" class="user-role-cb" style="accent-color:#8a5a3c" /> <i class="fas fa-utensils" style="color:#8a5a3c"></i> Chef
       </label>
     </div>
 
@@ -2971,12 +2987,14 @@ function doLogin() {
 }
 
 // Accounting figures never stay on a device for someone who is not an admin
-function forgetAccounting() { var db = getDB(); if (db.accEntries || db.accConfig || db.fcRecipes || db.fcIngredients) { delete db.accEntries; delete db.accConfig; delete db.fcRecipes; delete db.fcIngredients; saveDB(db); } }
+function forgetAccounting() { var db = getDB(); if (db.accEntries || db.accConfig) { delete db.accEntries; delete db.accConfig; saveDB(db); } }
+function forgetFoodCost() { var db = getDB(); if (db.fcRecipes || db.fcIngredients) { delete db.fcRecipes; delete db.fcIngredients; delete db.fcTarget; saveDB(db); } }
 function applyLogin(user, showWelcome) {
   currentUser = user;
   isAdmin   = hasRole('admin');
   isFinance = hasRole('finance') || hasRole('admin');
   if (!isAdmin) forgetAccounting();
+  if (!isAdmin && !hasRole('chef')) forgetFoodCost();
   // Persist session across refreshes
   try { localStorage.setItem(SESSION_KEY, JSON.stringify({id: user.id, username: user.username})); } catch(e){}
   document.getElementById('login-password').value = '';
@@ -2994,7 +3012,7 @@ function applyLogin(user, showWelcome) {
 }
 
 function appLogout() {
-  forgetAccounting();
+  forgetAccounting(); forgetFoodCost();
   currentUser = null;
   isAdmin = false;
   isFinance = false;
@@ -3279,8 +3297,8 @@ function updateSessionUI() {
     if (logoutBtn) logoutBtn.style.display = 'flex';
     if (unameSpan) unameSpan.textContent = currentUser.name.split(' ')[0];
     var badges = (currentUser.roles||[]).map(function(r){
-      var labels = {admin:'<i class="fas fa-crown"></i> Admin',finance:'<i class="fas fa-euro-sign"></i> Finance',shift_mgr:'<i class="fas fa-calendar-days"></i> Shifts',employee:'<i class="fas fa-user"></i> Employee'};
-      var cls    = {admin:'admin',finance:'finance',shift_mgr:'shift_mgr',employee:'employee'};
+      var labels = {admin:'<i class="fas fa-crown"></i> Admin',finance:'<i class="fas fa-euro-sign"></i> Finance',shift_mgr:'<i class="fas fa-calendar-days"></i> Shifts',employee:'<i class="fas fa-user"></i> Employee',chef:'<i class="fas fa-utensils"></i> Chef'};
+      var cls    = {admin:'admin',finance:'finance',shift_mgr:'shift_mgr',employee:'employee',chef:'chef'};
       return '<span class="role-chip '+(cls[r]||'employee')+'">'+(labels[r]||r)+'</span>';
     }).join('');
     if (roleInfo) roleInfo.innerHTML = badges;
@@ -3316,6 +3334,7 @@ function updateSessionUI() {
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
   dshow('ditem-accounting',   isAdmin);
+  dshow('ditem-foodcost',     canFoodCost());
   dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
   dshow('ditem-blackbox',     isAdmin);
   dshow('ditem-users',        isAdmin);
@@ -3492,7 +3511,10 @@ function refreshSection(name) {
     }).catch(function(){});
 
   } else if (name === 'accounting') {
-    if (isAdmin) { accLoad(); fcLoad(); }
+    if (isAdmin) accLoad();
+
+  } else if (name === 'foodcost') {
+    if (canFoodCost()) fcLoad();
 
   } else if (name === 'users') {
     sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at').then(function(rows) {
@@ -3552,6 +3574,9 @@ function showSection(name) {
   if ((name === 'blackbox' || name === 'settings' || name === 'users' || name === 'accounting') && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
+  if (name === 'foodcost' && !canFoodCost()) {
+    toast('Chef or admin access required.', 'error'); return;
+  }
   if (name === 'finance' && !isFinance) {
     toast('Finance role required.', 'error'); return;
   }
@@ -3568,7 +3593,7 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + name);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Dashboard',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',users:'Users',settings:'Settings'};
+  var titles = {dashboard:'Dashboard',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Users',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   moveBnavMarker();
   currentSection = name;
@@ -3583,6 +3608,7 @@ function showSection(name) {
   if (name === 'blackbox')     renderBlackBox();
   if (name === 'finance')      renderFinance();
   if (name === 'accounting')   renderAccounting();
+  if (name === 'foodcost')     renderFoodCost();
   if (name === 'users')        renderUsers();
   if (name === 'settings')     renderSettings();
 
@@ -3593,8 +3619,8 @@ function showSection(name) {
 // ================================================
 // USERS MANAGEMENT
 // ================================================
-var ROLE_LABELS = {admin:'<i class="fas fa-crown"></i> Admin', finance:'<i class="fas fa-euro-sign"></i> Finance', shift_mgr:'<i class="fas fa-calendar-days"></i> Shift Mgr', employee:'<i class="fas fa-user"></i> Employee'};
-var ROLE_COLORS = {admin:'#b7791f', finance:'#6d4fc2', shift_mgr:'#2b8a4b', employee:'#2a9683'};
+var ROLE_LABELS = {admin:'<i class="fas fa-crown"></i> Admin', finance:'<i class="fas fa-euro-sign"></i> Finance', shift_mgr:'<i class="fas fa-calendar-days"></i> Shift Mgr', employee:'<i class="fas fa-user"></i> Employee', chef:'<i class="fas fa-utensils"></i> Chef'};
+var ROLE_COLORS = {admin:'#b7791f', finance:'#6d4fc2', shift_mgr:'#2b8a4b', employee:'#2a9683', chef:'#8a5a3c'};
 
 function renderUsers() {
   var el = document.getElementById('users-list');
@@ -6841,7 +6867,8 @@ function renderAccounting() {
   document.getElementById('acc-year-label').textContent = accYear;
   document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
   var body = document.getElementById('acc-body');
-  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, fixed: accFixedHTML, expenses: accExpensesHTML, foodcost: accFoodCostHTML }[accTab]();
+  if (accTab === 'foodcost') accTab = 'summary';
+  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
   body.innerHTML = html;
   if (accTab === 'summary') { var ch = document.getElementById('acc-chart'); if (ch) drawAccChart(ch); }
 }
@@ -7116,7 +7143,7 @@ document.addEventListener('input', function(e){
     renderFcTotals();
   }
   if (t.id === 'fc-dish-price' || t.id === 'fc-dish-portions') renderFcTotals();
-  if (t.id === 'fc-search') { fcSearch = t.value; var pos = t.selectionStart; renderAccounting(); var ns = document.getElementById('fc-search'); if (ns) { ns.focus(); try { ns.setSelectionRange(pos, pos); } catch (er) {} } }
+  if (t.id === 'fc-search') { fcSearch = t.value; var pos = t.selectionStart; renderFoodCost(); var ns = document.getElementById('fc-search'); if (ns) { ns.focus(); try { ns.setSelectionRange(pos, pos); } catch (er) {} } }
 });
 
 // ── Food cost: ingredients with prices, dishes with recipes ─────────────
@@ -7124,9 +7151,17 @@ document.addEventListener('input', function(e){
 // A dish line is an ingredient (qty + unit) or another dish used as a base (qty in its portions).
 var FC_UNITS = { kg: [['g', 0.001], ['kg', 1]], L: [['ml', 0.001], ['cl', 0.01], ['L', 1]], un: [['un', 1]] };
 var fcView = 'dishes', fcSearch = '', fcEdit = null, fcIngEdit = null, fcBusy = false;
+function canFoodCost() { return isAdmin || hasRole('chef'); }
 function fcIngs() { return getDB().fcIngredients || []; }
 function fcRecs() { return getDB().fcRecipes || []; }
-function fcTarget() { var c = getDB().accConfig || {}; return c.foodCostTarget || 30; }
+// Target food cost %: kept in settings.accounting (admins set it); chefs read just this one value
+function fcTarget() { var db = getDB(), c = db.accConfig || {}; return c.foodCostTarget || db.fcTarget || 30; }
+function renderFoodCost() {
+  var locked = document.getElementById('fc-locked'), content = document.getElementById('fc-content');
+  if (!canFoodCost()) { locked.style.display = 'flex'; content.style.display = 'none'; document.getElementById('fc-body').innerHTML = ''; return; }
+  locked.style.display = 'none'; content.style.display = 'block';
+  document.getElementById('fc-body').innerHTML = accFoodCostHTML();
+}
 function fcFactor(ingUnit, lineUnit) { var u = (FC_UNITS[ingUnit] || FC_UNITS.un).find(function(x){ return x[0] === lineUnit; }); return u ? u[1] : 1; }
 function fcLineCost(line, seen) {
   var q = parseFloat(line.qty) || 0;
@@ -7154,12 +7189,14 @@ function fcUnitLabel(u) { return u === 'un' ? 'piece' : u; }
 
 // data
 function fcLoad() {
-  return Promise.all([sbFetchAll('fc_ingredients', 'order=name.asc,id.asc'), sbFetchAll('fc_recipes', 'order=name.asc,id.asc')]).then(function(res){
+  return Promise.all([sbFetchAll('fc_ingredients', 'order=name.asc,id.asc'), sbFetchAll('fc_recipes', 'order=name.asc,id.asc'),
+    sbFetch('GET', 'settings', null, 'select=target:accounting->foodCostTarget&id=eq.config').catch(function(){ return null; })]).then(function(res){
     var db = getDB(); sbCols.fc = true;
+    if (res[2] && res[2][0] && res[2][0].target) db.fcTarget = parseFloat(res[2][0].target) || 30;
     db.fcIngredients = (res[0] || []).map(function(r){ return { id: r.id, name: r.name, unit: r.unit || 'kg', price: parseFloat(r.price) || 0, yieldPct: parseFloat(r.yield_pct) || 100, supplier: r.supplier || '', updatedAt: r.updated_at || '' }; });
     db.fcRecipes = (res[1] || []).map(function(r){ return { id: r.id, name: r.name, category: r.category || '', price: parseFloat(r.price) || 0, vat: r.vat == null ? 13 : parseFloat(r.vat), portions: parseFloat(r.portions) || 1, lines: Array.isArray(r.lines) ? r.lines : [], notes: r.notes || '', updatedAt: r.updated_at || '' }; });
-    saveDB(db); if (currentSection === 'accounting' && accTab === 'foodcost') renderAccounting();
-  }).catch(function(){ sbCols.fc = false; if (currentSection === 'accounting' && accTab === 'foodcost') renderAccounting(); });
+    saveDB(db); if (currentSection === 'foodcost') renderFoodCost();
+  }).catch(function(){ sbCols.fc = false; if (currentSection === 'foodcost') renderFoodCost(); });
 }
 function fcUpsert(table, row) {
   if (!sbCols.fc) { toast('Food cost is not switched on yet (SQL missing)', 'error'); return Promise.reject(); }
@@ -7175,7 +7212,7 @@ function accFoodCostHTML() {
     + '<button class="' + (fcView === 'dishes' ? 'active' : '') + '" data-fc-view="dishes">Dishes <span>' + fcRecs().length + '</span></button>'
     + '<button class="' + (fcView === 'ings' ? 'active' : '') + '" data-fc-view="ings">Ingredients <span>' + fcIngs().length + '</span></button></div>'
     + '<input class="input-field fc-search" id="fc-search" placeholder="Search" value="' + esc(fcSearch) + '" aria-label="Search" />'
-    + '<button class="btn btn-secondary btn-sm" id="fc-target" title="Food cost % you aim for">Target ' + t + '%</button>'
+    + (isAdmin ? '<button class="btn btn-secondary btn-sm" id="fc-target" title="Food cost % you aim for">Target ' + t + '%</button>' : '<span class="fc-target-ro">Target ' + t + '%</span>')
     + '<button class="btn btn-primary btn-sm" id="' + (fcView === 'dishes' ? 'fc-new-dish' : 'fc-new-ing') + '"><i class="fas fa-plus"></i> ' + (fcView === 'dishes' ? 'Dish' : 'Ingredient') + '</button></div>';
   if (!sbCols.fc) h += '<div class="req-banner"><i class="fas fa-circle-info"></i> Food cost switches on once the food cost SQL has run in Supabase.</div>';
   if (fcView === 'dishes') {
@@ -7234,7 +7271,7 @@ function saveFcIng() {
   fcUpsert('fc_ingredients', { id: ing.id, name: ing.name, unit: ing.unit, price: ing.price, yield_pct: ing.yieldPct, supplier: ing.supplier, updated_at: ing.updatedAt }).then(function(){
     fcBusy = false; var db = getDB(); db.fcIngredients = (db.fcIngredients || []).filter(function(x){ return x.id !== ing.id; }).concat([ing]); saveDB(db);
     closeModal('modal-fc-ing'); var then = fcIngEdit.then; fcIngEdit = null;
-    if (then) then(ing); else { renderAccounting(); toast('Saved. Dishes using it are updated.', 'success'); }
+    if (then) then(ing); else { renderFoodCost(); toast('Saved. Dishes using it are updated.', 'success'); }
   }).catch(function(){ fcBusy = false; });
 }
 function deleteFcIng() {
@@ -7243,7 +7280,7 @@ function deleteFcIng() {
   if (!confirm(used.length ? 'It is used in ' + used.length + ' dish' + (used.length === 1 ? '' : 'es') + ' (' + used.map(function(r){ return r.name; }).join(', ') + '). Delete anyway? Those lines will show as missing.' : 'Delete this ingredient?')) return;
   sbFetch('DELETE', 'fc_ingredients', null, 'id=eq.' + encodeURIComponent(fcIngEdit.id)).then(function(){
     var db = getDB(); db.fcIngredients = (db.fcIngredients || []).filter(function(x){ return x.id !== fcIngEdit.id; }); saveDB(db);
-    closeModal('modal-fc-ing'); fcIngEdit = null; renderAccounting();
+    closeModal('modal-fc-ing'); fcIngEdit = null; renderFoodCost();
   }).catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
 }
 
@@ -7321,7 +7358,7 @@ function saveFcDish() {
   fcBusy = true;
   fcUpsert('fc_recipes', { id: r.id, name: r.name, category: r.category, price: r.price, vat: r.vat, portions: r.portions, lines: r.lines, notes: r.notes, updated_at: r.updatedAt }).then(function(){
     fcBusy = false; var db = getDB(); db.fcRecipes = (db.fcRecipes || []).filter(function(x){ return x.id !== r.id; }).concat([r]); saveDB(db);
-    closeModal('modal-fc-dish'); fcEdit = null; fcView = 'dishes'; renderAccounting(); toast('Dish saved', 'success');
+    closeModal('modal-fc-dish'); fcEdit = null; fcView = 'dishes'; renderFoodCost(); toast('Dish saved', 'success');
   }).catch(function(){ fcBusy = false; });
 }
 function deleteFcDish() {
@@ -7330,7 +7367,7 @@ function deleteFcDish() {
   if (!confirm(usedBy.length ? 'Other dishes use it as a base (' + usedBy.map(function(r){ return r.name; }).join(', ') + '). Delete anyway?' : 'Delete ' + fcEdit.name + '?')) return;
   sbFetch('DELETE', 'fc_recipes', null, 'id=eq.' + encodeURIComponent(fcEdit.id)).then(function(){
     var db = getDB(); db.fcRecipes = (db.fcRecipes || []).filter(function(x){ return x.id !== fcEdit.id; }); saveDB(db);
-    closeModal('modal-fc-dish'); fcEdit = null; renderAccounting();
+    closeModal('modal-fc-dish'); fcEdit = null; renderFoodCost();
   }).catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
 }
 
@@ -8417,7 +8454,7 @@ document.addEventListener('click', function(e) {
   }
   if (t.closest('#acc-wage-copy')) { accCopyWages(); return; }
   // Food cost
-  el = t.closest('[data-fc-view]'); if (el) { fcView = el.dataset.fcView; renderAccounting(); return; }
+  el = t.closest('[data-fc-view]'); if (el) { fcView = el.dataset.fcView; renderFoodCost(); return; }
   if (t.closest('#fc-new-dish')) { openFcDish(null); return; }
   if (t.closest('#fc-new-ing')) { openFcIng(null); return; }
   el = t.closest('[data-fc-dish]'); if (el) { openFcDish(el.dataset.fcDish); return; }
@@ -8425,7 +8462,7 @@ document.addEventListener('click', function(e) {
   if (t.closest('#fc-target')) {
     var tg = prompt('Target food cost %', fcTarget()); if (tg === null) return;
     var tv = accNum(tg); if (!(tv > 0 && tv < 100)) { toast('Enter a % between 1 and 99', 'error'); return; }
-    var cfg = accCfg(); cfg.foodCostTarget = tv; saveAccCfg(cfg); renderAccounting(); return;
+    var cfg = accCfg(); cfg.foodCostTarget = tv; saveAccCfg(cfg); renderFoodCost(); return;
   }
   if (t.closest('#fc-add-line')) { fcEdit.lines.push({ ing: '', qty: '', unit: 'g' }); renderFcLines(); var ls = document.querySelectorAll('[data-fc-line-item]'); if (ls.length) ls[ls.length - 1].focus(); return; }
   el = t.closest('[data-fc-line-del]'); if (el) { fcEdit.lines.splice(+el.dataset.fcLineDel, 1); if (!fcEdit.lines.length) fcEdit.lines.push({ ing: '', qty: '', unit: 'g' }); renderFcLines(); return; }
