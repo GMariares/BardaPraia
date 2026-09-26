@@ -434,6 +434,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .repeat-clash { margin-top:12px; background:var(--amber-50); border:1px solid var(--amber-200); border-radius:10px; padding:12px; font-size:13px; color:var(--amber-700); }
     .repeat-clash label { display:flex; align-items:center; gap:8px; margin-top:8px; font-weight:700; color:var(--slate-900); cursor:pointer; min-height:32px; }
     .repeat-clash input { accent-color:var(--teal-600); width:18px; height:18px; }
+    .clash-list { border:var(--rule); border-radius:10px; margin:4px 0 14px; }
+    .clash-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--slate-100); font-size:14px; }
+    .clash-row:last-child { border-bottom:none; }
+    .clash-day { font-weight:800; color:var(--slate-900); width:42px; flex-shrink:0; }
+    .clash-was { color:var(--slate-500); text-decoration:line-through; text-decoration-color:var(--red-400); }
+    .clash-now { font-weight:700; color:var(--slate-900); }
     .adjust-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
     .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; }
     .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:10; pointer-events:none; }
@@ -1818,6 +1824,19 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div class="action-row" style="margin-top:6px">
       <button class="btn btn-primary" id="btn-repeat-go" style="flex:1"><i class="fas fa-copy"></i> <span id="repeat-go-label">Copy</span></button>
       <button class="btn btn-secondary" data-close-modal="modal-repeat">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate warning when adding shifts -->
+<div class="modal-overlay modal-center" id="modal-shift-clash" style="z-index:600">
+  <div class="modal">
+    <h2><i class="fas fa-triangle-exclamation" style="color:var(--amber)"></i> <span id="clash-title">Already scheduled</span></h2>
+    <div style="font-size:14px;color:var(--slate-600);margin:-8px 0 12px" id="clash-intro"></div>
+    <div class="clash-list" id="clash-list"></div>
+    <div class="action-row">
+      <button class="btn btn-primary" id="btn-clash-replace" style="flex:1"><i class="fas fa-check"></i> Replace</button>
+      <button class="btn btn-secondary" data-close-modal="modal-shift-clash">Go back</button>
     </div>
   </div>
 </div>
@@ -5538,6 +5557,9 @@ function prefillShiftRows(emp){
   if(!emp) return;
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
+  var roleEl=document.getElementById('shift-role');
+  var withRole=db.shifts.find(function(s){return s.employee===emp&&s.weekStart===ws&&s.role;});
+  if(roleEl&&!roleEl.value&&withRole) roleEl.value=withRole.role;
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
   rows.forEach(function(row){
     var day=row.dataset.shiftDay;
@@ -5703,11 +5725,45 @@ function repeatWeek() {
     })
     .catch(function(){ repeatBusy = false; toast('Copy not saved online. Check the connection and try again.', 'error'); });
 }
-function saveShift(){
+function shiftFormChanges(emp, ws, role) {
+  var db=getDB(); var out=[];
+  document.querySelectorAll('#shift-days-body tr[data-shift-day]').forEach(function(row){
+    var day=row.dataset.shiftDay;
+    var off=row.querySelector('.shift-day-off-chk').checked;
+    var st=row.querySelector('.shift-day-start').value, en=row.querySelector('.shift-day-end').value;
+    var zEl=row.querySelector('.shift-day-zone'); var zone=zEl?zEl.value:'';
+    if(!off&&(!st||!en)) return;
+    var ex=db.shifts.find(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
+    if(!ex) return;
+    var same = off ? !!ex.dayOff : (!ex.dayOff && ex.start===st && ex.end===en && (ex.zone||'')===zone);
+    if(same && (ex.role||'')===role) return;
+    var zoneChanged=(ex.zone||'')!==zone;
+    var fmt=function(o,s1,e1,z){ return o ? 'day off' : (s1+'–'+e1+(zoneChanged&&z?' · '+z:'')); };
+    out.push({day:day, was:fmt(ex.dayOff,ex.start,ex.end,ex.zone||''), now:fmt(off,st,en,zone), roleOnly:same});
+  });
+  return out;
+}
+function saveShift(force){
   var emp=document.getElementById('shift-employee').value; if(!emp){toast('Select employee!','error');return;}
   var role=document.getElementById('shift-role').value.trim();
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
+  var isAdd=!document.getElementById('shift-edit-id').value;
+  if(isAdd && force!==true){
+    var changes=shiftFormChanges(emp, ws, role);
+    if(changes.length){
+      document.getElementById('clash-title').textContent=emp+' is already scheduled';
+      document.getElementById('clash-intro').textContent='Saving will replace '+(changes.length===1?'this day':'these '+changes.length+' days')+' in '+weekRangeLabel(ws, true)+':';
+      document.getElementById('clash-list').innerHTML=changes.map(function(c){
+        return '<div class="clash-row"><span class="clash-day">'+c.day.slice(0,3)+'</span>'
+          +(c.roleOnly ? '<span class="clash-now">'+esc(c.now)+'</span><span style="font-size:12px;color:var(--slate-500)">role changes</span>'
+                       : '<span class="clash-was">'+esc(c.was)+'</span><i class="fas fa-arrow-right" style="color:var(--slate-400);font-size:11px"></i><span class="clash-now">'+esc(c.now)+'</span>')
+          +'</div>';
+      }).join('');
+      openModal('modal-shift-clash');
+      return;
+    }
+  }
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
   var saved=0;
   rows.forEach(function(row){
@@ -6389,6 +6445,7 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-add-shift-day]');
   if (el) { openAddShiftModal(el.dataset.addShiftDay); return; }
   if (t.closest('#btn-save-shift')) { saveShift(); return; }
+  if (t.closest('#btn-clash-replace')) { closeModal('modal-shift-clash'); saveShift(true); return; }
   if (t.closest('#btn-shifts-prev-week')) { shiftsWeekOffset--; renderShifts(); return; }
   if (t.closest('#btn-shifts-next-week')) { shiftsWeekOffset++; renderShifts(); return; }
   el = t.closest('[data-action-shift]');
