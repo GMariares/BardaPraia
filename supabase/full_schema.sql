@@ -19,6 +19,7 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS week_tips      JSONB DEFAULT '{}':
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS inv_sort_order JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS tip_splits     JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS areas          JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS week_notices   JSONB DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

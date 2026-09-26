@@ -2500,6 +2500,8 @@ function syncFromSupabase() {
 
         // areas — areas and sections (column added in the step 9 migration)
         if (r.areas !== undefined) { sbCols.areas = true; db.areas = Array.isArray(r.areas) ? r.areas : []; }
+        // week_notices — weeks the team was told about (step 11b migration)
+        if (r.week_notices !== undefined) { sbCols.weekNotices = true; db.weekNotices = r.week_notices || {}; }
 
         // tip_splits — saved tip splits per week (column added in the step 3 migration)
         if (r.tip_splits !== undefined) db.tipSplits = (r.tip_splits && typeof r.tip_splits === 'object') ? r.tip_splits : {};
@@ -3227,9 +3229,11 @@ function refreshSection(name) {
       sbFetchAll('shifts','order=week_start.desc,day.asc,id.asc'),
       sbFetchAll('absences','order=date.desc,id.asc'),
       sbFetch('GET','employees',null,'order=name.asc'),
-      sbFetch('GET','shift_requests',null,'week_start=gte.' + reqCutoff() + '&order=created_at.desc').catch(function(){ return 'missing'; })
+      sbFetch('GET','shift_requests',null,'week_start=gte.' + reqCutoff() + '&order=created_at.desc').catch(function(){ return 'missing'; }),
+      sbFetch('GET','settings',null,'select=week_notices&id=eq.config').catch(function(){ return null; })
     ]).then(function(res) {
       var db = getDB();
+      if (res[4] && res[4][0] && ('week_notices' in res[4][0])) { sbCols.weekNotices = true; db.weekNotices = res[4][0].week_notices || {}; }
       if (res[3] === 'missing') sbCols.requests = false;
       else if (res[3]) { sbCols.requests = true; db.shiftRequests = res[3].map(reqFromRow); }
       if (res[0] && res[0].length) sbCols.section = ('section' in res[0][0]);
@@ -5264,7 +5268,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -6350,7 +6354,45 @@ function applyShiftRequest(q) {
 
 // ── Tell the team a week's shifts are ready ──────────────────────
 // Everyone active gets a push; people on the schedule see their own days in it.
-function weekNotified() { try { return JSON.parse(localStorage.getItem('bdp_week_notified') || '{}'); } catch (e) { return {}; } }
+// Weeks the team was told about: shared in settings.week_notices (all managers' devices), with a per-device copy
+function weekNotified() {
+  var m = {}; try { m = JSON.parse(localStorage.getItem('bdp_week_notified') || '{}'); } catch (e) {}
+  var shared = getDB().weekNotices || {}; Object.keys(shared).forEach(function(k){ m[k] = shared[k]; });
+  return m;
+}
+function markWeekNotified(ws) {
+  var now = new Date().toISOString(), local = {};
+  try { local = JSON.parse(localStorage.getItem('bdp_week_notified') || '{}'); } catch (e) {}
+  local[ws] = now; try { localStorage.setItem('bdp_week_notified', JSON.stringify(local)); } catch (e) {}
+  var db = getDB(), m = Object.assign({}, db.weekNotices || {}); m[ws] = now;
+  Object.keys(m).sort().slice(0, -26).forEach(function(k){ delete m[k]; });   // keep about half a year
+  db.weekNotices = m; saveDB(db);
+  if (sbCols.weekNotices) sbFetch('PATCH', 'settings', { week_notices: m }, 'id=eq.config').catch(function(){});
+}
+// After a week was announced, tell the person when their upcoming shifts change
+function shiftChangeLine(prev, next) {
+  var s = next || prev, d = new Date(s.weekStart + 'T00:00:00'); d.setDate(d.getDate() + DAYS.indexOf(s.day));
+  if (toDateStr(d) < toDateStr(new Date())) return '';            // past days do not matter any more
+  var label = s.day.slice(0,3) + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()];
+  var when = function(x){ return x.dayOff ? 'day off' : wkTime(x.start) + '–' + wkTime(x.end); };
+  var where = function(x){ return (x.dayOff || !x.zone) ? '' : x.zone + (effectiveSection(x) ? ' · ' + effectiveSection(x) : ''); };
+  if (!prev) return label + ': new, ' + when(next) + (where(next) ? ' (' + where(next) + ')' : '');
+  if (!next) return label + ': removed (was ' + when(prev) + ')';
+  var sameTime = !!prev.dayOff === !!next.dayOff && (next.dayOff || (prev.start === next.start && prev.end === next.end));
+  var samePlace = where(prev) === where(next);
+  if (sameTime && samePlace) return '';
+  if (sameTime) return label + ': ' + when(next) + ', now ' + (where(next) || 'no area');
+  return label + ': ' + when(next) + (!samePlace && where(next) ? ' (' + where(next) + ')' : '') + ', was ' + when(prev);
+}
+function alertShiftChanges(emp, ws, lines) {
+  lines = (lines || []).filter(Boolean);
+  if (!lines.length || !weekNotified()[ws]) return;
+  var me = currentUser ? currentUser.id : '';
+  var ids = userIdsForEmployee(emp).filter(function(id){ return id !== me; });
+  if (!ids.length) return;
+  sendPush(ids, lines.length === 1 ? 'Your shift changed' : 'Your shifts changed', lines.join(' · '), '/?open=shifts&week=' + ws);
+  setTimeout(function(){ toast(emp + ' was notified of the change', 'success'); }, 1400);
+}
 function pushOne(userId, title, body, url) {
   return fetch('/api/push/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userIds:[userId], title:title, body:body, url:url }) })
     .then(function(r){ return r.json(); }).then(function(d){ return (d && d.sent) || 0; }).catch(function(){ return 0; });
@@ -6377,8 +6419,7 @@ function notifyWeekShifts(wsStr) {
                 : pushOne(u.id, 'Shifts are out: ' + range, 'The schedule for the week is ready. Tap to see it.', url);
   })).then(function(counts){
     var reached = counts.filter(function(n){ return n > 0; }).length;
-    var map = weekNotified(); map[wsStr] = new Date().toISOString();
-    try { localStorage.setItem('bdp_week_notified', JSON.stringify(map)); } catch (e) {}
+    markWeekNotified(wsStr);
     if (currentSection === 'shifts') renderShifts();
     toast('Sent to ' + reached + ' of ' + people.length + ' people' + (reached < people.length ? '. The others have not turned notifications on.' : ''), reached ? 'success' : 'error');
   });
@@ -6618,7 +6659,7 @@ function saveShift(force){
     }
   }
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
-  var saved=0;
+  var saved=0, changeLines=[];
   rows.forEach(function(row){
     var day=row.dataset.shiftDay;
     var isDayOff=row.querySelector('.shift-day-off-chk').checked;
@@ -6632,6 +6673,7 @@ function saveShift(force){
     var newId=uid();
     var ns={id:newId,employee:emp,day:day,start:start,end:end,role:role,zone:zone,section:section,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()};
     if(prev&&!isDayOff){ var durM=Math.round(shiftScheduledHours(ns)*60); ns.lateMinutes=Math.min(prev.lateMinutes||0, Math.max(0,durM-15)); ns.overtimeMinutes=prev.overtimeMinutes||0; }
+    changeLines.push(shiftChangeLine(prev, ns));
     db.shifts.push(ns);
     sbFetch('DELETE','shifts',null,shiftSlotFilter(emp,ws,day))
       .then(function(){ return sbFetch('POST','shifts',shiftToRow(ns)); })
@@ -6643,6 +6685,7 @@ function saveShift(force){
   });
   saveDB(db); closeModal('modal-add-shift'); renderShifts();
   toast(saved+' shift'+(saved!==1?'s':'')+' saved!');
+  alertShiftChanges(emp, ws, changeLines);
 }
 var _shiftActionId = ''; var _shiftActionDate = ''; var _shiftActionWs = '';
 function openShiftActionSheet(shiftId, dateStr, wsStr) {
@@ -6699,6 +6742,7 @@ function deleteShift(id){
   db.shifts=db.shifts.filter(function(x){return !(x.employee===s.employee&&x.day===s.day&&x.weekStart===s.weekStart);}); saveDB(db);
   renderShifts(); toast('Removing...');
   sbFetch('DELETE','shifts',null,shiftSlotFilter(s.employee,s.weekStart,s.day)).then(function(){ toast('Shift removed.'); }).catch(function(){ toast('Removed locally','error'); });
+  if(!s.dayOff) alertShiftChanges(s.employee, s.weekStart, [shiftChangeLine(s, null)]);
 }
 function generateTips(){
   var raw=(document.getElementById('shifts-tips-input').value||'').trim().replace(',','.');
