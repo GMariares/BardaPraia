@@ -421,6 +421,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     /* overtime: an extension after the scheduled end, same colour, hatched */
     .gantt-ot { position:absolute; top:0; height:100%; border-radius:0 5px 5px 0; cursor:pointer; min-width:4px;
       background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.5) 0 3px, transparent 3px 7px); }
+    /* absent on a scheduled day: pale, outlined and hatched in red; counts 0 hours */
+    .gantt-bar.is-absent { background-color:var(--red-50); color:var(--red-700); box-shadow:inset 0 0 0 1.5px var(--red-400);
+      background-image:repeating-linear-gradient(45deg, rgba(180,64,47,.12) 0 3px, transparent 3px 8px); }
+    .gantt-bar.is-absent .gantt-bar-label { color:var(--red-700); }
+    .gantt-bar.is-absent .gantt-bar-label i { margin-right:4px; }
     .adjust-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
     .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; }
     .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:10; pointer-events:none; }
@@ -1768,6 +1773,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:var(--amber-700);border:1px solid var(--amber-200)" id="shift-action-absent-just">
       <i class="fas fa-user-clock" style="color:#b7791f"></i> Mark Absent — Justified
     </button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-unabsent">
+        <i class="fas fa-user-check" style="color:var(--green)"></i> Undo absence
+      </button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-abs-toggle">
+        <i class="fas fa-rotate" style="color:var(--slate-600)"></i> <span id="shift-action-abs-toggle-label">Mark justified</span>
+      </button>
+    </div>
     <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:var(--red-50);color:var(--red-700);border:1px solid #f0b8ae" id="shift-action-delete">
       <i class="fas fa-trash" style="color:#b4402f"></i> Delete Shift
     </button>
@@ -5014,6 +5027,18 @@ function renderShifts(){
               + otHTML
             +'</div>'
           +'</div>';
+          var absObj = (db.absences||[]).find(function(a){ return a.employee === s.employee && a.date === dateStr; });
+          if (absObj) {
+            var absLabel = '<i class="fas fa-user-slash"></i>Absent · '+(absObj.justified ? 'justified' : 'unjustified')+' · '+esc(s.employee.split(' ')[0])+' '+esc(s.start)+'–'+esc(s.end);
+            rowHTML = '<div class="gantt-row">'
+              +'<div class="gantt-emp-label" title="'+esc(s.employee)+'">'+esc(s.employee.split(' ')[0])+'</div>'
+              +'<div class="gantt-track">'
+                +'<div class="gantt-bar is-absent" style="left:'+leftPct+'%;width:'+widthPct+'%" title="'+esc(s.employee)+' absent ('+(absObj.justified?'justified':'unjustified')+'), '+esc(s.start)+'–'+esc(s.end)+'"'+actAttrs+'>'
+                  +'<span class="gantt-bar-label" style="left:0">'+absLabel+'</span>'
+                +'</div>'
+              +'</div>'
+            +'</div>';
+          }
         }
         return zoneHeader + rowHTML;
       }).join('');
@@ -5032,10 +5057,11 @@ function renderShifts(){
         +'<span style="font-size:10px;font-weight:800;color:var(--amber-700);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
         +unallocBtns+'</div>';
     }
-    // Absent employees section
+    // Absent employees section: only people with no shift bar that day (the bar already shows the others)
     var absentHTML = '';
-    if (absentEmps.length > 0) {
-      var absentBtns = absentEmps.map(function(e) {
+    var absentListEmps = absentEmps.filter(function(e){ return !dayShifts.some(function(s){ return s.employee === e && !s.dayOff; }); });
+    if (absentListEmps.length > 0) {
+      var absentBtns = absentListEmps.map(function(e) {
         var absObj = (db.absences||[]).find(function(a){ return a.date===dateStr && a.employee===e; });
         var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#e3f4e8;color:var(--green-700);border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:var(--red-50);color:var(--red-700);border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
         var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-rotate"></i></button>' : '';
@@ -5622,6 +5648,12 @@ function openShiftActionSheet(shiftId, dateStr, wsStr) {
   if (absentUBtn) absentUBtn.style.display = (canEdit && !alreadyAbsent) ? '' : 'none';
   if (absentJBtn) absentJBtn.style.display = (canEdit && !alreadyAbsent) ? '' : 'none';
   if (delBtn) delBtn.style.display = canEdit ? '' : 'none';
+  var absRec = (db.absences||[]).find(function(a){ return a.employee===s.employee && a.date===dateStr; });
+  var unBtn = document.getElementById('shift-action-unabsent');
+  if (unBtn) unBtn.parentNode.style.display = (canEdit && absRec) ? 'flex' : 'none';
+  var tgLbl = document.getElementById('shift-action-abs-toggle-label');
+  if (tgLbl && absRec) tgLbl.textContent = absRec.justified ? 'Mark unjustified' : 'Mark justified';
+  if (infoEl && absRec) infoEl.textContent = info + ' · absent (' + (absRec.justified ? 'justified' : 'unjustified') + ')';
   var canAdjust = canEdit && !s.dayOff && !alreadyAbsent;
   var lateBtn = document.getElementById('shift-action-late'), otBtn = document.getElementById('shift-action-ot');
   if (lateBtn) lateBtn.parentNode.style.display = canAdjust ? 'flex' : 'none';
@@ -6263,6 +6295,14 @@ document.addEventListener('click', function(e) {
     var db4=getDB(); var s4=db4.shifts.find(function(x){return x.id===_shiftActionId;});
     if(s4) markAbsentJustified(s4.employee, _shiftActionDate, _shiftActionWs, true); return;
   }
+  if (t.closest('#shift-action-unabsent') || t.closest('#shift-action-abs-toggle')) {
+    var toggle = !!t.closest('#shift-action-abs-toggle');
+    closeModal('modal-shift-action');
+    var dbA=getDB(); var sA=dbA.shifts.find(function(x){return x.id===_shiftActionId;});
+    var aA=sA && (dbA.absences||[]).find(function(a){ return a.employee===sA.employee && a.date===_shiftActionDate; });
+    if (aA) { if (toggle) toggleJustified(aA.id); else removeAbsent(aA.id); }
+    return;
+  }
   if (t.closest('#shift-action-late')) { closeModal('modal-shift-action'); openShiftAdjust('late', _shiftActionId); return; }
   if (t.closest('#shift-action-ot'))   { closeModal('modal-shift-action'); openShiftAdjust('overtime', _shiftActionId); return; }
   el = t.closest('[data-adjust-quick]');
@@ -6311,6 +6351,13 @@ document.addEventListener('click', function(e) {
 
   // Settings
   if (t.closest('#btn-add-employee') || t.closest('#btn-shifts-add-employee')) { addEmployee(); return; }
+  // Day lists under the schedule: absent without a shift, justified toggle, remove
+  el = t.closest('[data-mark-absent]');
+  if (el) { markAbsent(el.dataset.markAbsent, el.dataset.absentDate, el.dataset.absentWs); return; }
+  el = t.closest('[data-toggle-justified]');
+  if (el) { if (el.dataset.toggleJustified) toggleJustified(el.dataset.toggleJustified); return; }
+  el = t.closest('[data-remove-absent]');
+  if (el) { if (el.dataset.removeAbsent) removeAbsent(el.dataset.removeAbsent); return; }
   el = t.closest('[data-remove-emp]');
   if (el) { removeEmployee(el.dataset.removeEmp); return; }
   if (t.closest('#btn-add-table-num')) { addTableNum(); return; }
