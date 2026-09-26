@@ -413,6 +413,15 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .gantt-track { flex:1; position:relative; height:24px; border-radius:4px; background:var(--slate-50); overflow:visible; }
     .gantt-bar { position:absolute; top:0; height:100%; border-radius:5px; display:flex; align-items:center; padding:0 7px; font-size:10px; font-weight:700; letter-spacing:.02em; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; transition:filter .15s; min-width:4px; }
     .gantt-bar:active { filter:brightness(1.1); }
+    .gantt-bar-label { position:absolute; top:0; bottom:0; right:0; display:block; line-height:24px; padding:0 7px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; pointer-events:none; }
+    .gantt-bar.has-ot { border-top-right-radius:0; border-bottom-right-radius:0; }
+    /* late: the part of the shift not worked, faded and hatched */
+    .gantt-late { position:absolute; left:0; top:0; bottom:0; border-radius:5px 0 0 5px; pointer-events:none;
+      background-color:rgba(255,255,255,.62); background-image:repeating-linear-gradient(45deg, rgba(34,54,63,.28) 0 2px, transparent 2px 6px); }
+    /* overtime: an extension after the scheduled end, same colour, hatched */
+    .gantt-ot { position:absolute; top:0; height:100%; border-radius:0 5px 5px 0; cursor:pointer; min-width:4px;
+      background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.5) 0 3px, transparent 3px 7px); }
+    .adjust-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
     .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; }
     .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:10; pointer-events:none; }
     .gantt-now-dot { position:absolute; top:-4px; left:-4px; width:10px; height:10px; border-radius:50%; background:var(--red); }
@@ -1745,6 +1754,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px" id="shift-action-edit">
       <i class="fas fa-pen" style="color:var(--ocean-500)"></i> Edit Shift
     </button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-late">
+        <i class="fas fa-hourglass-half" style="color:var(--slate-600)"></i> <span id="shift-action-late-label">Late</span>
+      </button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-ot">
+        <i class="fas fa-business-time" style="color:var(--teal-600)"></i> <span id="shift-action-ot-label">Overtime</span>
+      </button>
+    </div>
     <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:#fdf3e1;color:var(--amber-700);border:1px solid #f0d391" id="shift-action-absent-unjust">
       <i class="fas fa-user-slash" style="color:#b4402f"></i> Mark Absent — Unjustified
     </button>
@@ -1755,6 +1772,26 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <i class="fas fa-trash" style="color:#b4402f"></i> Delete Shift
     </button>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:14px" data-close-modal="modal-shift-action">Cancel</button>
+  </div>
+</div>
+
+<!-- Late / Overtime -->
+<div class="modal-overlay modal-center" id="modal-shift-adjust">
+  <div class="modal">
+    <h2 id="adjust-title"><i class="fas fa-hourglass-half"></i> Late</h2>
+    <div id="adjust-info" style="font-size:13px;font-weight:600;color:var(--slate-500);margin:-10px 0 12px"></div>
+    <div id="adjust-help" style="font-size:13px;color:var(--slate-600);margin-bottom:14px"></div>
+    <div class="form-grid-2">
+      <div><label class="label" for="adjust-hours">Hours</label><select class="select-field" id="adjust-hours"></select></div>
+      <div><label class="label" for="adjust-mins">Minutes</label><select class="select-field" id="adjust-mins"><option value="0">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select></div>
+    </div>
+    <div class="adjust-chips" id="adjust-chips"></div>
+    <div id="adjust-error" style="color:var(--red);font-size:13px;font-weight:600;min-height:18px;margin-top:10px"></div>
+    <div class="action-row" style="margin-top:6px">
+      <button class="btn btn-primary" id="btn-adjust-save" style="flex:1">Save</button>
+      <button class="btn btn-danger" id="btn-adjust-clear">Clear</button>
+      <button class="btn btn-secondary" data-close-modal="modal-shift-adjust">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -4946,15 +4983,35 @@ function renderShifts(){
           var leftPct  = ((clampStart/60 - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
           var widthPct = Math.max(((clampEnd - clampStart)/60 / GANTT_SPAN * 100), 0.5).toFixed(2);
           var color = ganttShiftColor(s, db);
+          var late = Math.min(s.lateMinutes||0, Math.max(0, endMins-startMins)), ot = s.overtimeMinutes||0;
           var barLabel = esc(s.employee.split(' ')[0]) + ' ' + esc(s.start) + '–' + esc(s.end);
           if (s.role) barLabel += ' · '+esc(s.role);
+          if (late) barLabel += ' · late '+fmtMins(late);
+          if (ot) barLabel += ' · +'+fmtMins(ot);
+          var actAttrs = ' data-action-shift="'+esc(s.id)+'" data-action-shift-date="'+esc(dateStr)+'" data-action-shift-ws="'+esc(wsStr)+'"';
+          // late part, as a share of the visible bar
+          var visMins = Math.max(1, clampEnd - clampStart);
+          var lateVis = Math.max(0, Math.min(startMins + late, clampEnd) - clampStart);
+          var latePct = late ? Math.min(100, lateVis / visMins * 100) : 0;
+          var lateHTML = latePct > 0 ? '<span class="gantt-late" style="width:'+latePct.toFixed(2)+'%"></span>' : '';
+          var labelHTML = '<span class="gantt-bar-label" style="left:'+(latePct > 0 && latePct < 70 ? latePct.toFixed(2) : 0)+'%">'+barLabel+'</span>';
+          // overtime extension after the scheduled end, clipped to the timeline
+          var otHTML = '';
+          if (ot) {
+            var otStart = Math.min(endMins, GANTT_END*60), otEnd = Math.min(endMins + ot, GANTT_END*60);
+            if (otEnd > otStart) {
+              var otLeft = ((otStart/60 - GANTT_START) / GANTT_SPAN * 100).toFixed(2);
+              var otWidth = Math.max((otEnd - otStart)/60 / GANTT_SPAN * 100, 0.5).toFixed(2);
+              otHTML = '<div class="gantt-ot" style="left:'+otLeft+'%;width:'+otWidth+'%;background-color:'+color+'" title="Overtime +'+fmtMins(ot)+'"'+actAttrs+'></div>';
+            }
+          }
           rowHTML = '<div class="gantt-row">'
             +'<div class="gantt-emp-label" title="'+esc(s.employee)+(s.zone?' ['+esc(s.zone)+']':'')+'">'+esc(s.employee.split(' ')[0])+'</div>'
             +'<div class="gantt-track">'
-              +'<div class="gantt-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'" title="'+barLabel+'"'
-                +' data-action-shift="'+esc(s.id)+'" data-action-shift-date="'+esc(dateStr)+'" data-action-shift-ws="'+esc(wsStr)+'">'
-                + barLabel
+              +'<div class="gantt-bar'+(otHTML?' has-ot':'')+'" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'" title="'+barLabel+'"'+actAttrs+'>'
+                + lateHTML + labelHTML
               +'</div>'
+              + otHTML
             +'</div>'
           +'</div>';
         }
@@ -5014,6 +5071,47 @@ function renderShifts(){
   }).join('');
 }
 // ── Tips tab ────────────────────────────────────────────────────
+// "2h", "1h30", "45m"
+function fmtMins(m) { m = Math.round(m||0); var h = Math.floor(m/60), r = m % 60; return h ? (h + 'h' + (r ? String(r).padStart(2,'0') : '')) : (r + 'm'); }
+
+// ── Late / overtime on a shift ──
+var _adjustKind = '', _adjustShiftId = '';
+function openShiftAdjust(kind, shiftId) {
+  var db = getDB(); var s = db.shifts.find(function(x){ return x.id === shiftId; }); if (!s) return;
+  _adjustKind = kind; _adjustShiftId = shiftId;
+  var dur = Math.round(shiftScheduledHours(s) * 60);
+  var cur = kind === 'late' ? (s.lateMinutes||0) : (s.overtimeMinutes||0);
+  var maxH = kind === 'late' ? Math.floor(dur/60) : 8;
+  document.getElementById('adjust-title').innerHTML = kind === 'late'
+    ? '<i class="fas fa-hourglass-half"></i> Late' : '<i class="fas fa-business-time"></i> Overtime';
+  document.getElementById('adjust-info').textContent = s.employee + ' · ' + s.day + ' ' + shiftDateStr(s) + ' · ' + s.start + '–' + s.end;
+  document.getElementById('adjust-help').textContent = kind === 'late'
+    ? 'How late did they start? That time is hatched on the bar and does not count toward hours or tips.'
+    : 'How long did they stay after ' + s.end + '? Overtime counts toward hours and tips.';
+  var hSel = document.getElementById('adjust-hours'); var opts = '';
+  for (var h = 0; h <= maxH; h++) opts += '<option value="'+h+'">'+h+'</option>';
+  hSel.innerHTML = opts; hSel.value = String(Math.floor(cur/60));
+  document.getElementById('adjust-mins').value = String(cur % 60 - (cur % 60) % 15);
+  var chips = kind === 'late' ? [15,30,60,120] : [30,60,90,120];
+  document.getElementById('adjust-chips').innerHTML = chips.map(function(m){
+    return '<button type="button" class="inv-slicer" data-adjust-quick="'+m+'">'+(kind==='late'?'':'+')+fmtMins(m)+'</button>'; }).join('');
+  document.getElementById('adjust-error').textContent = '';
+  document.getElementById('btn-adjust-clear').style.display = cur ? '' : 'none';
+  openModal('modal-shift-adjust');
+}
+function saveShiftAdjust(minutes) {
+  var db = getDB(); var s = db.shifts.find(function(x){ return x.id === _adjustShiftId; }); if (!s) { closeModal('modal-shift-adjust'); return; }
+  var dur = Math.round(shiftScheduledHours(s) * 60);
+  if (_adjustKind === 'late' && minutes >= dur) { document.getElementById('adjust-error').textContent = 'Late must be shorter than the shift (' + fmtMins(dur) + ').'; return; }
+  var field = _adjustKind === 'late' ? 'lateMinutes' : 'overtimeMinutes';
+  var col = _adjustKind === 'late' ? 'late_minutes' : 'overtime_minutes';
+  s[field] = minutes; saveDB(db); closeModal('modal-shift-adjust'); renderShifts();
+  var body = {}; body[col] = minutes;
+  sbFetch('PATCH','shifts',body,shiftSlotFilter(s.employee,s.weekStart,s.day))
+    .then(function(){ toast(minutes ? (_adjustKind==='late' ? s.employee+' late '+fmtMins(minutes) : s.employee+' overtime +'+fmtMins(minutes)) : 'Cleared', 'gold'); })
+    .catch(function(){ toast('Saved on this device only. Check the connection and try again.','error'); });
+}
+
 // ── Actual hours: the one rule used by Tips, Hours and Attendance ──
 // scheduled hours − late + overtime; 0 on a day off or when absent that day (justified or not)
 function shiftDateStr(s) {
@@ -5055,8 +5153,9 @@ function computeTipSplit(db, ws, total) {
   var parts = emps.map(function(e){ var exact = st[e].hours / totalHrs * cents; return {e:e, c:Math.floor(exact), r:exact - Math.floor(exact)}; });
   var left = cents - parts.reduce(function(a,p){ return a + p.c; }, 0);
   parts.slice().sort(function(a,b){ return b.r - a.r || a.e.localeCompare(b.e); }).slice(0, left).forEach(function(p){ p.c++; });
-  var split = {total: Math.round(total*100)/100, totalHours: Math.round(totalHrs*100)/100, generatedAt: new Date().toISOString(), hours:{}, shares:{}, absentDays:{}};
-  parts.forEach(function(p){ split.hours[p.e] = Math.round(st[p.e].hours*100)/100; split.shares[p.e] = p.c/100; });
+  var split = {total: Math.round(total*100)/100, totalHours: Math.round(totalHrs*100)/100, generatedAt: new Date().toISOString(), hours:{}, shares:{}, absentDays:{}, lateMinutes:{}, overtimeMinutes:{}};
+  parts.forEach(function(p){ split.hours[p.e] = Math.round(st[p.e].hours*100)/100; split.shares[p.e] = p.c/100;
+    if (st[p.e].lateMinutes) split.lateMinutes[p.e] = st[p.e].lateMinutes; if (st[p.e].overtimeMinutes) split.overtimeMinutes[p.e] = st[p.e].overtimeMinutes; });
   Object.keys(st).forEach(function(e){ if (st[e].absentDays) split.absentDays[e] = st[e].absentDays; });
   return split;
 }
@@ -5087,6 +5186,8 @@ function tipSplitHTML(split, heading) {
   var absentOnly = Object.keys(split.absentDays||{}).filter(function(e){ return !(e in split.shares); });
   var rows = emps.map(function(e){
     var note = split.absentDays && split.absentDays[e] ? ' · '+split.absentDays[e]+' day'+(split.absentDays[e]>1?'s':'')+' absent' : '';
+    if (split.lateMinutes && split.lateMinutes[e]) note += ' · late '+fmtMins(split.lateMinutes[e]);
+    if (split.overtimeMinutes && split.overtimeMinutes[e]) note += ' · +'+fmtMins(split.overtimeMinutes[e])+' overtime';
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--slate-100)">'
       +'<div><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(e)+'</div>'
       +'<div style="font-size:12px;color:var(--slate-500)">'+split.hours[e].toFixed(1)+' h · '+Math.round(split.hours[e]/split.totalHours*100)+'%'+note+'</div></div>'
@@ -5209,7 +5310,9 @@ function renderShiftsHoursTab() {
     var zonesStr = Object.keys(st.zones).map(function(z){ return z+'('+st.zones[z]+'d)'; }).join(', ') || '—';
     return '<tr style="border-bottom:1px solid var(--ocean-50)">'
       +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
-      +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:var(--ocean-600)">'+st.hours.toFixed(1)+'h</td>'
+      +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:var(--ocean-600)">'+st.hours.toFixed(1)+'h'
+        +(st.lateMinutes?' <span class="badge badge-yellow" title="Late">late '+fmtMins(st.lateMinutes)+'</span>':'')
+        +(st.overtimeMinutes?' <span class="badge badge-blue" title="Overtime">+'+fmtMins(st.overtimeMinutes)+'</span>':'')+'</td>'
       +'<td style="padding:9px 8px;text-align:center;font-weight:700;color:#2b8a4b">'+st.days+'d'+(st.absentDays?' <span class="badge badge-red" title="Absent days">'+st.absentDays+' abs</span>':'')+'</td>'
       +'<td style="padding:9px 8px;font-size:11px;color:#5f7079">'+esc(zonesStr)+'</td>'
       +'</tr>';
@@ -5428,7 +5531,8 @@ function rerenderShiftsSoon() {
   shiftsRerenderTimer=setTimeout(function(){ var sec=document.getElementById('section-shifts'); if(sec&&sec.classList.contains('active')) renderShifts(); }, 120);
 }
 function shiftToRow(s) {
-  return {employee:s.employee,day:s.day,start_time:s.start,end_time:s.end,role:s.role||'',zone:s.zone||'',day_off:!!s.dayOff,week_start:s.weekStart};
+  return {employee:s.employee,day:s.day,start_time:s.start,end_time:s.end,role:s.role||'',zone:s.zone||'',day_off:!!s.dayOff,week_start:s.weekStart,
+    late_minutes:s.lateMinutes||0,overtime_minutes:s.overtimeMinutes||0};
 }
 var repeatBusy=false;
 function repeatWeek(){
@@ -5473,9 +5577,11 @@ function saveShift(){
     var zoneEl=row.querySelector('.shift-day-zone');
     var zone=zoneEl?zoneEl.value:'';
     if(!isDayOff&&(!start||!end)) return;
+    var prev=db.shifts.find(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
     db.shifts=db.shifts.filter(function(s){return !(s.employee===emp&&s.day===day&&s.weekStart===ws);});
     var newId=uid();
     var ns={id:newId,employee:emp,day:day,start:start,end:end,role:role,zone:zone,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()};
+    if(prev&&!isDayOff){ var durM=Math.round(shiftScheduledHours(ns)*60); ns.lateMinutes=Math.min(prev.lateMinutes||0, Math.max(0,durM-15)); ns.overtimeMinutes=prev.overtimeMinutes||0; }
     db.shifts.push(ns);
     sbFetch('DELETE','shifts',null,shiftSlotFilter(emp,ws,day))
       .then(function(){ return sbFetch('POST','shifts',shiftToRow(ns)); })
@@ -5501,6 +5607,8 @@ function openShiftActionSheet(shiftId, dateStr, wsStr) {
   if (avatarEl) avatarEl.textContent = s.employee.charAt(0).toUpperCase();
   var info = s.dayOff ? 'Day Off' : (s.start + '–' + s.end);
   if (s.zone) info += ' · ' + s.zone;
+  if (s.lateMinutes) info += ' · late ' + fmtMins(s.lateMinutes);
+  if (s.overtimeMinutes) info += ' · +' + fmtMins(s.overtimeMinutes) + ' overtime';
   info += ' · ' + (dateStr || '');
   if (infoEl) infoEl.textContent = info;
   // Hide absent buttons if already absent for this date
@@ -5514,6 +5622,12 @@ function openShiftActionSheet(shiftId, dateStr, wsStr) {
   if (absentUBtn) absentUBtn.style.display = (canEdit && !alreadyAbsent) ? '' : 'none';
   if (absentJBtn) absentJBtn.style.display = (canEdit && !alreadyAbsent) ? '' : 'none';
   if (delBtn) delBtn.style.display = canEdit ? '' : 'none';
+  var canAdjust = canEdit && !s.dayOff && !alreadyAbsent;
+  var lateBtn = document.getElementById('shift-action-late'), otBtn = document.getElementById('shift-action-ot');
+  if (lateBtn) lateBtn.parentNode.style.display = canAdjust ? 'flex' : 'none';
+  var lateLbl = document.getElementById('shift-action-late-label'), otLbl = document.getElementById('shift-action-ot-label');
+  if (lateLbl) lateLbl.textContent = s.lateMinutes ? 'Late · ' + fmtMins(s.lateMinutes) : 'Late';
+  if (otLbl) otLbl.textContent = s.overtimeMinutes ? 'Overtime · +' + fmtMins(s.overtimeMinutes) : 'Overtime';
   openModal('modal-shift-action');
 }
 function deleteShift(id){
@@ -6149,6 +6263,12 @@ document.addEventListener('click', function(e) {
     var db4=getDB(); var s4=db4.shifts.find(function(x){return x.id===_shiftActionId;});
     if(s4) markAbsentJustified(s4.employee, _shiftActionDate, _shiftActionWs, true); return;
   }
+  if (t.closest('#shift-action-late')) { closeModal('modal-shift-action'); openShiftAdjust('late', _shiftActionId); return; }
+  if (t.closest('#shift-action-ot'))   { closeModal('modal-shift-action'); openShiftAdjust('overtime', _shiftActionId); return; }
+  el = t.closest('[data-adjust-quick]');
+  if (el) { var qm = parseInt(el.dataset.adjustQuick,10); document.getElementById('adjust-hours').value = String(Math.floor(qm/60)); document.getElementById('adjust-mins').value = String(qm%60); return; }
+  if (t.closest('#btn-adjust-save')) { saveShiftAdjust(parseInt(document.getElementById('adjust-hours').value||'0',10)*60 + parseInt(document.getElementById('adjust-mins').value||'0',10)); return; }
+  if (t.closest('#btn-adjust-clear')) { saveShiftAdjust(0); return; }
   if (t.closest('#shift-action-delete')) {
     closeModal('modal-shift-action');
     deleteShift(_shiftActionId); return;
