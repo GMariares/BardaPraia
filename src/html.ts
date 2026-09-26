@@ -842,7 +842,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="section-label" style="margin-top:12px">Admin</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
-    <button class="drawer-item" id="ditem-accounting" data-nav="accounting"><i class="fas fa-scale-balanced"></i> Accounting <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
+    <button class="drawer-item" id="ditem-accounting" data-nav="accounting"><i class="fas fa-scale-balanced"></i> Accounting <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Users <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
   </nav>
@@ -853,7 +853,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div id="drawer-user-name" style="color:white;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
         <div id="drawer-user-sub" style="color:rgba(255,255,255,.5);font-size:11px;margin-top:1px">Not signed in</div>
       </div>
-      <button id="drawer-logout-btn" onclick="appLogout()" style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;flex-shrink:0" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
+      <button id="drawer-logout-btn" style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;flex-shrink:0" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
     </div>
     <button id="btn-enable-notif" style="margin-top:10px;width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
       <i class="fas fa-bell"></i> <span id="notif-btn-label">Enable Notifications</span> <i id="notif-status-dot" class="fas fa-circle" style="font-size:7px;margin-left:auto;color:rgba(255,255,255,.4)"></i>
@@ -1128,8 +1128,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <section id="section-accounting" class="page-section">
     <div id="acc-locked" class="locked-overlay" style="display:none">
       <i class="fas fa-scale-balanced" style="color:#6d4fc2"></i>
-      <h3>Finance access required</h3>
-      <p>Accounting is for people with the Finance role.</p>
+      <h3>Admin only</h3>
+      <p>Accounting can only be opened by an administrator.</p>
     </div>
     <div id="acc-content" style="display:none">
       <div class="acc-head">
@@ -2887,10 +2887,13 @@ function doLogin() {
   });
 }
 
+// Accounting figures never stay on a device for someone who is not an admin
+function forgetAccounting() { var db = getDB(); if (db.accEntries || db.accConfig) { delete db.accEntries; delete db.accConfig; saveDB(db); } }
 function applyLogin(user, showWelcome) {
   currentUser = user;
   isAdmin   = hasRole('admin');
   isFinance = hasRole('finance') || hasRole('admin');
+  if (!isAdmin) forgetAccounting();
   // Persist session across refreshes
   try { localStorage.setItem(SESSION_KEY, JSON.stringify({id: user.id, username: user.username})); } catch(e){}
   document.getElementById('login-password').value = '';
@@ -2908,6 +2911,7 @@ function applyLogin(user, showWelcome) {
 }
 
 function appLogout() {
+  forgetAccounting();
   currentUser = null;
   isAdmin = false;
   isFinance = false;
@@ -3228,7 +3232,7 @@ function updateSessionUI() {
   dshow('ditem-reservations', true);
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
-  dshow('ditem-accounting',   isFinance);
+  dshow('ditem-accounting',   isAdmin);
   dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
   dshow('ditem-blackbox',     isAdmin);
   dshow('ditem-users',        isAdmin);
@@ -3405,7 +3409,7 @@ function refreshSection(name) {
     }).catch(function(){});
 
   } else if (name === 'accounting') {
-    accLoad();
+    if (isAdmin) accLoad();
 
   } else if (name === 'users') {
     sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at').then(function(rows) {
@@ -3462,10 +3466,10 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(function()
 function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
-  if ((name === 'blackbox' || name === 'settings' || name === 'users') && !isAdmin) {
+  if ((name === 'blackbox' || name === 'settings' || name === 'users' || name === 'accounting') && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
-  if ((name === 'finance' || name === 'accounting') && !isFinance) {
+  if (name === 'finance' && !isFinance) {
     toast('Finance role required.', 'error'); return;
   }
 
@@ -6747,11 +6751,10 @@ function accSetCell(kind, y, m, line, part, raw) {
 // ── screen ──
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
-  if (!isFinance) { locked.style.display = 'flex'; content.style.display = 'none'; return; }
+  // Accounting is for admins only (wages, margins, every cost)
+  if (!isAdmin) { locked.style.display = 'flex'; content.style.display = 'none'; document.getElementById('acc-body').innerHTML = ''; return; }
   locked.style.display = 'none'; content.style.display = 'block';
   document.getElementById('acc-year-label').textContent = accYear;
-  var wBtn = document.getElementById('acc-tab-wages-btn'); if (wBtn) wBtn.style.display = isAdmin ? '' : 'none';
-  if (accTab === 'wages' && !isAdmin) accTab = 'summary';
   document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
   var body = document.getElementById('acc-body');
   var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
@@ -6855,7 +6858,6 @@ function accRevenueHTML() {
 }
 
 function accWagesHTML() {
-  if (!isAdmin) return '';
   var ws = accWages(accYear, accMonth), rev = accRevenue(accYear, accMonth).total;
   var h = accMonthBar() + '<div class="acc-toolbar"><div class="acc-toolbar-title">Wages · ' + accMonthLabel(accYear, accMonth) + '</div>'
     + '<button class="btn btn-secondary btn-sm" id="acc-wage-copy"><i class="fas fa-copy"></i> Copy last month</button>'
