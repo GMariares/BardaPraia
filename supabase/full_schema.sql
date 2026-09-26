@@ -20,6 +20,7 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS inv_sort_order JSONB DEFAULT '[]':
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS tip_splits     JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS areas          JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS week_notices   JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS accounting     JSONB DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -187,6 +188,21 @@ CREATE TABLE IF NOT EXISTS absences (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Accounting (see supabase/migrations/2026-09-27-h-accounting.sql)
+CREATE TABLE IF NOT EXISTS acc_entries (
+  id TEXT PRIMARY KEY,
+  year INT NOT NULL,
+  month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
+  kind TEXT NOT NULL,
+  line TEXT NOT NULL DEFAULT '',
+  part TEXT DEFAULT '',
+  date DATE,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  note TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS acc_entries_year_kind ON acc_entries (year, kind);
+
 -- Shift change requests (see supabase/migrations/2026-09-26-e-shift-requests.sql)
 CREATE TABLE IF NOT EXISTS shift_requests (
   id TEXT PRIMARY KEY,
@@ -217,7 +233,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences','shift_requests']
+                           'app_users','push_subscriptions','absences','shift_requests','acc_entries']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);
