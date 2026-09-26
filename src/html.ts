@@ -1586,6 +1586,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <h3><i class="fas fa-shield-halved" style="color:var(--teal-600)"></i> Secure login</h3>
       <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Moves every login to Supabase's secure sign-in, keeping each person's password. After that, the database itself checks who may see what.</p>
       <div id="secure-login-body"></div>
+      <div id="secure-migrate-result" aria-live="polite"></div>
     </div>
     <!-- Notifications card — visible to ALL users -->
     <div class="settings-card" id="notif-settings-card">
@@ -2477,23 +2478,29 @@ function renderSecureCard() {
   el.innerHTML = line(st.serviceKey, 'Cloudflare secret <b>SB_SERVICE_KEY</b> is set')
     + line(st.secure, 'Staff logins moved to secure login')
     + line(!!authSession, 'You are logged in with a secure session')
-    + (st.serviceKey ? '<button class="btn btn-primary" id="btn-secure-migrate" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-shield-halved"></i> ' + (st.secure ? 'Check all logins again' : 'Move everyone to secure login') + '</button>' : '')
-    + '<div id="secure-migrate-result"></div>';
+    + (st.serviceKey && st.authAdmin && st.authAdmin !== 'ok' ? '<p class="acc-note" style="color:var(--red);margin-top:6px">Supabase does not accept the key for managing logins (' + esc(st.authAdmin) + '). Use the <b>service_role</b> key from Supabase → Project Settings → API Keys → Legacy API keys.</p>' : '')
+    + (st.serviceKey ? '<button class="btn btn-primary" id="btn-secure-migrate" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-shield-halved"></i> ' + (st.secure ? 'Check all logins again' : 'Move everyone to secure login') + '</button>' : '');
 }
+var secureMigrating = false;
 function runSecureMigrate() {
+  if (secureMigrating) return;
   var pw = authSession ? '' : prompt('Your password (to confirm you are an admin)');
-  if (pw === null) return;
-  var out = document.getElementById('secure-migrate-result'); if (out) out.innerHTML = '<p class="acc-note">Working…</p>';
+  if (pw === null) { toast('Cancelled', 'error'); return; }
+  secureMigrating = true;
+  var btn = document.getElementById('btn-secure-migrate'); if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Moving logins…'; }
+  var out = document.getElementById('secure-migrate-result'); if (out) out.innerHTML = '<p class="acc-note">Working… this takes a few seconds.</p>';
   fetch('/api/auth/migrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser ? currentUser.username : '', password: pw }) })
     .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
     .then(function(res){
-      if (!res.ok) { if (out) out.innerHTML = '<p class="acc-note" style="color:var(--red)">' + esc(res.j.error || 'Failed') + '</p>'; return; }
+      secureMigrating = false;
+      if (!res.ok) { if (out) out.innerHTML = '<p class="acc-note" style="color:var(--red)"><b>Not done:</b> ' + esc(res.j.error || 'Failed') + '</p>'; toast(res.j.error || 'Not done', 'error'); loadAuthStatus().then(renderSecureCard); return; }
       var j = res.j;
-      if (out) out.innerHTML = '<p class="acc-note"><b>' + j.created.length + '</b> logins created, <b>' + j.updated.length + '</b> already there and updated.'
+      if (out) out.innerHTML = '<p class="acc-note" style="color:var(--slate-800)"><b>' + j.created.length + '</b> logins created, <b>' + j.updated.length + '</b> already there and updated.'
         + (j.failed.length ? '<br><b style="color:var(--red)">Need attention:</b> ' + j.failed.map(function(f){ return esc(f.username) + ' (' + esc(f.reason) + ')'; }).join('; ') : '') + '</p>'
-        + (authSession ? '' : '<p class="acc-note">Log out and in again to start your own secure session.</p>');
-      loadAuthStatus().then(renderSecureCard).then(function(){ var o2 = document.getElementById('secure-migrate-result'); if (o2 && out) o2.innerHTML = out.innerHTML; });
-    }).catch(function(){ if (out) out.innerHTML = '<p class="acc-note" style="color:var(--red)">Could not reach the server.</p>'; });
+        + (authSession ? '' : '<p class="acc-note"><b>Next:</b> log out and in again to start your own secure session.</p>');
+      toast(j.created.length + ' logins created', 'success');
+      loadAuthStatus().then(renderSecureCard);
+    }).catch(function(){ secureMigrating = false; if (out) out.innerHTML = '<p class="acc-note" style="color:var(--red)">Could not reach the server.</p>'; loadAuthStatus().then(renderSecureCard); });
 }
 // Users (admins, secure mode): full rows with pay details come from the server, never from the open API
 function loadUsersSecure() {

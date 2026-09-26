@@ -70,15 +70,16 @@ async function listAuthUsers(cfg: Cfg): Promise<any[]> {
   }
   return out
 }
-let secureCache = { at: 0, on: false }
+let secureCache = { at: 0, on: false, admin: '' }
 async function secureMode(cfg: Cfg): Promise<boolean> {
   if (!cfg.SB_SERVICE_KEY) return false
   if (Date.now() - secureCache.at < 60000) return secureCache.on
   try {
     const r = await fetch(`${cfg.SB_URL}/auth/v1/admin/users?page=1&per_page=1`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
     const j: any = r.ok ? await r.json() : { users: [] }
-    secureCache = { at: Date.now(), on: (j.users || []).length > 0 }
-  } catch { secureCache = { at: Date.now(), on: false } }
+    secureCache = { at: Date.now(), on: (j.users || []).length > 0, admin: r.ok ? 'ok' : 'error ' + r.status + ': ' + JSON.stringify(j).slice(0, 120) }
+    if (!r.ok) secureCache.admin = 'error ' + r.status + ': ' + (await r.text().catch(() => '')).slice(0, 120)
+  } catch (e: any) { secureCache = { at: Date.now(), on: false, admin: 'error: ' + e.message } }
   return secureCache.on
 }
 // The caller's staff identity from their Supabase session, or null
@@ -135,7 +136,9 @@ app.get('/api/version', (c) => {
 app.get('/api/auth/status', async (c) => {
   const cfg = getConfig(c.env)
   c.header('Cache-Control', 'no-store')
-  return c.json({ serviceKey: !!cfg.SB_SERVICE_KEY, secure: await secureMode(cfg), emailDomain: cfg.EMAIL_DOMAIN })
+  const secure = await secureMode(cfg)
+  // authAdmin: whether the key may manage logins ('ok'), or the error Supabase gave
+  return c.json({ serviceKey: !!cfg.SB_SERVICE_KEY, secure, emailDomain: cfg.EMAIL_DOMAIN, authAdmin: cfg.SB_SERVICE_KEY ? secureCache.admin : '' })
 })
 
 // Create a Supabase Auth login for every staff account, keeping each person's current password.
@@ -153,7 +156,8 @@ app.post('/api/auth/migrate', async (c) => {
     if (me && me.active !== false && me.password_hash && me.password_hash === b64utf8(String(password || ''))) admin = { appUserId: me.id, username: me.username, roles: me.roles || [] }
   }
   if (!admin || admin.roles.indexOf('admin') === -1) return c.json({ error: 'Only an admin can do this (check your password)' }, 403)
-  const existing = await listAuthUsers(cfg)
+  let existing: any[]
+  try { existing = await listAuthUsers(cfg) } catch (e: any) { return c.json({ error: 'Supabase refused to manage logins with this key: ' + e.message }, 502) }
   const result: any = { created: [], updated: [], failed: [] }
   for (const row of rows) {
     const email = emailFor(cfg, row.username)
