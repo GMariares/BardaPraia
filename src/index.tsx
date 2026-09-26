@@ -18,11 +18,12 @@ app.use('*', cors())
 // Public values have built-in defaults so the app runs with zero config.
 // VAPID_PRIVATE is a secret and MUST be set in the hosting environment
 // (Cloudflare Pages → Settings → Variables and Secrets; locally in .dev.vars).
-// The VAPID key pair must never change: existing push subscriptions are bound to it.
+// The key pair was replaced on 2026-09-26 (the old private key is in the public git history).
+// Devices re-subscribe on their own the next time the app opens (ensurePushCurrent in html.ts).
 const DEFAULTS = {
   SB_URL: 'https://eurcdnyhwqofnddhxrpf.supabase.co',
   SB_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1cmNkbnlod3FvZm5kZGh4cnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODIyNDMsImV4cCI6MjA5MDM1ODI0M30.sqap9onVY3z8AJO9bATT8jXShOxe7h6g0uXWTUN4kK0',
-  VAPID_PUBLIC: 'BJ302ZJZf1kKxra5TvjiV-33Yx07KRR8oCfsQobjgtxu-oan78YJr2YTUAzVSyXolJO-V_ktqcQZe9g9RjZuqes',
+  VAPID_PUBLIC: 'BDVeMOFPNtTQON09egtcQXQh7E8XRSxw9nmyKo1J0izoiwEdoAqetfR70Cwq57I2MkHTjcCWbqttL07OjfEDmjI',
   VAPID_SUBJECT: 'mailto:admin@bardapraia.com'
 }
 function getConfig(env: Bindings | undefined) {
@@ -68,8 +69,10 @@ self.addEventListener('notificationclick', function(e) {
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
       for (var i = 0; i < list.length; i++) {
-        if (list[i].url.indexOf(self.location.origin) !== -1 && 'focus' in list[i])
+        if (list[i].url.indexOf(self.location.origin) !== -1 && 'focus' in list[i]) {
+          list[i].postMessage({ type: 'open', url: target });
           return list[i].focus();
+        }
       }
       if (self.clients.openWindow) return self.clients.openWindow(target);
     })

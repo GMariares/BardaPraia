@@ -215,3 +215,10 @@ so switching staff back to the old address restores everything.
 - `scripts/restore-supabase.mjs` — upsert a backup into any Supabase project, prints per-table verification.
 - `supabase/full_schema.sql` — complete schema for a fresh project (base + all in-app migrations, no seed rows).
 - `backups/` — git-ignored; never commit backups, they contain PINs and password hashes.
+
+## Update 2026-09-26: new push notification keys
+
+The original VAPID private key is readable in this public repository's history, so the key pair was replaced.
+The new public key is in `src/index.tsx`; the new private key was handed to the owner to store as the
+Cloudflare secret `VAPID_PRIVATE`. Old subscriptions stop working; each phone re-subscribes quietly the
+next time the app is opened by a logged-in user who had allowed notifications (`ensurePushCurrent`).
