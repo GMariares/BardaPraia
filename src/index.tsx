@@ -335,9 +335,11 @@ async function encryptPayload(plaintext: string, p256dhB64: string, authB64: str
   return result
 }
 
+// HKDF (RFC 5869). Extract is HMAC keyed with the salt over the input key material;
+// having these two the wrong way round made every payload undecryptable on the phone.
 async function hkdf(salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey('raw', ikm, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-  const prk = new Uint8Array(await crypto.subtle.sign('HMAC', key, salt))
+  const key = await crypto.subtle.importKey('raw', salt, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const prk = new Uint8Array(await crypto.subtle.sign('HMAC', key, ikm))
   const prkKey = await crypto.subtle.importKey('raw', prk, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   const infoWithCounter = new Uint8Array(info.length + 1)
   infoWithCounter.set(info); infoWithCounter[info.length] = 0x01
