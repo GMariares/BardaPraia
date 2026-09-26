@@ -25,6 +25,11 @@ self.addEventListener('push', function(e) {
       badge: icon,
       tag:   tag,
       data:  { url: url }
+    }).catch(function() {}).then(function() {
+      // Tell open pages it arrived (used by "Send me a test")
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    }).then(function(list) {
+      list.forEach(function(c) { c.postMessage({ type: 'pushed', tag: tag }); });
     })
   );
 });
@@ -38,6 +43,7 @@ self.addEventListener('notificationclick', function(e) {
       for (var i = 0; i < list.length; i++) {
         var c = list[i];
         if (c.url.indexOf(self.location.origin) !== -1 && 'focus' in c) {
+          c.postMessage({ type: 'open', url: target });   // e.g. open the shift Requests tab
           return c.focus();
         }
       }
