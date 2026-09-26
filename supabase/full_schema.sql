@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS app_users (
   active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS employee TEXT DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   user_id TEXT NOT NULL,
@@ -184,13 +185,37 @@ CREATE TABLE IF NOT EXISTS absences (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Shift change requests (see supabase/migrations/2026-09-26-e-shift-requests.sql)
+CREATE TABLE IF NOT EXISTS shift_requests (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  kind TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  requester TEXT NOT NULL,
+  requester_user_id TEXT,
+  week_start DATE NOT NULL,
+  day TEXT NOT NULL,
+  shift_id TEXT,
+  shift_snapshot JSONB,
+  new_start TEXT,
+  new_end TEXT,
+  colleague TEXT,
+  colleague_snapshot JSONB,
+  note TEXT DEFAULT '',
+  decided_by TEXT,
+  decided_at TIMESTAMPTZ,
+  decision_note TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS shift_requests_week ON shift_requests (week_start);
+
 -- Row Level Security: open access with the anon key (the app does its own login)
 DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences']
+                           'app_users','push_subscriptions','absences','shift_requests']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);

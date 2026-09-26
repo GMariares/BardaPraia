@@ -657,6 +657,37 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .wk-num { font-weight:800; font-variant-numeric:tabular-nums; color:var(--slate-900); }
     .wk-off { color:var(--slate-500); font-weight:600; }
     .week-sheet-meta { display:none; }
+    /* ── Shift change requests ── */
+    .tab-count { min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:10.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
+    .nav-dot { position:absolute; top:4px; right:calc(50% - 18px); width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--panel); }
+    .drawer-item .nav-dot { position:static; display:inline-block; margin-left:auto; box-shadow:none; }
+    .req-section-title { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.09em; color:var(--slate-500); margin:16px 0 8px; }
+    .req-section-title:first-child { margin-top:0; }
+    .req-card { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
+    .req-card-top { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; }
+    .req-who { font-weight:800; font-size:14px; color:var(--slate-900); }
+    .req-what { font-size:13.5px; color:var(--slate-700); margin-top:2px; font-variant-numeric:tabular-nums; }
+    .req-note { font-size:13px; color:var(--slate-600); margin-top:6px; font-style:italic; }
+    .req-meta { font-size:11.5px; color:var(--slate-500); margin-top:6px; }
+    .req-status { flex-shrink:0; font-size:11px; font-weight:800; border-radius:12px; padding:3px 9px; white-space:nowrap; }
+    .req-status.is-amber { background:var(--amber-50); color:var(--amber-700); }
+    .req-status.is-green { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
+    .req-status.is-red { background:var(--red-50); color:var(--red-700); }
+    .req-status.is-gray { background:var(--slate-50); color:var(--slate-500); }
+    .req-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    #shifts-requests-content { max-width:720px; }
+    .req-actions .btn { min-height:40px; flex:1 1 0; max-width:220px; justify-content:center; }
+    @media (max-width:640px) { .req-actions .btn { max-width:none; } }
+    .req-empty { font-size:13px; color:var(--slate-500); padding:10px 2px; }
+    .req-banner { background:var(--amber-50); border:1px solid var(--amber-200); color:var(--amber-700); border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:12px; }
+    .req-shift { background:var(--slate-50); border-radius:10px; padding:10px 12px; font-size:14px; color:var(--slate-700); margin-bottom:12px; }
+    .req-kinds { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .req-kind { display:flex; gap:10px; align-items:flex-start; border:1.5px solid var(--slate-200); border-radius:10px; padding:10px 12px; cursor:pointer; }
+    .req-kind.is-on { border-color:var(--teal-500); background:var(--mint-50); }
+    .req-kind input { margin-top:3px; accent-color:var(--teal-600); }
+    .req-kind b { display:block; font-size:14px; color:var(--slate-900); }
+    .req-kind small { display:block; font-size:12px; color:var(--slate-500); }
+    .req-hint { font-size:12.5px; color:var(--slate-600); margin-top:6px; }
     #print-root { display:none; width:283mm; background:#fff; }
     #print-root .week-sheet { min-width:0; font-size:8.6pt; }
     #print-root .week-sheet th, #print-root .week-sheet td { padding:2px 4px; border-color:#cfd6da; }
@@ -723,7 +754,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Inventory</button>
     <button class="drawer-item" id="ditem-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i> Reservations</button>
     <button class="drawer-item" id="ditem-tasks" data-nav="tasks"><i class="fas fa-list-check"></i> Tasks</button>
-    <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts</button>
+    <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts<span class="nav-dot" id="ditem-shifts-dot" style="display:none"></span></button>
     <div class="section-label" style="margin-top:12px">Admin</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
@@ -912,6 +943,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div class="tab-row" style="margin-bottom:12px" id="shifts-tab-row">
       <button class="tab-btn active" data-shifts-tab="gantt"><i class="fas fa-calendar-week"></i> Schedule</button>
       <button class="tab-btn" data-shifts-tab="week"><i class="fas fa-table-cells"></i> Week</button>
+      <button class="tab-btn" data-shifts-tab="requests"><i class="fas fa-arrow-right-arrow-left"></i> Requests <span class="tab-count" id="req-tab-count" style="display:none"></span></button>
       <button class="tab-btn" data-shifts-tab="tips"><i class="fas fa-hand-holding-dollar"></i> Tips</button>
       <button class="tab-btn" data-shifts-tab="hours"><i class="fas fa-clock"></i> Hours</button>
       <button class="tab-btn" data-shifts-tab="attendance"><i class="fas fa-user-check"></i> Attendance</button>
@@ -936,6 +968,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <button class="btn btn-secondary btn-sm" id="btn-week-print"><i class="fas fa-print"></i> Print</button>
       </div>
       <div class="week-scroll"><div id="week-sheet-wrap"></div></div>
+    </div>
+
+    <!-- ── Tab: Shift change requests ── -->
+    <div id="shifts-panel-requests" style="display:none">
+      <div id="shifts-requests-content"></div>
     </div>
 
     <!-- ── Tab: Tips ── -->
@@ -1504,7 +1541,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
   <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Stock</button>
   <button class="bnav-item" id="bnav-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i>Book</button>
   <button class="bnav-item" id="bnav-tasks" data-nav="tasks"><i class="fas fa-list-check"></i>Tasks</button>
-  <button class="bnav-item" id="bnav-shifts" data-nav="shifts"><i class="fas fa-clock"></i>Shifts</button>
+  <button class="bnav-item" id="bnav-shifts" data-nav="shifts"><i class="fas fa-clock"></i>Shifts<span class="nav-dot" id="bnav-shifts-dot" style="display:none"></span></button>
   <button class="bnav-item admin-nav" id="bnav-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i>Box</button>
   <button class="bnav-item" id="bnav-finance" data-nav="finance" style="color:#6d4fc2"><i class="fas fa-euro-sign"></i>Finance</button>
 </nav>
@@ -1577,6 +1614,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <div class="form-grid-2" style="margin-bottom:12px">
       <div><label class="label">Name *</label><input type="text" class="input-field" id="user-name" placeholder="Full name" /></div>
       <div><label class="label">Username *</label><input type="text" class="input-field" id="user-username" placeholder="login name" autocapitalize="none" /></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="label" for="user-employee">Name on the shift schedule</label>
+      <select class="select-field" id="user-employee"></select>
+      <div style="font-size:12px;color:var(--slate-500);margin-top:4px">Lets this person see their own shifts and ask for changes.</div>
     </div>
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Password *</label><input type="password" class="input-field" id="user-password" placeholder="Min 6 chars" /></div>
@@ -1907,10 +1949,42 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <i class="fas fa-rotate" style="color:var(--slate-600)"></i> <span id="shift-action-abs-toggle-label">Mark justified</span>
       </button>
     </div>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;display:none" id="shift-action-request">
+      <i class="fas fa-arrow-right-arrow-left" style="color:var(--teal-600)"></i> <span id="shift-action-request-label">Request a change</span>
+    </button>
     <button class="btn" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px;background:var(--red-50);color:var(--red-700);border:1px solid #f0b8ae" id="shift-action-delete">
       <i class="fas fa-trash" style="color:#b4402f"></i> Delete Shift
     </button>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:14px" data-close-modal="modal-shift-action">Cancel</button>
+  </div>
+</div>
+
+<!-- Shift change request -->
+<div class="modal-overlay" id="modal-shift-request">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-arrow-right-arrow-left"></i> Request a change</h2>
+    <div class="req-shift" id="req-shift-info"></div>
+    <div class="req-kinds" role="radiogroup" aria-label="What do you need?">
+      <label class="req-kind is-on"><input type="radio" name="req-kind" value="times" checked /><span><b>Change my times</b><small>A different start or end</small></span></label>
+      <label class="req-kind"><input type="radio" name="req-kind" value="dayoff" /><span><b>Take the day off</b><small>A manager approves it</small></span></label>
+      <label class="req-kind"><input type="radio" name="req-kind" value="swap" /><span><b>Swap or give to a colleague</b><small>They agree first, then a manager approves</small></span></label>
+    </div>
+    <div id="req-times" class="form-grid-2" style="margin-bottom:12px">
+      <div><label class="label" for="req-start">New start</label><input type="time" class="input-field" id="req-start" /></div>
+      <div><label class="label" for="req-end">New end</label><input type="time" class="input-field" id="req-end" /></div>
+    </div>
+    <div id="req-swap" style="display:none;margin-bottom:12px">
+      <label class="label" for="req-colleague">Colleague</label>
+      <select class="select-field" id="req-colleague"></select>
+      <div class="req-hint" id="req-swap-hint"></div>
+    </div>
+    <label class="label" for="req-note">Message (optional)</label>
+    <textarea class="input-field" id="req-note" rows="2" placeholder="e.g. doctor's appointment"></textarea>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-shift-request">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-request-send"><i class="fas fa-paper-plane"></i> Send request</button>
+    </div>
   </div>
 </div>
 
@@ -2480,6 +2554,7 @@ function syncFromSupabase() {
       }; });
     }).catch(function(){ sbMissingItems.push('fin_entries table'); }),
     sbFetch('GET', 'app_users', null, 'order=name.asc').then(function(rows) {
+      if (rows && rows.length) sbCols.userEmployee = ('employee' in rows[0]);
       if (rows && rows.length > 0) {
         db.appUsers = rows.map(function(r){ return {
           id: r.id, name: r.name, username: r.username,
@@ -2488,7 +2563,7 @@ function syncFromSupabase() {
           contractStart: r.contract_start||'', contractEnd: r.contract_end||'',
           hours: r.hours||'', amount: r.amount||'',
           discount: r.discount||'', insurance: r.insurance||'',
-          clothSize: r.cloth_size||'', notes: r.notes||'',
+          clothSize: r.cloth_size||'', notes: r.notes||'', employee: r.employee||'',
           active: r.active !== false, createdAt: r.created_at
         }; });
       }
@@ -2506,6 +2581,9 @@ function syncFromSupabase() {
         });
       }
     }).catch(function(){ sbMissingItems.push('app_users table'); }),
+    sbFetch('GET', 'shift_requests', null, 'week_start=gte.' + reqCutoff() + '&order=created_at.desc').then(function(rows) {
+      sbCols.requests = true; db.shiftRequests = (rows||[]).map(reqFromRow);
+    }).catch(function(){ sbCols.requests = false; }),
     sbFetchAll('absences', 'order=date.desc,id.asc').then(function(rows) {
       if (rows) db.absences = rows.map(function(r){ return {
         id: r.id, employee: r.employee, date: r.date,
@@ -2609,7 +2687,7 @@ function hashPw(pw) { return btoa(unescape(encodeURIComponent(pw))); }
 function hasRole(role) { return currentUser && Array.isArray(currentUser.roles) && currentUser.roles.indexOf(role) !== -1; }
 
 function sbRowToUser(x) {
-  return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',active:x.active!==false,createdAt:x.created_at};
+  return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',employee:x.employee||'',active:x.active!==false,createdAt:x.created_at};
 }
 
 var loginInFlight = false;
@@ -2657,6 +2735,8 @@ function applyLogin(user, showWelcome) {
   document.getElementById('login-screen').classList.add('hidden');
   updateSessionUI();
   showSection('dashboard');
+  if (pendingDeepLink) { var dl = pendingDeepLink; pendingDeepLink = ''; openDeepLink(dl); }
+  ensurePushCurrent();
   if (showWelcome) {
     toast('Welcome, ' + user.name + '!', 'gold');
     requestNotifPermission();
@@ -2678,6 +2758,31 @@ function appLogout() {
 
 // ── Push Notifications (Web Push via Service Worker) ───────────
 var swRegistration = null;
+// Opened from a notification ("/?open=requests"): handled once someone is logged in
+var pendingDeepLink = /open=requests/.test(location.search) ? location.search : '';
+function openDeepLink(url) {
+  if (!/open=requests/.test(url || '')) return;
+  if (!currentUser) { pendingDeepLink = url; return; }
+  try { history.replaceState(null, '', '/'); } catch (e) {}
+  showSection('shifts'); switchShiftsTab('requests');
+}
+// Keep this device's push subscription on the server's current key and owned by whoever is logged in
+var pushChecked = '';
+function ensurePushCurrent() {
+  if (!swRegistration || !currentUser || pushChecked === currentUser.id) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  pushChecked = currentUser.id;
+  var userId = currentUser.id;
+  fetch('/api/push/vapid-public-key').then(function(r){ return r.json(); }).then(function(data) {
+    return swRegistration.pushManager.getSubscription().then(function(sub) {
+      var want = urlBase64ToUint8Array(data.key);
+      var have = (sub && sub.options && sub.options.applicationServerKey) ? new Uint8Array(sub.options.applicationServerKey) : null;
+      var same = !!have && have.length === want.length && Array.prototype.every.call(have, function(b, i){ return b === want[i]; });
+      if (!same) { registerPushSubscription(true); return; }
+      return fetch('/api/push/subscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: userId, subscription: sub.toJSON() }) });
+    });
+  }).catch(function(){});
+}
 
 // Dead legacy FCM endpoint pattern (shut down June 2024)
 function isLegacyEndpoint(endpoint) {
@@ -2724,7 +2829,7 @@ function requestNotifPermission() {
   });
 }
 
-function registerPushSubscription() {
+function registerPushSubscription(quiet) {
   if (!swRegistration || !currentUser) return;
   var userId   = currentUser.id;
   var username = currentUser.username;
@@ -2779,16 +2884,16 @@ function registerPushSubscription() {
     .then(function(r) {
       if (r.ok) {
         console.log('[Push] Saved for', username);
-        toast('Notifications enabled', 'success');
+        if (!quiet) toast('Notifications enabled', 'success');
       } else {
         console.warn('[Push] Server rejected subscription');
-        toast('Could not save subscription', 'error');
+        if (!quiet) toast('Could not save subscription', 'error');
       }
       setBtnIdle();
     })
     .catch(function(err) {
       console.warn('[Push] Failed:', err.message);
-      toast('Failed: ' + err.message, 'error');
+      if (!quiet) toast('Failed: ' + err.message, 'error');
       setBtnIdle();
     });
 }
@@ -2825,6 +2930,8 @@ function sendTaskPush(taskTitle, assignedUserIds) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then(function(reg) {
     swRegistration = reg;
+    ensurePushCurrent();
+    navigator.serviceWorker.addEventListener('message', function(ev){ if (ev.data && ev.data.type === 'open') openDeepLink(ev.data.url); });
     // Force the new SW to activate immediately if waiting
     if (reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
     reg.update(); // Check for updated SW
@@ -3012,9 +3119,12 @@ function refreshSection(name) {
     Promise.all([
       sbFetchAll('shifts','order=week_start.desc,day.asc,id.asc'),
       sbFetchAll('absences','order=date.desc,id.asc'),
-      sbFetch('GET','employees',null,'order=name.asc')
+      sbFetch('GET','employees',null,'order=name.asc'),
+      sbFetch('GET','shift_requests',null,'week_start=gte.' + reqCutoff() + '&order=created_at.desc').catch(function(){ return 'missing'; })
     ]).then(function(res) {
       var db = getDB();
+      if (res[3] === 'missing') sbCols.requests = false;
+      else if (res[3]) { sbCols.requests = true; db.shiftRequests = res[3].map(reqFromRow); }
       if (res[0] && res[0].length) sbCols.section = ('section' in res[0][0]);
       if (res[0]) db.shifts = res[0].map(function(x){ return {id:x.id,employee:x.employee,day:x.day,weekStart:x.week_start,start:x.start_time?x.start_time.slice(0,5):'',end:x.end_time?x.end_time.slice(0,5):'',role:x.role||'',zone:x.zone||'',dayOff:!!x.day_off,createdAt:x.created_at,lateMinutes:x.late_minutes||0,overtimeMinutes:x.overtime_minutes||0,section:x.section||''}; });
       if (res[1]) db.absences = res[1].map(function(x){ return {id:x.id,employee:x.employee,date:x.date,weekStart:x.week_start,justified:!!x.justified,createdAt:x.created_at}; });
@@ -3057,7 +3167,7 @@ function refreshSection(name) {
     sbFetch('GET','app_users',null,'order=name.asc').then(function(rows) {
       if (!rows || !rows.length) return;
       var db = getDB();
-      db.appUsers = rows.map(function(x){ return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',active:x.active!==false,createdAt:x.created_at}; });
+      db.appUsers = rows.map(function(x){ return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',employee:x.employee||'',active:x.active!==false,createdAt:x.created_at}; });
       if (!db.appUsers.find(function(u){ return u.id==='admin_seed'; })) {
         db.appUsers.push({id:'admin_seed',name:'Administrator',username:'admin',passwordHash:btoa(unescape(encodeURIComponent('Admin1234'))),roles:['admin','finance','shift_mgr','employee'],contractStart:'',contractEnd:'',hours:'',amount:'',discount:'',insurance:'',clothSize:'',notes:'',active:true,createdAt:new Date().toISOString()});
       }
@@ -3222,6 +3332,7 @@ function openUserModal(userId) {
     setVal('user-insurance', u.insurance);
     setVal('user-cloth-size', u.clothSize);
     setVal('user-notes', u.notes);
+    fillUserEmployeeSelect(u);
     if (activeEl) activeEl.checked = u.active !== false;
     (u.roles||[]).forEach(function(r){
       var cb = document.querySelector('.user-role-cb[value="'+r+'"]');
@@ -3231,6 +3342,7 @@ function openUserModal(userId) {
     if (pwFields) pwFields.placeholder = 'Leave blank to keep current';
   } else {
     if (titleEl) titleEl.textContent = ' Add User';
+    fillUserEmployeeSelect(null);
     if (pwFields) pwFields.placeholder = 'Min 6 chars';
   }
   openModal('modal-add-user');
@@ -3274,6 +3386,7 @@ function saveUserModal() {
       insurance:     document.getElementById('user-insurance').value||'',
       clothSize:     document.getElementById('user-cloth-size').value||'',
       notes:         document.getElementById('user-notes').value||'',
+      employee:      document.getElementById('user-employee').value||'',
       active:        active,
       createdAt:     new Date().toISOString()
     };
@@ -3309,6 +3422,7 @@ function saveUserModal() {
     existing.insurance     = document.getElementById('user-insurance').value||'';
     existing.clothSize     = document.getElementById('user-cloth-size').value||'';
     existing.notes         = document.getElementById('user-notes').value||'';
+    existing.employee      = document.getElementById('user-employee').value||'';
     existing.active        = active;
     db.appUsers[idx] = existing;
     saveDB(db);
@@ -3356,9 +3470,12 @@ function syncUserToSb(user, method) {
     insurance:      user.insurance||null,
     cloth_size:     user.clothSize||null,
     notes:          user.notes||null,
+    employee:       user.employee||'',
     active:         user.active !== false,
     created_at:     user.createdAt||new Date().toISOString()
   };
+
+  if (!sbCols.userEmployee) delete payload.employee;   // column added by the step 11 migration
 
   // Always use POST with on_conflict=id (true upsert — works for both insert and update)
   var url = SB_URL + '/rest/v1/app_users?on_conflict=id';
@@ -5021,7 +5138,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -5105,7 +5222,7 @@ var currentShiftsTab = 'gantt';
 // so refreshing here again would loop forever while the Shifts section is open
 function switchShiftsTab(tab, refresh) {
   currentShiftsTab = tab;
-  ['gantt','week','tips','hours','attendance','team'].forEach(function(t) {
+  ['gantt','week','requests','tips','hours','attendance','team'].forEach(function(t) {
     var panel = document.getElementById('shifts-panel-'+t);
     if (panel) panel.style.display = (t === tab) ? '' : 'none';
   });
@@ -5113,6 +5230,7 @@ function switchShiftsTab(tab, refresh) {
     btn.classList.toggle('active', btn.dataset.shiftsTab === tab);
   });
   if (tab === 'week')       renderShiftsWeekTab();
+  if (tab === 'requests')   renderShiftsRequestsTab();
   if (tab === 'tips')       renderShiftsTipsTab();
   if (tab === 'hours')      renderShiftsHoursTab();
   if (tab === 'attendance') renderShiftsAttendanceTab();
@@ -5175,6 +5293,7 @@ function renderShifts(){
   var teamTabBtn = document.getElementById('shifts-tab-team-btn');
   if (teamTabBtn) teamTabBtn.style.display = canShiftEdit ? '' : 'none';
 
+  updateRequestBadges();
   // Redraw the active tab (no server refresh: that is what called us)
   switchShiftsTab(currentShiftsTab, false);
 
@@ -5829,6 +5948,274 @@ function shiftToRow(s) {
 var repeatBusy=false;
 // ── Repeat: copy chosen people's shifts from one week to another ──
 var repeatTicked = {}, repeatClashMode = '', repeatBound = false;
+// ── Shift change requests ────────────────────────────────────────
+// An employee asks to change times, take the day off, or swap/give a shift to a colleague.
+// Swaps go to the colleague first ('asked'), then to shift managers ('pending');
+// approving writes the change to the schedule. Everyone involved gets a push notification.
+var REQ_KIND_LABEL = { times:'Change times', dayoff:'Day off', swap:'Swap or cover' };
+var REQ_STATUS = { asked:['Waiting for colleague','amber'], pending:['Waiting for a manager','amber'], approved:['Approved','green'], rejected:['Not approved','red'], declined:['Colleague declined','red'], cancelled:['Cancelled','gray'] };
+function reqCutoff() { var d = new Date(); d.setDate(d.getDate() - 56); return toDateStr(getWeekStartOf(d)); }
+function getWeekStartOf(d) { var x = new Date(d); var wd = (x.getDay() + 6) % 7; x.setDate(x.getDate() - wd); x.setHours(0,0,0,0); return x; }
+function reqFromRow(r) {
+  return { id:r.id, createdAt:r.created_at, kind:r.kind, status:r.status, requester:r.requester, requesterUserId:r.requester_user_id||'',
+    weekStart:r.week_start, day:r.day, shiftId:r.shift_id||'', snap:r.shift_snapshot||null, newStart:r.new_start||'', newEnd:r.new_end||'',
+    colleague:r.colleague||'', colleagueSnap:r.colleague_snapshot||null, note:r.note||'',
+    decidedBy:r.decided_by||'', decidedAt:r.decided_at||'', decisionNote:r.decision_note||'' };
+}
+function reqToRow(q) {
+  return { id:q.id, created_at:q.createdAt, kind:q.kind, status:q.status, requester:q.requester, requester_user_id:q.requesterUserId||null,
+    week_start:q.weekStart, day:q.day, shift_id:q.shiftId||null, shift_snapshot:q.snap, new_start:q.newStart||null, new_end:q.newEnd||null,
+    colleague:q.colleague||null, colleague_snapshot:q.colleagueSnap, note:q.note||'', updated_at:new Date().toISOString() };
+}
+function normName(x) { return String(x || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim(); }
+// The team name a login belongs to: set in Users, otherwise matched on username or name ("-" = not on the schedule)
+function employeeForUser(u, db) {
+  if (!u || u.employee === '-') return '';
+  if (u.employee) return u.employee;
+  var emps = (db || getDB()).employees || [];
+  var keys = [normName(u.username), normName(u.name), normName(String(u.name || '').split(' ')[0])];
+  return emps.find(function(e){ return keys.indexOf(normName(e)) !== -1; }) || '';
+}
+function myEmployee() { return currentUser ? employeeForUser(currentUser) : ''; }
+function userIdsForEmployee(name) {
+  var db = getDB();
+  return (db.appUsers || []).filter(function(u){ return u.active !== false && name && employeeForUser(u, db) === name; }).map(function(u){ return u.id; });
+}
+function managerUserIds() {
+  return (getDB().appUsers || []).filter(function(u){ return u.active !== false && Array.isArray(u.roles) && (u.roles.indexOf('admin') !== -1 || u.roles.indexOf('shift_mgr') !== -1); }).map(function(u){ return u.id; });
+}
+function canApproveShifts() { return isAdmin || hasRole('shift_mgr'); }
+function fillUserEmployeeSelect(u) {
+  var sel = document.getElementById('user-employee'); if (!sel) return;
+  var db = getDB(), emps = (db.employees || []).slice().sort();
+  var auto = u ? employeeForUser(Object.assign({}, u, { employee:'' }), db) : '';
+  var cur = u ? (u.employee || '') : '';
+  if (cur && cur !== '-' && emps.indexOf(cur) === -1) emps.unshift(cur);
+  sel.innerHTML = '<option value="">' + (auto ? 'Automatic: ' + esc(auto) : 'Automatic (no match)') + '</option>'
+    + '<option value="-">Not on the schedule</option>'
+    + emps.map(function(e){ return '<option value="' + esc(e) + '">' + esc(e) + '</option>'; }).join('');
+  sel.value = cur;
+}
+function sendPush(userIds, title, body, url) {
+  var me = currentUser ? currentUser.id : '';
+  var ids = (userIds || []).filter(function(id, i, a){ return id && id !== me && a.indexOf(id) === i; });
+  if (!ids.length) return;
+  fetch('/api/push/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userIds:ids, title:title, body:body || '', url:url || '/' }) })
+    .then(function(r){ return r.json(); }).then(function(d){ console.log('[Push] Sent:', d); })
+    .catch(function(e){ console.warn('[Push] Send failed:', e.message); });
+}
+function shiftSnap(s) { return s ? { start:s.start, end:s.end, dayOff:!!s.dayOff, zone:s.zone || '', section:s.section || '', role:s.role || '' } : null; }
+function snapLabel(sn) { if (!sn) return 'not scheduled'; if (sn.dayOff) return 'day off'; return wkTime(sn.start) + '–' + wkTime(sn.end); }
+function reqDateLabel(q) { var d = new Date(q.weekStart + 'T00:00:00'); d.setDate(d.getDate() + DAYS.indexOf(q.day)); return q.day.slice(0,3) + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()]; }
+function reqSummary(q) {
+  if (q.kind === 'times') return 'Change ' + snapLabel(q.snap) + ' → ' + wkTime(q.newStart) + '–' + wkTime(q.newEnd);
+  if (q.kind === 'dayoff') return 'Day off (instead of ' + snapLabel(q.snap) + ')';
+  if (q.colleagueSnap && !q.colleagueSnap.dayOff) return 'Swap with ' + q.colleague + ': ' + snapLabel(q.snap) + ' ↔ ' + snapLabel(q.colleagueSnap);
+  return q.colleague + ' works ' + snapLabel(q.snap) + ', ' + q.requester + ' gets the day off';
+}
+function reqStatusLabel(q) { return (REQ_STATUS[q.status] || [q.status])[0]; }
+function reqWhen(iso) { if (!iso) return ''; var d = new Date(iso); return d.getDate() + ' ' + MONTH_NAMES[d.getMonth()] + ', ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+function openRequestFor(emp, ws, day) {
+  return (getDB().shiftRequests || []).find(function(q){ return q.requester === emp && q.weekStart === ws && q.day === day && (q.status === 'asked' || q.status === 'pending'); });
+}
+function reqNeedsMe(q) {
+  if (q.status === 'asked') { var me = myEmployee(); return !!me && q.colleague === me; }
+  if (q.status === 'pending') return canApproveShifts();
+  return false;
+}
+function updateRequestBadges() {
+  var n = currentUser ? (getDB().shiftRequests || []).filter(reqNeedsMe).length : 0;
+  var c = document.getElementById('req-tab-count'); if (c) { c.textContent = n; c.style.display = n ? '' : 'none'; }
+  ['bnav-shifts-dot','ditem-shifts-dot'].forEach(function(id){ var d = document.getElementById(id); if (d) d.style.display = n ? '' : 'none'; });
+}
+function reqCardHTML(q) {
+  var me = myEmployee(), st = REQ_STATUS[q.status] || [q.status, 'gray'], btns = '', idA = ' data-req-id="' + esc(q.id) + '"';
+  if (q.status === 'asked' && me && q.colleague === me)
+    btns = '<button class="btn btn-sm btn-primary" data-req-act="accept"' + idA + '><i class="fas fa-check"></i> Agree</button><button class="btn btn-sm btn-secondary" data-req-act="decline"' + idA + '>Decline</button>';
+  else if (q.status === 'pending' && canApproveShifts())
+    btns = '<button class="btn btn-sm btn-primary" data-req-act="approve"' + idA + '><i class="fas fa-check"></i> Approve</button><button class="btn btn-sm btn-secondary" data-req-act="reject"' + idA + '>Reject</button>';
+  if ((q.status === 'asked' || q.status === 'pending') && me && q.requester === me)
+    btns += '<button class="btn btn-sm btn-secondary" data-req-act="cancel"' + idA + '>Cancel request</button>';
+  var meta = esc(REQ_KIND_LABEL[q.kind] || q.kind) + ' · asked ' + esc(reqWhen(q.createdAt));
+  if (q.decidedBy && q.status !== 'asked' && q.status !== 'pending') meta += ' · ' + esc(q.decidedBy) + ', ' + esc(reqWhen(q.decidedAt));
+  return '<div class="req-card"><div class="req-card-top"><div><div class="req-who">' + esc(q.requester) + ' · ' + esc(reqDateLabel(q)) + '</div>'
+    + '<div class="req-what">' + esc(reqSummary(q)) + '</div></div><span class="req-status is-' + st[1] + '">' + esc(st[0]) + '</span></div>'
+    + (q.note ? '<div class="req-note">"' + esc(q.note) + '"</div>' : '')
+    + (q.decisionNote ? '<div class="req-note">' + esc(q.decidedBy || 'Manager') + ': "' + esc(q.decisionNote) + '"</div>' : '')
+    + '<div class="req-meta">' + meta + '</div>'
+    + (btns ? '<div class="req-actions">' + btns + '</div>' : '') + '</div>';
+}
+function renderShiftsRequestsTab() {
+  var el = document.getElementById('shifts-requests-content'); if (!el) return;
+  updateRequestBadges();
+  var all = (getDB().shiftRequests || []).slice().sort(function(a, b){ return String(b.createdAt || '').localeCompare(String(a.createdAt || '')); });
+  var me = myEmployee(), mgr = canApproveShifts(), h = '';
+  if (!sbCols.requests) h += '<div class="req-banner"><i class="fas fa-circle-info"></i> ' + (isAdmin ? 'Requests switch on once the step 11 SQL has run in Supabase.' : 'Shift requests are not switched on yet.') + '</div>';
+  else if (!me) h += '<div class="req-banner"><i class="fas fa-circle-info"></i> Your login is not linked to a name on the schedule' + (isAdmin ? '. Set it in Users → edit → "Name on the shift schedule".' : '. Ask a manager to link it in Users.') + '</div>';
+  var sec = function(title, list, empty) {
+    if (!list.length && !empty) return '';
+    return '<div class="req-section-title">' + title + '</div>' + (list.length ? list.map(reqCardHTML).join('') : '<div class="req-empty">' + empty + '</div>');
+  };
+  var decided = function(q){ return ['approved','rejected','declined','cancelled'].indexOf(q.status) !== -1; };
+  h += sec('Waiting for you', all.filter(reqNeedsMe), 'Nothing to answer.');
+  if (me) h += sec('My requests', all.filter(function(q){ return q.requester === me; }).slice(0, 12), 'To ask for a change, tap one of your shifts on the Schedule.');
+  if (mgr) h += sec('Waiting for a colleague', all.filter(function(q){ return q.status === 'asked' && !reqNeedsMe(q) && q.requester !== me; }));
+  if (mgr) h += sec('Recently decided', all.filter(function(q){ return decided(q) && q.requester !== me; }).slice(0, 12), 'No decisions yet.');
+  el.innerHTML = h;
+}
+var reqShift = null, reqBusy = false;
+function openShiftRequest(shiftId) {
+  var db = getDB(), s = db.shifts.find(function(x){ return x.id === shiftId; }); if (!s) return;
+  if (!sbCols.requests) { toast('Shift requests are not switched on yet.', 'error'); return; }
+  reqShift = s;
+  document.getElementById('req-shift-info').innerHTML = '<b>' + esc(reqDateLabel(s)) + '</b> · ' + esc(snapLabel(s))
+    + (s.zone ? ' · ' + esc(s.zone + (effectiveSection(s) ? ' ' + effectiveSection(s) : '')) : '');
+  document.querySelector('input[name="req-kind"][value="times"]').checked = true;
+  document.getElementById('req-start').value = s.start; document.getElementById('req-end').value = s.end;
+  document.getElementById('req-note').value = '';
+  var others = (db.employees || []).filter(function(e){ return e !== s.employee; }).sort();
+  document.getElementById('req-colleague').innerHTML = '<option value="">Choose a colleague</option>' + others.map(function(e){
+    var cs = db.shifts.find(function(x){ return x.employee === e && x.weekStart === s.weekStart && x.day === s.day; });
+    return '<option value="' + esc(e) + '">' + esc(e) + ' · ' + esc(snapLabel(shiftSnap(cs))) + '</option>';
+  }).join('');
+  reqKindChanged();
+  closeModal('modal-shift-action'); openModal('modal-shift-request');
+}
+function reqKindChanged() {
+  var k = (document.querySelector('input[name="req-kind"]:checked') || {}).value;
+  document.getElementById('req-times').style.display = k === 'times' ? '' : 'none';
+  document.getElementById('req-swap').style.display = k === 'swap' ? '' : 'none';
+  document.querySelectorAll('.req-kind').forEach(function(l){ l.classList.toggle('is-on', l.querySelector('input').checked); });
+  reqSwapHint();
+}
+function reqSwapHint() {
+  var hint = document.getElementById('req-swap-hint'); if (!hint || !reqShift) return;
+  var c = document.getElementById('req-colleague').value; if (!c) { hint.textContent = ''; return; }
+  var cs = getDB().shifts.find(function(x){ return x.employee === c && x.weekStart === reqShift.weekStart && x.day === reqShift.day; });
+  hint.textContent = (cs && !cs.dayOff) ? 'You work ' + c + "'s shift (" + snapLabel(shiftSnap(cs)) + ') and ' + c + ' works yours.' : c + ' works your shift and you get the day off.';
+}
+function sendShiftRequest() {
+  if (reqBusy || !reqShift) return;
+  var s = reqShift, db = getDB(), k = (document.querySelector('input[name="req-kind"]:checked') || {}).value || 'times';
+  var q = { id: uid(), createdAt: new Date().toISOString(), kind:k, status: k === 'swap' ? 'asked' : 'pending', requester:s.employee,
+    requesterUserId: currentUser ? currentUser.id : '', weekStart:s.weekStart, day:s.day, shiftId:s.id, snap: shiftSnap(s),
+    newStart:'', newEnd:'', colleague:'', colleagueSnap:null, note:(document.getElementById('req-note').value || '').trim() };
+  if (k === 'times') {
+    q.newStart = document.getElementById('req-start').value; q.newEnd = document.getElementById('req-end').value;
+    if (!q.newStart || !q.newEnd) { toast('Fill in the new start and end', 'error'); return; }
+    if (q.newStart === s.start && q.newEnd === s.end) { toast('Those are your current times', 'error'); return; }
+  }
+  if (k === 'swap') {
+    q.colleague = document.getElementById('req-colleague').value;
+    if (!q.colleague) { toast('Choose a colleague', 'error'); return; }
+    q.colleagueSnap = shiftSnap(db.shifts.find(function(x){ return x.employee === q.colleague && x.weekStart === s.weekStart && x.day === s.day; }));
+  }
+  if (openRequestFor(s.employee, s.weekStart, s.day)) { toast('There is already an open request for this shift', 'error'); return; }
+  reqBusy = true;
+  sbFetch('POST', 'shift_requests', reqToRow(q)).then(function(){
+    reqBusy = false;
+    var d = getDB(); d.shiftRequests = [q].concat(d.shiftRequests || []); saveDB(d);
+    closeModal('modal-shift-request');
+    toast(k === 'swap' ? 'Sent to ' + q.colleague + ' to agree' : 'Request sent to the managers', 'success');
+    notifyRequest(q, 'created');
+    updateRequestBadges(); if (currentShiftsTab === 'requests') renderShiftsRequestsTab();
+  }).catch(function(){ reqBusy = false; toast('Not sent. Check the connection and try again.', 'error'); });
+}
+function notifyRequest(q, ev) {
+  var when = reqDateLabel(q), url = '/?open=requests', what = when + ': ' + reqSummary(q);
+  var requester = userIdsForEmployee(q.requester).concat(q.requesterUserId ? [q.requesterUserId] : []);
+  if (ev === 'created' && q.kind === 'swap') sendPush(userIdsForEmployee(q.colleague), q.requester + ' asks you to cover or swap', what, url);
+  else if (ev === 'created') sendPush(managerUserIds(), 'Shift request from ' + q.requester, what, url);
+  else if (ev === 'accepted') { sendPush(managerUserIds(), 'Shift request from ' + q.requester, what + ' (' + q.colleague + ' agreed)', url); sendPush(requester, q.colleague + ' agreed', when + ': now waiting for a manager', url); }
+  else if (ev === 'declined') sendPush(requester, q.colleague + ' declined', what, url);
+  else if (ev === 'approved' || ev === 'rejected') {
+    var ids = requester.concat(q.kind === 'swap' ? userIdsForEmployee(q.colleague) : []);
+    sendPush(ids, ev === 'approved' ? 'Shift change approved' : 'Shift change not approved', what + (q.decisionNote ? ' · ' + q.decisionNote : ''), url);
+  }
+}
+// Write a status change (local field names) to Supabase, then to the local copy
+function reqUpdate(q, f) {
+  var row = { updated_at: new Date().toISOString(), status: f.status };
+  if (f.decidedBy !== undefined) row.decided_by = f.decidedBy;
+  if (f.decidedAt !== undefined) row.decided_at = f.decidedAt;
+  if (f.decisionNote !== undefined) row.decision_note = f.decisionNote;
+  return sbFetch('PATCH', 'shift_requests', row, 'id=eq.' + encodeURIComponent(q.id)).then(function(){
+    var d = getDB(), x = (d.shiftRequests || []).find(function(r){ return r.id === q.id; });
+    if (x) Object.assign(x, f); saveDB(d); return x || Object.assign(q, f);
+  });
+}
+// Re-read the request so nobody acts on one that was cancelled or answered meanwhile
+function reqFresh(q) {
+  return sbFetch('GET', 'shift_requests', null, 'id=eq.' + encodeURIComponent(q.id)).then(function(rows){
+    var fresh = rows && rows[0] ? reqFromRow(rows[0]) : null;
+    if (fresh && fresh.status === q.status) return fresh;
+    var d = getDB(); d.shiftRequests = (d.shiftRequests || []).map(function(r){ return r.id === q.id ? fresh : r; }).filter(Boolean); saveDB(d);
+    renderShiftsRequestsTab();
+    toast(fresh ? 'This request is now: ' + reqStatusLabel(fresh) : 'This request no longer exists', 'error');
+    return null;
+  });
+}
+function reqAction(act, id) {
+  var q = (getDB().shiftRequests || []).find(function(r){ return r.id === id; }); if (!q || reqBusy) return;
+  var who = currentUser ? currentUser.name : '', now = new Date().toISOString();
+  var fail = function(){ reqBusy = false; toast('Not saved. Check the connection and try again.', 'error'); };
+  var done = function(msg, ev){ return function(x){ reqBusy = false; renderShiftsRequestsTab(); if (msg) toast(msg, 'success'); if (ev) notifyRequest(x, ev); }; };
+  if (act === 'cancel' && !confirm('Cancel this request?')) return;
+  if (act === 'decline' && !confirm('Decline ' + q.requester + "'s request?")) return;
+  var note = '';
+  if (act === 'reject') { note = prompt('Reason (optional, ' + q.requester + ' will see it)', ''); if (note === null) return; note = note.trim(); }
+  reqBusy = true;
+  reqFresh(q).then(function(fq){
+    if (!fq) { reqBusy = false; return; }
+    if (act === 'cancel')  return reqUpdate(fq, { status:'cancelled' }).then(done('Request cancelled'));
+    if (act === 'accept')  return reqUpdate(fq, { status:'pending' }).then(done('Agreed. A manager will confirm.', 'accepted'));
+    if (act === 'decline') return reqUpdate(fq, { status:'declined', decidedBy:who, decidedAt:now }).then(done('Declined', 'declined'));
+    if (act === 'reject')  return reqUpdate(fq, { status:'rejected', decidedBy:who, decidedAt:now, decisionNote:note }).then(done('Request rejected', 'rejected'));
+    if (act === 'approve') return applyShiftRequest(fq).then(function(ok){
+      if (!ok) { reqBusy = false; return; }
+      return reqUpdate(fq, { status:'approved', decidedBy:who, decidedAt:now }).then(function(x){
+        done('Approved and changed on the schedule', 'approved')(x);
+        refreshSection('shifts');
+      });
+    });
+  }).catch(fail);
+}
+function shiftAt(db, emp, ws, day) { return db.shifts.find(function(x){ return x.employee === emp && x.weekStart === ws && x.day === day; }); }
+function snapSame(a, b) { if (!a || !b) return !a && !b; return a.start === b.start && a.end === b.end && !!a.dayOff === !!b.dayOff; }
+// Apply an approved request to the schedule. Resolves true when every write succeeded.
+function applyShiftRequest(q) {
+  var db = getDB();
+  var mine = shiftAt(db, q.requester, q.weekStart, q.day);
+  var theirs = q.kind === 'swap' ? shiftAt(db, q.colleague, q.weekStart, q.day) : null;
+  if (!mine) { toast(q.requester + ' has no shift on that day any more', 'error'); return Promise.resolve(false); }
+  var changed = !snapSame(shiftSnap(mine), q.snap) || (q.kind === 'swap' && !snapSame(shiftSnap(theirs), q.colleagueSnap));
+  if (changed && !confirm('The schedule changed since this request was made. Apply it to the current shifts anyway?')) return Promise.resolve(false);
+  var body = function(s){ return { start:s.start, end:s.end, role:s.role || '', zone:s.zone || '', section:s.section || '', dayOff:!!s.dayOff, lateMinutes:0, overtimeMinutes:0 }; };
+  var off = { dayOff:true, lateMinutes:0, overtimeMinutes:0 };
+  var ops = [];   // [new shift state, is it a new row]
+  if (q.kind === 'times')  ops.push([Object.assign({}, mine, { start:q.newStart, end:q.newEnd, lateMinutes:0, overtimeMinutes:0 }), false]);
+  if (q.kind === 'dayoff') ops.push([Object.assign({}, mine, off), false]);
+  if (q.kind === 'swap') {
+    if (theirs && !theirs.dayOff) {            // both working: exchange the shifts
+      ops.push([Object.assign({}, mine, body(theirs)), false]);
+      ops.push([Object.assign({}, theirs, body(mine)), false]);
+    } else {                                   // colleague off or not scheduled: they cover, requester gets the day off
+      if (theirs) ops.push([Object.assign({}, theirs, body(mine)), false]);
+      else ops.push([Object.assign(body(mine), { id:uid(), employee:q.colleague, day:q.day, weekStart:q.weekStart, createdAt:new Date().toISOString() }), true]);
+      ops.push([Object.assign({}, mine, off), false]);
+    }
+  }
+  return Promise.all(ops.map(function(op){
+    var row = shiftToRow(op[0]);
+    return op[1] ? sbFetch('POST', 'shifts', row) : sbFetch('PATCH', 'shifts', row, shiftSlotFilter(op[0].employee, op[0].weekStart, op[0].day));
+  })).then(function(){
+    var d = getDB();
+    ops.forEach(function(op){ var n = op[0], cur = shiftAt(d, n.employee, n.weekStart, n.day); if (cur) Object.assign(cur, n); else d.shifts.push(n); });
+    saveDB(d); if (currentSection === 'shifts') renderShifts();
+    return true;
+  }).catch(function(){ toast('Could not update the schedule, so the request was not approved. Try again.', 'error'); refreshSection('shifts'); return false; });
+}
+
 // ── Week one-pager: areas/sections × Monday–Sunday ─────────────
 function wkTime(t) { t = t || ''; return /:00$/.test(t) ? t.slice(0, t.length - 3).replace(/^0/, '') : t.replace(/^0/, ''); }
 function weekSheetHTML(db, wsStr) {
@@ -6128,6 +6515,13 @@ function openShiftActionSheet(shiftId, dateStr, wsStr) {
   var lateLbl = document.getElementById('shift-action-late-label'), otLbl = document.getElementById('shift-action-ot-label');
   if (lateLbl) lateLbl.textContent = s.lateMinutes ? 'Late · ' + fmtMins(s.lateMinutes) : 'Late';
   if (otLbl) otLbl.textContent = s.overtimeMinutes ? 'Overtime · +' + fmtMins(s.overtimeMinutes) : 'Overtime';
+  var reqBtn = document.getElementById('shift-action-request');
+  if (reqBtn) {
+    var me = myEmployee(), openReq = openRequestFor(s.employee, s.weekStart, s.day);
+    reqBtn.style.display = (me && s.employee === me && !s.dayOff && (dateStr || '') >= toDateStr(new Date())) ? '' : 'none';
+    reqBtn.disabled = !!openReq;
+    document.getElementById('shift-action-request-label').textContent = openReq ? 'Request sent · ' + reqStatusLabel(openReq) : 'Request a change';
+  }
   openModal('modal-shift-action');
 }
 function deleteShift(id){
@@ -6574,6 +6968,10 @@ document.addEventListener('click', function(e) {
   var shiftsTabEl = t.closest('[data-shifts-tab]');
   if (shiftsTabEl) { switchShiftsTab(shiftsTabEl.dataset.shiftsTab); return; }
   if (t.closest('#btn-week-print')) { printWeekSheet(); return; }
+  if (t.closest('#shift-action-request')) { openShiftRequest(_shiftActionId); return; }
+  if (t.closest('#btn-request-send')) { sendShiftRequest(); return; }
+  var reqActEl = t.closest('[data-req-act]');
+  if (reqActEl) { reqAction(reqActEl.dataset.reqAct, reqActEl.dataset.reqId); return; }
 
   // Finance tabs & actions
   var finTabEl = t.closest('[data-fin-tab]');
@@ -6935,6 +7333,8 @@ document.addEventListener('input', function(e) {
 document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
+  if (t.name === 'req-kind') { reqKindChanged(); }
+  if (t.id === 'req-colleague') { reqSwapHint(); }
   if (t.id === 'topbar-emp') { document.getElementById('drawer-user-name').textContent=t.value||'Staff'; }
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
   if (t.id === 'fin-rec-day-picker') { finRecDayFilter=t.value||''; renderFinRecords(); }

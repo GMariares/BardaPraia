@@ -20,7 +20,7 @@ Set in Cloudflare dashboard → Workers & Pages → `bardapraia` → Settings �
 
 | Variable | Required | Notes |
 |---|---|---|
-| `VAPID_PRIVATE` | **yes** (secret) | Private key for Web Push. Must be the existing key; changing it breaks every push subscription. |
+| `VAPID_PRIVATE` | **yes** (secret) | Private key for Web Push, matching the public key in `src/index.tsx`. The pair was replaced on 2026-09-26; phones re-subscribe on their own when the app opens. |
 | `SB_URL`, `SB_KEY` | no | Supabase URL and anon key. Defaults built in. |
 | `VAPID_PUBLIC`, `VAPID_SUBJECT` | no | Defaults built in. Must match the private key. |
 
