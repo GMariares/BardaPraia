@@ -1875,6 +1875,21 @@ function sbFetch(method, table, body, params) {
   });
 }
 
+// Supabase returns at most 1000 rows per request; read a whole table in pages.
+// The order must end with a unique column (id) so pages never overlap or skip rows.
+function sbFetchAll(table, params, pageSize) {
+  pageSize = pageSize || 1000;
+  var all = [];
+  function page(offset) {
+    return sbFetch('GET', table, null, params + '&limit=' + pageSize + '&offset=' + offset).then(function(rows) {
+      rows = rows || [];
+      all = all.concat(rows);
+      return rows.length < pageSize ? all : page(offset + pageSize);
+    });
+  }
+  return page(0);
+}
+
 // ================================================
 // ================================================
 // CONSTANTS
@@ -2202,7 +2217,7 @@ function syncFromSupabase() {
     }),
     sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc&limit=1').catch(function(){ return null; }).then(function(rows) {
       if (rows && rows[0] && rows[0].day_off === undefined) sbMissingItems.push('shifts.day_off');
-      return sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc').then(function(rows2) {
+      return sbFetchAll('shifts', 'order=week_start.desc,day.asc,id.asc').then(function(rows2) {
         if (rows2) db.shifts = rows2.map(function(r){ return {
           id: r.id, employee: r.employee, day: r.day, weekStart: r.week_start,
           start: r.start_time ? r.start_time.slice(0,5) : '',
@@ -2260,7 +2275,7 @@ function syncFromSupabase() {
         });
       }
     }).catch(function(){ sbMissingItems.push('app_users table'); }),
-    sbFetch('GET', 'absences', null, 'order=date.desc&limit=500').then(function(rows) {
+    sbFetchAll('absences', 'order=date.desc,id.asc').then(function(rows) {
       if (rows) db.absences = rows.map(function(r){ return {
         id: r.id, employee: r.employee, date: r.date,
         weekStart: r.week_start, justified: !!r.justified, createdAt: r.created_at
@@ -2764,8 +2779,8 @@ function refreshSection(name) {
 
   } else if (name === 'shifts') {
     Promise.all([
-      sbFetch('GET','shifts',null,'order=week_start.desc,day.asc'),
-      sbFetch('GET','absences',null,'order=date.desc&limit=500'),
+      sbFetchAll('shifts','order=week_start.desc,day.asc,id.asc'),
+      sbFetchAll('absences','order=date.desc,id.asc'),
       sbFetch('GET','employees',null,'order=name.asc')
     ]).then(function(res) {
       var db = getDB();
