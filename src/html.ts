@@ -440,6 +440,21 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .clash-day { font-weight:800; color:var(--slate-900); width:42px; flex-shrink:0; }
     .clash-was { color:var(--slate-500); text-decoration:line-through; text-decoration-color:var(--red-400); }
     .clash-now { font-weight:700; color:var(--slate-900); }
+    .hours-range { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:12px 14px; margin-bottom:12px; }
+    .hours-range-dates { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .hours-range-dates > div { min-width:0; }
+    .hours-range-dates input { width:100%; min-width:0; }
+    .hours-presets { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .hours-summary { font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--slate-500); margin:4px 2px 8px; }
+    .hours-list { background:var(--panel); border:var(--rule); border-radius:var(--radius); }
+    .hours-row { display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--slate-100); }
+    .hours-row:last-child { border-bottom:none; }
+    .hours-who { flex:1; min-width:0; }
+    .hours-name { font-weight:700; font-size:14px; color:var(--slate-900); }
+    .hours-meta { font-size:12px; color:var(--slate-500); margin-top:2px; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center; }
+    .hours-num { font-size:20px; font-weight:800; color:var(--slate-900); white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .hours-num small { font-size:12px; font-weight:700; color:var(--slate-500); margin-left:1px; }
+    .hours-row.is-zero .hours-num { color:var(--slate-300); }
     .adjust-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
     .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; }
     .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:10; pointer-events:none; }
@@ -874,6 +889,18 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
     <!-- ── Tab: Hours & Days ── -->
     <div id="shifts-panel-hours" style="display:none">
+      <div class="hours-range">
+        <div class="hours-range-dates">
+          <div><label class="label" for="hours-from">From</label><input type="date" class="input-field" id="hours-from" /></div>
+          <div><label class="label" for="hours-to">To</label><input type="date" class="input-field" id="hours-to" /></div>
+        </div>
+        <div class="hours-presets">
+          <button type="button" class="inv-slicer" data-hours-preset="week">This week</button>
+          <button type="button" class="inv-slicer" data-hours-preset="lastweek">Last week</button>
+          <button type="button" class="inv-slicer" data-hours-preset="month">This month</button>
+          <button type="button" class="inv-slicer" data-hours-preset="lastmonth">Last month</button>
+        </div>
+      </div>
       <div id="shifts-hours-content"></div>
     </div>
 
@@ -1869,7 +1896,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <input type="hidden" id="shift-edit-id" />
     <div class="form-row" style="margin-bottom:14px"><label class="label">Employee *</label><select class="select-field" id="shift-employee"></select></div>
     <!-- Per-day schedule table -->
-    <div style="font-size:11px;font-weight:700;color:var(--ocean-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Schedule</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--ocean-500);text-transform:uppercase;letter-spacing:.5px">Schedule <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--slate-400)">· only days with times are saved</span></div>
+      <button type="button" class="btn btn-sm btn-secondary" id="btn-shift-same-times" title="Copy the first day that has times to every other working day"><i class="fas fa-clone"></i> Same times every day</button>
+    </div>
     <div style="overflow-x:auto;margin-bottom:14px">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr style="background:var(--ocean-50)">
@@ -5372,39 +5402,59 @@ function renderShiftsTipsTab() {
 }
 
 // ── Hours & Days tab ─────────────────────────────────────────────
+var hoursRange = { custom:false, from:'', to:'' };
+function hoursPreset(kind) {
+  var now = new Date(), f, t;
+  if (kind === 'week' || kind === 'lastweek') { f = getWeekStart(kind === 'week' ? 0 : -1); t = new Date(f); t.setDate(t.getDate() + 6); }
+  else { var m = now.getMonth() - (kind === 'lastmonth' ? 1 : 0); f = new Date(now.getFullYear(), m, 1); t = new Date(now.getFullYear(), m + 1, 0); }
+  hoursRange = { custom:true, from:toDateStr(f), to:toDateStr(t), preset:kind };
+  renderShiftsHoursTab();
+}
 function renderShiftsHoursTab() {
-  var ws = getWeekStart(shiftsWeekOffset);
-  var wsStr = toDateStr(ws);
   var db = getDB();
   var el = document.getElementById('shifts-hours-content'); if (!el) return;
+  if (!hoursRange.custom) {
+    var ws = getWeekStart(shiftsWeekOffset), we = new Date(ws); we.setDate(we.getDate() + 6);
+    hoursRange.from = toDateStr(ws); hoursRange.to = toDateStr(we); hoursRange.preset = shiftsWeekOffset === 0 ? 'week' : (shiftsWeekOffset === -1 ? 'lastweek' : '');
+  }
+  var from = hoursRange.from, to = hoursRange.to;
+  if (from > to) { var tmp = from; from = to; to = tmp; }
+  var fEl = document.getElementById('hours-from'), tEl = document.getElementById('hours-to');
+  if (fEl && document.activeElement !== fEl) fEl.value = hoursRange.from;
+  if (tEl && document.activeElement !== tEl) tEl.value = hoursRange.to;
+  document.querySelectorAll('[data-hours-preset]').forEach(function(b){ b.classList.toggle('active', b.dataset.hoursPreset === hoursRange.preset); });
 
-  var empStats = hoursByEmployee(db, function(s){ return s.weekStart === wsStr; });
-  var emps = (db.employees||[]).slice();
-  Object.keys(empStats).forEach(function(e){ if (emps.indexOf(e) === -1 && empStats[e].hours > 0) emps.push(e); });
-  emps.sort(function(a,b){ return a.localeCompare(b); });
-  if (emps.length === 0) { el.innerHTML = '<div class="empty-state"><p>No employees yet.</p></div>'; return; }
+  var inRange = function(d){ return d && d >= from && d <= to; };
+  var st = hoursByEmployee(db, function(s){ return inRange(shiftDateStr(s)); });
+  var absCount = {};
+  (db.absences||[]).forEach(function(a){ if (inRange(a.date)) absCount[a.employee] = (absCount[a.employee]||0) + 1; });
+  var team = db.employees || [];
+  var people = team.slice();
+  Object.keys(st).forEach(function(e){ if (people.indexOf(e) === -1 && (st[e].hours > 0 || st[e].absentDays)) people.push(e); });
+  Object.keys(absCount).forEach(function(e){ if (people.indexOf(e) === -1) people.push(e); });
+  people.sort(function(a,b){ return a.localeCompare(b); });
+  if (people.length === 0) { el.innerHTML = '<div class="empty-state"><p>No employees yet.</p></div>'; return; }
 
-  var rows = emps.map(function(e) {
-    var st = empStats[e] || {hours:0, days:0, zones:{}};
-    var zonesStr = Object.keys(st.zones).map(function(z){ return z+'('+st.zones[z]+'d)'; }).join(', ') || '—';
-    return '<tr style="border-bottom:1px solid var(--ocean-50)">'
-      +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
-      +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:var(--ocean-600)">'+st.hours.toFixed(1)+'h'
-        +(st.lateMinutes?' <span class="badge badge-yellow" title="Late">late '+fmtMins(st.lateMinutes)+'</span>':'')
-        +(st.overtimeMinutes?' <span class="badge badge-blue" title="Overtime">+'+fmtMins(st.overtimeMinutes)+'</span>':'')+'</td>'
-      +'<td style="padding:9px 8px;text-align:center;font-weight:700;color:#2b8a4b">'+st.days+'d'+(st.absentDays?' <span class="badge badge-red" title="Absent days">'+st.absentDays+' abs</span>':'')+'</td>'
-      +'<td style="padding:9px 8px;font-size:11px;color:#5f7079">'+esc(zonesStr)+'</td>'
-      +'</tr>';
+  var totalH = 0, working = 0;
+  var rows = people.map(function(e){
+    var x = st[e] || {hours:0, days:0, lateMinutes:0, overtimeMinutes:0, zones:{}};
+    var abs = absCount[e] || 0;
+    totalH += x.hours; if (x.hours > 0) working++;
+    var meta = [];
+    meta.push(x.days + ' day' + (x.days === 1 ? '' : 's'));
+    if (x.lateMinutes) meta.push('<span class="badge badge-yellow">late ' + fmtMins(x.lateMinutes) + '</span>');
+    if (x.overtimeMinutes) meta.push('<span class="badge badge-blue">+' + fmtMins(x.overtimeMinutes) + ' overtime</span>');
+    if (abs) meta.push('<span class="badge badge-red">' + abs + ' absen' + (abs === 1 ? 'ce' : 'ces') + '</span>');
+    var zones = Object.keys(x.zones).sort(function(a,b){ return x.zones[b] - x.zones[a]; }).map(function(z){ return z + ' ' + x.zones[z] + 'd'; }).join(', ');
+    if (zones) meta.push(esc(zones));
+    var left = team.indexOf(e) === -1 ? ' <span class="badge badge-gray">left</span>' : '';
+    return '<div class="hours-row' + (x.hours > 0 ? '' : ' is-zero') + '"><div class="hours-who"><div class="hours-name">' + esc(e) + left + '</div>'
+      + '<div class="hours-meta">' + meta.join('<span aria-hidden="true">·</span>') + '</div></div>'
+      + '<div class="hours-num">' + (x.hours > 0 ? x.hours.toFixed(1) : '0') + '<small>h</small></div></div>';
   }).join('');
-
-  el.innerHTML = '<div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
-    +'<table style="width:100%;border-collapse:collapse">'
-    +'<thead><tr style="background:var(--ocean-50)">'
-    +'<th style="padding:9px 10px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">Employee</th>'
-    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Hours</th>'
-    +'<th style="padding:9px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--ocean-600)">Days</th>'
-    +'<th style="padding:9px 8px;text-align:left;font-size:12px;font-weight:700;color:var(--ocean-600)">Zones</th>'
-    +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  var fd = new Date(from + 'T00:00:00'), td = new Date(to + 'T00:00:00');
+  var label = fd.getDate() + ' ' + MONTH_NAMES[fd.getMonth()] + (fd.getFullYear() !== td.getFullYear() ? ' ' + fd.getFullYear() : '') + ' – ' + td.getDate() + ' ' + MONTH_NAMES[td.getMonth()] + ' ' + td.getFullYear();
+  el.innerHTML = '<div class="hours-summary">' + label + ' · ' + working + ' worked · ' + totalH.toFixed(1) + ' h</div><div class="hours-list">' + rows + '</div>';
 }
 
 // ── Attendance tab ────────────────────────────────────────────────
@@ -5578,7 +5628,7 @@ function prefillShiftRows(emp){
     } else {
       offChk.checked=false;
       startEl.disabled=false; endEl.disabled=false;
-      startEl.value='09:00'; endEl.value='17:00';
+      startEl.value=''; endEl.value='';
       if(zoneEl) zoneEl.value='';
     }
   });
@@ -5592,8 +5642,8 @@ function openAddShiftModal(preDay){
   // Reset all rows to defaults
   var rows=document.querySelectorAll('#shift-days-body tr[data-shift-day]');
   rows.forEach(function(row){
-    row.querySelector('.shift-day-start').value='09:00';
-    row.querySelector('.shift-day-end').value='17:00';
+    row.querySelector('.shift-day-start').value='';
+    row.querySelector('.shift-day-end').value='';
     row.querySelector('.shift-day-off-chk').checked=false;
     row.querySelector('.shift-day-start').disabled=false;
     row.querySelector('.shift-day-end').disabled=false;
@@ -5749,6 +5799,11 @@ function saveShift(force){
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
   var isAdd=!document.getElementById('shift-edit-id').value;
+  var anyDay=false;
+  document.querySelectorAll('#shift-days-body tr[data-shift-day]').forEach(function(row){
+    if(row.querySelector('.shift-day-off-chk').checked||(row.querySelector('.shift-day-start').value&&row.querySelector('.shift-day-end').value)) anyDay=true;
+  });
+  if(!anyDay){ toast('Fill in the times for at least one day','error'); return; }
   if(isAdd && force!==true){
     var changes=shiftFormChanges(emp, ws, role);
     if(changes.length){
@@ -6444,7 +6499,18 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-generate-tips')) { generateTips(); return; }
   el = t.closest('[data-add-shift-day]');
   if (el) { openAddShiftModal(el.dataset.addShiftDay); return; }
+  el = t.closest('[data-hours-preset]');
+  if (el) { hoursPreset(el.dataset.hoursPreset); return; }
   if (t.closest('#btn-save-shift')) { saveShift(); return; }
+  if (t.closest('#btn-shift-same-times')) {
+    var trs=[].slice.call(document.querySelectorAll('#shift-days-body tr[data-shift-day]'));
+    var src=trs.find(function(r){ return !r.querySelector('.shift-day-off-chk').checked && r.querySelector('.shift-day-start').value && r.querySelector('.shift-day-end').value; });
+    if(!src){ toast('Enter the times for one day first','error'); return; }
+    var sv=src.querySelector('.shift-day-start').value, ev=src.querySelector('.shift-day-end').value, zEl0=src.querySelector('.shift-day-zone'), zv=zEl0?zEl0.value:'';
+    trs.forEach(function(r){ if(r===src||r.querySelector('.shift-day-off-chk').checked) return;
+      r.querySelector('.shift-day-start').value=sv; r.querySelector('.shift-day-end').value=ev; var z=r.querySelector('.shift-day-zone'); if(z&&!z.value) z.value=zv; });
+    return;
+  }
   if (t.closest('#btn-clash-replace')) { closeModal('modal-shift-clash'); saveShift(true); return; }
   if (t.closest('#btn-shifts-prev-week')) { shiftsWeekOffset--; renderShifts(); return; }
   if (t.closest('#btn-shifts-next-week')) { shiftsWeekOffset++; renderShifts(); return; }
@@ -6617,6 +6683,10 @@ document.addEventListener('change', function(e) {
   // BB item records date range filter
   if (t.id === 'bb-items-from') { bbItemsFrom=t.value; renderBbItemRecords(); }
   if (t.id === 'bb-items-to') { bbItemsTo=t.value; renderBbItemRecords(); }
+  if (t.id === 'hours-from' || t.id === 'hours-to') {
+    var hf = document.getElementById('hours-from').value, ht = document.getElementById('hours-to').value;
+    if (hf && ht) { hoursRange = { custom:true, from:hf, to:ht, preset:'' }; renderShiftsHoursTab(); }
+  }
   // Pre-fill shift rows when employee is selected in shift modal
   if (t.id === 'shift-employee' && t.value) { prefillShiftRows(t.value); }
   // Disable/enable time inputs when Day Off checkbox changes in shift modal
@@ -6629,8 +6699,8 @@ document.addEventListener('change', function(e) {
         row.querySelector('.shift-day-start').value = '';
         row.querySelector('.shift-day-end').value   = '';
       } else {
-        row.querySelector('.shift-day-start').value = '09:00';
-        row.querySelector('.shift-day-end').value   = '17:00';
+        row.querySelector('.shift-day-start').value = '';
+        row.querySelector('.shift-day-end').value   = '';
       }
     }
   }
