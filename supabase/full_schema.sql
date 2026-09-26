@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS end_time TIME;
 
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
