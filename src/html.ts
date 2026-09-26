@@ -426,6 +426,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       background-image:repeating-linear-gradient(45deg, rgba(180,64,47,.12) 0 3px, transparent 3px 8px); }
     .gantt-bar.is-absent .gantt-bar-label { color:var(--red-700); }
     .gantt-bar.is-absent .gantt-bar-label i { margin-right:4px; }
+    .repeat-row { display:flex; align-items:center; gap:10px; padding:10px 12px; min-height:48px; border-bottom:1px solid var(--slate-100); cursor:pointer; }
+    .repeat-row:last-child { border-bottom:none; }
+    .repeat-row input { width:18px; height:18px; accent-color:var(--teal-600); flex-shrink:0; }
+    .repeat-name { font-weight:700; font-size:14px; color:var(--slate-900); flex:1; min-width:0; }
+    .repeat-meta { font-size:12px; font-weight:600; color:var(--slate-500); white-space:nowrap; }
+    .repeat-clash { margin-top:12px; background:var(--amber-50); border:1px solid var(--amber-200); border-radius:10px; padding:12px; font-size:13px; color:var(--amber-700); }
+    .repeat-clash label { display:flex; align-items:center; gap:8px; margin-top:8px; font-weight:700; color:var(--slate-900); cursor:pointer; min-height:32px; }
+    .repeat-clash input { accent-color:var(--teal-600); width:18px; height:18px; }
     .adjust-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
     .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; }
     .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:10; pointer-events:none; }
@@ -807,7 +815,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <button class="btn btn-secondary btn-sm" id="btn-shifts-prev-week"><i class="fas fa-chevron-left"></i></button>
         <button class="btn btn-secondary btn-sm" id="btn-shifts-next-week"><i class="fas fa-chevron-right"></i></button>
         <button class="btn btn-gold btn-sm" id="btn-add-shift" style="display:none"><i class="fas fa-plus"></i> Add</button>
-        <button class="btn btn-secondary btn-sm" id="btn-repeat-week" style="display:none" title="Copy previous week shifts to this week"><i class="fas fa-copy"></i> Repeat</button>
+        <button class="btn btn-secondary btn-sm" id="btn-repeat-week" style="display:none" title="Copy shifts from one week to another"><i class="fas fa-copy"></i> Repeat</button>
       </div>
     </div>
     <!-- Shifts tabs -->
@@ -1785,6 +1793,32 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <i class="fas fa-trash" style="color:#b4402f"></i> Delete Shift
     </button>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:14px" data-close-modal="modal-shift-action">Cancel</button>
+  </div>
+</div>
+
+<!-- Repeat shifts -->
+<div class="modal-overlay" id="modal-repeat">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-copy"></i> Repeat shifts</h2>
+    <div class="form-grid-2">
+      <div><label class="label" for="repeat-from">Copy from</label><select class="select-field" id="repeat-from"></select></div>
+      <div><label class="label" for="repeat-to">Copy to</label><select class="select-field" id="repeat-to"></select></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:16px 0 6px">
+      <span class="label" style="margin:0">Who to copy</span>
+      <span style="display:inline-flex;gap:6px">
+        <button type="button" class="btn btn-sm btn-secondary" id="repeat-all">All</button>
+        <button type="button" class="btn btn-sm btn-secondary" id="repeat-none">None</button>
+      </span>
+    </div>
+    <div id="repeat-people" style="max-height:42vh;overflow:auto;border:var(--rule);border-radius:10px"></div>
+    <div id="repeat-clash" class="repeat-clash" style="display:none"></div>
+    <div id="repeat-error" style="color:var(--red);font-size:13px;font-weight:600;min-height:18px;margin-top:10px"></div>
+    <div class="action-row" style="margin-top:6px">
+      <button class="btn btn-primary" id="btn-repeat-go" style="flex:1"><i class="fas fa-copy"></i> <span id="repeat-go-label">Copy</span></button>
+      <button class="btn btn-secondary" data-close-modal="modal-repeat">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -5561,32 +5595,113 @@ function shiftToRow(s) {
     late_minutes:s.lateMinutes||0,overtime_minutes:s.overtimeMinutes||0};
 }
 var repeatBusy=false;
-function repeatWeek(){
-  if(repeatBusy){ toast('Still copying the previous week, one moment','error'); return; }
-  var db=getDB();
-  var curWs=toDateStr(getWeekStart(shiftsWeekOffset));
-  var prevWs=toDateStr(getWeekStart(shiftsWeekOffset-1));
-  var prevShifts=db.shifts.filter(function(s){return s.weekStart===prevWs;});
-  if(prevShifts.length===0){toast('No shifts found in previous week','error');return;}
-  // Only people still on the Team are copied; one row per person per day even if the source had repeats
-  var team=db.employees||[]; var seen={}; var copies=[];
-  prevShifts.forEach(function(s){
-    if(team.indexOf(s.employee)===-1) return;
-    var k=s.employee+'|'+s.day; if(seen[k]) return; seen[k]=true;
-    copies.push({id:uid(),employee:s.employee,day:s.day,start:s.start,end:s.end,role:s.role||'',zone:s.zone||'',dayOff:!!s.dayOff,weekStart:curWs,createdAt:new Date().toISOString()});
+// ── Repeat: copy chosen people's shifts from one week to another ──
+var repeatTicked = {}, repeatClashMode = '', repeatBound = false;
+function weekRangeLabel(ws, short) {
+  var a = new Date(ws + 'T00:00:00'), b = new Date(a); b.setDate(b.getDate() + 6);
+  var yr = (short && b.getFullYear() === new Date().getFullYear()) ? '' : ' ' + b.getFullYear();
+  return a.getDate() + ' ' + MONTH_NAMES[a.getMonth()] + ' – ' + b.getDate() + ' ' + MONTH_NAMES[b.getMonth()] + yr;
+}
+function openRepeatSheet() {
+  var from = document.getElementById('repeat-from'), to = document.getElementById('repeat-to');
+  var lo = Math.min(-12, shiftsWeekOffset - 4), hi = Math.max(12, shiftsWeekOffset + 8), opts = '';
+  for (var o = lo; o <= hi; o++) {
+    var ws = toDateStr(getWeekStart(o));
+    opts += '<option value="' + o + '">' + (o === 0 ? 'This week' : weekRangeLabel(ws, true)) + '</option>';
+  }
+  from.innerHTML = opts; to.innerHTML = opts;
+  from.value = String(shiftsWeekOffset); to.value = String(shiftsWeekOffset + 1);
+  repeatTicked = {}; repeatClashMode = '';
+  if (!repeatBound) {
+    repeatBound = true;
+    from.addEventListener('change', function(){ repeatTicked = {}; repeatClashMode = ''; renderRepeatSheet(); });
+    to.addEventListener('change', function(){ repeatClashMode = ''; renderRepeatSheet(); });
+    document.getElementById('repeat-people').addEventListener('change', function(e){
+      if (e.target.classList.contains('repeat-cb')) { repeatTicked[e.target.value] = e.target.checked; renderRepeatSheet(); }
+    });
+    document.getElementById('repeat-clash').addEventListener('change', function(e){
+      if (e.target.name === 'repeat-clash-mode') { repeatClashMode = e.target.value; renderRepeatSheet(); }
+    });
+  }
+  renderRepeatSheet();
+  openModal('modal-repeat');
+}
+function repeatPlan() {
+  var db = getDB();
+  var fromOff = parseInt(document.getElementById('repeat-from').value, 10), toOff = parseInt(document.getElementById('repeat-to').value, 10);
+  var fromWs = toDateStr(getWeekStart(fromOff)), toWs = toDateStr(getWeekStart(toOff));
+  var team = db.employees || [];
+  var src = {}, tgt = {};
+  db.shifts.forEach(function(s){
+    if (s.weekStart === fromWs && team.indexOf(s.employee) !== -1) (src[s.employee] = src[s.employee] || []).push(s);
+    if (s.weekStart === toWs) tgt[s.employee] = (tgt[s.employee] || 0) + 1;
   });
-  if(copies.length===0){toast('Nobody on the Team has shifts in the previous week','error');return;}
-  db.shifts=db.shifts.filter(function(s){return s.weekStart!==curWs;}).concat(copies);
-  saveDB(db); renderShifts();
-  repeatBusy=true;
-  sbFetch('DELETE','shifts',null,'week_start=eq.'+curWs)
-    .then(function(){ return sbFetch('POST','shifts',copies.map(shiftToRow)); })
+  var people = Object.keys(src).sort(function(a,b){ return a.localeCompare(b); });
+  people.forEach(function(p){ if (!(p in repeatTicked)) repeatTicked[p] = true; });
+  var ticked = people.filter(function(p){ return repeatTicked[p]; });
+  var clash = ticked.filter(function(p){ return tgt[p]; });
+  return {db:db, fromOff:fromOff, toOff:toOff, fromWs:fromWs, toWs:toWs, src:src, tgt:tgt, people:people, ticked:ticked, clash:clash};
+}
+function renderRepeatSheet() {
+  var p = repeatPlan();
+  var list = document.getElementById('repeat-people');
+  list.innerHTML = p.people.length === 0
+    ? '<div class="empty-state" style="padding:18px"><p>Nobody on the Team has shifts in ' + weekRangeLabel(p.fromWs) + '.</p></div>'
+    : p.people.map(function(name){
+        var n = p.src[name].filter(function(s){ return !s.dayOff; }).length;
+        var already = p.tgt[name] ? '<span class="badge badge-yellow" title="Already has ' + p.tgt[name] + ' shifts in the target week">already ' + p.tgt[name] + '</span>' : '';
+        return '<label class="repeat-row"><input type="checkbox" class="repeat-cb" value="' + esc(name) + '"' + (repeatTicked[name] ? ' checked' : '') + '>'
+          + '<span class="repeat-name">' + esc(name) + '</span>' + already
+          + '<span class="repeat-meta">' + n + ' shift' + (n === 1 ? '' : 's') + '</span></label>';
+      }).join('');
+  var clashEl = document.getElementById('repeat-clash');
+  if (p.clash.length) {
+    clashEl.style.display = '';
+    var who = p.clash.length === p.ticked.length && p.clash.length > 3
+      ? 'All ' + p.clash.length + ' people you ticked'
+      : (p.clash.length > 6 ? p.clash.slice(0, 5).join(', ') + ' and ' + (p.clash.length - 5) + ' more' : p.clash.join(', '));
+    clashEl.innerHTML = '<div><i class="fas fa-triangle-exclamation"></i> <b>' + esc(who) + '</b> already '
+      + (p.clash.length === 1 ? 'has' : 'have') + ' shifts in ' + weekRangeLabel(p.toWs, true) + '. What should happen to them?</div>'
+      + '<label><input type="radio" name="repeat-clash-mode" value="replace"' + (repeatClashMode === 'replace' ? ' checked' : '') + '> Replace their shifts with the copy</label>'
+      + '<label><input type="radio" name="repeat-clash-mode" value="skip"' + (repeatClashMode === 'skip' ? ' checked' : '') + '> Keep their shifts, skip them</label>';
+  } else { clashEl.style.display = 'none'; clashEl.innerHTML = ''; }
+  var copying = p.clash.length && repeatClashMode === 'skip' ? p.ticked.length - p.clash.length : p.ticked.length;
+  var err = '';
+  if (p.fromOff === p.toOff) err = 'Choose two different weeks.';
+  var go = document.getElementById('btn-repeat-go');
+  go.disabled = !!err || copying === 0 || (p.clash.length > 0 && !repeatClashMode);
+  document.getElementById('repeat-go-label').textContent = copying > 0 ? 'Copy ' + copying + ' ' + (copying === 1 ? 'person' : 'people') : 'Copy';
+  document.getElementById('repeat-error').textContent = err;
+}
+function repeatWeek() {
+  if (repeatBusy) { toast('Still copying, one moment', 'error'); return; }
+  var p = repeatPlan();
+  var skip = repeatClashMode === 'skip' ? p.clash : [];
+  var names = p.ticked.filter(function(n){ return skip.indexOf(n) === -1; });
+  if (!names.length || p.fromWs === p.toWs) return;
+  var seen = {}, copies = [];
+  names.forEach(function(n){
+    p.src[n].forEach(function(s){
+      var k = n + '|' + s.day; if (seen[k]) return; seen[k] = true;
+      copies.push({id:uid(), employee:n, day:s.day, start:s.start, end:s.end, role:s.role||'', zone:s.zone||'', dayOff:!!s.dayOff, weekStart:p.toWs, createdAt:new Date().toISOString()});
+    });
+  });
+  var replacing = names.filter(function(n){ return p.tgt[n]; });
+  var db = p.db;
+  db.shifts = db.shifts.filter(function(s){ return !(s.weekStart === p.toWs && names.indexOf(s.employee) !== -1); }).concat(copies);
+  saveDB(db); closeModal('modal-repeat');
+  shiftsWeekOffset = p.toOff; renderShifts();
+  repeatBusy = true;
+  var inList = encodeURIComponent('(' + replacing.map(function(n){ return '"' + n.replace(/"/g,'\\\\"') + '"'; }).join(',') + ')');
+  var clear = replacing.length ? sbFetch('DELETE','shifts',null,'week_start=eq.' + p.toWs + '&employee=in.' + inList) : Promise.resolve();
+  clear.then(function(){ return sbFetch('POST','shifts',copies.map(shiftToRow)); })
     .then(function(rows2){
-      var d2=getDB();
-      (rows2||[]).forEach(function(r){ var si=d2.shifts.findIndex(function(x){return x.weekStart===curWs&&x.employee===r.employee&&x.day===r.day;}); if(si!==-1) d2.shifts[si].id=r.id; });
-      saveDB(d2); repeatBusy=false; rerenderShiftsSoon(); toast(copies.length+' shifts copied from previous week!','gold');
+      var d2 = getDB();
+      (rows2||[]).forEach(function(r){ var si = d2.shifts.findIndex(function(x){ return x.weekStart === p.toWs && x.employee === r.employee && x.day === r.day; }); if (si !== -1) d2.shifts[si].id = r.id; });
+      saveDB(d2); repeatBusy = false; rerenderShiftsSoon();
+      toast('Copied ' + names.length + ' ' + (names.length === 1 ? 'person' : 'people') + ' to ' + weekRangeLabel(p.toWs) + (skip.length ? ' · skipped ' + skip.length : ''), 'gold');
     })
-    .catch(function(){ repeatBusy=false; toast('Copy not saved online. Check the connection and try again.','error'); });
+    .catch(function(){ repeatBusy = false; toast('Copy not saved online. Check the connection and try again.', 'error'); });
 }
 function saveShift(){
   var emp=document.getElementById('shift-employee').value; if(!emp){toast('Select employee!','error');return;}
@@ -6265,7 +6380,11 @@ document.addEventListener('click', function(e) {
 
   // Shifts
   if (t.closest('#btn-add-shift')) { openAddShiftModal(); return; }
-  if (t.closest('#btn-repeat-week')) { repeatWeek(); return; }
+  if (t.closest('#btn-repeat-week')) { openRepeatSheet(); return; }
+  if (t.closest('#btn-repeat-go')) { repeatWeek(); return; }
+  if (t.closest('#repeat-all') || t.closest('#repeat-none')) {
+    var allOn = !!t.closest('#repeat-all'); repeatPlan().people.forEach(function(n){ repeatTicked[n] = allOn; }); renderRepeatSheet(); return;
+  }
   if (t.closest('#btn-generate-tips')) { generateTips(); return; }
   el = t.closest('[data-add-shift-day]');
   if (el) { openAddShiftModal(el.dataset.addShiftDay); return; }
