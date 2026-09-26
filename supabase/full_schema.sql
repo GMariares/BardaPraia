@@ -17,6 +17,7 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS fundo_caixa    NUMERIC DEFAULT 0;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS budgets        JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS week_tips      JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS inv_sort_order JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS tip_splits     JSONB DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -108,6 +109,8 @@ CREATE TABLE IF NOT EXISTS shifts (
 );
 ALTER TABLE shifts ADD COLUMN IF NOT EXISTS day_off BOOLEAN DEFAULT false;
 ALTER TABLE shifts ADD COLUMN IF NOT EXISTS zone TEXT DEFAULT '';
+ALTER TABLE shifts ADD COLUMN IF NOT EXISTS late_minutes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE shifts ADD COLUMN IF NOT EXISTS overtime_minutes INTEGER NOT NULL DEFAULT 0;
 -- one shift per person per day (see supabase/migrations/2026-09-25-b-one-shift-per-day.sql)
 CREATE UNIQUE INDEX IF NOT EXISTS shifts_one_per_person_per_day ON shifts (employee, week_start, day);
 

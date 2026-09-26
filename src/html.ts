@@ -827,8 +827,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
           <i class="fas fa-hand-holding-dollar" style="color:#b7791f"></i> Weekly Tips Distribution
         </div>
         <div id="tips-locked-notice" style="display:none;background:#fdf3e1;border:1px solid var(--amber-200);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber-700);display:flex;align-items:center;gap:8px">
-          <i class="fas fa-lock" style="color:#b7791f"></i> Tips already generated for this week — field is locked.
-          <button id="btn-tips-unlock" class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:11px"><i class="fas fa-unlock"></i> Edit</button>
+          <i class="fas fa-lock" style="color:#b7791f"></i> <span id="tips-locked-text">Tips calculated for this week.</span>
+          <span style="margin-left:auto;display:inline-flex;gap:6px">
+            <button id="btn-tips-recalc" class="btn btn-sm btn-secondary" style="font-size:11px"><i class="fas fa-rotate"></i> Recalculate</button>
+            <button id="btn-tips-unlock" class="btn btn-sm btn-secondary" style="font-size:11px"><i class="fas fa-pen"></i> Edit total</button>
+          </span>
         </div>
         <div id="tips-input-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
           <div style="flex:1;min-width:120px">
@@ -1921,7 +1924,8 @@ function getDB() {
   if (db.fundoCaixa === undefined) db.fundoCaixa = 0;
   if (!db.invSortOrder) db.invSortOrder = [];
   if (!db.weekTips)      db.weekTips = {};
-  if (!db.tipsLocked)   db.tipsLocked = {};   // {weekStart: true} — locked after generate
+  if (!db.tipsLocked)   db.tipsLocked = {};   // legacy, device-only; superseded by tipSplits
+  if (!db.tipSplits)    db.tipSplits = {};    // {weekStart: {total, generatedAt, hours:{emp:h}, shares:{emp:€}, absentDays:{emp:n}}}
   if (!db.absences)     db.absences = [];      // [{id,employee,date,weekStart,justified}]
   if (!db.suppliers)    db.suppliers = [];     // [{id,name,email,phone,totalSpend,sendEmail}]
   if (!db.appUsers)     db.appUsers = [];
@@ -2162,6 +2166,9 @@ function syncFromSupabase() {
           db.weekTips = (r.week_tips && typeof r.week_tips === 'object') ? r.week_tips : {};
         }
 
+        // tip_splits — saved tip splits per week (column added in the step 3 migration)
+        if (r.tip_splits !== undefined) db.tipSplits = (r.tip_splits && typeof r.tip_splits === 'object') ? r.tip_splits : {};
+
         // inv_sort_order — full replace from Supabase
         if (r.inv_sort_order === undefined) {
           sbMissingItems.push('settings.inv_sort_order');
@@ -2222,7 +2229,8 @@ function syncFromSupabase() {
           id: r.id, employee: r.employee, day: r.day, weekStart: r.week_start,
           start: r.start_time ? r.start_time.slice(0,5) : '',
           end: r.end_time ? r.end_time.slice(0,5) : '',
-          role: r.role||'', zone: r.zone||'', dayOff: !!r.day_off, createdAt: r.created_at
+          role: r.role||'', zone: r.zone||'', dayOff: !!r.day_off, createdAt: r.created_at,
+          lateMinutes: r.late_minutes||0, overtimeMinutes: r.overtime_minutes||0
         }; });
       }).catch(function(){});
     }),   // silent fail
@@ -2784,7 +2792,7 @@ function refreshSection(name) {
       sbFetch('GET','employees',null,'order=name.asc')
     ]).then(function(res) {
       var db = getDB();
-      if (res[0]) db.shifts = res[0].map(function(x){ return {id:x.id,employee:x.employee,day:x.day,weekStart:x.week_start,start:x.start_time?x.start_time.slice(0,5):'',end:x.end_time?x.end_time.slice(0,5):'',role:x.role||'',zone:x.zone||'',dayOff:!!x.day_off,createdAt:x.created_at}; });
+      if (res[0]) db.shifts = res[0].map(function(x){ return {id:x.id,employee:x.employee,day:x.day,weekStart:x.week_start,start:x.start_time?x.start_time.slice(0,5):'',end:x.end_time?x.end_time.slice(0,5):'',role:x.role||'',zone:x.zone||'',dayOff:!!x.day_off,createdAt:x.created_at,lateMinutes:x.late_minutes||0,overtimeMinutes:x.overtime_minutes||0}; });
       if (res[1]) db.absences = res[1].map(function(x){ return {id:x.id,employee:x.employee,date:x.date,weekStart:x.week_start,justified:!!x.justified,createdAt:x.created_at}; });
       if (res[2]) db.employees = res[2].map(function(x){ return x.name; });
       saveDB(db);
@@ -4797,7 +4805,9 @@ function ganttShiftColor(shift, db) {
 }
 
 var currentShiftsTab = 'gantt';
-function switchShiftsTab(tab) {
+// refresh=false when called from renderShifts(): the refresh itself ends in renderShifts(),
+// so refreshing here again would loop forever while the Shifts section is open
+function switchShiftsTab(tab, refresh) {
   currentShiftsTab = tab;
   ['gantt','tips','hours','attendance','team'].forEach(function(t) {
     var panel = document.getElementById('shifts-panel-'+t);
@@ -4810,7 +4820,7 @@ function switchShiftsTab(tab) {
   if (tab === 'hours')      renderShiftsHoursTab();
   if (tab === 'attendance') renderShiftsAttendanceTab();
   if (tab === 'team')       renderShiftsTeamTab();
-  refreshSection('shifts');
+  if (refresh !== false) refreshSection('shifts');
 }
 
 function renderShifts(){
@@ -4830,8 +4840,8 @@ function renderShifts(){
   var teamTabBtn = document.getElementById('shifts-tab-team-btn');
   if (teamTabBtn) teamTabBtn.style.display = canShiftEdit ? '' : 'none';
 
-  // Refresh current active tab
-  switchShiftsTab(currentShiftsTab);
+  // Redraw the active tab (no server refresh: that is what called us)
+  switchShiftsTab(currentShiftsTab, false);
 
   var el = document.getElementById('shifts-list'); if (!el) return;
   var wsStr = toDateStr(ws);
@@ -5004,132 +5014,181 @@ function renderShifts(){
   }).join('');
 }
 // ── Tips tab ────────────────────────────────────────────────────
+// ── Actual hours: the one rule used by Tips, Hours and Attendance ──
+// scheduled hours − late + overtime; 0 on a day off or when absent that day (justified or not)
+function shiftDateStr(s) {
+  var i = DAYS.indexOf(s.day); if (i < 0 || !s.weekStart) return '';
+  var d = new Date(s.weekStart + 'T00:00:00'); d.setDate(d.getDate() + i); return toDateStr(d);
+}
+function absenceIndex(db) { var idx = {}; (db.absences||[]).forEach(function(a){ idx[a.employee+'|'+a.date] = a; }); return idx; }
+function shiftScheduledHours(s) {
+  if (s.dayOff) return 0;
+  var sm = timeToMins(s.start), em = timeToMins(s.end); if (em <= sm) em += 24*60;
+  return Math.max(0, (em - sm) / 60);
+}
+function shiftIsAbsent(s, absIdx) { return !s.dayOff && !!absIdx[s.employee+'|'+shiftDateStr(s)]; }
+function shiftActualHours(s, absIdx) {
+  if (s.dayOff || shiftIsAbsent(s, absIdx)) return 0;
+  return Math.max(0, shiftScheduledHours(s) - (s.lateMinutes||0)/60 + (s.overtimeMinutes||0)/60);
+}
+// {employee: {hours, days, absentDays, lateMinutes, overtimeMinutes, zones:{zone:days}}} for shifts passing keep(s)
+function hoursByEmployee(db, keep) {
+  var absIdx = absenceIndex(db), out = {};
+  db.shifts.forEach(function(s){
+    if (!keep(s)) return;
+    var st = out[s.employee] || (out[s.employee] = {hours:0, days:0, absentDays:0, lateMinutes:0, overtimeMinutes:0, zones:{}});
+    if (s.dayOff) return;
+    if (shiftIsAbsent(s, absIdx)) { st.absentDays++; return; }
+    var h = shiftActualHours(s, absIdx);
+    st.hours += h; st.lateMinutes += (s.lateMinutes||0); st.overtimeMinutes += (s.overtimeMinutes||0);
+    if (h > 0) { st.days++; if (s.zone) st.zones[s.zone] = (st.zones[s.zone]||0) + 1; }
+  });
+  return out;
+}
+// Split a week's tips by actual hours; shares are in whole cents and add up to the total exactly
+function computeTipSplit(db, ws, total) {
+  var st = hoursByEmployee(db, function(s){ return s.weekStart === ws; });
+  var emps = Object.keys(st).filter(function(e){ return st[e].hours > 0; });
+  var totalHrs = emps.reduce(function(a,e){ return a + st[e].hours; }, 0);
+  if (!totalHrs || !(total > 0)) return null;
+  var cents = Math.round(total * 100);
+  var parts = emps.map(function(e){ var exact = st[e].hours / totalHrs * cents; return {e:e, c:Math.floor(exact), r:exact - Math.floor(exact)}; });
+  var left = cents - parts.reduce(function(a,p){ return a + p.c; }, 0);
+  parts.slice().sort(function(a,b){ return b.r - a.r || a.e.localeCompare(b.e); }).slice(0, left).forEach(function(p){ p.c++; });
+  var split = {total: Math.round(total*100)/100, totalHours: Math.round(totalHrs*100)/100, generatedAt: new Date().toISOString(), hours:{}, shares:{}, absentDays:{}};
+  parts.forEach(function(p){ split.hours[p.e] = Math.round(st[p.e].hours*100)/100; split.shares[p.e] = p.c/100; });
+  Object.keys(st).forEach(function(e){ if (st[e].absentDays) split.absentDays[e] = st[e].absentDays; });
+  return split;
+}
+function tipSplitChanged(saved, current) {
+  if (!saved || !current) return !!saved !== !!current;
+  var keys = Object.keys(saved.hours).concat(Object.keys(current.hours));
+  return keys.some(function(e){ return Math.abs((saved.hours[e]||0) - (current.hours[e]||0)) > 0.009; });
+}
+var tipsEditing = {};
+function saveTipSplit(db, ws, split) {
+  db.weekTips[ws] = split.total;
+  db.tipSplits = db.tipSplits || {}; db.tipSplits[ws] = split;
+  tipsEditing[ws] = false;
+  saveDB(db);
+  sbFetch('PATCH','settings',{week_tips:db.weekTips},'id=eq.config').catch(function(e){ console.error('week_tips sync:',e); });
+  sbFetch('PATCH','settings',{tip_splits:db.tipSplits},'id=eq.config').catch(function(){ toast('Tip split saved on this device only. Run the step 3 SQL in Supabase.','error'); });
+}
+function recalculateTips() {
+  var db = getDB(); var ws = toDateStr(getWeekStart(shiftsWeekOffset));
+  var total = parseFloat(db.weekTips && db.weekTips[ws]); if (!(total > 0)) { toast('Enter the week total first','error'); return; }
+  var split = computeTipSplit(db, ws, total);
+  if (!split) { toast('No worked hours this week','error'); return; }
+  if (!confirm("Recalculate this week's tips from the current schedule? The saved split will be replaced.")) return;
+  saveTipSplit(db, ws, split); renderShiftsTipsTab(); toast('Tips recalculated','gold');
+}
+function tipSplitHTML(split, heading) {
+  var emps = Object.keys(split.shares).sort(function(a,b){ return split.shares[b] - split.shares[a] || a.localeCompare(b); });
+  var absentOnly = Object.keys(split.absentDays||{}).filter(function(e){ return !(e in split.shares); });
+  var rows = emps.map(function(e){
+    var note = split.absentDays && split.absentDays[e] ? ' · '+split.absentDays[e]+' day'+(split.absentDays[e]>1?'s':'')+' absent' : '';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--slate-100)">'
+      +'<div><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(e)+'</div>'
+      +'<div style="font-size:12px;color:var(--slate-500)">'+split.hours[e].toFixed(1)+' h · '+Math.round(split.hours[e]/split.totalHours*100)+'%'+note+'</div></div>'
+      +'<div style="font-weight:800;font-size:16px;color:var(--slate-900)">'+fmtEur(split.shares[e])+'</div></div>';
+  }).join('');
+  rows += absentOnly.map(function(e){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--slate-100)">'
+      +'<div><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(e)+'</div><div style="font-size:12px;color:var(--red)">absent all scheduled days</div></div>'
+      +'<div style="font-weight:800;font-size:16px;color:var(--slate-400)">'+fmtEur(0)+'</div></div>';
+  }).join('');
+  return '<div style="border:var(--rule);border-radius:10px;padding:10px 14px 4px;margin-bottom:14px;background:var(--panel)">'
+    +'<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-500);margin-bottom:4px">'+heading+'</div>'
+    +'<div style="font-size:13px;color:var(--slate-700);font-weight:600;margin-bottom:4px">Total '+fmtEur(split.total)+' · '+split.totalHours.toFixed(1)+' h worked</div>'
+    +rows+'</div>';
+}
+
 function renderShiftsTipsTab() {
   var ws = getWeekStart(shiftsWeekOffset);
   var wsStr = toDateStr(ws);
   var db = getDB();
   var canShiftEdit = isAdmin || hasRole('shift_mgr');
-  var locked = db.tipsLocked && db.tipsLocked[wsStr];
+  var total = db.weekTips && db.weekTips[wsStr] ? parseFloat(db.weekTips[wsStr]) : 0;
+  var saved = db.tipSplits && db.tipSplits[wsStr];
+  var locked = total > 0 && !tipsEditing[wsStr];
 
   var tipsInp    = document.getElementById('shifts-tips-input');
   var inputRow   = document.getElementById('tips-input-row');
   var lockNotice = document.getElementById('tips-locked-notice');
-
-  if (tipsInp) tipsInp.value = db.weekTips && db.weekTips[wsStr] ? db.weekTips[wsStr] : '';
-
-  if (!canShiftEdit) {
-    if (inputRow) inputRow.style.display = 'none';
-    if (lockNotice) lockNotice.style.display = 'none';
-  } else if (locked) {
-    if (inputRow) inputRow.style.display = 'none';
-    if (lockNotice) lockNotice.style.display = 'flex';
-  } else {
-    if (inputRow) inputRow.style.display = '';
-    if (lockNotice) lockNotice.style.display = 'none';
-  }
+  var lockText   = document.getElementById('tips-locked-text');
+  if (tipsInp && document.activeElement !== tipsInp) tipsInp.value = total > 0 ? total : '';
+  if (inputRow) inputRow.style.display = (canShiftEdit && !locked) ? '' : 'none';
+  if (lockNotice) lockNotice.style.display = (canShiftEdit && locked) ? 'flex' : 'none';
 
   var el = document.getElementById('shifts-tips-result');
   if (!el) return;
 
-  // ── Week distribution ──
-  var total = db.weekTips && db.weekTips[wsStr] ? parseFloat(db.weekTips[wsStr]) : 0;
+  // ── This week ──
   var weekHTML = '';
   if (total > 0) {
-    var hoursMap = {};
-    db.shifts.forEach(function(s) {
-      if (s.weekStart !== wsStr || s.dayOff) return;
-      var sm = timeToMins(s.start), em = timeToMins(s.end);
-      if (em <= sm) em += 24*60;
-      var hrs = (em-sm)/60;
-      if (hrs > 0) hoursMap[s.employee] = (hoursMap[s.employee]||0) + hrs;
-    });
-    var wEmps = Object.keys(hoursMap);
-    if (wEmps.length > 0) {
-      var totalHrs = wEmps.reduce(function(acc,e){return acc+hoursMap[e];},0);
-      var wRows = wEmps.sort(function(a,b){return hoursMap[b]-hoursMap[a];}).map(function(e){
-        var share = (hoursMap[e]/totalHrs)*total;
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
-          +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
-          +'<div style="font-size:11px;color:var(--ocean-400)">'+hoursMap[e].toFixed(1)+' hrs ('+Math.round(hoursMap[e]/totalHrs*100)+'%)</div></div>'
-          +'<div style="font-weight:800;font-size:16px;color:#b7791f">'+fmtEur(share)+'</div>'
-          +'</div>';
-      }).join('');
-      weekHTML = '<div style="background:#fdf3e1;border-radius:10px;padding:12px;border:1px solid #f0d391;margin-bottom:14px">'
-        +'<div style="font-size:12px;color:var(--amber-700);font-weight:600;margin-bottom:8px"><i class="fas fa-calendar-week" style="margin-right:4px"></i>This Week — Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' hrs</div>'
-        +wRows+'</div>';
+    var current = computeTipSplit(db, wsStr, total);
+    if (saved) {
+      var when = new Date(saved.generatedAt);
+      var whenStr = when.getDate()+' '+MONTH_NAMES[when.getMonth()]+' '+String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0');
+      if (lockText) lockText.textContent = 'Tips calculated on '+whenStr+'.';
+      var changed = tipSplitChanged(saved, current);
+      if (changed) {
+        weekHTML += '<div style="display:flex;align-items:center;gap:10px;background:var(--amber-50);border:1px solid var(--amber-200);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber-700);font-weight:600">'
+          +'<i class="fas fa-triangle-exclamation"></i><span style="flex:1">The schedule changed since these tips were calculated.</span>'
+          +(canShiftEdit?'<button class="btn btn-sm btn-primary" id="btn-tips-recalc-inline" data-tips-recalc="1"><i class="fas fa-rotate"></i> Recalculate</button>':'')+'</div>';
+      }
+      weekHTML += tipSplitHTML(saved, 'This week · saved split');
+    } else if (current) {
+      if (lockText) lockText.textContent = 'Worked out from the current schedule. Recalculate to save it.';
+      weekHTML += tipSplitHTML(current, 'This week · from the current schedule');
+    } else {
+      weekHTML += '<div class="empty-state"><p>No worked hours this week yet.</p></div>';
     }
   }
 
-  // ── Month & Year totals ──
+  // ── Month & year totals: saved split when there is one, else the current schedule ──
   var now = new Date();
   var curMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   var curYear  = String(now.getFullYear());
-  // Compute per-employee tips for month and year from db.weekTips
   var empTipsMonth = {}, empTipsYear = {};
-  var allEmps = (db.employees||[]).slice().sort();
   Object.keys(db.weekTips||{}).forEach(function(wk) {
     var wkTotal = parseFloat(db.weekTips[wk]); if (!wkTotal || wkTotal <= 0) return;
-    var wkMonth = wk.substring(0,7); // YYYY-MM
-    var wkYear  = wk.substring(0,4); // YYYY
-    // Build hours map for that week
-    var hm = {};
-    db.shifts.forEach(function(s) {
-      if (s.weekStart !== wk || s.dayOff) return;
-      var sm2 = timeToMins(s.start), em2 = timeToMins(s.end);
-      if (em2 <= sm2) em2 += 24*60;
-      var h = (em2-sm2)/60;
-      if (h > 0) hm[s.employee] = (hm[s.employee]||0) + h;
-    });
-    var empKeys = Object.keys(hm);
-    if (empKeys.length === 0) return;
-    var totH = empKeys.reduce(function(a,e){return a+hm[e];},0);
-    empKeys.forEach(function(e) {
-      var share2 = (hm[e]/totH)*wkTotal;
-      if (wkMonth === curMonth) empTipsMonth[e] = (empTipsMonth[e]||0) + share2;
-      if (wkYear  === curYear)  empTipsYear[e]  = (empTipsYear[e]||0)  + share2;
+    var split = (db.tipSplits && db.tipSplits[wk]) || computeTipSplit(db, wk, wkTotal);
+    if (!split) return;
+    Object.keys(split.shares).forEach(function(e) {
+      if (wk.substring(0,7) === curMonth) empTipsMonth[e] = (empTipsMonth[e]||0) + split.shares[e];
+      if (wk.substring(0,4) === curYear)  empTipsYear[e]  = (empTipsYear[e]||0)  + split.shares[e];
     });
   });
-
-  var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var monthLabel = mNames[now.getMonth()]+' '+curYear;
-
-  // Build month table
+  var people = (db.employees||[]).slice();
+  Object.keys(empTipsYear).forEach(function(e){ if (people.indexOf(e) === -1) people.push(e); });
+  people.sort(function(a,b){ return a.localeCompare(b); });
   var mTotal = Object.values(empTipsMonth).reduce(function(a,v){return a+v;},0);
   var yTotal = Object.values(empTipsYear).reduce(function(a,v){return a+v;},0);
-
-  var periodRows = allEmps.map(function(e) {
-    var mTip = empTipsMonth[e]||0;
-    var yTip = empTipsYear[e]||0;
-    return '<tr style="border-bottom:1px solid var(--ocean-50)">'
-      +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
-      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#b7791f">'+(mTip>0?fmtEur(mTip):'—')+'</td>'
-      +'<td style="padding:9px 8px;text-align:right;font-weight:800;font-size:14px;color:#b7791f">'+(yTip>0?fmtEur(yTip):'—')+'</td>'
-      +'</tr>';
+  var monthLabel = MONTH_NAMES[now.getMonth()]+' '+curYear;
+  var periodRows = people.map(function(e) {
+    var mTip = empTipsMonth[e]||0, yTip = empTipsYear[e]||0;
+    var left = (db.employees||[]).indexOf(e) === -1 ? ' <span class="badge badge-gray">left</span>' : '';
+    return '<tr style="border-bottom:1px solid var(--slate-100)">'
+      +'<td style="padding:9px 10px;font-weight:700;color:var(--slate-900);font-size:13px">'+esc(e)+left+'</td>'
+      +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(mTip>0?fmtEur(mTip):'—')+'</td>'
+      +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(yTip>0?fmtEur(yTip):'—')+'</td></tr>';
   }).join('');
-
-  var periodHTML = '';
-  if (allEmps.length > 0) {
-    periodHTML = '<div style="background:white;border-radius:10px;border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
-      +'<div style="padding:10px 12px;background:var(--ocean-50);display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--ocean-800)">'
-        +'<i class="fas fa-chart-bar" style="color:#b7791f"></i> Tips by Employee'
-      +'</div>'
-      +'<table style="width:100%;border-collapse:collapse">'
-      +'<thead><tr style="background:var(--ocean-50)">'
-        +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--ocean-600)">Employee</th>'
-        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#b7791f">'+monthLabel+'</th>'
-        +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:#b7791f">'+curYear+' Total</th>'
-      +'</tr></thead>'
-      +'<tbody>'+periodRows+'</tbody>'
-      +'<tfoot><tr style="background:var(--ocean-50);border-top:2px solid var(--ocean-200)">'
-        +'<td style="padding:8px 10px;font-weight:800;font-size:12px;color:var(--ocean-700)">TOTAL</td>'
-        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#b7791f">'+(mTotal>0?fmtEur(mTotal):'—')+'</td>'
-        +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px;color:#b7791f">'+(yTotal>0?fmtEur(yTotal):'—')+'</td>'
-      +'</tr></tfoot>'
-      +'</table></div>';
-  }
+  var periodHTML = people.length === 0 ? '' : '<div style="background:var(--panel);border-radius:10px;border:var(--rule);overflow:hidden">'
+    +'<div style="padding:10px 12px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-700);border-bottom:var(--rule)"><i class="fas fa-chart-bar" style="color:var(--teal-600)"></i> Tips by employee</div>'
+    +'<table style="width:100%;border-collapse:collapse"><thead><tr>'
+      +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.08em">Employee</th>'
+      +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.08em">'+monthLabel+'</th>'
+      +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.08em">'+curYear+'</th>'
+    +'</tr></thead><tbody>'+periodRows+'</tbody>'
+    +'<tfoot><tr style="border-top:var(--rule);background:var(--slate-50)">'
+      +'<td style="padding:8px 10px;font-weight:800;font-size:12px;color:var(--slate-700)">TOTAL</td>'
+      +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(mTotal>0?fmtEur(mTotal):'—')+'</td>'
+      +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(yTotal>0?fmtEur(yTotal):'—')+'</td>'
+    +'</tr></tfoot></table></div>';
 
   el.innerHTML = weekHTML + periodHTML;
-  if (!weekHTML && !periodHTML) el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ocean-400);font-size:13px">No tips recorded yet for this period.</div>';
+  if (!weekHTML && !periodHTML) el.innerHTML = '<div class="empty-state"><p>No tips recorded yet for this period.</p></div>';
 }
 
 // ── Hours & Days tab ─────────────────────────────────────────────
@@ -5139,27 +5198,10 @@ function renderShiftsHoursTab() {
   var db = getDB();
   var el = document.getElementById('shifts-hours-content'); if (!el) return;
 
-  var empStats = {}; // {name: {hours, days, zones}}
-  db.shifts.forEach(function(s) {
-    if (s.weekStart !== wsStr || s.dayOff) return;
-    var sm = timeToMins(s.start), em = timeToMins(s.end);
-    if (em <= sm) em += 24*60;
-    var hrs = (em-sm)/60;
-    if (hrs <= 0) return;
-    if (!empStats[s.employee]) empStats[s.employee] = {hours:0, days:0, zones:{}};
-    empStats[s.employee].hours += hrs;
-    empStats[s.employee].days  += 1;
-    if (s.zone) empStats[s.employee].zones[s.zone] = (empStats[s.employee].zones[s.zone]||0)+1;
-  });
-
-  // Also count Day Off entries as scheduled days
-  db.shifts.forEach(function(s) {
-    if (s.weekStart !== wsStr || !s.dayOff) return;
-    if (!empStats[s.employee]) empStats[s.employee] = {hours:0, days:0, zones:{}};
-    // day off doesn't add hours but is a scheduled day
-  });
-
-  var emps = (db.employees||[]).slice().sort();
+  var empStats = hoursByEmployee(db, function(s){ return s.weekStart === wsStr; });
+  var emps = (db.employees||[]).slice();
+  Object.keys(empStats).forEach(function(e){ if (emps.indexOf(e) === -1 && empStats[e].hours > 0) emps.push(e); });
+  emps.sort(function(a,b){ return a.localeCompare(b); });
   if (emps.length === 0) { el.innerHTML = '<div class="empty-state"><p>No employees yet.</p></div>'; return; }
 
   var rows = emps.map(function(e) {
@@ -5168,7 +5210,7 @@ function renderShiftsHoursTab() {
     return '<tr style="border-bottom:1px solid var(--ocean-50)">'
       +'<td style="padding:9px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
       +'<td style="padding:9px 8px;text-align:center;font-weight:800;font-size:15px;color:var(--ocean-600)">'+st.hours.toFixed(1)+'h</td>'
-      +'<td style="padding:9px 8px;text-align:center;font-weight:700;color:#2b8a4b">'+st.days+'d</td>'
+      +'<td style="padding:9px 8px;text-align:center;font-weight:700;color:#2b8a4b">'+st.days+'d'+(st.absentDays?' <span class="badge badge-red" title="Absent days">'+st.absentDays+' abs</span>':'')+'</td>'
       +'<td style="padding:9px 8px;font-size:11px;color:#5f7079">'+esc(zonesStr)+'</td>'
       +'</tr>';
   }).join('');
@@ -5194,6 +5236,7 @@ function renderShiftsAttendanceTab() {
   if (emps.length === 0) { el.innerHTML = '<div class="empty-state"><p>No employees yet.</p></div>'; return; }
 
   var allAbsences = db.absences || [];
+  var absIdxAtt = absenceIndex(db);
   var weekAbsences = allAbsences.filter(function(a){ return a.weekStart === wsStr; });
 
   // Current month/year strings
@@ -5211,14 +5254,14 @@ function renderShiftsAttendanceTab() {
 
     // All-time
     var eAbsAll = allAbsences.filter(function(a){ return a.employee===e; });
-    var eWorkedAll = db.shifts.filter(function(s){ return s.employee===e && !s.dayOff; }).length;
+    var eWorkedAll = db.shifts.filter(function(s){ return s.employee===e && !s.dayOff && !shiftIsAbsent(s, absIdxAtt); }).length;
     var eSchAll = eWorkedAll + eAbsAll.length;
     var pctAll = eSchAll > 0 ? Math.round((eWorkedAll/eSchAll)*100) : 100;
 
     // Current month — match absences and shifts whose weekStart starts with curMonth
     var eAbsMonth = eAbsAll.filter(function(a){ return (a.date||'').substring(0,7) === curMonth; });
     var eWorkedMonth = db.shifts.filter(function(s){
-      return s.employee===e && !s.dayOff && (s.weekStart||'').substring(0,7) === curMonth;
+      return s.employee===e && !s.dayOff && !shiftIsAbsent(s, absIdxAtt) && shiftDateStr(s).substring(0,7) === curMonth;
     }).length;
     var eSchMonth = eWorkedMonth + eAbsMonth.length;
     var pctMonth = eSchMonth > 0 ? Math.round((eWorkedMonth/eSchMonth)*100) : 100;
@@ -5226,7 +5269,7 @@ function renderShiftsAttendanceTab() {
     // Current year
     var eAbsYear = eAbsAll.filter(function(a){ return (a.date||'').substring(0,4) === curYear; });
     var eWorkedYear = db.shifts.filter(function(s){
-      return s.employee===e && !s.dayOff && (s.weekStart||'').substring(0,4) === curYear;
+      return s.employee===e && !s.dayOff && !shiftIsAbsent(s, absIdxAtt) && shiftDateStr(s).substring(0,4) === curYear;
     }).length;
     var eSchYear = eWorkedYear + eAbsYear.length;
     var pctYear = eSchYear > 0 ? Math.round((eWorkedYear/eSchYear)*100) : 100;
@@ -5485,39 +5528,11 @@ function generateTips(){
   var total=parseFloat(raw); if(isNaN(total)||total<=0){toast('Enter a valid tips amount','error');return;}
   var db=getDB();
   var ws=toDateStr(getWeekStart(shiftsWeekOffset));
-  // Gather worked hours per employee (exclude day-off)
-  var hoursMap={};
-  db.shifts.forEach(function(s){
-    if(s.weekStart!==ws||s.dayOff) return;
-    var sm=timeToMins(s.start), em=timeToMins(s.end);
-    if(em<=sm) em+=24*60;
-    var hrs=(em-sm)/60;
-    if(hrs>0) hoursMap[s.employee]=(hoursMap[s.employee]||0)+hrs;
-  });
-  var emps=Object.keys(hoursMap);
-  var el=document.getElementById('shifts-tips-result');
-  if(emps.length===0){if(el)el.innerHTML='<p style="font-size:13px;color:#b4402f">No worked shifts found for this week.</p>';return;}
-  var totalHrs=emps.reduce(function(s,e){return s+hoursMap[e];},0);
-  // Save tips + lock for this week
-  db.weekTips[ws]=total;
-  if(!db.tipsLocked) db.tipsLocked={};
-  db.tipsLocked[ws]=true;
-  saveDB(db);
-  sbFetch('PATCH','settings',{week_tips:db.weekTips},'id=eq.config').catch(function(e){ console.error('week_tips sync:',e); });
-  var rows=emps.sort(function(a,b){return hoursMap[b]-hoursMap[a];}).map(function(e){
-    var share=(hoursMap[e]/totalHrs)*total;
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ocean-100)">'
-      +'<div><div style="font-weight:700;font-size:13px;color:var(--ocean-900)">'+esc(e)+'</div>'
-      +'<div style="font-size:11px;color:var(--ocean-400)">'+hoursMap[e].toFixed(1)+' hrs ('+Math.round(hoursMap[e]/totalHrs*100)+'%)</div></div>'
-      +'<div style="font-weight:800;font-size:16px;color:#b7791f">'+fmtEur(share)+'</div>'
-      +'</div>';
-  }).join('');
-  if(el) el.innerHTML='<div style="background:#fdf3e1;border-radius:10px;padding:12px;border:1px solid #f0d391">'
-    +'<div style="font-size:12px;color:var(--amber-700);font-weight:600;margin-bottom:8px">Total: '+fmtEur(total)+' / '+totalHrs.toFixed(1)+' total hrs</div>'
-    +rows+'</div>';
-  // Lock the input row and show notice
+  var split=computeTipSplit(db, ws, total);
+  if(!split){ var el=document.getElementById('shifts-tips-result'); if(el) el.innerHTML='<div class="empty-state"><p>No worked hours found for this week.</p></div>'; return; }
+  saveTipSplit(db, ws, split);
   renderShiftsTipsTab();
-  toast('Tips generated and locked for this week!','gold');
+  toast('Tips calculated and saved for this week','gold');
 }
 
 // ================================================
@@ -6139,9 +6154,10 @@ document.addEventListener('click', function(e) {
     deleteShift(_shiftActionId); return;
   }
   if (t.closest('#btn-tips-unlock')) {
-    var db5=getDB(); var ws5=toDateStr(getWeekStart(shiftsWeekOffset));
-    if(db5.tipsLocked) db5.tipsLocked[ws5]=false; saveDB(db5); renderShiftsTipsTab(); return;
+    tipsEditing[toDateStr(getWeekStart(shiftsWeekOffset))]=true; renderShiftsTipsTab();
+    var ti=document.getElementById('shifts-tips-input'); if(ti) ti.focus(); return;
   }
+  if (t.closest('#btn-tips-recalc') || t.closest('[data-tips-recalc]')) { recalculateTips(); return; }
 
   // Black Box tabs
   el = t.closest('[data-bb-tab]');
