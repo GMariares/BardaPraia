@@ -2479,13 +2479,14 @@ function renderSecureCard() {
     + line(st.secure, 'Staff logins moved to secure login')
     + line(!!authSession, 'You are logged in with a secure session')
     + (st.serviceKey && st.authAdmin && st.authAdmin !== 'ok' ? '<p class="acc-note" style="color:var(--red);margin-top:6px">Supabase does not accept the key for managing logins (' + esc(st.authAdmin) + '). Use the <b>service_role</b> key from Supabase → Project Settings → API Keys → Legacy API keys.</p>' : '')
+    + (st.serviceKey && !authSession ? '<label class="label" for="secure-admin-pw" style="margin-top:10px">Your password (to confirm you are an admin)</label><input type="password" class="input-field" id="secure-admin-pw" autocomplete="current-password" />' : '')
     + (st.serviceKey ? '<button class="btn btn-primary" id="btn-secure-migrate" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-shield-halved"></i> ' + (st.secure ? 'Check all logins again' : 'Move everyone to secure login') + '</button>' : '');
 }
 var secureMigrating = false;
 function runSecureMigrate() {
   if (secureMigrating) return;
-  var pw = authSession ? '' : prompt('Your password (to confirm you are an admin)');
-  if (pw === null) { toast('Cancelled', 'error'); return; }
+  var pwEl = document.getElementById('secure-admin-pw'), pw = authSession ? '' : (pwEl ? pwEl.value : '');
+  if (!authSession && !pw) { toast('Type your password first', 'error'); if (pwEl) pwEl.focus(); return; }
   secureMigrating = true;
   var btn = document.getElementById('btn-secure-migrate'); if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Moving logins…'; }
   var out = document.getElementById('secure-migrate-result'); if (out) out.innerHTML = '<p class="acc-note">Working… this takes a few seconds.</p>';
