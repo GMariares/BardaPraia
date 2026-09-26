@@ -625,6 +625,53 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     @media (max-width:1023px) {
       .modal { padding-bottom:max(24px,env(safe-area-inset-bottom,24px)); }
     }
+    /* ── Week one-pager (Shifts → Week) ── */
+    .week-bar { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .week-bar-title { font-weight:800; font-size:15px; color:var(--slate-900); flex:1; min-width:0; }
+    .week-bar-sub { font-size:12px; color:var(--slate-500); font-weight:600; }
+    .week-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; background:var(--panel); border:var(--rule); border-radius:var(--radius); }
+    .week-sheet { width:100%; min-width:820px; border-collapse:collapse; table-layout:fixed; font-size:12px; color:var(--slate-800); }
+    .week-sheet th, .week-sheet td { border-bottom:1px solid var(--slate-100); border-right:1px solid var(--slate-100); padding:5px 6px; vertical-align:top; text-align:left; }
+    .week-sheet th:last-child, .week-sheet td:last-child { border-right:none; }
+    .week-sheet col.wk-label { width:108px; }
+    .week-sheet thead th { font-size:11px; font-weight:800; color:var(--slate-700); background:var(--slate-50); position:sticky; top:0; }
+    .week-sheet thead th .wk-date { display:block; font-weight:600; color:var(--slate-500); font-size:10.5px; }
+    .week-sheet thead th.is-today { background:var(--mint-100, #e3f5ee); }
+    .week-sheet .wk-rowlabel { font-weight:700; font-size:11.5px; color:var(--slate-700); position:sticky; left:0; background:var(--panel); z-index:1; }
+    .week-sheet thead th:first-child { left:0; z-index:2; }
+    .week-sheet tr.wk-area td { background:var(--slate-50); font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.09em; padding:4px 6px; }
+    .week-sheet tr.wk-area td:first-child { position:sticky; left:0; }
+    .wk-swatch { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:6px; vertical-align:0; }
+    .wk-p { display:block; line-height:1.35; padding:1px 3px; margin:0 -3px; border-radius:4px; cursor:pointer; }
+    .wk-p b, .wk-t { white-space:nowrap; }
+    .wk-p:hover { background:var(--slate-50); }
+    .wk-p b { font-weight:700; }
+    .wk-t { color:var(--slate-500); font-variant-numeric:tabular-nums; }
+    .wk-p.is-absent b, .wk-p.is-absent .wk-t { text-decoration:line-through; color:var(--red); }
+    .wk-tag { font-size:10px; font-weight:700; margin-left:3px; }
+    .wk-tag.late { color:var(--amber-700, #9a6400); }
+    .wk-tag.ot { color:var(--teal-700, #1b7a67); }
+    .wk-tag.abs { color:var(--red); }
+    .week-sheet tr.wk-foot td { background:var(--slate-50); font-size:11px; }
+    .week-sheet tr.wk-foot td.wk-rowlabel { background:var(--slate-50); }
+    .wk-num { font-weight:800; font-variant-numeric:tabular-nums; color:var(--slate-900); }
+    .wk-off { color:var(--slate-500); font-weight:600; }
+    .week-sheet-meta { display:none; }
+    #print-root { display:none; width:283mm; background:#fff; }
+    #print-root .week-sheet { min-width:0; font-size:8.6pt; }
+    #print-root .week-sheet th, #print-root .week-sheet td { padding:2px 4px; border-color:#cfd6da; }
+    #print-root .week-sheet thead th, #print-root .wk-rowlabel { position:static; }
+    #print-root .week-sheet col.wk-label { width:24mm; }
+    #print-root .wk-p { white-space:normal; cursor:default; }
+    #print-root .week-sheet-meta { display:flex; justify-content:space-between; align-items:baseline; margin:0 0 3mm; font-size:10pt; color:#223; }
+    #print-root .week-sheet-meta b { font-size:13pt; }
+    @media print {
+      @page { size:A4 landscape; margin:7mm; }
+      body.print-week > *:not(#print-root) { display:none !important; }
+      body.print-week { background:#fff !important; }
+      body.print-week #print-root { display:block; }
+      #print-root * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    }
   </style>
 </head>
 <body>
@@ -864,6 +911,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <!-- Shifts tabs -->
     <div class="tab-row" style="margin-bottom:12px" id="shifts-tab-row">
       <button class="tab-btn active" data-shifts-tab="gantt"><i class="fas fa-calendar-week"></i> Schedule</button>
+      <button class="tab-btn" data-shifts-tab="week"><i class="fas fa-table-cells"></i> Week</button>
       <button class="tab-btn" data-shifts-tab="tips"><i class="fas fa-hand-holding-dollar"></i> Tips</button>
       <button class="tab-btn" data-shifts-tab="hours"><i class="fas fa-clock"></i> Hours</button>
       <button class="tab-btn" data-shifts-tab="attendance"><i class="fas fa-user-check"></i> Attendance</button>
@@ -879,6 +927,15 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
         <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--red);display:inline-block"></span> Absent</span>
       </div>
       <div id="shifts-list"></div>
+    </div>
+
+    <!-- ── Tab: Week one-pager ── -->
+    <div id="shifts-panel-week" style="display:none">
+      <div class="week-bar">
+        <div class="week-bar-title">Week at a glance <span class="week-bar-sub" id="week-sheet-range"></span></div>
+        <button class="btn btn-secondary btn-sm" id="btn-week-print"><i class="fas fa-print"></i> Print</button>
+      </div>
+      <div class="week-scroll"><div id="week-sheet-wrap"></div></div>
     </div>
 
     <!-- ── Tab: Tips ── -->
@@ -1988,6 +2045,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
 
 <!-- TOAST -->
 <div id="toast"></div>
+<div id="print-root"></div>
 
 <script>
 (function() {
@@ -5047,13 +5105,14 @@ var currentShiftsTab = 'gantt';
 // so refreshing here again would loop forever while the Shifts section is open
 function switchShiftsTab(tab, refresh) {
   currentShiftsTab = tab;
-  ['gantt','tips','hours','attendance','team'].forEach(function(t) {
+  ['gantt','week','tips','hours','attendance','team'].forEach(function(t) {
     var panel = document.getElementById('shifts-panel-'+t);
     if (panel) panel.style.display = (t === tab) ? '' : 'none';
   });
   document.querySelectorAll('[data-shifts-tab]').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.shiftsTab === tab);
   });
+  if (tab === 'week')       renderShiftsWeekTab();
   if (tab === 'tips')       renderShiftsTipsTab();
   if (tab === 'hours')      renderShiftsHoursTab();
   if (tab === 'attendance') renderShiftsAttendanceTab();
@@ -5770,6 +5829,87 @@ function shiftToRow(s) {
 var repeatBusy=false;
 // ── Repeat: copy chosen people's shifts from one week to another ──
 var repeatTicked = {}, repeatClashMode = '', repeatBound = false;
+// ── Week one-pager: areas/sections × Monday–Sunday ─────────────
+function wkTime(t) { t = t || ''; return /:00$/.test(t) ? t.slice(0, t.length - 3).replace(/^0/, '') : t.replace(/^0/, ''); }
+function weekSheetHTML(db, wsStr) {
+  var areas = getAreas(db), absIdx = absenceIndex(db);
+  var week = db.shifts.filter(function(s){ return s.weekStart === wsStr; });
+  var worked = week.filter(function(s){ return !s.dayOff; });
+  var todayStr = toDateStr(new Date());
+  var dates = DAYS.map(function(d, i){ var x = new Date(wsStr + 'T00:00:00'); x.setDate(x.getDate() + i); return x; });
+  // blocks: configured areas (all their sections), then unknown areas / sections found this week
+  var blocks = areas.map(function(a){ return { zone:a.name, sections:a.sections.slice(), single:a.sections.length === 1 }; });
+  worked.forEach(function(s){
+    var z = s.zone || '', sec = effectiveSection(s, areas);
+    var b = blocks.find(function(x){ return x.zone === z; });
+    if (!b) { b = { zone:z, sections:[], single:false }; blocks.push(b); }
+    if (b.sections.indexOf(sec) === -1) b.sections.push(sec);
+  });
+  blocks.forEach(function(b){ var i = b.sections.indexOf(''); if (i > -1) { b.sections.splice(i, 1); b.sections.push(''); } });
+  var h = '<table class="week-sheet"><colgroup><col class="wk-label">' + DAYS.map(function(){ return '<col>'; }).join('') + '</colgroup>';
+  h += '<thead><tr><th>Area · Section</th>' + DAYS.map(function(d, i){
+    var ds = toDateStr(dates[i]);
+    return '<th' + (ds === todayStr ? ' class="is-today"' : '') + '>' + d.slice(0, 3) + '<span class="wk-date">' + dates[i].getDate() + ' ' + MONTH_NAMES[dates[i].getMonth()] + '</span></th>';
+  }).join('') + '</tr></thead><tbody>';
+  blocks.forEach(function(b){
+    h += '<tr class="wk-area"><td colspan="8"><span class="wk-swatch" style="background:' + areaColor(b.zone) + '"></span>' + esc(b.zone || 'No area') + '</td></tr>';
+    b.sections.forEach(function(sec){
+      var label = sec || (b.zone ? 'No section' : '—');
+      h += '<tr><td class="wk-rowlabel">' + esc(label) + '</td>' + DAYS.map(function(d){
+        var list = worked.filter(function(s){ return s.day === d && (s.zone || '') === b.zone && effectiveSection(s, areas) === sec; })
+          .sort(function(x, y){ return timeToMins(x.start) - timeToMins(y.start) || x.employee.localeCompare(y.employee); });
+        return '<td>' + list.map(function(s){
+          var abs = shiftIsAbsent(s, absIdx);
+          var tags = (abs ? '<span class="wk-tag abs">absent</span>' : '')
+            + (!abs && s.lateMinutes ? '<span class="wk-tag late">late ' + fmtMins(s.lateMinutes) + '</span>' : '')
+            + (!abs && s.overtimeMinutes ? '<span class="wk-tag ot">+' + fmtMins(s.overtimeMinutes) + '</span>' : '');
+          return '<span class="wk-p' + (abs ? ' is-absent' : '') + '" data-action-shift="' + esc(s.id) + '" data-action-shift-date="' + esc(shiftDateStr(s)) + '" data-action-shift-ws="' + esc(wsStr) + '" title="' + esc(s.employee + ' ' + s.start + '–' + s.end + (s.role ? ' · ' + s.role : '')) + '">'
+            + '<b>' + esc(s.employee) + '</b> <span class="wk-t">' + wkTime(s.start) + '–' + wkTime(s.end) + '</span>' + tags + '</span>';
+        }).join('') + '</td>';
+      }).join('') + '</tr>';
+    });
+  });
+  // footer: day offs, headcount, hours
+  var offRow = '', peopleRow = '', hoursRow = '';
+  DAYS.forEach(function(d){
+    var offs = week.filter(function(s){ return s.day === d && s.dayOff; }).map(function(s){ return s.employee; }).sort();
+    var on = worked.filter(function(s){ return s.day === d && !shiftIsAbsent(s, absIdx); });
+    var hrs = on.reduce(function(a, s){ return a + shiftScheduledHours(s); }, 0);
+    offRow += '<td class="wk-off">' + offs.map(esc).join(', ') + '</td>';
+    peopleRow += '<td><span class="wk-num">' + on.length + '</span></td>';
+    hoursRow += '<td><span class="wk-num">' + (Math.round(hrs * 10) / 10) + '</span> h</td>';
+  });
+  h += '<tr class="wk-foot"><td class="wk-rowlabel">Day off</td>' + offRow + '</tr>';
+  h += '<tr class="wk-foot"><td class="wk-rowlabel">People working</td>' + peopleRow + '</tr>';
+  h += '<tr class="wk-foot"><td class="wk-rowlabel">Hours planned</td>' + hoursRow + '</tr>';
+  return h + '</tbody></table>';
+}
+function renderShiftsWeekTab() {
+  var wrap = document.getElementById('week-sheet-wrap'); if (!wrap) return;
+  var wsStr = toDateStr(getWeekStart(shiftsWeekOffset));
+  document.getElementById('week-sheet-range').textContent = '· ' + weekRangeLabel(wsStr);
+  wrap.innerHTML = weekSheetHTML(getDB(), wsStr);
+}
+function printWeekSheet() {
+  var wsStr = toDateStr(getWeekStart(shiftsWeekOffset));
+  var root = document.getElementById('print-root');
+  root.innerHTML = '<div class="week-sheet-meta"><b>Bar da Praia · Shifts</b><span>' + esc(weekRangeLabel(wsStr)) + '</span></div>' + weekSheetHTML(getDB(), wsStr);
+  document.body.classList.add('print-week');
+  // shrink to one A4 landscape page when the week is long (printable ≈ 196mm high)
+  // shrink to one page if needed, widening the sheet by the same factor so it still fills the width
+  var pageH = 196 * 96 / 25.4, z = 1;
+  root.style.zoom = ''; root.style.width = ''; root.style.display = 'block';
+  for (var k = 0; k < 3; k++) {
+    root.style.width = (283 / z) + 'mm';
+    var hgt = root.scrollHeight; if (hgt * z <= pageH) break;
+    z = Math.max(0.5, z * pageH / (hgt * z));
+  }
+  root.style.width = (283 / z) + 'mm'; root.style.zoom = z < 1 ? String(z) : ''; root.style.display = '';
+  var done = function(){ document.body.classList.remove('print-week'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  window.print();   // print-root only shows in print media, so leaving it filled is harmless until afterprint
+}
+
 function weekRangeLabel(ws, short) {
   var a = new Date(ws + 'T00:00:00'), b = new Date(a); b.setDate(b.getDate() + 6);
   var yr = (short && b.getFullYear() === new Date().getFullYear()) ? '' : ' ' + b.getFullYear();
@@ -6433,6 +6573,7 @@ document.addEventListener('click', function(e) {
   // Shifts tabs
   var shiftsTabEl = t.closest('[data-shifts-tab]');
   if (shiftsTabEl) { switchShiftsTab(shiftsTabEl.dataset.shiftsTab); return; }
+  if (t.closest('#btn-week-print')) { printWeekSheet(); return; }
 
   // Finance tabs & actions
   var finTabEl = t.closest('[data-fin-tab]');
