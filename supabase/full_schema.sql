@@ -188,6 +188,28 @@ CREATE TABLE IF NOT EXISTS absences (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Food cost (see supabase/migrations/2026-09-27-i-food-cost.sql)
+CREATE TABLE IF NOT EXISTS fc_ingredients (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  unit TEXT NOT NULL DEFAULT 'kg',
+  price NUMERIC NOT NULL DEFAULT 0,
+  yield_pct NUMERIC NOT NULL DEFAULT 100,
+  supplier TEXT DEFAULT '',
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS fc_recipes (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT DEFAULT '',
+  price NUMERIC DEFAULT 0,
+  vat NUMERIC DEFAULT 13,
+  portions NUMERIC DEFAULT 1,
+  lines JSONB NOT NULL DEFAULT '[]'::jsonb,
+  notes TEXT DEFAULT '',
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Accounting (see supabase/migrations/2026-09-27-h-accounting.sql)
 CREATE TABLE IF NOT EXISTS acc_entries (
   id TEXT PRIMARY KEY,
@@ -233,7 +255,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences','shift_requests','acc_entries']
+                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);
