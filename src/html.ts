@@ -664,6 +664,72 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     #update-bar { position:fixed; left:12px; right:12px; bottom:calc(84px + env(safe-area-inset-bottom, 0px)); z-index:3000; background:var(--slate-900); color:#fff; border-radius:12px; padding:10px 12px 10px 16px; display:flex; align-items:center; gap:12px; font-size:14px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.25); }
     #update-bar span { flex:1; }
     @media (min-width:900px) { #update-bar { left:auto; right:24px; bottom:24px; max-width:420px; } }
+    /* ── Accounting ── */
+    .acc-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .acc-year { display:flex; align-items:center; gap:10px; }
+    #acc-year-label { font-size:22px; font-weight:800; color:var(--slate-900); font-variant-numeric:tabular-nums; min-width:56px; text-align:center; }
+    .acc-sync { font-size:12.5px; color:var(--amber-700); }
+    .acc-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+    @media (max-width:640px) { .acc-kpis { grid-template-columns:1fr; } }
+    .acc-kpi { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:12px 14px; }
+    .acc-kpi-label { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--slate-500); }
+    .acc-kpi-num { font-size:26px; font-weight:800; color:var(--slate-900); margin-top:4px; letter-spacing:-.01em; }
+    .acc-kpi-num.neg { color:var(--red); }
+    .acc-kpi-sub { font-size:12px; color:var(--slate-500); margin-top:3px; }
+    .acc-card { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:12px 14px; margin-bottom:12px; }
+    .acc-card-title { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--slate-500); margin-bottom:6px; }
+    .acc-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; padding:0; }
+    .acc-table { width:100%; border-collapse:collapse; font-size:12.5px; color:var(--slate-800); font-variant-numeric:tabular-nums; }
+    .acc-table th, .acc-table td { padding:7px 10px; border-bottom:1px solid var(--slate-100); text-align:right; white-space:nowrap; }
+    .acc-table thead th { font-size:11px; font-weight:800; color:var(--slate-500); background:var(--slate-50); position:sticky; top:0; }
+    .acc-table tbody th, .acc-table thead th:first-child { text-align:left; font-weight:700; color:var(--slate-700); position:sticky; left:0; background:var(--panel); z-index:1; }
+    .acc-table thead th:first-child { background:var(--slate-50); z-index:2; }
+    .acc-table tr.strong td, .acc-table tr.strong th { font-weight:800; color:var(--slate-900); }
+    .acc-table tr.sub th { font-weight:500; color:var(--slate-500); padding-left:18px; }
+    .acc-table tr.sub td { color:var(--slate-500); }
+    .acc-table tr.pct td, .acc-table tr.pct th { color:var(--slate-500); font-weight:600; font-size:12px; }
+    .acc-table td.neg { color:var(--red); }
+    .acc-table .acc-empty { text-align:center; color:var(--slate-500); padding:18px; }
+    .acc-hist td, .acc-hist th { border-bottom:1px solid var(--slate-100); }
+    .acc-src { font-size:10px; font-weight:700; color:var(--slate-500); background:var(--slate-50); border-radius:4px; padding:1px 5px; margin-left:4px; text-transform:uppercase; letter-spacing:.04em; }
+    .acc-note { font-size:12.5px; color:var(--slate-500); margin:0 2px 12px; line-height:1.45; }
+    .acc-months { display:flex; gap:4px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
+    .acc-month { flex:0 0 auto; min-width:48px; min-height:38px; border-radius:9px; border:var(--rule); background:var(--panel); font-weight:700; font-size:13px; color:var(--slate-500); cursor:pointer; position:relative; }
+    .acc-month.has { color:var(--slate-800); }
+    .acc-month.has::after { content:''; position:absolute; bottom:5px; left:50%; width:4px; height:4px; margin-left:-2px; border-radius:50%; background:var(--teal-500); }
+    .acc-month.active { background:var(--slate-800); color:#fff; border-color:var(--slate-800); }
+    .acc-month.active::after { background:var(--mint-300); }
+    .acc-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+    .acc-toolbar-title { flex:1; min-width:180px; font-weight:800; font-size:15px; color:var(--slate-900); }
+    .acc-toolbar-title span { color:var(--teal-700); margin-left:6px; }
+    .acc-edit td { padding:4px 4px; }
+    .acc-in { width:92px; min-height:36px; border:1px solid var(--slate-200); border-radius:7px; padding:5px 8px; font:inherit; font-size:13px; text-align:right; background:var(--panel); color:var(--slate-900); }
+    .acc-in:focus { outline:none; border-color:var(--teal-500); box-shadow:0 0 0 3px var(--mint-100); }
+    .acc-fixed .acc-in { width:78px; }
+    .acc-fixed tbody th { display:flex; align-items:center; justify-content:space-between; gap:6px; min-width:170px; }
+    .acc-auto { width:100%; min-height:36px; border:1px dashed var(--teal-500); background:var(--mint-50); color:var(--teal-700); border-radius:7px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; padding:3px 8px; text-align:right; }
+    .acc-auto small { display:block; font-size:10px; font-weight:600; }
+    .acc-icon { border:none; background:none; color:var(--slate-400); width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:13px; }
+    .acc-icon:hover { background:var(--slate-50); color:var(--slate-700); }
+    .acc-row-acts { white-space:nowrap; }
+    .acc-ledger { padding:4px 0; }
+    .acc-line { display:flex; align-items:center; gap:10px; width:100%; min-height:52px; padding:8px 14px; border:none; border-bottom:1px solid var(--slate-100); background:none; text-align:left; cursor:pointer; font:inherit; color:var(--slate-900); }
+    .acc-line:last-child { border-bottom:none; }
+    .acc-line:hover { background:var(--slate-50); }
+    .acc-line.is-zero .acc-line-name { color:var(--slate-500); font-weight:600; }
+    .acc-line.is-ro { cursor:default; }
+    .acc-line-name { flex:1; font-weight:700; font-size:14px; }
+    .acc-line-name small { display:block; font-size:12px; color:var(--slate-500); font-weight:500; }
+    .acc-line-amt { font-weight:800; font-variant-numeric:tabular-nums; }
+    .acc-line i { color:var(--slate-400); font-size:12px; }
+    .acc-entries { max-height:42vh; overflow-y:auto; margin-bottom:10px; }
+    .acc-entry { display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--slate-100); }
+    .acc-entry.is-total { border-bottom:none; font-weight:800; }
+    .acc-entry-amt { min-width:96px; font-weight:800; font-variant-numeric:tabular-nums; }
+    .acc-entry-meta { flex:1; font-size:13px; color:var(--slate-500); }
+    .acc-led-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .acc-led-note { grid-column:1 / -1; }
+    .acc-empty { color:var(--slate-500); font-size:13px; padding:12px 2px; }
     /* ── Notifications: test help, iPhone steps, Users status ── */
     .notif-help { font-size:12.5px; color:var(--slate-600); background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-top:10px; line-height:1.45; }
     .notif-help.is-ok { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
@@ -776,6 +842,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="section-label" style="margin-top:12px">Admin</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
+    <button class="drawer-item" id="ditem-accounting" data-nav="accounting"><i class="fas fa-scale-balanced"></i> Accounting <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
     <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Users <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
   </nav>
@@ -1057,6 +1124,34 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </section>
 
   <!-- ═══ FINANCE ═══ -->
+  <!-- ═══ ACCOUNTING ═══ -->
+  <section id="section-accounting" class="page-section">
+    <div id="acc-locked" class="locked-overlay" style="display:none">
+      <i class="fas fa-scale-balanced" style="color:#6d4fc2"></i>
+      <h3>Finance access required</h3>
+      <p>Accounting is for people with the Finance role.</p>
+    </div>
+    <div id="acc-content" style="display:none">
+      <div class="acc-head">
+        <div class="acc-year">
+          <button class="btn btn-secondary btn-sm btn-icon" id="acc-year-prev" aria-label="Previous year"><i class="fas fa-chevron-left"></i></button>
+          <span id="acc-year-label">2026</span>
+          <button class="btn btn-secondary btn-sm btn-icon" id="acc-year-next" aria-label="Next year"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="acc-sync" id="acc-sync-note"></div>
+      </div>
+      <div class="tab-row" style="margin-bottom:14px">
+        <button class="tab-btn active" data-acc-tab="summary"><i class="fas fa-chart-column"></i> Summary</button>
+        <button class="tab-btn" data-acc-tab="revenue"><i class="fas fa-arrow-trend-up"></i> Revenue</button>
+        <button class="tab-btn" data-acc-tab="wages" id="acc-tab-wages-btn"><i class="fas fa-user-group"></i> Wages</button>
+        <button class="tab-btn" data-acc-tab="suppliers"><i class="fas fa-truck"></i> Suppliers</button>
+        <button class="tab-btn" data-acc-tab="fixed"><i class="fas fa-house"></i> Fixed costs</button>
+        <button class="tab-btn" data-acc-tab="expenses"><i class="fas fa-receipt"></i> Daily expenses</button>
+      </div>
+      <div id="acc-body"></div>
+    </div>
+  </section>
+
   <section id="section-finance" class="page-section">
     <div id="finance-locked" class="locked-overlay" style="display:none">
       <i class="fas fa-euro-sign" style="color:#6d4fc2"></i>
@@ -2002,6 +2097,24 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </ol>
     <p style="font-size:12.5px;color:var(--slate-500);margin:12px 0 14px">Needs iOS 16.4 or newer. Chrome on iPhone cannot add it; use Safari.</p>
     <button class="btn btn-primary" style="width:100%;justify-content:center" data-close-modal="modal-ios-install">Got it</button>
+  </div>
+</div>
+
+<!-- Accounting: entries of one supplier / expense category in a month -->
+<div class="modal-overlay" id="modal-acc-ledger">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-receipt"></i> <span id="acc-ledger-title">—</span></h2>
+    <div id="acc-ledger-list" class="acc-entries"></div>
+    <div class="acc-led-form">
+      <div><label class="label" for="acc-led-amount">Amount (€) *</label><input type="text" inputmode="decimal" class="input-field" id="acc-led-amount" placeholder="0,00" /></div>
+      <div><label class="label" for="acc-led-date">Date</label><input type="date" class="input-field" id="acc-led-date" style="min-width:0" /></div>
+      <div class="acc-led-note"><label class="label" for="acc-led-note">Invoice no. / note</label><input type="text" class="input-field" id="acc-led-note" placeholder="optional" /></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-acc-ledger">Done</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-acc-led-add"><i class="fas fa-plus"></i> Add</button>
+    </div>
   </div>
 </div>
 
@@ -3115,6 +3228,7 @@ function updateSessionUI() {
   dshow('ditem-reservations', true);
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
+  dshow('ditem-accounting',   isFinance);
   dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
   dshow('ditem-blackbox',     isAdmin);
   dshow('ditem-users',        isAdmin);
@@ -3290,6 +3404,9 @@ function refreshSection(name) {
       if (currentSection === name) renderFinance();
     }).catch(function(){});
 
+  } else if (name === 'accounting') {
+    accLoad();
+
   } else if (name === 'users') {
     sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at').then(function(rows) {
       if (!rows) return; var db = getDB(); db.pushSubs = rows.map(function(x){ return { userId:x.user_id, endpoint:x.endpoint, updatedAt:x.updated_at }; }); saveDB(db);
@@ -3348,7 +3465,7 @@ function showSection(name) {
   if ((name === 'blackbox' || name === 'settings' || name === 'users') && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
-  if (name === 'finance' && !isFinance) {
+  if ((name === 'finance' || name === 'accounting') && !isFinance) {
     toast('Finance role required.', 'error'); return;
   }
 
@@ -3364,7 +3481,7 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + name);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Dashboard',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',users:'Users',settings:'Settings'};
+  var titles = {dashboard:'Dashboard',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',users:'Users',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   moveBnavMarker();
   currentSection = name;
@@ -3378,6 +3495,7 @@ function showSection(name) {
   if (name === 'shifts')       renderShifts();
   if (name === 'blackbox')     renderBlackBox();
   if (name === 'finance')      renderFinance();
+  if (name === 'accounting')   renderAccounting();
   if (name === 'users')        renderUsers();
   if (name === 'settings')     renderSettings();
 
@@ -5327,7 +5445,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -6494,6 +6612,415 @@ function notifyWeekShifts(wsStr) {
   });
 }
 
+// ================================================
+// ACCOUNTING
+// ================================================
+// A year of revenue and costs, month by month. Revenue comes from the daily closes (Finance);
+// costs are entered here: wages, supplier invoices, fixed costs and daily expenses.
+// Every amount is one row in acc_entries; lists, wage rules and history live in settings.accounting.
+var ACC_FIXED_DEFAULT = ['Renda','Luz','Água','Vodafone','Segurança social','AT','IVA','Contabilidade','Renda casa Neto','Renda casa Marcelo','Prestação VW','Prestação Citroen','Prestação Opel','Armazém','Seguros','Redes sociais'];
+var ACC_EXPENSE_DEFAULT = ['Diversos','Filtros','Mel','Azeitonas','Gás','Laranjas','Mexilhão','Músicos'];
+var ACC_WAGE_PARTS = [['payslip','Payslip'],['ticket','Meal ticket'],['cash','Cash'],['extras','Extras']];
+var ACC_KIND_LABEL = { supplier:'Supplier', expense:'Expense', fixed:'Fixed cost' };
+var accYear = new Date().getFullYear(), accMonth = new Date().getMonth() + 1, accTab = 'summary', accBusy = false;
+var accLedger = null;   // { kind, line } open in the ledger sheet
+
+function accCfg() {
+  var c = getDB().accConfig || {};
+  return { fixedLines: c.fixedLines || ACC_FIXED_DEFAULT.slice(), expenseCats: c.expenseCats || ACC_EXPENSE_DEFAULT.slice(),
+    wageRules: c.wageRules || [], history: c.history || [] };
+}
+function saveAccCfg(c) {
+  var db = getDB(); db.accConfig = c; saveDB(db);
+  if (sbCols.accConfig) sbFetch('PATCH', 'settings', { accounting: c }, 'id=eq.config').catch(function(){ toast('Not saved online. Check the connection.', 'error'); });
+}
+// "1.234,56", "1234.56", "€ 45" -> number; '' -> null
+function accNum(raw) {
+  var t = String(raw == null ? '' : raw).replace(/[\\s€]/g, '');
+  if (t === '') return null;
+  if (t.indexOf(',') !== -1 && t.indexOf('.') !== -1) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  else t = t.replace(',', '.');
+  return parseFloat(t);
+}
+function accSum(arr, f) { return arr.reduce(function(a, x){ return a + (f ? (x[f] || 0) : x); }, 0); }
+function accRows(y, kind, m) { return (getDB().accEntries || []).filter(function(e){ return e.year === y && (!kind || e.kind === kind) && (!m || e.month === m); }); }
+function accSame(a, b) { return normName(a) === normName(b); }
+function accEur(v) { var n = Math.round((v || 0) * 100) / 100; return (n < 0 ? '−€' : '€') + Math.abs(n).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function accEur0(v) { return (v < 0 ? '−€' : '€') + Math.round(Math.abs(v || 0)).toLocaleString('pt-PT'); }
+function accMonthLabel(y, m) { return MONTH_NAMES[m - 1] + ' ' + y; }
+function accPrevMonth(y, m) { return m === 1 ? [y - 1, 12] : [y, m - 1]; }
+
+// Revenue of a month: the daily closes when there are any, otherwise imported sales (Caixa 1 + Caixa FCP)
+function accRevenue(y, m) {
+  var ym = y + '-' + String(m).padStart(2, '0');
+  var fin = (getDB().finEntries || []).filter(function(e){ return e.date && e.date.slice(0, 7) === ym; });
+  if (fin.length) {
+    var day = accSum(fin, 'totalDay'), surf = accSum(fin, 'surf');
+    return { day: day, surf: surf, total: day + surf, source: 'closes', days: fin.length, genExp: accSum(fin, 'genExpenses') };
+  }
+  var imp = accRows(y, 'revenue', m), lines = {};
+  imp.forEach(function(e){ lines[e.line] = (lines[e.line] || 0) + e.amount; });
+  var days = {}; imp.forEach(function(e){ if (e.date) days[e.date] = 1; });
+  var tot = accSum(imp, 'amount');
+  return { day: tot, surf: 0, total: tot, source: imp.length ? 'imported' : '', days: Object.keys(days).length, genExp: 0, lines: lines };
+}
+// Wages: manual amounts, plus "percentage of the month's revenue" rules where no amount was typed
+function accYm(s) { var p = String(s || '').split('-'); return (+p[0]) * 100 + (+p[1] || 1); }
+function accWageRule(person, part, y, m) {
+  var ym = y * 100 + m;
+  return accCfg().wageRules.find(function(r){ return accSame(r.person, person) && r.part === part && (!r.from || ym >= accYm(r.from)); }) || null;
+}
+function accWages(y, m) {
+  var rows = accRows(y, 'wage', m), people = [], rev = null;
+  rows.forEach(function(e){ if (!people.some(function(p){ return accSame(p, e.line); })) people.push(e.line); });
+  return people.map(function(p){
+    var parts = {}, total = 0;
+    ACC_WAGE_PARTS.forEach(function(pp){
+      var es = rows.filter(function(e){ return accSame(e.line, p) && e.part === pp[0]; }), v = 0, auto = false, rule = null;
+      if (es.length) v = accSum(es, 'amount');
+      else { rule = accWageRule(p, pp[0], y, m); if (rule) { if (rev === null) rev = accRevenue(y, m).total; v = Math.round(rev * rule.pct) / 100; auto = true; } }
+      parts[pp[0]] = { v: v, auto: auto, rule: rule, set: es.length > 0 }; total += v;
+    });
+    return { person: p, parts: parts, total: total };
+  }).sort(function(a, b){ return a.person.localeCompare(b.person); });
+}
+function accMonthTotals(y, m) {
+  var rev = accRevenue(y, m);
+  var staff = accSum(accWages(y, m), 'total');
+  var suppliers = accSum(accRows(y, 'supplier', m), 'amount');
+  var fixed = accSum(accRows(y, 'fixed', m), 'amount');
+  var expenses = accSum(accRows(y, 'expense', m), 'amount') + (rev.genExp || 0);
+  var costs = staff + suppliers + fixed + expenses;
+  return { rev: rev, staff: staff, suppliers: suppliers, fixed: fixed, expenses: expenses, costs: costs, balance: rev.total - costs, any: rev.total > 0 || costs > 0 };
+}
+
+// ── data in / out ──
+function accLoad() {
+  var y = accYear, yrs = [y - 1, y];
+  var sync = document.getElementById('acc-sync-note');
+  return Promise.all([
+    sbFetchAll('acc_entries', 'year=in.(' + yrs.join(',') + ')&order=id.asc').then(function(rows){ return rows || []; }),
+    sbFetchAll('fin_entries', 'date=gte.' + (y - 1) + '-01-01&date=lte.' + y + '-12-31&order=date.asc,id.asc').catch(function(){ return null; }),
+    sbFetch('GET', 'settings', null, 'select=accounting&id=eq.config').catch(function(){ return null; })
+  ]).then(function(res){
+    var db = getDB();
+    sbCols.acc = true;
+    db.accEntries = (db.accEntries || []).filter(function(e){ return yrs.indexOf(e.year) === -1; }).concat(res[0].map(accFromRow));
+    if (res[1]) {
+      var byId = {}; (db.finEntries || []).forEach(function(e){ byId[e.id] = e; });
+      res[1].forEach(function(r){ if (!byId[r.id]) (db.finEntries = db.finEntries || []).push({ id: r.id, date: r.date, t51: parseFloat(r.t51)||0, totalDay: parseFloat(r.total_day)||0, surf: parseFloat(r.surf)||0, genExpenses: parseFloat(r.gen_expenses)||0, invoiced: parseFloat(r.invoiced)||0 }); });
+    }
+    if (res[2] && res[2][0] && ('accounting' in res[2][0])) { sbCols.accConfig = true; db.accConfig = res[2][0].accounting || {}; }
+    saveDB(db);
+    if (sync) sync.textContent = '';
+    if (currentSection === 'accounting') renderAccounting();
+  }).catch(function(){
+    sbCols.acc = false;
+    if (sync) sync.textContent = 'Accounting is not switched on yet: run the accounting SQL in Supabase.';
+    if (currentSection === 'accounting') renderAccounting();
+  });
+}
+function accFromRow(r) { return { id: r.id, year: +r.year, month: +r.month, kind: r.kind, line: r.line || '', part: r.part || '', date: r.date || '', amount: parseFloat(r.amount) || 0, note: r.note || '' }; }
+function accToRow(e) { return { id: e.id, year: e.year, month: e.month, kind: e.kind, line: e.line, part: e.part || '', date: e.date || null, amount: e.amount, note: e.note || '' }; }
+function accAdd(list) {
+  if (!sbCols.acc) { toast('Accounting is not switched on yet (SQL missing)', 'error'); return Promise.reject(); }
+  list = list.map(function(e){ return Object.assign({ id: uid(), part: '', date: '', note: '' }, e); });
+  return sbFetch('POST', 'acc_entries', list.map(accToRow)).then(function(){
+    var db = getDB(); db.accEntries = (db.accEntries || []).concat(list); saveDB(db); return list;
+  }).catch(function(e){ toast('Not saved online. Check the connection.', 'error'); throw e; });
+}
+function accDelete(ids) {
+  if (!ids.length) return Promise.resolve();
+  return sbFetch('DELETE', 'acc_entries', null, 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')').then(function(){
+    var db = getDB(); db.accEntries = (db.accEntries || []).filter(function(e){ return ids.indexOf(e.id) === -1; }); saveDB(db);
+  }).catch(function(e){ toast('Not saved online. Check the connection.', 'error'); throw e; });
+}
+// Replace every amount of one cell (line / part / month) with a single value ('' = empty)
+function accSetCell(kind, y, m, line, part, raw) {
+  var old = accRows(y, kind, m).filter(function(e){ return accSame(e.line, line) && (e.part || '') === (part || ''); }).map(function(e){ return e.id; });
+  var v = accNum(raw);
+  if (v !== null && isNaN(v)) { toast('Not a number', 'error'); renderAccounting(); return; }
+  accDelete(old).then(function(){ return v === null ? null : accAdd([{ year: y, month: m, kind: kind, line: line, part: part || '', amount: Math.round(v * 100) / 100 }]); })
+    .then(function(){ renderAccounting(); }).catch(function(){ renderAccounting(); });
+}
+
+// ── screen ──
+function renderAccounting() {
+  var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
+  if (!isFinance) { locked.style.display = 'flex'; content.style.display = 'none'; return; }
+  locked.style.display = 'none'; content.style.display = 'block';
+  document.getElementById('acc-year-label').textContent = accYear;
+  var wBtn = document.getElementById('acc-tab-wages-btn'); if (wBtn) wBtn.style.display = isAdmin ? '' : 'none';
+  if (accTab === 'wages' && !isAdmin) accTab = 'summary';
+  document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
+  var body = document.getElementById('acc-body');
+  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
+  body.innerHTML = html;
+  if (accTab === 'summary') { var ch = document.getElementById('acc-chart'); if (ch) drawAccChart(ch); }
+}
+function accMonthBar() {
+  var h = '<div class="acc-months" role="tablist" aria-label="Month">';
+  for (var m = 1; m <= 12; m++) {
+    var t = accMonthTotals(accYear, m);
+    h += '<button class="acc-month' + (m === accMonth ? ' active' : '') + (t.any ? ' has' : '') + '" data-acc-month="' + m + '">' + MONTH_NAMES[m - 1] + '</button>';
+  }
+  return h + '</div>';
+}
+function accKpi(label, value, sub, cls) { return '<div class="acc-kpi"><div class="acc-kpi-label">' + label + '</div><div class="acc-kpi-num ' + (cls || '') + '">' + value + '</div><div class="acc-kpi-sub">' + (sub || '') + '</div></div>'; }
+function accIn(v) { return String(Math.round(v * 100) / 100).replace('.', ','); }   // amount shown in an input box
+function accPct(a, b) { return b > 0 ? Math.round(a / b * 100) + '%' : '—'; }
+
+function accSummaryHTML() {
+  var months = [], tot = { rev: 0, staff: 0, suppliers: 0, fixed: 0, expenses: 0, costs: 0, surf: 0 }, prevRev = 0, prevMatched = 0;
+  for (var m = 1; m <= 12; m++) {
+    var t = accMonthTotals(accYear, m); t.m = m; t.prev = accRevenue(accYear - 1, m).total;
+    if (t.any) { months.push(t); tot.rev += t.rev.total; tot.surf += t.rev.surf; tot.staff += t.staff; tot.suppliers += t.suppliers; tot.fixed += t.fixed; tot.expenses += t.expenses; tot.costs += t.costs; if (t.prev > 0 && t.rev.total > 0) { prevRev += t.prev; prevMatched += t.rev.total; } }
+  }
+  if (!months.length) return '<div class="empty-state"><i class="fas fa-scale-balanced"></i><p>No figures for ' + accYear + ' yet.</p></div>';
+  var bal = tot.rev - tot.costs, vs = prevRev > 0 ? Math.round((prevMatched - prevRev) / prevRev * 100) : null;
+  var h = '<div class="acc-kpis">'
+    + accKpi('Revenue ' + accYear, accEur0(tot.rev), vs === null ? '' : (vs >= 0 ? '+' : '') + vs + '% vs ' + (accYear - 1) + ' (same months)')
+    + accKpi('Costs', accEur0(tot.costs), 'Staff ' + accPct(tot.staff, tot.rev) + ' · Suppliers ' + accPct(tot.suppliers, tot.rev) + ' of revenue')
+    + accKpi('Balance', accEur0(bal), 'Margin ' + accPct(bal, tot.rev), bal < 0 ? 'neg' : 'pos')
+    + '</div>';
+  h += '<div class="acc-card"><div class="fin-chart" id="acc-chart"></div></div>';
+  var rowsDef = [
+    ['Revenue', function(t){ return t.rev.total; }, 'strong'],
+    [' of which Surf', function(t){ return t.rev.surf; }, 'sub', function(){ return tot.surf > 0; }],
+    ['Staff', function(t){ return t.staff; }],
+    ['Suppliers', function(t){ return t.suppliers; }],
+    ['Fixed costs', function(t){ return t.fixed; }],
+    ['Daily expenses', function(t){ return t.expenses; }],
+    ['Total costs', function(t){ return t.costs; }, 'strong'],
+    ['Balance', function(t){ return t.balance; }, 'strong bal']
+  ];
+  h += '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th></th>' + months.map(function(t){ return '<th>' + MONTH_NAMES[t.m - 1] + '</th>'; }).join('') + '<th>Year</th></tr></thead><tbody>';
+  rowsDef.forEach(function(rd){
+    if (rd[3] && !rd[3]()) return;
+    var ys = accSum(months.map(rd[1]));
+    h += '<tr class="' + (rd[2] || '') + '"><th>' + rd[0] + '</th>' + months.map(function(t){ var v = rd[1](t); return '<td class="' + (rd[2] && rd[2].indexOf('bal') !== -1 && v < 0 ? 'neg' : '') + '">' + (v ? accEur0(v) : '—') + '</td>'; }).join('') + '<td class="' + (rd[2] && rd[2].indexOf('bal') !== -1 && ys < 0 ? 'neg' : '') + '">' + accEur0(ys) + '</td></tr>';
+  });
+  h += '<tr class="pct"><th>Staff % of revenue</th>' + months.map(function(t){ return '<td>' + accPct(t.staff, t.rev.total) + '</td>'; }).join('') + '<td>' + accPct(tot.staff, tot.rev) + '</td></tr>';
+  h += '<tr class="pct"><th>Suppliers % of revenue</th>' + months.map(function(t){ return '<td>' + accPct(t.suppliers, t.rev.total) + '</td>'; }).join('') + '<td>' + accPct(tot.suppliers, tot.rev) + '</td></tr>';
+  if (months.some(function(t){ return t.prev > 0; })) h += '<tr class="pct"><th>Revenue vs ' + (accYear - 1) + '</th>' + months.map(function(t){ return '<td>' + (t.prev > 0 ? ((t.rev.total >= t.prev ? '+' : '') + Math.round((t.rev.total - t.prev) / t.prev * 100) + '%') : '—') + '</td>'; }).join('') + '<td>' + (vs === null ? '—' : (vs >= 0 ? '+' : '') + vs + '%') + '</td></tr>';
+  h += '</tbody></table></div>';
+  return h;
+}
+function drawAccChart(el) {
+  var W = Math.max(300, Math.floor(el.clientWidth || 600)), H = 170, padL = 44, padR = 6, padT = 18, padB = 22;
+  var plotW = W - padL - padR, plotH = H - padT - padB, rev = [], cost = [], maxV = 0, now = new Date();
+  for (var m = 1; m <= 12; m++) { var t = accMonthTotals(accYear, m); rev.push(t.rev.total); cost.push(t.costs); maxV = Math.max(maxV, t.rev.total, t.costs); }
+  var yMax = finNiceMax(maxV * 1.05), y = function(v){ return padT + plotH - (v / yMax) * plotH; };
+  var band = plotW / 12, barW = Math.min(24, Math.round(band * 0.55));
+  var curIdx = (accYear === now.getFullYear()) ? now.getMonth() : -1;
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Revenue and costs per month, ' + accYear + '">';
+  [0, 0.5, 1].forEach(function(f){ var gy = y(yMax * f); svg += '<line class="' + (f === 0 ? 'fc-axis' : 'fc-grid') + '" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + gy + '" y2="' + gy + '"/><text class="fc-tick" x="' + (padL - 6) + '" y="' + (gy + 3) + '" text-anchor="end">' + fmtEurShort(yMax * f) + '</text>'; });
+  for (var i = 0; i < 12; i++) {
+    var cx = padL + band * i + band / 2, a = rev[i], c = cost[i];
+    svg += '<g class="fc-month-g" tabindex="0"><title>' + MONTH_NAMES[i] + ' ' + accYear + ': revenue ' + fmtEur(a) + ' · costs ' + fmtEur(c) + ' · balance ' + fmtEur(a - c) + '</title>';
+    svg += '<rect class="fc-hit" x="' + (padL + band * i) + '" y="' + padT + '" width="' + band + '" height="' + plotH + '"/>';
+    if (a > 0) {
+      var top = y(a), x0 = cx - barW / 2, r = Math.min(4, barW / 2), hh = padT + plotH - top;
+      svg += hh > r ? '<path class="fc-bar" d="M' + x0 + ' ' + (padT + plotH) + ' V' + (top + r) + ' a' + r + ' ' + r + ' 0 0 1 ' + r + ' -' + r + ' h' + (barW - 2 * r) + ' a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + ' V' + (padT + plotH) + ' Z"/>' : '<rect class="fc-bar" x="' + x0 + '" y="' + top + '" width="' + barW + '" height="' + hh + '"/>';
+    }
+    if (c > 0) { var cy = y(c); svg += '<line class="fc-budget" x1="' + (cx - barW / 2 - 3) + '" x2="' + (cx + barW / 2 + 3) + '" y1="' + cy + '" y2="' + cy + '"/>'; }
+    if (i === curIdx && (a > 0 || c > 0)) svg += '<text class="fc-label" x="' + cx + '" y="' + (Math.min(a > 0 ? y(a) : H, c > 0 ? y(c) : H) - 6) + '" text-anchor="middle">' + fmtEurShort(a) + '</text>';
+    svg += '<text class="fc-month' + (i === curIdx ? ' now' : '') + '" x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle">' + (band >= 40 ? MONTH_NAMES[i] : MONTH_NAMES[i].charAt(0)) + '</text></g>';
+  }
+  svg += '</svg>';
+  el.innerHTML = '<div class="fin-chart-head"><div class="fin-chart-title">' + accYear + ' · revenue and costs</div><div class="fin-chart-legend"><span><i class="sw-bar"></i>Revenue</span><span><i class="sw-line"></i>Costs</span></div></div><div class="fc-wrap">' + svg + '</div>';
+}
+
+function accRevenueHTML() {
+  var h = '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th>Month</th><th>Total of the day</th><th>Surf</th><th>Revenue</th><th>Days</th><th>' + (accYear - 1) + '</th><th>Change</th></tr></thead><tbody>';
+  var ty = 0, tp = 0, any = false;
+  for (var m = 1; m <= 12; m++) {
+    var r = accRevenue(accYear, m), p = accRevenue(accYear - 1, m).total;
+    if (!r.total && !p) continue; any = true; ty += r.total; tp += p;
+    var src = r.source === 'imported' ? ' <span class="acc-src" title="' + esc(Object.keys(r.lines).map(function(k){ return k + ' ' + accEur(r.lines[k]); }).join(' · ')) + '">imported</span>' : '';
+    h += '<tr><th>' + MONTH_NAMES[m - 1] + src + '</th><td>' + (r.total ? accEur0(r.day) : '—') + '</td><td>' + (r.surf ? accEur0(r.surf) : '—') + '</td><td><b>' + (r.total ? accEur0(r.total) : '—') + '</b></td><td>' + (r.days || '—') + '</td><td>' + (p ? accEur0(p) : '—') + '</td><td>' + (p && r.total ? ((r.total >= p ? '+' : '') + Math.round((r.total - p) / p * 100) + '%') : '—') + '</td></tr>';
+  }
+  if (!any) h += '<tr><td colspan="7" class="acc-empty">No revenue recorded in ' + accYear + '.</td></tr>';
+  h += '<tr class="strong"><th>Year</th><td></td><td></td><td>' + accEur0(ty) + '</td><td></td><td>' + (tp ? accEur0(tp) : '—') + '</td><td></td></tr></tbody></table></div>';
+  h += '<p class="acc-note">Revenue is the daily close in Finance: Total of the day (Invoiced + T51) plus Surf. Months without closes use the imported sales (Caixa 1 + Caixa FCP).</p>';
+  var hist = accCfg().history.slice().sort(function(a, b){ return a.year - b.year; });
+  var yearsSeen = hist.map(function(x){ return x.year; });
+  [accYear - 1, accYear].forEach(function(yy){ if (yearsSeen.indexOf(yy) === -1) { var s = 0; for (var mm = 1; mm <= 12; mm++) s += accRevenue(yy, mm).total; if (s > 0) hist.push({ year: yy, total: s, live: true }); } });
+  if (hist.length) {
+    h += '<div class="acc-card"><div class="acc-card-title">Turnover by year</div><table class="acc-table acc-hist"><tbody>'
+      + hist.map(function(x, i){ var prev = i ? hist[i - 1].total : 0; return '<tr><th>' + x.year + (x.live ? ' <span class="acc-src">from the app</span>' : '') + '</th><td>' + accEur0(x.total) + '</td><td>' + (prev ? ((x.total >= prev ? '+' : '') + Math.round((x.total - prev) / prev * 100) + '%') : '') + '</td></tr>'; }).join('')
+      + '</tbody></table></div>';
+  }
+  return h;
+}
+
+function accWagesHTML() {
+  if (!isAdmin) return '';
+  var ws = accWages(accYear, accMonth), rev = accRevenue(accYear, accMonth).total;
+  var h = accMonthBar() + '<div class="acc-toolbar"><div class="acc-toolbar-title">Wages · ' + accMonthLabel(accYear, accMonth) + '</div>'
+    + '<button class="btn btn-secondary btn-sm" id="acc-wage-copy"><i class="fas fa-copy"></i> Copy last month</button>'
+    + '<button class="btn btn-primary btn-sm" id="acc-wage-add"><i class="fas fa-user-plus"></i> Add person</button></div>';
+  if (!ws.length) return h + '<div class="empty-state"><i class="fas fa-user-group"></i><p>No wages in ' + accMonthLabel(accYear, accMonth) + ' yet. Copy last month or add people.</p></div>';
+  h += '<div class="acc-card acc-scroll"><table class="acc-table acc-edit"><thead><tr><th>Person</th>' + ACC_WAGE_PARTS.map(function(p){ return '<th>' + p[1] + '</th>'; }).join('') + '<th>Total</th><th></th></tr></thead><tbody>';
+  var tot = {}; ACC_WAGE_PARTS.forEach(function(p){ tot[p[0]] = 0; });
+  ws.forEach(function(w){
+    h += '<tr><th>' + esc(w.person) + '</th>';
+    ACC_WAGE_PARTS.forEach(function(p){
+      var c = w.parts[p[0]]; tot[p[0]] += c.v;
+      if (c.auto) h += '<td><button class="acc-auto" data-acc-rule="' + esc(w.person) + '|' + p[0] + '" title="' + c.rule.pct + '% of ' + accEur(rev) + ' revenue. Tap to change">' + accEur(c.v) + '<small>' + c.rule.pct + '% of revenue</small></button></td>';
+      else h += '<td><input class="acc-in" inputmode="decimal" data-acc-cell="wage|' + esc(w.person) + '|' + p[0] + '" value="' + (c.set ? accIn(c.v) : '') + '" placeholder="0" aria-label="' + esc(w.person) + ' ' + p[1] + '" /></td>';
+    });
+    h += '<td><b>' + accEur(w.total) + '</b></td><td class="acc-row-acts"><button class="acc-icon" data-acc-rule="' + esc(w.person) + '|cash" title="Cash as a % of revenue" aria-label="Rule for ' + esc(w.person) + '"><i class="fas fa-percent"></i></button><button class="acc-icon" data-acc-wage-del="' + esc(w.person) + '" title="Remove from this month" aria-label="Remove ' + esc(w.person) + '"><i class="fas fa-xmark"></i></button></td></tr>';
+  });
+  var all = accSum(ws, 'total');
+  h += '<tr class="strong"><th>Total</th>' + ACC_WAGE_PARTS.map(function(p){ return '<td>' + accEur(tot[p[0]]) + '</td>'; }).join('') + '<td>' + accEur(all) + '</td><td></td></tr></tbody></table></div>';
+  h += '<p class="acc-note">Staff is ' + accPct(all, rev) + ' of ' + accMonthLabel(accYear, accMonth) + ' revenue. Leave a box empty for nothing; the <i class="fas fa-percent"></i> button sets an automatic "% of the month’s revenue" amount, which a typed amount overrides.</p>';
+  return h;
+}
+
+// Suppliers and daily expenses: one line per supplier or category, each with its entries (invoices)
+function accLedgerNames(kind) {
+  var names = [];
+  var push = function(n){ n = String(n || '').trim(); if (n && !names.some(function(x){ return accSame(x, n); })) names.push(n); };
+  if (kind === 'supplier') (getDB().suppliers || []).forEach(function(s){ push(s.name); });
+  if (kind === 'expense') accCfg().expenseCats.forEach(push);
+  accRows(accYear, kind).forEach(function(e){ push(e.line); });
+  return names;
+}
+function accLedgerHTML(kind) {
+  var names = accLedgerNames(kind), rows = accRows(accYear, kind, accMonth);
+  var list = names.map(function(n){
+    var es = rows.filter(function(e){ return accSame(e.line, n); });
+    var yearTot = accSum(accRows(accYear, kind).filter(function(e){ return accSame(e.line, n); }), 'amount');
+    return { name: n, total: accSum(es, 'amount'), count: es.length, year: yearTot };
+  }).sort(function(a, b){ return (b.total - a.total) || (b.year - a.year) || a.name.localeCompare(b.name); });
+  var monthTot = accSum(list, 'total'), rev = accRevenue(accYear, accMonth);
+  var title = kind === 'supplier' ? 'Suppliers' : 'Daily expenses';
+  var h = accMonthBar() + '<div class="acc-toolbar"><div class="acc-toolbar-title">' + title + ' · ' + accMonthLabel(accYear, accMonth) + ' <span>' + accEur(monthTot + (kind === 'expense' ? rev.genExp : 0)) + '</span></div>'
+    + '<button class="btn btn-primary btn-sm" data-acc-new-line="' + kind + '"><i class="fas fa-plus"></i> ' + (kind === 'supplier' ? 'Supplier' : 'Category') + '</button></div>';
+  h += '<div class="acc-card acc-ledger">';
+  if (kind === 'expense' && rev.genExp) h += '<div class="acc-line is-ro"><span class="acc-line-name">From the daily closes<small>General expenses in Finance</small></span><span class="acc-line-amt">' + accEur(rev.genExp) + '</span></div>';
+  list.forEach(function(x){
+    h += '<button class="acc-line' + (x.total ? '' : ' is-zero') + '" data-acc-open="' + kind + '|' + esc(x.name) + '"><span class="acc-line-name">' + esc(x.name)
+      + '<small>' + (x.count ? x.count + (x.count === 1 ? ' entry' : ' entries') : 'Nothing this month') + (x.year ? ' · ' + accEur0(x.year) + ' in ' + accYear : '') + '</small></span><span class="acc-line-amt">' + (x.total ? accEur(x.total) : '—') + '</span><i class="fas fa-chevron-right"></i></button>';
+  });
+  h += '</div>';
+  if (kind === 'supplier' && rev.total) h += '<p class="acc-note">Suppliers are ' + accPct(monthTot, rev.total) + ' of ' + accMonthLabel(accYear, accMonth) + ' revenue.</p>';
+  return h;
+}
+function accSuppliersHTML() { return accLedgerHTML('supplier'); }
+function accExpensesHTML() { return accLedgerHTML('expense'); }
+function openAccLedger(kind, line) {
+  accLedger = { kind: kind, line: line };
+  document.getElementById('acc-ledger-title').textContent = line + ' · ' + accMonthLabel(accYear, accMonth);
+  document.getElementById('acc-led-amount').value = ''; document.getElementById('acc-led-note').value = '';
+  var ym = accYear + '-' + String(accMonth).padStart(2, '0'), today = toDateStr(new Date());
+  document.getElementById('acc-led-date').value = today.slice(0, 7) === ym ? today : '';
+  renderAccLedger(); openModal('modal-acc-ledger');
+  setTimeout(function(){ var a = document.getElementById('acc-led-amount'); if (a) a.focus(); }, 200);
+}
+function renderAccLedger() {
+  if (!accLedger) return;
+  var es = accRows(accYear, accLedger.kind, accMonth).filter(function(e){ return accSame(e.line, accLedger.line); })
+    .sort(function(a, b){ return String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id); });
+  var el = document.getElementById('acc-ledger-list');
+  el.innerHTML = es.length ? es.map(function(e){
+    return '<div class="acc-entry"><span class="acc-entry-amt">' + accEur(e.amount) + '</span><span class="acc-entry-meta">' + (e.date ? esc(e.date.slice(8, 10) + ' ' + MONTH_NAMES[+e.date.slice(5, 7) - 1]) : '') + (e.note ? ' · ' + esc(e.note) : '') + '</span>'
+      + '<button class="acc-icon" data-acc-entry-del="' + esc(e.id) + '" aria-label="Delete ' + accEur(e.amount) + '"><i class="fas fa-trash"></i></button></div>';
+  }).join('') + '<div class="acc-entry is-total"><span class="acc-entry-amt">' + accEur(accSum(es, 'amount')) + '</span><span class="acc-entry-meta">Total, ' + es.length + (es.length === 1 ? ' entry' : ' entries') + '</span></div>'
+    : '<div class="acc-empty">Nothing recorded this month.</div>';
+}
+function addAccLedgerEntry() {
+  if (!accLedger || accBusy) return;
+  var v = accNum(document.getElementById('acc-led-amount').value);
+  if (v === null || isNaN(v)) { toast('Enter an amount', 'error'); return; }
+  var date = document.getElementById('acc-led-date').value, month = accMonth, year = accYear;
+  if (date) { year = +date.slice(0, 4); month = +date.slice(5, 7); }
+  accBusy = true;
+  accAdd([{ year: year, month: month, kind: accLedger.kind, line: accLedger.line, amount: Math.round(v * 100) / 100, date: date, note: (document.getElementById('acc-led-note').value || '').trim() }])
+    .then(function(){ accBusy = false; document.getElementById('acc-led-amount').value = ''; document.getElementById('acc-led-note').value = '';
+      if (year !== accYear || month !== accMonth) toast('Saved in ' + accMonthLabel(year, month) + ' (the date’s month)', 'success');
+      renderAccLedger(); renderAccounting(); document.getElementById('acc-led-amount').focus(); })
+    .catch(function(){ accBusy = false; });
+}
+
+function accFixedHTML() {
+  var lines = accCfg().fixedLines.slice(), rows = accRows(accYear, 'fixed');
+  rows.forEach(function(e){ if (!lines.some(function(l){ return accSame(l, e.line); })) lines.push(e.line); });
+  var h = '<div class="acc-toolbar"><div class="acc-toolbar-title">Fixed costs · ' + accYear + '</div><button class="btn btn-primary btn-sm" data-acc-new-line="fixed"><i class="fas fa-plus"></i> Cost line</button></div>';
+  h += '<div class="acc-card acc-scroll"><table class="acc-table acc-edit acc-fixed"><thead><tr><th>Cost</th>';
+  for (var m = 1; m <= 12; m++) h += '<th>' + MONTH_NAMES[m - 1] + '</th>';
+  h += '<th>Year</th></tr></thead><tbody>';
+  var colTot = [0,0,0,0,0,0,0,0,0,0,0,0];
+  lines.forEach(function(l){
+    var yt = 0;
+    h += '<tr><th><span>' + esc(l) + '</span><button class="acc-icon" data-acc-fill="' + esc(l) + '" title="Copy the first amount to the empty months after it" aria-label="Repeat ' + esc(l) + ' monthly"><i class="fas fa-angles-right"></i></button></th>';
+    for (var m2 = 1; m2 <= 12; m2++) {
+      var es = rows.filter(function(e){ return e.month === m2 && accSame(e.line, l); }), v = accSum(es, 'amount'); yt += v; colTot[m2 - 1] += v;
+      h += '<td><input class="acc-in" inputmode="decimal" data-acc-cell="fixed|' + esc(l) + '||' + m2 + '" value="' + (es.length ? accIn(v) : '') + '" aria-label="' + esc(l) + ' ' + MONTH_NAMES[m2 - 1] + '" /></td>';
+    }
+    h += '<td><b>' + (yt ? accEur0(yt) : '—') + '</b></td></tr>';
+  });
+  h += '<tr class="strong"><th>Total</th>' + colTot.map(function(v){ return '<td>' + (v ? accEur0(v) : '—') + '</td>'; }).join('') + '<td>' + accEur0(accSum(colTot)) + '</td></tr></tbody></table></div>';
+  h += '<p class="acc-note">Type an amount in a month; <i class="fas fa-angles-right"></i> repeats a line’s first amount in every empty month after it.</p>';
+  return h;
+}
+function accFillLine(line) {
+  var rows = accRows(accYear, 'fixed').filter(function(e){ return accSame(e.line, line); });
+  var first = null; for (var m = 1; m <= 12 && first === null; m++) { var es = rows.filter(function(e){ return e.month === m; }); if (es.length) first = { m: m, v: accSum(es, 'amount') }; }
+  if (!first) { toast('Type ' + line + '’s amount in its first month, then repeat it', 'error'); return; }
+  var add = []; for (var m3 = first.m + 1; m3 <= 12; m3++) if (!rows.some(function(e){ return e.month === m3; })) add.push({ year: accYear, month: m3, kind: 'fixed', line: line, amount: first.v });
+  if (!add.length) { toast('Every month after ' + MONTH_NAMES[first.m - 1] + ' already has an amount'); return; }
+  if (!confirm('Put ' + accEur(first.v) + ' for ' + line + ' in ' + add.length + ' empty month' + (add.length === 1 ? '' : 's') + ' (' + MONTH_NAMES[add[0].month - 1] + '–Dec)?')) return;
+  accAdd(add).then(function(){ renderAccounting(); toast('Repeated in ' + add.length + ' months', 'success'); }).catch(function(){});
+}
+function accCopyWages() {
+  var pm = accPrevMonth(accYear, accMonth), src = accRows(pm[0], 'wage', pm[1]), cur = accRows(accYear, 'wage', accMonth);
+  if (!src.length) { toast('Nothing to copy from ' + accMonthLabel(pm[0], pm[1]), 'error'); return; }
+  var add = src.filter(function(e){ return !cur.some(function(c){ return accSame(c.line, e.line) && c.part === e.part; }); })
+    .map(function(e){ return { year: accYear, month: accMonth, kind: 'wage', line: e.line, part: e.part, amount: e.amount }; });
+  if (!add.length) { toast('Everyone from ' + accMonthLabel(pm[0], pm[1]) + ' is already here'); return; }
+  if (!confirm('Copy ' + add.length + ' amounts from ' + accMonthLabel(pm[0], pm[1]) + '? You can change them afterwards.')) return;
+  accAdd(add).then(function(){ renderAccounting(); toast('Copied from ' + accMonthLabel(pm[0], pm[1]), 'success'); }).catch(function(){});
+}
+function accAddPerson() {
+  var have = accWages(accYear, accMonth).map(function(w){ return w.person; });
+  var sugg = (getDB().employees || []).filter(function(e){ return !have.some(function(h){ return accSame(h, e); }); });
+  var name = prompt('Name' + (sugg.length ? ' (e.g. ' + sugg.slice(0, 4).join(', ') + ')' : ''), sugg[0] || '');
+  if (!name || !name.trim()) return;
+  name = name.trim();
+  var known = (getDB().employees || []).find(function(e){ return accSame(e, name); }); if (known) name = known;
+  if (have.some(function(h){ return accSame(h, name); })) { toast(name + ' is already in ' + accMonthLabel(accYear, accMonth), 'error'); return; }
+  accAdd([{ year: accYear, month: accMonth, kind: 'wage', line: name, part: 'payslip', amount: 0 }]).then(function(){ renderAccounting(); }).catch(function(){});
+}
+function accEditRule(person, part) {
+  var c = accCfg(), r = c.wageRules.find(function(x){ return accSame(x.person, person) && x.part === part; });
+  var label = (ACC_WAGE_PARTS.find(function(p){ return p[0] === part; }) || [part, part])[1];
+  var ans = prompt(person + ': ' + label + ' as a % of each month’s revenue, from ' + accMonthLabel(accYear, accMonth) + ' on.\\nLeave empty to remove the rule.', r ? r.pct : '');
+  if (ans === null) return;
+  c.wageRules = c.wageRules.filter(function(x){ return !(accSame(x.person, person) && x.part === part); });
+  var pct = parseFloat(String(ans).replace(',', '.'));
+  if (String(ans).trim() !== '' && !(pct > 0 && pct < 100)) { toast('Enter a percentage between 0 and 100', 'error'); return; }
+  if (pct > 0) c.wageRules.push({ person: person, part: part, pct: pct, from: (r && r.from && accYm(r.from) < accYear * 100 + accMonth) ? r.from : accYear + '-' + String(accMonth).padStart(2, '0') });
+  saveAccCfg(c);
+  var typed = accRows(accYear, 'wage', accMonth).filter(function(e){ return accSame(e.line, person) && e.part === part; });
+  if (pct > 0 && typed.length && confirm('Remove the typed ' + label.toLowerCase() + ' amount in ' + accMonthLabel(accYear, accMonth) + ' so the rule applies?')) accDelete(typed.map(function(e){ return e.id; })).then(renderAccounting);
+  else renderAccounting();
+}
+function accNewLine(kind) {
+  var what = kind === 'supplier' ? 'Supplier name' : kind === 'expense' ? 'Expense category' : 'Fixed cost (e.g. Internet)';
+  var name = prompt(what, ''); if (!name || !name.trim()) return; name = name.trim();
+  if (kind === 'supplier') { openAccLedger('supplier', name); return; }
+  var c = accCfg(), key = kind === 'fixed' ? 'fixedLines' : 'expenseCats';
+  if (c[key].some(function(x){ return accSame(x, name); })) { toast(name + ' already exists', 'error'); return; }
+  c[key].push(name); saveAccCfg(c); renderAccounting();
+  if (kind === 'expense') openAccLedger('expense', name);
+}
+
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' && e.target && (e.target.id === 'acc-led-amount' || e.target.id === 'acc-led-note')) { e.preventDefault(); addAccLedgerEntry(); }
+});
+
 // ── Week one-pager: areas/sections × Monday–Sunday ─────────────
 function wkTime(t) { t = t || ''; return /:00$/.test(t) ? t.slice(0, t.length - 3).replace(/^0/, '') : t.replace(/^0/, ''); }
 function weekSheetHTML(db, wsStr) {
@@ -7560,6 +8087,23 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
   if (t.closest('[data-test-notif]')) { sendTestNotification(); return; }
   if (t.closest('#btn-update-reload')) { location.reload(); return; }
+  // Accounting
+  el = t.closest('[data-acc-tab]'); if (el) { accTab = el.dataset.accTab; renderAccounting(); return; }
+  el = t.closest('[data-acc-month]'); if (el) { accMonth = +el.dataset.accMonth; renderAccounting(); return; }
+  if (t.closest('#acc-year-prev') || t.closest('#acc-year-next')) { accYear += t.closest('#acc-year-prev') ? -1 : 1; renderAccounting(); accLoad(); return; }
+  el = t.closest('[data-acc-open]'); if (el) { var ao = el.dataset.accOpen.split('|'); openAccLedger(ao[0], ao.slice(1).join('|')); return; }
+  el = t.closest('[data-acc-entry-del]'); if (el) { if (confirm('Delete this entry?')) accDelete([el.dataset.accEntryDel]).then(function(){ renderAccLedger(); renderAccounting(); }).catch(function(){}); return; }
+  if (t.closest('#btn-acc-led-add')) { addAccLedgerEntry(); return; }
+  el = t.closest('[data-acc-new-line]'); if (el) { accNewLine(el.dataset.accNewLine); return; }
+  el = t.closest('[data-acc-fill]'); if (el) { accFillLine(el.dataset.accFill); return; }
+  el = t.closest('[data-acc-rule]'); if (el) { var ar = el.dataset.accRule.split('|'); accEditRule(ar[0], ar[1]); return; }
+  el = t.closest('[data-acc-wage-del]'); if (el) {
+    var wp = el.dataset.accWageDel;
+    if (confirm('Remove ' + wp + ' from ' + accMonthLabel(accYear, accMonth) + '?')) accDelete(accRows(accYear, 'wage', accMonth).filter(function(e){ return accSame(e.line, wp); }).map(function(e){ return e.id; })).then(renderAccounting).catch(function(){});
+    return;
+  }
+  if (t.closest('#acc-wage-copy')) { accCopyWages(); return; }
+  if (t.closest('#acc-wage-add')) { accAddPerson(); return; }
   if (t.closest('#btn-notify-week')) { notifyWeekShifts(toDateStr(getWeekStart(shiftsWeekOffset))); return; }
   if (t.closest('#btn-enable-notif') || t.closest('#btn-enable-notif-2')) {
     if (notifState === 'ios-install') { openModal('modal-ios-install'); return; }
@@ -7623,6 +8167,10 @@ document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.name === 'req-kind') { reqKindChanged(); }
+  if (t.dataset && t.dataset.accCell) {
+    var ac = t.dataset.accCell.split('|');   // kind|line|part|month
+    accSetCell(ac[0], accYear, ac[3] ? +ac[3] : accMonth, ac[1], ac[2] || '', t.value);
+  }
   if (t.id === 'res-date' || t.id === 'res-time' || t.id === 'res-end') { refreshResTableGrid(); }
   if (t.id === 'req-colleague') { reqSwapHint(); }
   if (t.id === 'topbar-emp') { document.getElementById('drawer-user-name').textContent=t.value||'Staff'; }
