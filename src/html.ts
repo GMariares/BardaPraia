@@ -2574,7 +2574,10 @@ function sbFetch(method, table, body, params) {
     body: body ? JSON.stringify(body) : undefined
   }).then(function(r) {
     if (timer) clearTimeout(timer);
-    if (!r.ok) return r.json().then(function(e){ throw e; }).catch(function(){ throw new Error('HTTP ' + r.status); });
+    if (!r.ok) {
+      if (r.status === 401 || r.status === 403) { sbDenied = true; noteDenied(); }
+      return r.json().then(function(e){ if (e && e.code === '42501') { sbDenied = true; noteDenied(); } throw e; }).catch(function(){ throw new Error('HTTP ' + r.status); });
+    }
     var ct = r.headers.get('content-type') || '';
     if (ct.indexOf('json') !== -1) return r.json();
     return null;
@@ -2691,6 +2694,14 @@ function setSbStatus(ok, msg) {
 }
 
 var sbMissingItems = []; // track what's missing for migration notice
+var sbDenied = false;     // the database refused a read: a session / role matter, not a missing migration
+// A refused read without a secure session means this window still uses the old login: ask to log in again
+var deniedChecked = false;
+function noteDenied() {
+  if (authSession || deniedChecked || !currentUser) return;
+  deniedChecked = true;
+  loadAuthStatus().then(function(st){ if (st.secure && !authSession && currentUser) { toast('Secure login is on: please log in again.', 'error'); appLogout(); } deniedChecked = false; });
+}
 
 var MIGRATION_SQL = [
   '-- Run this once in your Supabase SQL Editor',
@@ -2812,7 +2823,8 @@ function showMigrationNotice(missing) {
   var banner = document.getElementById('sb-migration-banner');
   var sqlEl  = document.getElementById('sb-migration-sql');
   if (!banner || !sqlEl) return;
-  if (missing.length === 0) {
+  // a refused read (secure login / role) is not a missing migration
+  if (missing.length === 0 || sbDenied || isSecure()) {
     banner.style.display = 'none';
     return;
   }
@@ -2822,7 +2834,7 @@ function showMigrationNotice(missing) {
 
 function syncFromSupabase() {
   setSbStatus(null, 'Syncing...');
-  sbMissingItems = [];
+  sbMissingItems = []; sbDenied = false;
   var db = getDB();
   var promises = [
     sbGetSettings().catch(function(){ return null; }).then(function(rows) {
@@ -4274,7 +4286,7 @@ function saveSupabase() {
     renderDashboard(); renderInventory(); renderAllReservations(); renderTasks(); renderShifts();
     updateAllDropdowns();
     showMigrationNotice(sbMissingItems);
-    if (sbMissingItems.length === 0) {
+    if (sbMissingItems.length === 0 || sbDenied || isSecure()) {
       toast('Synced successfully!','gold');
     } else {
       toast('Synced \u2014 but DB migration still needed!', 'error');
