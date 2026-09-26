@@ -730,6 +730,36 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .acc-led-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .acc-led-note { grid-column:1 / -1; }
     .acc-empty { color:var(--slate-500); font-size:13px; padding:12px 2px; }
+    /* ── Food cost ── */
+    .fc-switch { display:inline-flex; border:var(--rule); border-radius:10px; overflow:hidden; }
+    .fc-switch button { border:none; background:var(--panel); padding:8px 14px; min-height:38px; font:inherit; font-size:13px; font-weight:700; color:var(--slate-500); cursor:pointer; }
+    .fc-switch button span { font-weight:600; color:var(--slate-400); margin-left:3px; }
+    .fc-switch button.active { background:var(--slate-800); color:#fff; }
+    .fc-switch button.active span { color:var(--mint-300); }
+    .fc-search { flex:1; min-width:140px; max-width:260px; min-height:38px; padding:7px 12px; }
+    .fc-table tbody th small { display:block; font-size:11.5px; font-weight:500; color:var(--slate-500); }
+    .fc-table tbody th { white-space:normal; min-width:160px; }
+    .fc-row { cursor:pointer; }
+    .fc-row:hover th, .fc-row:hover td { background:var(--slate-50); }
+    .fc-pct { display:inline-block; min-width:54px; text-align:center; border-radius:6px; padding:2px 8px; font-weight:800; }
+    .fc-pct.ok { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
+    .fc-pct.warn { background:var(--amber-50); color:var(--amber-700); }
+    .fc-pct.bad { background:var(--red-50); color:var(--red-700); }
+    .fc-miss { color:var(--amber-700) !important; }
+    .fc-modal { max-width:640px; }
+    .fc-lines { display:flex; flex-direction:column; gap:6px; }
+    .fc-line { display:grid; grid-template-columns:minmax(0,1fr) 76px 72px 70px 32px; gap:6px; align-items:center; }
+    .fc-line .select-field, .fc-line .input-field { min-height:40px; padding:6px 8px; font-size:14px; min-width:0; }
+    .fc-line select:disabled { background-image:none; opacity:1; color:var(--slate-500); padding-right:6px; }
+    .fc-line-cost { text-align:right; font-weight:700; font-size:13px; font-variant-numeric:tabular-nums; color:var(--slate-700); }
+    @media (max-width:520px) { .fc-line { grid-template-columns:minmax(0,1fr) 64px 64px 32px; } .fc-line-cost { grid-column:1 / 2; grid-row:2; text-align:left; font-size:12px; color:var(--slate-500); } }
+    .fc-totals { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; background:var(--slate-50); border-radius:12px; padding:12px; }
+    .fc-totals div { display:flex; flex-direction:column; gap:2px; }
+    .fc-totals span { font-size:11px; font-weight:700; color:var(--slate-500); text-transform:uppercase; letter-spacing:.05em; }
+    .fc-totals b { font-size:16px; color:var(--slate-900); font-variant-numeric:tabular-nums; }
+    .fc-totals .fc-big b.fc-pct { font-size:18px; align-self:flex-start; }
+    .fc-totals .fc-warn { grid-column:1 / -1; flex-direction:row; gap:6px; font-size:12.5px; color:var(--amber-700); }
+    @media (max-width:520px) { .fc-totals { grid-template-columns:1fr 1fr; } }
     /* ── Notifications: test help, iPhone steps, Users status ── */
     .notif-help { font-size:12.5px; color:var(--slate-600); background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-top:10px; line-height:1.45; }
     .notif-help.is-ok { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
@@ -1147,6 +1177,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn" data-acc-tab="suppliers"><i class="fas fa-truck"></i> Suppliers</button>
         <button class="tab-btn" data-acc-tab="fixed"><i class="fas fa-house"></i> Fixed costs</button>
         <button class="tab-btn" data-acc-tab="expenses"><i class="fas fa-receipt"></i> Daily expenses</button>
+        <button class="tab-btn" data-acc-tab="foodcost"><i class="fas fa-utensils"></i> Food cost</button>
       </div>
       <div id="acc-body"></div>
     </div>
@@ -2100,6 +2131,58 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </div>
 </div>
 
+<!-- Food cost: dish recipe -->
+<div class="modal-overlay" id="modal-fc-dish">
+  <div class="modal fc-modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-utensils"></i> <span id="fc-dish-title">New dish</span></h2>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div style="min-width:0"><label class="label" for="fc-dish-name">Dish *</label><input class="input-field" id="fc-dish-name" list="fc-dish-names" placeholder="e.g. FOCACCIA ROMANA" /><datalist id="fc-dish-names"></datalist></div>
+      <div style="min-width:0"><label class="label" for="fc-dish-price">Selling price (€, with VAT)</label><input class="input-field" id="fc-dish-price" inputmode="decimal" placeholder="0,00" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div style="min-width:0"><label class="label" for="fc-dish-vat">VAT</label><select class="select-field" id="fc-dish-vat"><option value="13">13% (food)</option><option value="23">23% (drinks)</option><option value="6">6%</option><option value="0">0%</option></select></div>
+      <div style="min-width:0"><label class="label" for="fc-dish-portions">Recipe makes (portions)</label><input class="input-field" id="fc-dish-portions" inputmode="decimal" value="1" /></div>
+    </div>
+    <label class="label">Recipe</label>
+    <div id="fc-lines" class="fc-lines"></div>
+    <button class="btn btn-secondary btn-sm" id="fc-add-line" style="margin:6px 0 12px"><i class="fas fa-plus"></i> Add ingredient</button>
+    <div id="fc-totals" class="fc-totals"></div>
+    <label class="label" for="fc-dish-notes" style="margin-top:10px">Notes</label>
+    <input class="input-field" id="fc-dish-notes" placeholder="optional, e.g. method or plating" />
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-danger btn-sm btn-icon" id="btn-fc-dish-del" aria-label="Delete dish"><i class="fas fa-trash"></i></button>
+      <button class="btn btn-secondary btn-sm" id="btn-fc-dish-copy"><i class="fas fa-copy"></i> Copy</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-fc-dish">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-fc-dish-save"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Food cost: ingredient -->
+<div class="modal-overlay" id="modal-fc-ing">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-carrot"></i> <span id="fc-ing-title">New ingredient</span></h2>
+    <div class="form-row"><label class="label" for="fc-ing-name">Ingredient *</label><input class="input-field" id="fc-ing-name" list="fc-ing-names" placeholder="e.g. Mozzarella" /><datalist id="fc-ing-names"></datalist></div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div style="min-width:0"><label class="label" for="fc-ing-unit">Bought per</label><select class="select-field" id="fc-ing-unit"><option value="kg">kg</option><option value="L">litre</option><option value="un">piece</option></select></div>
+      <div style="min-width:0"><label class="label" for="fc-ing-price" id="fc-ing-price-label">Price per kg (€) *</label><input class="input-field" id="fc-ing-price" inputmode="decimal" placeholder="0,00" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:6px">
+      <div style="min-width:0"><label class="label" for="fc-ing-yield">Yield % (optional)</label><input class="input-field" id="fc-ing-yield" inputmode="decimal" placeholder="100" /></div>
+      <div style="min-width:0"><label class="label" for="fc-ing-supplier">Supplier (optional)</label><input class="input-field" id="fc-ing-supplier" placeholder="e.g. Negrini" /></div>
+    </div>
+    <p class="acc-note" style="margin:4px 0 8px">Yield is what is left after cleaning or cooking loss, e.g. 80 for onions. Use the price without VAT.</p>
+    <p class="acc-note" id="fc-ing-used" style="margin:0 0 8px"></p>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-danger btn-sm btn-icon" id="btn-fc-ing-del" aria-label="Delete ingredient"><i class="fas fa-trash"></i></button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-fc-ing">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-fc-ing-save"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- Accounting: entries of one supplier / expense category in a month -->
 <div class="modal-overlay" id="modal-acc-ledger">
   <div class="modal">
@@ -2888,7 +2971,7 @@ function doLogin() {
 }
 
 // Accounting figures never stay on a device for someone who is not an admin
-function forgetAccounting() { var db = getDB(); if (db.accEntries || db.accConfig) { delete db.accEntries; delete db.accConfig; saveDB(db); } }
+function forgetAccounting() { var db = getDB(); if (db.accEntries || db.accConfig || db.fcRecipes || db.fcIngredients) { delete db.accEntries; delete db.accConfig; delete db.fcRecipes; delete db.fcIngredients; saveDB(db); } }
 function applyLogin(user, showWelcome) {
   currentUser = user;
   isAdmin   = hasRole('admin');
@@ -3409,7 +3492,7 @@ function refreshSection(name) {
     }).catch(function(){});
 
   } else if (name === 'accounting') {
-    if (isAdmin) accLoad();
+    if (isAdmin) { accLoad(); fcLoad(); }
 
   } else if (name === 'users') {
     sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at').then(function(rows) {
@@ -5449,7 +5532,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -6631,8 +6714,9 @@ var accLedger = null;   // { kind, line } open in the ledger sheet
 
 function accCfg() {
   var c = getDB().accConfig || {};
-  return { fixedLines: c.fixedLines || ACC_FIXED_DEFAULT.slice(), expenseCats: c.expenseCats || ACC_EXPENSE_DEFAULT.slice(),
-    wageRules: c.wageRules || [], history: c.history || [] };
+  // keep every stored key (e.g. foodCostTarget) so saving one setting never drops another
+  return Object.assign({}, c, { fixedLines: c.fixedLines || ACC_FIXED_DEFAULT.slice(), expenseCats: c.expenseCats || ACC_EXPENSE_DEFAULT.slice(),
+    wageRules: c.wageRules || [], history: c.history || [] });
 }
 function saveAccCfg(c) {
   var db = getDB(); db.accConfig = c; saveDB(db);
@@ -6757,7 +6841,7 @@ function renderAccounting() {
   document.getElementById('acc-year-label').textContent = accYear;
   document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
   var body = document.getElementById('acc-body');
-  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
+  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, fixed: accFixedHTML, expenses: accExpensesHTML, foodcost: accFoodCostHTML }[accTab]();
   body.innerHTML = html;
   if (accTab === 'summary') { var ch = document.getElementById('acc-chart'); if (ch) drawAccChart(ch); }
 }
@@ -7021,7 +7105,234 @@ function accNewLine(kind) {
 
 document.addEventListener('keydown', function(e){
   if (e.key === 'Enter' && e.target && (e.target.id === 'acc-led-amount' || e.target.id === 'acc-led-note')) { e.preventDefault(); addAccLedgerEntry(); }
+  if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('fc-row')) { e.target.click(); }
 });
+document.addEventListener('input', function(e){
+  var t = e.target; if (!t || !t.dataset) return;
+  if (t.dataset.fcLineQty !== undefined && fcEdit) {
+    var ln = fcEdit.lines[+t.dataset.fcLineQty], v = accNum(t.value); ln.qty = v === null || isNaN(v) ? '' : v;
+    var c = (ln.ing || ln.rec) ? fcLineCost(ln, [fcEdit.id]) : { cost: 0 };
+    var cell = t.parentNode.querySelector('.fc-line-cost'); if (cell) cell.textContent = (ln.ing || ln.rec) && ln.qty ? accEur(c.cost) : '';
+    renderFcTotals();
+  }
+  if (t.id === 'fc-dish-price' || t.id === 'fc-dish-portions') renderFcTotals();
+  if (t.id === 'fc-search') { fcSearch = t.value; var pos = t.selectionStart; renderAccounting(); var ns = document.getElementById('fc-search'); if (ns) { ns.focus(); try { ns.setSelectionRange(pos, pos); } catch (er) {} } }
+});
+
+// ── Food cost: ingredients with prices, dishes with recipes ─────────────
+// Ingredient price is per kg, litre or piece; yield % accounts for waste (e.g. 80% after peeling).
+// A dish line is an ingredient (qty + unit) or another dish used as a base (qty in its portions).
+var FC_UNITS = { kg: [['g', 0.001], ['kg', 1]], L: [['ml', 0.001], ['cl', 0.01], ['L', 1]], un: [['un', 1]] };
+var fcView = 'dishes', fcSearch = '', fcEdit = null, fcIngEdit = null, fcBusy = false;
+function fcIngs() { return getDB().fcIngredients || []; }
+function fcRecs() { return getDB().fcRecipes || []; }
+function fcTarget() { var c = getDB().accConfig || {}; return c.foodCostTarget || 30; }
+function fcFactor(ingUnit, lineUnit) { var u = (FC_UNITS[ingUnit] || FC_UNITS.un).find(function(x){ return x[0] === lineUnit; }); return u ? u[1] : 1; }
+function fcLineCost(line, seen) {
+  var q = parseFloat(line.qty) || 0;
+  if (line.rec) {
+    var r = fcRecs().find(function(x){ return x.id === line.rec; });
+    if (!r || (seen || []).indexOf(r.id) !== -1) return { cost: 0, missing: true };
+    var c = fcRecipeCost(r, (seen || []).concat([r.id]));
+    return { cost: q * c.perPortion, missing: c.missing > 0 };
+  }
+  var ing = fcIngs().find(function(x){ return x.id === line.ing; });
+  if (!ing) return { cost: 0, missing: true };
+  var y = (ing.yieldPct > 0 ? ing.yieldPct : 100) / 100;
+  return { cost: q * fcFactor(ing.unit, line.unit) * (ing.price || 0) / y, missing: !(ing.price > 0) };
+}
+function fcRecipeCost(r, seen) {
+  var total = 0, missing = 0;
+  (r.lines || []).forEach(function(l){ var c = fcLineCost(l, seen || [r.id]); total += c.cost; if (c.missing) missing++; });
+  var portions = r.portions > 0 ? r.portions : 1, net = (r.price || 0) / (1 + (r.vat || 0) / 100), per = total / portions;
+  return { total: total, perPortion: per, net: net, pct: net > 0 ? per / net * 100 : null, margin: net - per, missing: missing,
+    targetPrice: per > 0 ? per / (fcTarget() / 100) * (1 + (r.vat || 0) / 100) : 0 };
+}
+function fcPctClass(p) { var t = fcTarget(); return p === null ? '' : p <= t ? 'ok' : p <= t + 5 ? 'warn' : 'bad'; }
+function fcUsage(ingId) { return fcRecs().filter(function(r){ return (r.lines || []).some(function(l){ return l.ing === ingId; }); }); }
+function fcUnitLabel(u) { return u === 'un' ? 'piece' : u; }
+
+// data
+function fcLoad() {
+  return Promise.all([sbFetchAll('fc_ingredients', 'order=name.asc,id.asc'), sbFetchAll('fc_recipes', 'order=name.asc,id.asc')]).then(function(res){
+    var db = getDB(); sbCols.fc = true;
+    db.fcIngredients = (res[0] || []).map(function(r){ return { id: r.id, name: r.name, unit: r.unit || 'kg', price: parseFloat(r.price) || 0, yieldPct: parseFloat(r.yield_pct) || 100, supplier: r.supplier || '', updatedAt: r.updated_at || '' }; });
+    db.fcRecipes = (res[1] || []).map(function(r){ return { id: r.id, name: r.name, category: r.category || '', price: parseFloat(r.price) || 0, vat: r.vat == null ? 13 : parseFloat(r.vat), portions: parseFloat(r.portions) || 1, lines: Array.isArray(r.lines) ? r.lines : [], notes: r.notes || '', updatedAt: r.updated_at || '' }; });
+    saveDB(db); if (currentSection === 'accounting' && accTab === 'foodcost') renderAccounting();
+  }).catch(function(){ sbCols.fc = false; if (currentSection === 'accounting' && accTab === 'foodcost') renderAccounting(); });
+}
+function fcUpsert(table, row) {
+  if (!sbCols.fc) { toast('Food cost is not switched on yet (SQL missing)', 'error'); return Promise.reject(); }
+  return fetch(SB_URL + '/rest/v1/' + table + '?on_conflict=id', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(row) })
+    .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); })
+    .catch(function(e){ toast('Not saved online. Check the connection.', 'error'); throw e; });
+}
+
+// screen (inside Accounting)
+function accFoodCostHTML() {
+  var t = fcTarget(), q = normName(fcSearch);
+  var h = '<div class="acc-toolbar"><div class="fc-switch" role="tablist">'
+    + '<button class="' + (fcView === 'dishes' ? 'active' : '') + '" data-fc-view="dishes">Dishes <span>' + fcRecs().length + '</span></button>'
+    + '<button class="' + (fcView === 'ings' ? 'active' : '') + '" data-fc-view="ings">Ingredients <span>' + fcIngs().length + '</span></button></div>'
+    + '<input class="input-field fc-search" id="fc-search" placeholder="Search" value="' + esc(fcSearch) + '" aria-label="Search" />'
+    + '<button class="btn btn-secondary btn-sm" id="fc-target" title="Food cost % you aim for">Target ' + t + '%</button>'
+    + '<button class="btn btn-primary btn-sm" id="' + (fcView === 'dishes' ? 'fc-new-dish' : 'fc-new-ing') + '"><i class="fas fa-plus"></i> ' + (fcView === 'dishes' ? 'Dish' : 'Ingredient') + '</button></div>';
+  if (!sbCols.fc) h += '<div class="req-banner"><i class="fas fa-circle-info"></i> Food cost switches on once the food cost SQL has run in Supabase.</div>';
+  if (fcView === 'dishes') {
+    var list = fcRecs().filter(function(r){ return !q || normName(r.name + ' ' + r.category).indexOf(q) !== -1; })
+      .map(function(r){ return { r: r, c: fcRecipeCost(r) }; })
+      .sort(function(a, b){ return (b.c.pct === null ? -1 : b.c.pct) - (a.c.pct === null ? -1 : a.c.pct) || a.r.name.localeCompare(b.r.name); });
+    if (!list.length) return h + '<div class="empty-state"><i class="fas fa-utensils"></i><p>' + (fcRecs().length ? 'No dish matches.' : 'No dishes yet. Add your ingredients with their prices, then add a dish and its recipe.') + '</p></div>';
+    h += '<div class="acc-card acc-scroll"><table class="acc-table fc-table"><thead><tr><th>Dish</th><th>Price</th><th>Cost / portion</th><th>Food cost</th><th>Margin</th></tr></thead><tbody>';
+    list.forEach(function(x){
+      h += '<tr class="fc-row" data-fc-dish="' + esc(x.r.id) + '" tabindex="0"><th>' + esc(x.r.name) + (x.r.category ? '<small>' + esc(x.r.category) + '</small>' : '') + (x.c.missing ? '<small class="fc-miss"><i class="fas fa-triangle-exclamation"></i> ' + x.c.missing + ' without a price</small>' : '') + '</th>'
+        + '<td>' + (x.r.price ? accEur(x.r.price) : '—') + '</td><td>' + accEur(x.c.perPortion) + '</td>'
+        + '<td>' + (x.c.pct === null ? '—' : '<span class="fc-pct ' + fcPctClass(x.c.pct) + '">' + x.c.pct.toFixed(1).replace('.', ',') + '%</span>') + '</td>'
+        + '<td>' + (x.r.price ? accEur(x.c.margin) : '—') + '</td></tr>';
+    });
+    h += '</tbody></table></div><p class="acc-note">Food cost = ingredient cost per portion ÷ selling price without VAT. Green is at or under your ' + t + '% target, amber up to 5 points over, red above that.</p>';
+    return h;
+  }
+  var ings = fcIngs().filter(function(i){ return !q || normName(i.name + ' ' + i.supplier).indexOf(q) !== -1; }).slice().sort(function(a, b){ return a.name.localeCompare(b.name); });
+  if (!ings.length) return h + '<div class="empty-state"><i class="fas fa-carrot"></i><p>' + (fcIngs().length ? 'No ingredient matches.' : 'No ingredients yet. Add each one with the price you pay per kg, litre or piece.') + '</p></div>';
+  h += '<div class="acc-card acc-scroll"><table class="acc-table fc-table"><thead><tr><th>Ingredient</th><th>Price</th><th>Yield</th><th>Used in</th><th>Updated</th></tr></thead><tbody>';
+  ings.forEach(function(i){
+    var used = fcUsage(i.id).length;
+    h += '<tr class="fc-row" data-fc-ing="' + esc(i.id) + '" tabindex="0"><th>' + esc(i.name) + (i.supplier ? '<small>' + esc(i.supplier) + '</small>' : '') + '</th>'
+      + '<td>' + (i.price > 0 ? accEur(i.price) + ' / ' + fcUnitLabel(i.unit) : '<span class="fc-miss">no price</span>') + '</td><td>' + (i.yieldPct < 100 ? i.yieldPct + '%' : '—') + '</td>'
+      + '<td>' + (used ? used + (used === 1 ? ' dish' : ' dishes') : '—') + '</td><td>' + (i.updatedAt ? esc(reqWhen(i.updatedAt).split(',')[0]) : '—') + '</td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+// ingredient sheet
+function openFcIng(id, then) {
+  var i = id ? fcIngs().find(function(x){ return x.id === id; }) : null;
+  fcIngEdit = { id: i ? i.id : uid(), isNew: !i, then: then || null };
+  document.getElementById('fc-ing-title').textContent = i ? i.name : 'New ingredient';
+  document.getElementById('fc-ing-name').value = i ? i.name : '';
+  document.getElementById('fc-ing-unit').value = i ? i.unit : 'kg';
+  document.getElementById('fc-ing-price').value = i && i.price ? accIn(i.price) : '';
+  document.getElementById('fc-ing-yield').value = i && i.yieldPct < 100 ? i.yieldPct : '';
+  document.getElementById('fc-ing-supplier').value = i ? i.supplier : '';
+  var dl = document.getElementById('fc-ing-names');
+  if (dl) dl.innerHTML = (getDB().inventory || []).map(function(x){ return '<option value="' + esc(String(x.name || '').trim()) + '">'; }).join('');
+  var used = i ? fcUsage(i.id) : [];
+  document.getElementById('fc-ing-used').textContent = used.length ? 'Used in: ' + used.map(function(r){ return r.name; }).join(', ') : '';
+  document.getElementById('btn-fc-ing-del').style.display = i ? '' : 'none';
+  fcIngUnitLabel(); openModal('modal-fc-ing');
+}
+function fcIngUnitLabel() { var u = document.getElementById('fc-ing-unit').value; document.getElementById('fc-ing-price-label').textContent = 'Price per ' + fcUnitLabel(u) + ' (€) *'; }
+function saveFcIng() {
+  if (!fcIngEdit || fcBusy) return;
+  var name = document.getElementById('fc-ing-name').value.trim(); if (!name) { toast('Name required', 'error'); return; }
+  var price = accNum(document.getElementById('fc-ing-price').value); if (price === null || isNaN(price) || price < 0) { toast('Enter the price', 'error'); return; }
+  var y = accNum(document.getElementById('fc-ing-yield').value); if (y !== null && (isNaN(y) || y <= 0 || y > 100)) { toast('Yield is a % between 1 and 100', 'error'); return; }
+  if (fcIngs().some(function(x){ return x.id !== fcIngEdit.id && accSame(x.name, name); })) { toast(name + ' already exists', 'error'); return; }
+  var ing = { id: fcIngEdit.id, name: name, unit: document.getElementById('fc-ing-unit').value, price: Math.round(price * 10000) / 10000, yieldPct: y || 100, supplier: document.getElementById('fc-ing-supplier').value.trim(), updatedAt: new Date().toISOString() };
+  fcBusy = true;
+  fcUpsert('fc_ingredients', { id: ing.id, name: ing.name, unit: ing.unit, price: ing.price, yield_pct: ing.yieldPct, supplier: ing.supplier, updated_at: ing.updatedAt }).then(function(){
+    fcBusy = false; var db = getDB(); db.fcIngredients = (db.fcIngredients || []).filter(function(x){ return x.id !== ing.id; }).concat([ing]); saveDB(db);
+    closeModal('modal-fc-ing'); var then = fcIngEdit.then; fcIngEdit = null;
+    if (then) then(ing); else { renderAccounting(); toast('Saved. Dishes using it are updated.', 'success'); }
+  }).catch(function(){ fcBusy = false; });
+}
+function deleteFcIng() {
+  if (!fcIngEdit || fcIngEdit.isNew) return;
+  var used = fcUsage(fcIngEdit.id);
+  if (!confirm(used.length ? 'It is used in ' + used.length + ' dish' + (used.length === 1 ? '' : 'es') + ' (' + used.map(function(r){ return r.name; }).join(', ') + '). Delete anyway? Those lines will show as missing.' : 'Delete this ingredient?')) return;
+  sbFetch('DELETE', 'fc_ingredients', null, 'id=eq.' + encodeURIComponent(fcIngEdit.id)).then(function(){
+    var db = getDB(); db.fcIngredients = (db.fcIngredients || []).filter(function(x){ return x.id !== fcIngEdit.id; }); saveDB(db);
+    closeModal('modal-fc-ing'); fcIngEdit = null; renderAccounting();
+  }).catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
+}
+
+// dish sheet
+function openFcDish(id, copy) {
+  var r = id ? fcRecs().find(function(x){ return x.id === id; }) : null;
+  fcEdit = r ? JSON.parse(JSON.stringify(r)) : { id: uid(), name: '', category: '', price: 0, vat: 13, portions: 1, lines: [], notes: '' };
+  fcEdit.isNew = !r || !!copy;
+  if (copy) { fcEdit.id = uid(); fcEdit.name = fcEdit.name + ' (copy)'; }
+  if (!fcEdit.lines.length) fcEdit.lines.push({ ing: '', qty: '', unit: 'g' });
+  document.getElementById('fc-dish-title').textContent = fcEdit.isNew ? (copy ? 'Copy of ' + r.name : 'New dish') : fcEdit.name;
+  document.getElementById('fc-dish-name').value = fcEdit.name;
+  document.getElementById('fc-dish-price').value = fcEdit.price ? accIn(fcEdit.price) : '';
+  document.getElementById('fc-dish-vat').value = String(fcEdit.vat);
+  document.getElementById('fc-dish-portions').value = fcEdit.portions;
+  document.getElementById('fc-dish-notes').value = fcEdit.notes || '';
+  document.getElementById('fc-dish-names').innerHTML = (getDB().bbMenu || []).map(function(m){ return '<option value="' + esc(m.name) + '">' + esc(accEur(m.price)) + '</option>'; }).join('');
+  document.getElementById('btn-fc-dish-del').style.display = fcEdit.isNew ? 'none' : '';
+  document.getElementById('btn-fc-dish-copy').style.display = fcEdit.isNew ? 'none' : '';
+  renderFcLines(); openModal('modal-fc-dish');
+}
+function fcReadHead() {
+  if (!fcEdit) return;
+  fcEdit.name = document.getElementById('fc-dish-name').value.trim();
+  var p = accNum(document.getElementById('fc-dish-price').value); fcEdit.price = p > 0 ? p : 0;
+  fcEdit.vat = parseFloat(document.getElementById('fc-dish-vat').value) || 0;
+  var po = accNum(document.getElementById('fc-dish-portions').value); fcEdit.portions = po > 0 ? po : 1;
+  fcEdit.notes = document.getElementById('fc-dish-notes').value.trim();
+}
+function fcLineOptions(line) {
+  var ings = fcIngs().slice().sort(function(a, b){ return a.name.localeCompare(b.name); });
+  var recs = fcRecs().filter(function(r){ return r.id !== fcEdit.id; }).sort(function(a, b){ return a.name.localeCompare(b.name); });
+  var cur = line.rec ? 'r:' + line.rec : (line.ing ? 'i:' + line.ing : '');
+  var o = '<option value="">Choose…</option><optgroup label="Ingredients">' + ings.map(function(i){ return '<option value="i:' + esc(i.id) + '"' + (cur === 'i:' + i.id ? ' selected' : '') + '>' + esc(i.name) + '</option>'; }).join('') + '</optgroup>';
+  if (recs.length) o += '<optgroup label="Other dishes / bases">' + recs.map(function(r){ return '<option value="r:' + esc(r.id) + '"' + (cur === 'r:' + r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</optgroup>';
+  return o + '<option value="new">+ New ingredient…</option>';
+}
+function renderFcLines() {
+  if (!fcEdit) return;
+  var el = document.getElementById('fc-lines');
+  el.innerHTML = fcEdit.lines.map(function(l, i){
+    var ing = l.ing ? fcIngs().find(function(x){ return x.id === l.ing; }) : null;
+    var units = l.rec ? [['portion', 1]] : (FC_UNITS[ing ? ing.unit : 'kg'] || FC_UNITS.un);
+    if (!l.rec && !units.some(function(u){ return u[0] === l.unit; })) l.unit = units[0][0];
+    var c = (l.ing || l.rec) ? fcLineCost(l, [fcEdit.id]) : { cost: 0 };
+    return '<div class="fc-line"><select class="select-field" data-fc-line-item="' + i + '" aria-label="Ingredient">' + fcLineOptions(l) + '</select>'
+      + '<input class="input-field" inputmode="decimal" data-fc-line-qty="' + i + '" value="' + (l.qty === '' || l.qty == null ? '' : String(l.qty).replace('.', ',')) + '" placeholder="Qty" aria-label="Quantity" />'
+      + '<select class="select-field" data-fc-line-unit="' + i + '" aria-label="Unit"' + (units.length === 1 ? ' disabled' : '') + '>' + units.map(function(u){ return '<option' + (u[0] === (l.rec ? 'portion' : l.unit) ? ' selected' : '') + '>' + u[0] + '</option>'; }).join('') + '</select>'
+      + '<span class="fc-line-cost' + (c.missing ? ' fc-miss' : '') + '">' + ((l.ing || l.rec) && l.qty ? accEur(c.cost) : '') + '</span>'
+      + '<button class="acc-icon" data-fc-line-del="' + i + '" aria-label="Remove line"><i class="fas fa-xmark"></i></button></div>';
+  }).join('');
+  renderFcTotals();
+}
+function renderFcTotals() {
+  if (!fcEdit) return;
+  fcReadHead();
+  var c = fcRecipeCost(fcEdit, [fcEdit.id]), t = fcTarget();
+  document.getElementById('fc-totals').innerHTML =
+    '<div><span>Recipe cost</span><b>' + accEur(c.total) + '</b></div>'
+    + '<div><span>Per portion' + (fcEdit.portions !== 1 ? ' (÷ ' + String(fcEdit.portions).replace('.', ',') + ')' : '') + '</span><b>' + accEur(c.perPortion) + '</b></div>'
+    + '<div><span>Price without VAT</span><b>' + (fcEdit.price ? accEur(c.net) : '—') + '</b></div>'
+    + '<div class="fc-big"><span>Food cost</span><b class="fc-pct ' + fcPctClass(c.pct) + '">' + (c.pct === null ? '—' : c.pct.toFixed(1).replace('.', ',') + '%') + '</b></div>'
+    + '<div><span>Margin per portion</span><b>' + (fcEdit.price ? accEur(c.margin) : '—') + '</b></div>'
+    + '<div><span>Price for ' + t + '% food cost</span><b>' + (c.perPortion > 0 ? accEur(c.targetPrice) : '—') + '</b></div>'
+    + (c.missing ? '<div class="fc-warn"><i class="fas fa-triangle-exclamation"></i> ' + c.missing + ' line' + (c.missing === 1 ? ' has' : 's have') + ' no price yet, so the cost is too low.</div>' : '');
+}
+function saveFcDish() {
+  if (!fcEdit || fcBusy) return;
+  fcReadHead();
+  if (!fcEdit.name) { toast('Name required', 'error'); return; }
+  var lines = fcEdit.lines.filter(function(l){ return (l.ing || l.rec) && parseFloat(l.qty) > 0; }).map(function(l){ return l.rec ? { rec: l.rec, qty: parseFloat(l.qty) } : { ing: l.ing, qty: parseFloat(l.qty), unit: l.unit }; });
+  if (!lines.length) { toast('Add at least one ingredient with a quantity', 'error'); return; }
+  var r = { id: fcEdit.id, name: fcEdit.name, category: fcEdit.category || '', price: fcEdit.price, vat: fcEdit.vat, portions: fcEdit.portions, lines: lines, notes: fcEdit.notes, updatedAt: new Date().toISOString() };
+  var menu = (getDB().bbMenu || []).find(function(m){ return accSame(m.name, r.name); }); if (menu && !r.category) r.category = menu.category;
+  fcBusy = true;
+  fcUpsert('fc_recipes', { id: r.id, name: r.name, category: r.category, price: r.price, vat: r.vat, portions: r.portions, lines: r.lines, notes: r.notes, updated_at: r.updatedAt }).then(function(){
+    fcBusy = false; var db = getDB(); db.fcRecipes = (db.fcRecipes || []).filter(function(x){ return x.id !== r.id; }).concat([r]); saveDB(db);
+    closeModal('modal-fc-dish'); fcEdit = null; fcView = 'dishes'; renderAccounting(); toast('Dish saved', 'success');
+  }).catch(function(){ fcBusy = false; });
+}
+function deleteFcDish() {
+  if (!fcEdit || fcEdit.isNew) return;
+  var usedBy = fcRecs().filter(function(r){ return (r.lines || []).some(function(l){ return l.rec === fcEdit.id; }); });
+  if (!confirm(usedBy.length ? 'Other dishes use it as a base (' + usedBy.map(function(r){ return r.name; }).join(', ') + '). Delete anyway?' : 'Delete ' + fcEdit.name + '?')) return;
+  sbFetch('DELETE', 'fc_recipes', null, 'id=eq.' + encodeURIComponent(fcEdit.id)).then(function(){
+    var db = getDB(); db.fcRecipes = (db.fcRecipes || []).filter(function(x){ return x.id !== fcEdit.id; }); saveDB(db);
+    closeModal('modal-fc-dish'); fcEdit = null; renderAccounting();
+  }).catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
+}
 
 // ── Week one-pager: areas/sections × Monday–Sunday ─────────────
 function wkTime(t) { t = t || ''; return /:00$/.test(t) ? t.slice(0, t.length - 3).replace(/^0/, '') : t.replace(/^0/, ''); }
@@ -8105,6 +8416,24 @@ document.addEventListener('click', function(e) {
     return;
   }
   if (t.closest('#acc-wage-copy')) { accCopyWages(); return; }
+  // Food cost
+  el = t.closest('[data-fc-view]'); if (el) { fcView = el.dataset.fcView; renderAccounting(); return; }
+  if (t.closest('#fc-new-dish')) { openFcDish(null); return; }
+  if (t.closest('#fc-new-ing')) { openFcIng(null); return; }
+  el = t.closest('[data-fc-dish]'); if (el) { openFcDish(el.dataset.fcDish); return; }
+  el = t.closest('[data-fc-ing]'); if (el) { openFcIng(el.dataset.fcIng); return; }
+  if (t.closest('#fc-target')) {
+    var tg = prompt('Target food cost %', fcTarget()); if (tg === null) return;
+    var tv = accNum(tg); if (!(tv > 0 && tv < 100)) { toast('Enter a % between 1 and 99', 'error'); return; }
+    var cfg = accCfg(); cfg.foodCostTarget = tv; saveAccCfg(cfg); renderAccounting(); return;
+  }
+  if (t.closest('#fc-add-line')) { fcEdit.lines.push({ ing: '', qty: '', unit: 'g' }); renderFcLines(); var ls = document.querySelectorAll('[data-fc-line-item]'); if (ls.length) ls[ls.length - 1].focus(); return; }
+  el = t.closest('[data-fc-line-del]'); if (el) { fcEdit.lines.splice(+el.dataset.fcLineDel, 1); if (!fcEdit.lines.length) fcEdit.lines.push({ ing: '', qty: '', unit: 'g' }); renderFcLines(); return; }
+  if (t.closest('#btn-fc-dish-save')) { saveFcDish(); return; }
+  if (t.closest('#btn-fc-dish-del')) { deleteFcDish(); return; }
+  if (t.closest('#btn-fc-dish-copy')) { var cid = fcEdit.id; closeModal('modal-fc-dish'); openFcDish(cid, true); return; }
+  if (t.closest('#btn-fc-ing-save')) { saveFcIng(); return; }
+  if (t.closest('#btn-fc-ing-del')) { deleteFcIng(); return; }
   if (t.closest('#acc-wage-add')) { accAddPerson(); return; }
   if (t.closest('#btn-notify-week')) { notifyWeekShifts(toDateStr(getWeekStart(shiftsWeekOffset))); return; }
   if (t.closest('#btn-enable-notif') || t.closest('#btn-enable-notif-2')) {
@@ -8169,6 +8498,22 @@ document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.name === 'req-kind') { reqKindChanged(); }
+  if (t.dataset && t.dataset.fcLineItem !== undefined) {
+    var li = +t.dataset.fcLineItem, lv = t.value, ln = fcEdit.lines[li];
+    if (lv === 'new') {
+      openFcIng(null, function(ing){ ln.ing = ing.id; delete ln.rec; ln.unit = FC_UNITS[ing.unit][0][0]; renderFcLines(); });
+      t.value = ln.rec ? 'r:' + ln.rec : (ln.ing ? 'i:' + ln.ing : '');
+    } else if (lv.indexOf('r:') === 0) { ln.rec = lv.slice(2); delete ln.ing; ln.unit = 'portion'; renderFcLines(); }
+    else { ln.ing = lv.slice(2); delete ln.rec; var ig = fcIngs().find(function(x){ return x.id === ln.ing; }); if (ig) ln.unit = ig.unit === 'un' ? 'un' : (ig.unit === 'L' ? 'ml' : 'g'); renderFcLines(); }
+  }
+  if (t.dataset && t.dataset.fcLineUnit !== undefined) { fcEdit.lines[+t.dataset.fcLineUnit].unit = t.value; renderFcLines(); }
+  if (t.id === 'fc-ing-unit') fcIngUnitLabel();
+  if (t.id === 'fc-dish-name' && fcEdit) {
+    var mi = (getDB().bbMenu || []).find(function(m){ return accSame(m.name, t.value); });
+    if (mi && !accNum(document.getElementById('fc-dish-price').value)) { document.getElementById('fc-dish-price').value = accIn(mi.price); document.getElementById('fc-dish-vat').value = (['beverages','wine','cocktails','spirits','beer'].indexOf(mi.category) !== -1) ? '23' : '13'; }
+    renderFcTotals();
+  }
+  if (t.id === 'fc-dish-price' || t.id === 'fc-dish-vat' || t.id === 'fc-dish-portions') renderFcTotals();
   if (t.dataset && t.dataset.accCell) {
     var ac = t.dataset.accCell.split('|');   // kind|line|part|month
     accSetCell(ac[0], accYear, ac[3] ? +ac[3] : accMonth, ac[1], ac[2] || '', t.value);
