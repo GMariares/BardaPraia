@@ -738,6 +738,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .fc-switch button span { font-weight:600; color:var(--slate-400); margin-left:3px; }
     .fc-switch button.active { background:var(--slate-800); color:#fff; }
     .fc-switch button.active span { color:var(--mint-300); }
+    .sec-step { font-size:13.5px; color:var(--slate-600); padding:4px 0; display:flex; gap:8px; align-items:center; }
+    .sec-step i { color:var(--slate-300); }
+    .sec-step.ok { color:var(--slate-900); }
+    .sec-step.ok i { color:var(--green); }
     .fc-target-ro { font-size:13px; font-weight:700; color:var(--slate-500); padding:0 6px; }
     .fc-search { flex:1; min-width:140px; max-width:260px; min-height:38px; padding:7px 12px; }
     .fc-table tbody th small { display:block; font-size:11.5px; font-weight:500; color:var(--slate-500); }
@@ -1577,6 +1581,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button id="btn-copy-sql" class="btn btn-sm" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.1);color:var(--slate-200);border:1px solid rgba(255,255,255,.2);font-size:11px"><i class="fas fa-copy"></i> Copy</button>
       </div>
     </div>
+    <!-- Secure login (admins) -->
+    <div class="settings-card" id="secure-login-card" style="display:none">
+      <h3><i class="fas fa-shield-halved" style="color:var(--teal-600)"></i> Secure login</h3>
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Moves every login to Supabase's secure sign-in, keeping each person's password. After that, the database itself checks who may see what.</p>
+      <div id="secure-login-body"></div>
+    </div>
     <!-- Notifications card — visible to ALL users -->
     <div class="settings-card" id="notif-settings-card">
       <h3><i class="fas fa-bell" style="color:var(--ocean-500)"></i> Push Notifications</h3>
@@ -2389,6 +2399,141 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 var SB_URL = '${cfg.sbUrl}';
 var SB_KEY = '${cfg.sbKey}';
 var APP_BUILD = '${cfg.build || ''}';
+// ================================================
+// SECURE LOGIN (Supabase Auth)
+// ================================================
+// Each staff login is a Supabase Auth user; its session token goes with every database and server
+// request, so the database itself decides what each role may see. Until secure login is switched on
+// (Settings → Secure login) the app keeps the old login, so nothing changes for staff before then.
+var AUTH_KEY = 'bardapraia_auth';
+var authSession = null;
+try { authSession = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch (e) {}
+var authStatus = { secure: false, serviceKey: false, emailDomain: 'staff.bardapraia.org' };
+var rawFetch = window.fetch.bind(window);
+function saveAuthSession(s) { authSession = s; try { if (s) localStorage.setItem(AUTH_KEY, JSON.stringify(s)); else localStorage.removeItem(AUTH_KEY); } catch (e) {} }
+function authFromResponse(j) {
+  return { access_token: j.access_token, refresh_token: j.refresh_token,
+    expires_at: j.expires_at || (Math.floor(Date.now() / 1000) + (j.expires_in || 3600)), meta: (j.user && j.user.app_metadata) || {} };
+}
+var authRefreshing = null;
+// A valid access token (refreshed shortly before it expires), or null without a session
+function authToken() {
+  if (!authSession) return Promise.resolve(null);
+  if (authSession.expires_at - Date.now() / 1000 > 120) return Promise.resolve(authSession.access_token);
+  if (authRefreshing) return authRefreshing;
+  authRefreshing = rawFetch(SB_URL + '/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: authSession.refresh_token }) })
+    .then(function(r){ if (!r.ok) { var e = new Error('refresh'); e.status = r.status; throw e; } return r.json(); })
+    .then(function(j){ saveAuthSession(authFromResponse(j)); return authSession.access_token; })
+    .catch(function(e){
+      if (e && (e.status === 400 || e.status === 401 || e.status === 403)) { saveAuthSession(null); setTimeout(onAuthLost, 0); return null; }
+      return authSession ? authSession.access_token : null;   // offline: keep the session and try again later
+    })
+    .then(function(t){ authRefreshing = null; return t; });
+  return authRefreshing;
+}
+function onAuthLost() { if (currentUser) { toast('Your session ended. Please log in again.', 'error'); appLogout(); } }
+// Every call to our database or server carries the person's session (overrides window.fetch in this script)
+function fetch(url, opts) {
+  var u = String(url || '');
+  var isDb = u.indexOf(SB_URL + '/rest/v1/') === 0;
+  var isApi = u.indexOf('/api/') === 0 && u.indexOf('/api/version') !== 0 && u.indexOf('/api/auth/status') !== 0;
+  if (!isDb && !isApi) return rawFetch(url, opts);
+  return authToken().then(function(tok){
+    if (!tok) return rawFetch(url, opts);
+    var o = Object.assign({}, opts || {}), h = Object.assign({}, o.headers || {});
+    delete h.authorization; h.Authorization = 'Bearer ' + tok; if (isDb) h.apikey = SB_KEY;
+    o.headers = h; return rawFetch(url, o);
+  });
+}
+function loadAuthStatus() {
+  return rawFetch('/api/auth/status', { cache: 'no-store' }).then(function(r){ return r.json(); })
+    .then(function(s){ if (s && typeof s.secure === 'boolean') authStatus = s; return authStatus; }).catch(function(){ return authStatus; });
+}
+// 'ok' | 'bad' (wrong username/password) | 'offline'
+function secureSignIn(uname, pw) {
+  return rawFetch(SB_URL + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: uname + '@' + authStatus.emailDomain, password: pw }) })
+    .then(function(r){
+      if (!r.ok) return 'bad';
+      return r.json().then(function(j){
+        if (!j.user || !j.user.app_metadata || !j.user.app_metadata.app_user_id) return 'bad';
+        saveAuthSession(authFromResponse(j)); return 'ok';
+      });
+    }).catch(function(){ return 'offline'; });
+}
+// Log in as the staff account behind the Supabase session (roles come from the session: those are what the database enforces)
+function loginFromSession(showWelcome) {
+  var m = (authSession && authSession.meta) || {}, db = getDB();
+  var u = (db.appUsers || []).find(function(x){ return x.id === m.app_user_id; });
+  var user = Object.assign({ id: m.app_user_id, name: m.username || 'Staff', username: m.username || '', active: true }, u || {}, { roles: Array.isArray(m.roles) ? m.roles : ((u && u.roles) || []) });
+  applyLogin(user, showWelcome);
+}
+function isSecure() { return authStatus.secure; }
+// Settings → Secure login (admins)
+function renderSecureCard() {
+  var el = document.getElementById('secure-login-body'); if (!el) return;
+  var st = authStatus;
+  var line = function(ok, txt){ return '<div class="sec-step' + (ok ? ' ok' : '') + '"><i class="fas ' + (ok ? 'fa-circle-check' : 'fa-circle') + '"></i> ' + txt + '</div>'; };
+  el.innerHTML = line(st.serviceKey, 'Cloudflare secret <b>SB_SERVICE_KEY</b> is set')
+    + line(st.secure, 'Staff logins moved to secure login')
+    + line(!!authSession, 'You are logged in with a secure session')
+    + (st.serviceKey ? '<button class="btn btn-primary" id="btn-secure-migrate" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-shield-halved"></i> ' + (st.secure ? 'Check all logins again' : 'Move everyone to secure login') + '</button>' : '')
+    + '<div id="secure-migrate-result"></div>';
+}
+function runSecureMigrate() {
+  var pw = authSession ? '' : prompt('Your password (to confirm you are an admin)');
+  if (pw === null) return;
+  var out = document.getElementById('secure-migrate-result'); if (out) out.innerHTML = '<p class="acc-note">Working…</p>';
+  fetch('/api/auth/migrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser ? currentUser.username : '', password: pw }) })
+    .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+    .then(function(res){
+      if (!res.ok) { if (out) out.innerHTML = '<p class="acc-note" style="color:var(--red)">' + esc(res.j.error || 'Failed') + '</p>'; return; }
+      var j = res.j;
+      if (out) out.innerHTML = '<p class="acc-note"><b>' + j.created.length + '</b> logins created, <b>' + j.updated.length + '</b> already there and updated.'
+        + (j.failed.length ? '<br><b style="color:var(--red)">Need attention:</b> ' + j.failed.map(function(f){ return esc(f.username) + ' (' + esc(f.reason) + ')'; }).join('; ') : '') + '</p>'
+        + (authSession ? '' : '<p class="acc-note">Log out and in again to start your own secure session.</p>');
+      loadAuthStatus().then(renderSecureCard).then(function(){ var o2 = document.getElementById('secure-migrate-result'); if (o2 && out) o2.innerHTML = out.innerHTML; });
+    }).catch(function(){ if (out) out.innerHTML = '<p class="acc-note" style="color:var(--red)">Could not reach the server.</p>'; });
+}
+// Users (admins, secure mode): full rows with pay details come from the server, never from the open API
+function loadUsersSecure() {
+  return fetch('/api/users').then(function(r){ return r.ok ? r.json() : null; }).then(function(rows){
+    if (!Array.isArray(rows)) return;
+    var db = getDB(); db.appUsers = rows.map(sbRowToUser); saveDB(db);
+    if (currentSection === 'users') renderUsers();
+  }).catch(function(){});
+}
+function saveUserSecure(user, password, oldUsername) {
+  function dateOrNull(v) { return (v && String(v).trim() !== '') ? v : null; }
+  function numOrNull(v)  { var n = parseFloat(v); return isNaN(n) ? null : n; }
+  var row = { id: user.id, name: user.name, username: user.username, roles: user.roles || [], contract_start: dateOrNull(user.contractStart), contract_end: dateOrNull(user.contractEnd),
+    hours: user.hours || null, amount: numOrNull(user.amount), discount: numOrNull(user.discount), insurance: user.insurance || null, cloth_size: user.clothSize || null,
+    notes: user.notes || null, active: user.active !== false, employee: user.employee || '', created_at: user.createdAt || new Date().toISOString() };
+  return fetch('/api/users/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: row, password: password || null, oldUsername: oldUsername || null }) })
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'Not saved'); return j; }); })
+    .then(function(){ toast('User saved', 'success'); loadUsersSecure(); })
+    .catch(function(e){ toast(e.message || 'Not saved', 'error'); loadUsersSecure(); });
+}
+// Settings columns the app reads (the accounting column is only for admins, through functions)
+var SETTINGS_COLS = 'id,admin_pin,tables,updated_at,finance_pin,fundo_caixa,budgets,week_tips,inv_sort_order,tip_splits,areas,week_notices';
+var APP_USER_PUBLIC_COLS = 'id,name,username,roles,active,employee,created_at';
+function sbGetSettings() {
+  return sbFetch('GET', 'settings', null, 'select=' + SETTINGS_COLS + '&id=eq.config').catch(function(){ return sbFetch('GET', 'settings', null, 'id=eq.config'); });
+}
+function appUsersQuery() { return (isSecure() ? 'select=' + APP_USER_PUBLIC_COLS + '&' : '') + 'order=name.asc'; }
+// Accounting settings: admins read and write them through database functions once the lock-down SQL ran
+function rpc(fn, args) { return sbFetch('POST', 'rpc/' + fn, args || {}); }
+function readAccountingCfg() {
+  return rpc('get_accounting_config').then(function(v){ return { ok: true, v: v }; })
+    .catch(function(){ return sbFetch('GET', 'settings', null, 'select=accounting&id=eq.config').then(function(r){ return r && r[0] && ('accounting' in r[0]) ? { ok: true, v: r[0].accounting } : null; }).catch(function(){ return null; }); });
+}
+function writeAccountingCfg(c) {
+  return rpc('set_accounting_config', { cfg: c }).catch(function(){ return sbFetch('PATCH', 'settings', { accounting: c }, 'id=eq.config'); });
+}
+function readFoodCostTarget() {
+  return rpc('get_food_cost_target').catch(function(){ return sbFetch('GET', 'settings', null, 'select=target:accounting->foodCostTarget&id=eq.config').then(function(r){ return r && r[0] ? r[0].target : null; }).catch(function(){ return null; }); });
+}
+
 var sb = null;
 var sbReady = false;
 
@@ -2415,7 +2560,8 @@ function sbFetch(method, table, body, params) {
       'apikey': SB_KEY,
       'Authorization': 'Bearer ' + SB_KEY,
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=representation' : (method === 'PATCH' ? 'return=representation' : '')
+      // settings: no row back (staff may not read every column of it)
+      'Prefer': table === 'settings' ? 'return=minimal' : (method === 'POST' ? 'return=representation' : (method === 'PATCH' ? 'return=representation' : ''))
     },
     body: body ? JSON.stringify(body) : undefined
   }).then(function(r) {
@@ -2671,7 +2817,7 @@ function syncFromSupabase() {
   sbMissingItems = [];
   var db = getDB();
   var promises = [
-    sbFetch('GET', 'settings', null, 'id=eq.config').catch(function(){ return null; }).then(function(rows) {
+    sbGetSettings().catch(function(){ return null; }).then(function(rows) {
       if (rows && rows[0]) {
         var r = rows[0];
         // ── Always prefer Supabase value; only fall back when column is missing (undefined) ──
@@ -2815,7 +2961,7 @@ function syncFromSupabase() {
         savedAt: r.saved_at
       }; });
     }).catch(function(){ sbMissingItems.push('fin_entries table'); }),
-    sbFetch('GET', 'app_users', null, 'order=name.asc').then(function(rows) {
+    sbFetch('GET', 'app_users', null, appUsersQuery()).then(function(rows) {
       if (rows && rows.length) sbCols.userEmployee = ('employee' in rows[0]);
       if (rows && rows.length > 0) {
         db.appUsers = rows.map(function(r){ return {
@@ -2959,6 +3105,20 @@ function doLogin() {
   var errEl = document.getElementById('login-error');
   if (!uname || !pw) { errEl.textContent = 'Please enter username and password.'; return; }
   if (loginInFlight) return;
+  loginInFlight = true; errEl.textContent = 'Checking\u2026';
+  // Secure login first; the old login only while secure login has not been switched on
+  secureSignIn(uname, pw).then(function(res){
+    if (res === 'ok') {
+      errEl.textContent = 'Loading\u2026';
+      return syncFromSupabase().catch(function(){}).then(function(){ loginInFlight = false; errEl.textContent = ''; document.getElementById('login-password').value = ''; loginFromSession(true); });
+    }
+    loginInFlight = false;
+    if (isSecure()) { errEl.textContent = res === 'offline' ? 'Cannot reach the server. Check your connection and try again.' : 'Invalid username or password.'; return; }
+    legacyLogin(uname, pw);
+  });
+}
+function legacyLogin(uname, pw) {
+  var errEl = document.getElementById('login-error');
   var db = getDB();
   var user = db.appUsers.find(function(u){ return u.username.toLowerCase() === uname; });
   if (user && user.active && user.passwordHash === hashPw(pw)) { applyLogin(user, true); return; }
@@ -3012,6 +3172,7 @@ function applyLogin(user, showWelcome) {
 }
 
 function appLogout() {
+  if (authSession) { var tok = authSession.access_token; rawFetch(SB_URL + '/auth/v1/logout', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } }).catch(function(){}); saveAuthSession(null); }
   forgetAccounting(); forgetFoodCost();
   currentUser = null;
   isAdmin = false;
@@ -3517,11 +3678,12 @@ function refreshSection(name) {
     if (canFoodCost()) fcLoad();
 
   } else if (name === 'users') {
+    if (isSecure()) loadUsersSecure();
     sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at').then(function(rows) {
       if (!rows) return; var db = getDB(); db.pushSubs = rows.map(function(x){ return { userId:x.user_id, endpoint:x.endpoint, updatedAt:x.updated_at }; }); saveDB(db);
       if (currentSection === name) renderUsers();
     }).catch(function(){});
-    sbFetch('GET','app_users',null,'order=name.asc').then(function(rows) {
+    if (!isSecure()) sbFetch('GET','app_users',null,'order=name.asc').then(function(rows) {
       if (!rows || !rows.length) return;
       var db = getDB();
       db.appUsers = rows.map(function(x){ return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',employee:x.employee||'',active:x.active!==false,createdAt:x.created_at}; });
@@ -3535,7 +3697,7 @@ function refreshSection(name) {
   } else if (name === 'settings') {
     Promise.all([
       sbFetch('GET','employees',null,'order=name.asc'),
-      sbFetch('GET','settings',null,'id=eq.config')
+      sbGetSettings()
     ]).then(function(res) {
       var db = getDB();
       if (res[0]) db.employees = res[0].map(function(x){ return x.name; });
@@ -3768,6 +3930,7 @@ function saveUserModal() {
     saveDB(db);
     closeModal('modal-add-user');
     renderUsers();
+    if (isSecure()) { saveUserSecure(newUser, pw, null); return; }
     toast('User '+name+' created!', 'gold');
     syncUserToSb(newUser, 'POST');
   } else {
@@ -3779,6 +3942,7 @@ function saveUserModal() {
     if (db.appUsers.find(function(u){ return u.username.toLowerCase() === username && u.id !== editUserId; })) {
       toast('Username already taken', 'error'); return;
     }
+    var oldUsername = existing.username;
     // Only update password if a new one is provided
     if (pw) {
       if (pw.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
@@ -3809,6 +3973,7 @@ function saveUserModal() {
     }
     closeModal('modal-add-user');
     renderUsers();
+    if (isSecure()) { saveUserSecure(existing, pw, oldUsername); return; }
     toast('User updated!', 'gold');
     syncUserToSb(existing, 'PATCH');
   }
@@ -3823,6 +3988,7 @@ function deleteUser(userId) {
   saveDB(db);
   renderUsers();
   toast('User deleted.', 'error');
+  if (isSecure()) { fetch('/api/users/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: userId }) }).then(function(r){ if (!r.ok) toast('Not deleted on the server', 'error'); loadUsersSecure(); }); return; }
   sbFetch('DELETE','app_users',null,'id=eq.'+encodeURIComponent(userId)).catch(function(){});
 }
 
@@ -4034,6 +4200,8 @@ function renderSettings() {
   var settingsContent = document.getElementById('settings-content');
   // Always update notification status (visible to all users)
   updateNotifStatusUI();
+  var secCard = document.getElementById('secure-login-card');
+  if (secCard) { secCard.style.display = isAdmin ? '' : 'none'; if (isAdmin) { renderSecureCard(); loadAuthStatus().then(renderSecureCard); } }
   if (!isAdmin) {
     settingsLocked.style.display = 'flex';
     settingsContent.style.display = 'none';
@@ -6746,7 +6914,7 @@ function accCfg() {
 }
 function saveAccCfg(c) {
   var db = getDB(); db.accConfig = c; saveDB(db);
-  if (sbCols.accConfig) sbFetch('PATCH', 'settings', { accounting: c }, 'id=eq.config').catch(function(){ toast('Not saved online. Check the connection.', 'error'); });
+  if (sbCols.accConfig) writeAccountingCfg(c).catch(function(){ toast('Not saved online. Check the connection.', 'error'); });
 }
 // "1.234,56", "1234.56", "€ 45" -> number; '' -> null
 function accNum(raw) {
@@ -6815,7 +6983,7 @@ function accLoad() {
   return Promise.all([
     sbFetchAll('acc_entries', 'year=in.(' + yrs.join(',') + ')&order=id.asc').then(function(rows){ return rows || []; }),
     sbFetchAll('fin_entries', 'date=gte.' + (y - 1) + '-01-01&date=lte.' + y + '-12-31&order=date.asc,id.asc').catch(function(){ return null; }),
-    sbFetch('GET', 'settings', null, 'select=accounting&id=eq.config').catch(function(){ return null; })
+    readAccountingCfg()
   ]).then(function(res){
     var db = getDB();
     sbCols.acc = true;
@@ -6824,7 +6992,7 @@ function accLoad() {
       var byId = {}; (db.finEntries || []).forEach(function(e){ byId[e.id] = e; });
       res[1].forEach(function(r){ if (!byId[r.id]) (db.finEntries = db.finEntries || []).push({ id: r.id, date: r.date, t51: parseFloat(r.t51)||0, totalDay: parseFloat(r.total_day)||0, surf: parseFloat(r.surf)||0, genExpenses: parseFloat(r.gen_expenses)||0, invoiced: parseFloat(r.invoiced)||0 }); });
     }
-    if (res[2] && res[2][0] && ('accounting' in res[2][0])) { sbCols.accConfig = true; db.accConfig = res[2][0].accounting || {}; }
+    if (res[2] && res[2].ok) { sbCols.accConfig = true; db.accConfig = res[2].v || {}; }
     saveDB(db);
     if (sync) sync.textContent = '';
     if (currentSection === 'accounting') renderAccounting();
@@ -7190,9 +7358,9 @@ function fcUnitLabel(u) { return u === 'un' ? 'piece' : u; }
 // data
 function fcLoad() {
   return Promise.all([sbFetchAll('fc_ingredients', 'order=name.asc,id.asc'), sbFetchAll('fc_recipes', 'order=name.asc,id.asc'),
-    sbFetch('GET', 'settings', null, 'select=target:accounting->foodCostTarget&id=eq.config').catch(function(){ return null; })]).then(function(res){
+    readFoodCostTarget()]).then(function(res){
     var db = getDB(); sbCols.fc = true;
-    if (res[2] && res[2][0] && res[2][0].target) db.fcTarget = parseFloat(res[2][0].target) || 30;
+    if (res[2]) db.fcTarget = parseFloat(res[2]) || 30;
     db.fcIngredients = (res[0] || []).map(function(r){ return { id: r.id, name: r.name, unit: r.unit || 'kg', price: parseFloat(r.price) || 0, yieldPct: parseFloat(r.yield_pct) || 100, supplier: r.supplier || '', updatedAt: r.updated_at || '' }; });
     db.fcRecipes = (res[1] || []).map(function(r){ return { id: r.id, name: r.name, category: r.category || '', price: parseFloat(r.price) || 0, vat: r.vat == null ? 13 : parseFloat(r.vat), portions: parseFloat(r.portions) || 1, lines: Array.isArray(r.lines) ? r.lines : [], notes: r.notes || '', updatedAt: r.updated_at || '' }; });
     saveDB(db); if (currentSection === 'foodcost') renderFoodCost();
@@ -8437,6 +8605,7 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
   if (t.closest('[data-test-notif]')) { sendTestNotification(); return; }
   if (t.closest('#btn-update-reload')) { location.reload(); return; }
+  if (t.closest('#btn-secure-migrate')) { runSecureMigrate(); return; }
   // Accounting
   el = t.closest('[data-acc-tab]'); if (el) { accTab = el.dataset.accTab; renderAccounting(); return; }
   el = t.closest('[data-acc-month]'); if (el) { accMonth = +el.dataset.accMonth; renderAccounting(); return; }
@@ -8645,14 +8814,20 @@ updateSessionUI();
     }
   }, 12000);
 
-  syncFromSupabase().then(function() {
+  loadAuthStatus().then(function(){ return authToken(); }).then(function(){
+    // Secure mode without a session: nothing can be read before logging in
+    if (isSecure() && !authSession) { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} return 'login'; }
+    return syncFromSupabase();
+  }).then(function(state) {
     clearTimeout(syncSafetyTimer);
     syncReady = true;
     unlockLogin(false);
-    showMigrationNotice(sbMissingItems);
-    if (sbMissingItems.length > 0) {
-      toast('DB migration needed \u2014 check Settings', 'error');
+    if (state === 'login') return;
+    if (!isSecure()) {
+      showMigrationNotice(sbMissingItems);
+      if (sbMissingItems.length > 0) toast('DB migration needed \u2014 check Settings', 'error');
     }
+    if (authSession && authSession.meta && authSession.meta.app_user_id) { loginFromSession(false); return; }
 
     // ── Restore session after sync so we have fresh user data ──
     try {

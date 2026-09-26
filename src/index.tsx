@@ -8,6 +8,8 @@ type Bindings = {
   VAPID_PUBLIC?: string
   VAPID_PRIVATE?: string
   VAPID_SUBJECT?: string
+  SB_SERVICE_KEY?: string      // secret: Supabase service_role key (server-side user management, locked tables)
+  AUTH_EMAIL_DOMAIN?: string   // logins are Supabase Auth users named <username>@<domain>
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -37,9 +39,76 @@ function getConfig(env: Bindings | undefined) {
     SB_KEY: e.SB_KEY || DEFAULTS.SB_KEY,
     VAPID_PUBLIC: e.VAPID_PUBLIC || DEFAULTS.VAPID_PUBLIC,
     VAPID_PRIVATE: e.VAPID_PRIVATE || '',
-    VAPID_SUBJECT: e.VAPID_SUBJECT || DEFAULTS.VAPID_SUBJECT
+    VAPID_SUBJECT: e.VAPID_SUBJECT || DEFAULTS.VAPID_SUBJECT,
+    SB_SERVICE_KEY: e.SB_SERVICE_KEY || '',
+    EMAIL_DOMAIN: e.AUTH_EMAIL_DOMAIN || 'staff.bardapraia.org'
   }
 }
+type Cfg = ReturnType<typeof getConfig>
+
+// ── Secure login (Supabase Auth) ──────────────────────────────
+// Every staff login is a Supabase Auth user <username>@<EMAIL_DOMAIN>; its app_metadata carries
+// { app_user_id, username, roles } so database policies and this server can check roles.
+// "Secure mode" is on once the service key is set and the users have been moved to Supabase Auth.
+function svcHeaders(key: string): Record<string, string> {
+  // new-style secret keys go in apikey only; legacy service_role JWTs also as Bearer
+  return key.startsWith('sb_secret_') ? { apikey: key } : { apikey: key, Authorization: `Bearer ${key}` }
+}
+function dbHeaders(cfg: Cfg): Record<string, string> {
+  return cfg.SB_SERVICE_KEY ? svcHeaders(cfg.SB_SERVICE_KEY) : { apikey: cfg.SB_KEY, Authorization: `Bearer ${cfg.SB_KEY}` }
+}
+function emailFor(cfg: Cfg, username: string) { return String(username || '').trim().toLowerCase() + '@' + cfg.EMAIL_DOMAIN }
+function b64utf8(s: string) { let bin = ''; new TextEncoder().encode(s).forEach(b => bin += String.fromCharCode(b)); return btoa(bin) }
+function unb64utf8(s: string) { try { const bin = atob(s || ''); return new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))) } catch { return '' } }
+async function listAuthUsers(cfg: Cfg): Promise<any[]> {
+  const out: any[] = []
+  for (let page = 1; page < 20; page++) {
+    const r = await fetch(`${cfg.SB_URL}/auth/v1/admin/users?page=${page}&per_page=200`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+    if (!r.ok) throw new Error('auth admin ' + r.status + ' ' + (await r.text()).slice(0, 200))
+    const j: any = await r.json(); const users = j.users || []
+    out.push(...users); if (users.length < 200) break
+  }
+  return out
+}
+let secureCache = { at: 0, on: false }
+async function secureMode(cfg: Cfg): Promise<boolean> {
+  if (!cfg.SB_SERVICE_KEY) return false
+  if (Date.now() - secureCache.at < 60000) return secureCache.on
+  try {
+    const r = await fetch(`${cfg.SB_URL}/auth/v1/admin/users?page=1&per_page=1`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+    const j: any = r.ok ? await r.json() : { users: [] }
+    secureCache = { at: Date.now(), on: (j.users || []).length > 0 }
+  } catch { secureCache = { at: Date.now(), on: false } }
+  return secureCache.on
+}
+// The caller's staff identity from their Supabase session, or null
+async function staffFromToken(c: any, cfg: Cfg): Promise<{ appUserId: string, username: string, roles: string[] } | null> {
+  const h = c.req.header('Authorization') || ''
+  const token = h.startsWith('Bearer ') ? h.slice(7) : ''
+  if (!token || token === cfg.SB_KEY) return null
+  const r = await fetch(`${cfg.SB_URL}/auth/v1/user`, { headers: { apikey: cfg.SB_KEY, Authorization: `Bearer ${token}` } })
+  if (!r.ok) return null
+  const u: any = await r.json(), m = u.app_metadata || {}
+  if (!m.app_user_id) return null
+  return { appUserId: m.app_user_id, username: m.username || '', roles: Array.isArray(m.roles) ? m.roles : [] }
+}
+function authMeta(row: any) { return { app_user_id: row.id, username: row.username, roles: Array.isArray(row.roles) ? row.roles : [] } }
+async function upsertAuthUser(cfg: Cfg, existing: any, row: any, password: string | null, oldUsername?: string) {
+  const body: any = { app_metadata: authMeta(row), ban_duration: row.active === false ? '876000h' : 'none' }
+  if (password) body.password = password
+  if (existing) {
+    if (oldUsername && oldUsername.toLowerCase() !== row.username.toLowerCase()) { body.email = emailFor(cfg, row.username); body.email_confirm = true }
+    const r = await fetch(`${cfg.SB_URL}/auth/v1/admin/users/${existing.id}`, { method: 'PUT', headers: { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (!r.ok) throw new Error((await r.text()).slice(0, 200))
+    return 'updated'
+  }
+  if (!password) throw new Error('a password is needed to create the login')
+  body.email = emailFor(cfg, row.username); body.email_confirm = true
+  const r = await fetch(`${cfg.SB_URL}/auth/v1/admin/users`, { method: 'POST', headers: { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  if (!r.ok) throw new Error((await r.text()).slice(0, 200))
+  return 'created'
+}
+const USER_COLS = 'id,name,username,roles,contract_start,contract_end,hours,amount,discount,insurance,cloth_size,notes,active,employee,created_at'
 
 // ── Favicon ───────────────────────────────────────────────────
 app.get('/favicon.ico', (c) => c.redirect('/brand/favicon-32.png', 301))
@@ -62,6 +131,88 @@ app.get('/api/version', (c) => {
   return c.json({ build: BUILD_ID })
 })
 
+// ── Secure login: status, one-off move to Supabase Auth, user management ──
+app.get('/api/auth/status', async (c) => {
+  const cfg = getConfig(c.env)
+  c.header('Cache-Control', 'no-store')
+  return c.json({ serviceKey: !!cfg.SB_SERVICE_KEY, secure: await secureMode(cfg), emailDomain: cfg.EMAIL_DOMAIN })
+})
+
+// Create a Supabase Auth login for every staff account, keeping each person's current password.
+// Allowed for an admin, proven by their username + password (before secure login exists) or their session.
+app.post('/api/auth/migrate', async (c) => {
+  const cfg = getConfig(c.env)
+  if (!cfg.SB_SERVICE_KEY) return c.json({ error: 'The SB_SERVICE_KEY secret is not set in Cloudflare yet' }, 400)
+  const db = { headers: svcHeaders(cfg.SB_SERVICE_KEY) }
+  const rows: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/app_users?select=*`, db)).json()
+  if (!Array.isArray(rows)) return c.json({ error: 'Could not read the users' }, 500)
+  let admin = await staffFromToken(c, cfg)
+  if (!admin) {
+    const { username, password } = await c.req.json().catch(() => ({} as any))
+    const me = rows.find(r => String(r.username).toLowerCase() === String(username || '').toLowerCase())
+    if (me && me.active !== false && me.password_hash && me.password_hash === b64utf8(String(password || ''))) admin = { appUserId: me.id, username: me.username, roles: me.roles || [] }
+  }
+  if (!admin || admin.roles.indexOf('admin') === -1) return c.json({ error: 'Only an admin can do this (check your password)' }, 403)
+  const existing = await listAuthUsers(cfg)
+  const result: any = { created: [], updated: [], failed: [] }
+  for (const row of rows) {
+    const email = emailFor(cfg, row.username)
+    const ex = existing.find(u => (u.email || '').toLowerCase() === email)
+    const pw = unb64utf8(row.password_hash || '')
+    try {
+      if (!ex && (!pw || pw.length < 6)) throw new Error('password shorter than 6 characters: set a new one in Users')
+      if (!ex && pw === 'Admin1234') throw new Error('still the default password: set a new one in Users')
+      result[await upsertAuthUser(cfg, ex, row, ex ? null : pw)].push(row.username)
+    } catch (e: any) { result.failed.push({ username: row.username, reason: e.message }) }
+  }
+  secureCache = { at: 0, on: false }
+  return c.json(result)
+})
+
+async function requireAdmin(c: any, cfg: Cfg) {
+  if (!cfg.SB_SERVICE_KEY) return { error: c.json({ error: 'The SB_SERVICE_KEY secret is not set in Cloudflare yet' }, 400) }
+  const me = await staffFromToken(c, cfg)
+  if (!me || me.roles.indexOf('admin') === -1) return { error: c.json({ error: 'Admins only' }, 403) }
+  return { me }
+}
+// All users with pay and contract details (admins only)
+app.get('/api/users', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/app_users?select=${USER_COLS}&order=name.asc`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  return c.json(await r.json(), r.ok ? 200 : 500)
+})
+// Create or update a user: the app_users row and the matching Supabase Auth login
+app.post('/api/users/save', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const { user, password, oldUsername } = await c.req.json()
+  if (!user || !user.id || !user.username || !user.name) return c.json({ error: 'Missing name or username' }, 400)
+  if (password && String(password).length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
+  const row: any = {}
+  USER_COLS.split(',').forEach(k => { if (user[k] !== undefined) row[k] = user[k] })
+  row.username = String(user.username).trim().toLowerCase()
+  if (password) row.password_hash = ''                  // the old encoded password is no longer used
+  const ins = await fetch(`${cfg.SB_URL}/rest/v1/app_users?on_conflict=id`, { method: 'POST', headers: { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify(row) })
+  if (!ins.ok) return c.json({ error: 'Could not save the user: ' + (await ins.text()).slice(0, 200) }, 500)
+  try {
+    const all = await listAuthUsers(cfg)
+    const email = emailFor(cfg, oldUsername || row.username)
+    const ex = all.find(u => (u.email || '').toLowerCase() === email) || all.find(u => (u.app_metadata || {}).app_user_id === row.id)
+    const saved: any = (await ins.json())[0] || row
+    await upsertAuthUser(cfg, ex, saved, password || null, oldUsername)
+  } catch (e: any) { return c.json({ error: 'Saved, but the login was not updated: ' + e.message }, 500) }
+  return c.json({ ok: true })
+})
+app.post('/api/users/delete', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const { id } = await c.req.json()
+  if (!id || id === a.me!.appUserId) return c.json({ error: 'You cannot delete yourself' }, 400)
+  const all = await listAuthUsers(cfg)
+  const ex = all.find(u => (u.app_metadata || {}).app_user_id === id)
+  if (ex) await fetch(`${cfg.SB_URL}/auth/v1/admin/users/${ex.id}`, { method: 'DELETE', headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  return c.json({ ok: r.ok }, r.ok ? 200 : 500)
+})
+
 // ── VAPID public key (frontend needs it to subscribe) ─────────
 app.get('/api/push/vapid-public-key', (c) => {
   return c.json({ key: getConfig(c.env).VAPID_PUBLIC })
@@ -69,9 +220,13 @@ app.get('/api/push/vapid-public-key', (c) => {
 
 // ── Save a push subscription for a user ──────────────────────
 app.post('/api/push/subscribe', async (c) => {
-  const { SB_URL, SB_KEY } = getConfig(c.env)
+  const cfg = getConfig(c.env), { SB_URL } = cfg
   try {
-    const { userId, subscription } = await c.req.json()
+    let { userId, subscription } = await c.req.json()
+    if (await secureMode(cfg)) {           // a device can only register itself, for the person logged in
+      const me = await staffFromToken(c, cfg); if (!me) return c.json({ error: 'Not logged in' }, 401)
+      userId = me.appUserId
+    }
     if (!userId || !subscription || !subscription.endpoint) {
       return c.json({ error: 'Missing userId or subscription' }, 400)
     }
@@ -80,8 +235,7 @@ app.post('/api/push/subscribe', async (c) => {
     const res = await fetch(`${SB_URL}/rest/v1/push_subscriptions`, {
       method: 'POST',
       headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`,
+        ...dbHeaders(cfg),
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
@@ -106,7 +260,8 @@ app.post('/api/push/subscribe', async (c) => {
 
 // ── Send push notifications to a list of user IDs ─────────────
 app.post('/api/push/send', async (c) => {
-  const { SB_URL, SB_KEY, VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT } = getConfig(c.env)
+  const cfg = getConfig(c.env), { SB_URL, VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT } = cfg
+  if (await secureMode(cfg) && !(await staffFromToken(c, cfg))) return c.json({ error: 'Not logged in' }, 401)
   if (!VAPID_PRIVATE) {
     return c.json({ error: 'VAPID_PRIVATE is not configured on the server (set it as a secret in the hosting environment)' }, 500)
   }
@@ -119,9 +274,7 @@ app.post('/api/push/send', async (c) => {
     // Fetch subscriptions for given users — use in.() filter (correct PostgREST syntax)
     const idList = userIds.map((id: string) => encodeURIComponent(id)).join(',')
     const subUrl = `${SB_URL}/rest/v1/push_subscriptions?user_id=in.(${idList})&select=endpoint,p256dh,auth`
-    const subRes = await fetch(subUrl, {
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-    })
+    const subRes = await fetch(subUrl, { headers: dbHeaders(cfg) })
     const subBody = await subRes.text()
     if (!subRes.ok) return c.json({ error: 'Failed to fetch subscriptions', detail: subBody }, 500)
     const subs: any[] = JSON.parse(subBody)
@@ -169,7 +322,7 @@ app.post('/api/push/send', async (c) => {
           // Subscription expired – remove it
           await fetch(`${SB_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, {
             method: 'DELETE',
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+            headers: dbHeaders(cfg)
           })
           errors.push(`Expired (${pushRes.status}): ${sub.endpoint.slice(0, 60)}`)
         } else {
