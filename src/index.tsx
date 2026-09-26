@@ -40,56 +40,9 @@ function getConfig(env: Bindings | undefined) {
 // ── Favicon ───────────────────────────────────────────────────
 app.get('/favicon.ico', (c) => c.redirect('/brand/favicon-32.png', 301))
 
-// ── Service Worker (must be served from root scope) ───────────
-app.get('/sw.js', async (c) => {
-  // sw.js is bundled as a static asset in public/sw.js → dist/sw.js
-  // We inline it here so it's always available at the root scope
-  const swCode = `
-// ── Bar da Praia – Service Worker (Web Push) ──────────────────
-self.addEventListener('install', function(e) { self.skipWaiting(); });
-self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()); });
-
-self.addEventListener('push', function(e) {
-  var data = {};
-  try { data = e.data ? e.data.json() : {}; } catch(err) {}
-  var title = data.title || 'Bar da Praia';
-  var body  = data.body  || 'You have a new task.';
-  var tag   = data.tag   || 'bardapraia-push';
-  e.waitUntil(
-    self.registration.showNotification(title, {
-      body: body, icon: '/brand/icon-192.png', badge: '/brand/icon-192.png',
-      tag: tag, data: { url: data.url || '/' }
-    })
-  );
-});
-
-self.addEventListener('notificationclick', function(e) {
-  e.notification.close();
-  var target = (e.notification.data && e.notification.data.url) || '/';
-  e.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].url.indexOf(self.location.origin) !== -1 && 'focus' in list[i]) {
-          list[i].postMessage({ type: 'open', url: target });
-          return list[i].focus();
-        }
-      }
-      if (self.clients.openWindow) return self.clients.openWindow(target);
-    })
-  );
-});
-`
-  return new Response(swCode, {
-    headers: {
-      'Content-Type': 'application/javascript; charset=utf-8',
-      'Service-Worker-Allowed': '/',
-      'Cache-Control': 'no-cache'
-    }
-  })
-})
-
 // ── Service Worker ────────────────────────────────────────────
-// Served from /public/sw.js automatically by Cloudflare Pages
+// public/sw.js is served as a static asset at /sw.js (assets are matched before this app runs),
+// so that file is the only service worker. Edit it there.
 
 // ── SPA ───────────────────────────────────────────────────────
 app.get('/', (c) => {
@@ -146,7 +99,7 @@ app.post('/api/push/send', async (c) => {
     return c.json({ error: 'VAPID_PRIVATE is not configured on the server (set it as a secret in the hosting environment)' }, 500)
   }
   try {
-    const { userIds, title, body, url } = await c.req.json()
+    const { userIds, title, body, url, tag } = await c.req.json()
     if (!userIds || !userIds.length || !title) {
       return c.json({ error: 'Missing userIds or title' }, 400)
     }
@@ -170,7 +123,7 @@ app.post('/api/push/send', async (c) => {
       body: body || '',
       url: url || '/',
       icon: '/brand/icon-192.png',
-      tag: 'bardapraia-task-' + Date.now()
+      tag: typeof tag === 'string' && tag ? tag.slice(0, 64) : 'bardapraia-task-' + Date.now()
     })
 
     // Send to each subscription

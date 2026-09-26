@@ -657,6 +657,17 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     .wk-num { font-weight:800; font-variant-numeric:tabular-nums; color:var(--slate-900); }
     .wk-off { color:var(--slate-500); font-weight:600; }
     .week-sheet-meta { display:none; }
+    /* ── Notifications: test help, iPhone steps, Users status ── */
+    .notif-help { font-size:12.5px; color:var(--slate-600); background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-top:10px; line-height:1.45; }
+    .notif-help.is-ok { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
+    .ios-steps { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+    .ios-steps li { display:flex; gap:10px; align-items:flex-start; font-size:14px; color:var(--slate-800); line-height:1.4; }
+    .ios-n { flex-shrink:0; width:24px; height:24px; border-radius:50%; background:var(--teal-600); color:#fff; font-weight:800; font-size:12px; display:inline-flex; align-items:center; justify-content:center; }
+    .push-chip { display:inline-flex; align-items:center; gap:5px; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700; }
+    .push-chip.is-on { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
+    .push-chip.is-off { background:var(--slate-50); color:var(--slate-500); border:1px dashed var(--slate-200); }
+    .push-summary { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:10px 14px; margin-bottom:12px; font-size:13px; color:var(--slate-700); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .push-summary b { color:var(--slate-900); }
     /* ── Shift change requests ── */
     .tab-count { min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:10.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
     .nav-dot { position:absolute; top:4px; right:calc(50% - 18px); width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--panel); }
@@ -772,6 +783,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     </div>
     <button id="btn-enable-notif" style="margin-top:10px;width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
       <i class="fas fa-bell"></i> <span id="notif-btn-label">Enable Notifications</span> <i id="notif-status-dot" class="fas fa-circle" style="font-size:7px;margin-left:auto;color:rgba(255,255,255,.4)"></i>
+    </button>
+    <button data-test-notif style="display:none;margin-top:6px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);border-radius:9px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;align-items:center;justify-content:center;gap:7px">
+      <i class="fas fa-paper-plane"></i> Send me a test
     </button>
   </div>
 </nav>
@@ -1419,14 +1433,18 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
     <!-- Notifications card — visible to ALL users -->
     <div class="settings-card" id="notif-settings-card">
       <h3><i class="fas fa-bell" style="color:var(--ocean-500)"></i> Push Notifications</h3>
-      <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Receive alerts when a task is assigned to you.</p>
+      <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Alerts for tasks assigned to you and for shift change requests.</p>
       <div id="notif-status-row" style="font-size:13px;color:#5f7079;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-        <i class="fas fa-circle" id="notif-status-dot" style="font-size:8px;color:#8a9aa2"></i>
+        <i class="fas fa-circle" id="notif-card-dot" style="font-size:8px;color:#8a9aa2"></i>
         <span id="notif-status-text">Checking...</span>
       </div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-enable-notif">
-        <i class="fas fa-bell"></i> Enable Notifications on this Device
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-enable-notif-2">
+        <i class="fas fa-bell"></i> <span id="notif-card-btn-label">Enable Notifications on this Device</span>
       </button>
+      <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:8px;display:none" data-test-notif>
+        <i class="fas fa-paper-plane"></i> Send me a test
+      </button>
+      <div id="notif-help" class="notif-help" style="display:none"></div>
     </div>
 
     <div id="settings-locked" class="locked-overlay" style="display:none">
@@ -1956,6 +1974,22 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string }): string {
       <i class="fas fa-trash" style="color:#b4402f"></i> Delete Shift
     </button>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:14px" data-close-modal="modal-shift-action">Cancel</button>
+  </div>
+</div>
+
+<!-- iPhone: notifications need the Home Screen app -->
+<div class="modal-overlay" id="modal-ios-install">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-bell"></i> Notifications on iPhone</h2>
+    <p style="font-size:14px;color:var(--slate-600);margin-bottom:14px">On iPhone, notifications only work when Bar da Praia is opened from its Home Screen icon.</p>
+    <ol class="ios-steps">
+      <li><span class="ios-n">1</span><span>In <b>Safari</b>, tap the Share button <i class="fas fa-arrow-up-from-bracket"></i> at the bottom of the screen.</span></li>
+      <li><span class="ios-n">2</span><span>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</span></li>
+      <li><span class="ios-n">3</span><span>Open <b>Bar da Praia</b> from the new icon, log in, and tap <b>Enable Notifications</b> in the menu.</span></li>
+    </ol>
+    <p style="font-size:12.5px;color:var(--slate-500);margin:12px 0 14px">Needs iOS 16.4 or newer. Chrome on iPhone cannot add it; use Safari.</p>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" data-close-modal="modal-ios-install">Got it</button>
   </div>
 </div>
 
@@ -2737,6 +2771,7 @@ function applyLogin(user, showWelcome) {
   showSection('dashboard');
   if (pendingDeepLink) { var dl = pendingDeepLink; pendingDeepLink = ''; openDeepLink(dl); }
   ensurePushCurrent();
+  updateNotifStatusUI();
   if (showWelcome) {
     toast('Welcome, ' + user.name + '!', 'gold');
     requestNotifPermission();
@@ -2785,45 +2820,88 @@ function ensurePushCurrent() {
 }
 
 // Dead legacy FCM endpoint pattern (shut down June 2024)
-function isLegacyEndpoint(endpoint) {
-  return endpoint && endpoint.indexOf('fcm.googleapis.com/fcm/send') !== -1;
+
+function pushDeviceLabel(endpoint) {
+  var h = String(endpoint || '');
+  if (h.indexOf('push.apple.com') !== -1) return 'iPhone';
+  if (h.indexOf('fcm.googleapis.com') !== -1) return 'Android / Chrome';
+  if (h.indexOf('mozilla') !== -1) return 'Firefox';
+  if (h.indexOf('windows.com') !== -1) return 'Edge';
+  return 'Browser';
 }
-
+function isIOSDevice() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function isStandaloneApp() { return window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches); }
+// state: ios-install | ios-old | unsupported | denied | off | active
+function drawNotifState(state) {
+  var TXT = {
+    'ios-install': ['iPhone: add to Home Screen first', 'On iPhone, open Bar da Praia from its Home Screen icon to get notifications.', 'amber', 'How to set it up'],
+    'ios-old': ['Update iOS for notifications', 'Notifications need iOS 16.4 or newer.', 'red', 'Not available'],
+    'unsupported': ['Notifications not supported', 'This browser cannot receive notifications.', 'red', 'Not available'],
+    'denied': ['Notifications blocked', 'Blocked for this site. Allow them in the browser or phone settings, then tap again.', 'red', 'How to unblock'],
+    'off': ['Enable Notifications', 'Not set up on this device.', 'amber', 'Enable Notifications on this Device'],
+    'active': ['Notifications active', 'On for this device.', 'green', 'Set up again on this device']
+  }[state];
+  var COL = { green:['rgba(100,255,150,.9)','#2b8a4b'], amber:['rgba(255,200,0,.8)','#b7791f'], red:['rgba(255,100,100,.8)','#b4402f'] }[TXT[2]];
+  var dot = document.getElementById('notif-status-dot'), label = document.getElementById('notif-btn-label');
+  if (dot) dot.style.color = COL[0]; if (label) label.textContent = TXT[0];
+  var cdot = document.getElementById('notif-card-dot'), ctext = document.getElementById('notif-status-text'), clabel = document.getElementById('notif-card-btn-label');
+  if (cdot) cdot.style.color = COL[1]; if (ctext) ctext.textContent = TXT[1]; if (clabel) clabel.textContent = TXT[3];
+  document.querySelectorAll('[data-test-notif]').forEach(function(b){ b.style.display = state === 'active' ? 'flex' : 'none'; });
+  notifState = state;
+}
+var notifState = 'off';
 function updateNotifStatusUI() {
-  var dot   = document.getElementById('notif-status-dot');
-  var label = document.getElementById('notif-btn-label');
-  if (!dot || !label) return;
-
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    dot.style.color = 'rgba(255,100,100,.8)';
-    label.textContent = 'Notifications not supported';
-    return;
-  }
-  var perm = Notification.permission;
-  if (perm === 'denied') {
-    dot.style.color = 'rgba(255,100,100,.8)';
-    label.textContent = 'Notifications blocked';
-    return;
-  }
-  if (!swRegistration) {
-    dot.style.color = 'rgba(255,200,0,.8)';
-    label.textContent = 'Enable Notifications';
-    return;
-  }
+  if (isIOSDevice() && !isStandaloneApp()) { drawNotifState('ios-install'); return; }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { drawNotifState(isIOSDevice() ? 'ios-old' : 'unsupported'); return; }
+  if (Notification.permission === 'denied') { drawNotifState('denied'); return; }
+  if (!swRegistration) { drawNotifState('off'); return; }
   swRegistration.pushManager.getSubscription().then(function(sub) {
-    if (!sub || isLegacyEndpoint(sub.endpoint)) {
-      dot.style.color = 'rgba(255,200,0,.8)';
-      label.textContent = sub ? 'Refresh notifications' : 'Enable Notifications';
-    } else {
-      dot.style.color = 'rgba(100,255,150,.9)';
-      label.textContent = 'Notifications active';
-    }
+    drawNotifState(sub ? 'active' : 'off');
   });
+}
+// Where to look when a notification does not show, for this kind of device
+function notifSettingsHint() {
+  if (isIOSDevice()) return 'iPhone: Settings → Notifications → Bar da Praia → Allow Notifications. Focus / Do Not Disturb can also hide them.';
+  if (/Android/.test(navigator.userAgent)) return 'Android: Settings → Apps → Chrome → Notifications must be on, including bardapraia.org under Sites. Battery saver or Do Not Disturb can delay them.';
+  return 'Computer: allow notifications for bardapraia.org in the browser, and check the system notification settings for the browser.';
+}
+var notifTestTimer = null;
+function showNotifHelp(html, ok) {
+  var h = document.getElementById('notif-help'); if (!h) return;
+  h.innerHTML = html; h.className = 'notif-help' + (ok ? ' is-ok' : ''); h.style.display = '';
+}
+// Send a real notification to this login's devices; the service worker tells us when it reached this one
+function sendTestNotification() {
+  if (!currentUser) return;
+  if (notifTestTimer) clearTimeout(notifTestTimer);
+  toast('Sending a test…');
+  fetch('/api/push/send', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ userIds:[currentUser.id], title:'Test notification', body:'Notifications work on this device.', tag:'bardapraia-test' }) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d || !d.sent) {
+        toast('This device is not registered yet. Tap Enable Notifications first.', 'error');
+        showNotifHelp('No device is registered for your login yet. Tap <b>Enable Notifications</b> and allow them.');
+        return;
+      }
+      notifTestTimer = setTimeout(function(){
+        notifTestTimer = null;
+        toast('The test has not reached this device', 'error');
+        showNotifHelp('The test did not reach this device within 20 seconds. Check the connection, then tap <b>Set up again on this device</b>. ' + esc(notifSettingsHint()));
+      }, 20000);
+    })
+    .catch(function(){ toast('Could not send the test. Check the connection.', 'error'); });
+}
+function onPushArrived(tag) {
+  if (tag !== 'bardapraia-test' || !notifTestTimer) return;
+  clearTimeout(notifTestTimer); notifTestTimer = null;
+  toast('Test received on this device', 'success');
+  showNotifHelp('The test reached this device. If no notification popped up, notifications are switched off for it in the phone settings. ' + esc(notifSettingsHint()), true);
 }
 
 function requestNotifPermission() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-  if (Notification.permission === 'denied') return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+  if (Notification.permission !== 'default') return;   // already answered: ensurePushCurrent() keeps a 'granted' device current
   Notification.requestPermission().then(function(perm) {
     if (perm === 'granted') registerPushSubscription();
   });
@@ -2855,6 +2933,8 @@ function registerPushSubscription(quiet) {
       return swRegistration.pushManager.getSubscription().then(function(existing) {
         if (existing) {
           console.log('[Push] Unsubscribing old:', existing.endpoint.slice(0,60));
+          // forget the old endpoint on the server too, so dead subscriptions do not pile up
+          sbFetch('DELETE', 'push_subscriptions', null, 'endpoint=eq.' + encodeURIComponent(existing.endpoint)).catch(function(){});
           return existing.unsubscribe().catch(function(){});
         }
       }).then(function() {
@@ -2931,15 +3011,19 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then(function(reg) {
     swRegistration = reg;
     ensurePushCurrent();
-    navigator.serviceWorker.addEventListener('message', function(ev){ if (ev.data && ev.data.type === 'open') openDeepLink(ev.data.url); });
+    navigator.serviceWorker.addEventListener('message', function(ev){
+      if (!ev.data) return;
+      if (ev.data.type === 'open') openDeepLink(ev.data.url);
+      if (ev.data.type === 'pushed') onPushArrived(ev.data.tag);
+    });
+    if (navigator.serviceWorker.startMessages) navigator.serviceWorker.startMessages();   // deliver queued messages now
     // Force the new SW to activate immediately if waiting
     if (reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
     reg.update(); // Check for updated SW
     console.log('[SW] Registered, scope:', reg.scope);
-    // If already granted and user is logged in, subscribe immediately
-    if (Notification.permission === 'granted' && currentUser) {
-      registerPushSubscription();
-    }
+    // A logged-in device that already allowed notifications is kept current by ensurePushCurrent()
+    // (it only re-subscribes when the key changed, instead of on every page load)
+    updateNotifStatusUI();
   }).catch(function(err) {
     console.warn('[SW] Registration failed:', err.message);
   });
@@ -3164,6 +3248,10 @@ function refreshSection(name) {
     }).catch(function(){});
 
   } else if (name === 'users') {
+    sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at').then(function(rows) {
+      if (!rows) return; var db = getDB(); db.pushSubs = rows.map(function(x){ return { userId:x.user_id, endpoint:x.endpoint, updatedAt:x.updated_at }; }); saveDB(db);
+      if (currentSection === name) renderUsers();
+    }).catch(function(){});
     sbFetch('GET','app_users',null,'order=name.asc').then(function(rows) {
       if (!rows || !rows.length) return;
       var db = getDB();
@@ -3269,7 +3357,18 @@ function renderUsers() {
     el.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>No users yet. Add the first user!</p></div>';
     return;
   }
-  el.innerHTML = users.map(function(u) {
+  var subs = db.pushSubs || [];
+  var devicesOf = function(u){ return subs.filter(function(p){ return p.userId === u.id; }); };
+  var activeUsers = users.filter(function(u){ return u.active !== false && u.id !== 'admin_seed'; });
+  var reachable = activeUsers.filter(function(u){ return devicesOf(u).length; }).length;
+  var summary = db.pushSubs ? '<div class="push-summary"><i class="fas fa-bell" style="color:var(--teal-600)"></i> Notifications: <b>' + reachable + ' of ' + activeUsers.length + '</b> active people set up.'
+    + (reachable < activeUsers.length ? ' The others will not get task or shift request alerts until they tap <b>Enable Notifications</b> in the menu.' : '') + '</div>' : '';
+  el.innerHTML = summary + users.map(function(u) {
+    var devs = devicesOf(u);
+    var pushChip = !db.pushSubs ? '' : (devs.length
+      ? devs.map(function(p){ return pushDeviceLabel(p.endpoint); }).filter(function(l, i, a){ return a.indexOf(l) === i; })
+          .map(function(l){ return '<span class="push-chip is-on"><i class="fas fa-bell"></i> ' + esc(l) + '</span>'; }).join(' ')
+      : '<span class="push-chip is-off"><i class="fas fa-bell-slash"></i> No notifications</span>');
     var roleBadges = (u.roles||[]).map(function(r) {
       return '<span style="background:'+( ROLE_COLORS[r]||'#5f7079')+'22;color:'+(ROLE_COLORS[r]||'#5f7079')+';border:1px solid '+(ROLE_COLORS[r]||'#5f7079')+'44;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">'+(ROLE_LABELS[r]||r)+'</span>';
     }).join('');
@@ -3279,7 +3378,7 @@ function renderUsers() {
     if (u.hours) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-clock"></i> '+esc(u.hours)+'h/wk</span> ';
     if (u.amount) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-euro-sign"></i> '+esc(u.amount)+'</span>';
     return '<div style="background:white;border:1.5px solid var(--ocean-100);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">'
-      +'<div style="width:40px;height:40px;background:var(--ocean-500));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
+      +'<div style="width:40px;height:40px;background:var(--ocean-500);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
         +esc(u.name.charAt(0).toUpperCase())
       +'</div>'
       +'<div style="flex:1;min-width:0">'
@@ -3290,6 +3389,7 @@ function renderUsers() {
           +(isSelf?'<span style="background:#fdf3e1;color:var(--amber-700);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
         +'</div>'
         +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+roleBadges+'</div>'
+        +(pushChip?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+pushChip+'</div>':'')
         +(contractInfo?'<div style="display:flex;gap:10px;flex-wrap:wrap">'+contractInfo+'</div>':'')
         +(u.notes?'<div style="font-size:12px;color:var(--ocean-500);margin-top:4px;font-style:italic">'+esc(u.notes)+'</div>':'')
       +'</div>'
@@ -7275,12 +7375,16 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-fundo')) { saveFundoCaixa(); return; }
   if (t.closest('#btn-save-budgets')) { saveBudgets(); return; }
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
-  if (t.closest('#btn-enable-notif')) {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      toast('Push notifications not supported on this browser', 'error'); return;
+  if (t.closest('[data-test-notif]')) { sendTestNotification(); return; }
+  if (t.closest('#btn-enable-notif') || t.closest('#btn-enable-notif-2')) {
+    if (notifState === 'ios-install') { openModal('modal-ios-install'); return; }
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      toast(isIOSDevice() ? 'Notifications need iOS 16.4 or newer' : 'Push notifications not supported on this browser', 'error'); return;
     }
     if (Notification.permission === 'denied') {
-      toast('Notifications are blocked — enable them in your browser site settings', 'error'); return;
+      toast('Notifications are blocked for this site', 'error');
+      showNotifHelp('Notifications are blocked for bardapraia.org. ' + esc(notifSettingsHint()) + ' Then tap the button again.');
+      return;
     }
     if (Notification.permission === 'default') {
       Notification.requestPermission().then(function(perm) {
