@@ -195,7 +195,15 @@ app.post('/api/users/save', async (c) => {
   USER_COLS.split(',').forEach(k => { if (user[k] !== undefined) row[k] = user[k] })
   row.username = String(user.username).trim().toLowerCase()
   if (password) row.password_hash = ''                  // the old encoded password is no longer used
-  const ins = await fetch(`${cfg.SB_URL}/rest/v1/app_users?on_conflict=id`, { method: 'POST', headers: { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify(row) })
+  // Update an existing user in place; an upsert would be refused because Postgres checks the
+  // required password_hash column before it notices the row already exists.
+  const H = { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json', Prefer: 'return=representation' }
+  const found: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(row.id)}&select=id`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })).json().catch(() => [])
+  const isNew = !Array.isArray(found) || !found.length
+  if (isNew && !password) return c.json({ error: 'A new user needs a password' }, 400)
+  const ins = isNew
+    ? await fetch(`${cfg.SB_URL}/rest/v1/app_users`, { method: 'POST', headers: H, body: JSON.stringify({ password_hash: '', ...row }) })
+    : await fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(row.id)}`, { method: 'PATCH', headers: H, body: JSON.stringify(row) })
   if (!ins.ok) return c.json({ error: 'Could not save the user: ' + (await ins.text()).slice(0, 200) }, 500)
   try {
     const all = await listAuthUsers(cfg)
