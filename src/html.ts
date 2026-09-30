@@ -165,6 +165,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .fin-chart-legend span { display:inline-flex; align-items:center; gap:5px; }
     .fin-chart-legend .sw-bar { width:10px; height:10px; border-radius:2px; background:var(--chart-teal); display:inline-block; }
     .fin-chart-legend .sw-line { width:14px; height:0; border-top:2px solid var(--slate-700); display:inline-block; }
+    .fin-chart-legend .sw-dot { width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 2px var(--panel); display:inline-block; }
+    .fin-chart .fc-ly { fill:var(--gold); stroke:var(--panel); stroke-width:2; }
+    .fin-ly-line { font-size:11px; margin-top:2px; color:var(--slate-600); font-weight:600; }
+    .fin-ly-line b.pos { color:#2b8a4b; } .fin-ly-line b.neg { color:#b4402f; }
+    .fin-ly-sub { color:var(--slate-400); font-weight:500; }
+    .fin-ly-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--gold); margin-right:5px; vertical-align:1px; }
     .fin-chart svg { display:block; width:100%; height:auto; overflow:visible; font-family:var(--font); }
     .fin-chart svg text { font-variant-numeric:tabular-nums; }
     .fin-chart .fc-grid { stroke:var(--slate-100); stroke-width:1; }
@@ -1342,12 +1348,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
               <div class="fin-summary-label">This Month</div>
               <div id="fin-stat-day-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-day-month-budget" style="font-size:11px;margin-top:4px"></div>
+              <div id="fin-stat-day-month-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-day-year">€0</div>
               <div class="fin-summary-label">Year to Date</div>
               <div id="fin-stat-day-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-day-year-budget" style="font-size:11px;margin-top:4px"></div>
+              <div id="fin-stat-day-year-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-day-range">€0</div>
@@ -1374,12 +1382,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
               <div class="fin-summary-label">This Month</div>
               <div id="fin-stat-t51-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-t51-month-budget" style="font-size:11px;margin-top:4px"></div>
+              <div id="fin-stat-t51-month-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-year">€0</div>
               <div class="fin-summary-label">Year to Date</div>
               <div id="fin-stat-t51-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-t51-year-budget" style="font-size:11px;margin-top:4px"></div>
+              <div id="fin-stat-t51-year-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-range">€0</div>
@@ -1399,12 +1409,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
               <div class="fin-summary-label">This Month</div>
               <div id="fin-stat-surf-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-surf-month-budget" style="font-size:11px;margin-top:4px"></div>
+              <div id="fin-stat-surf-month-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-year">€0</div>
               <div class="fin-summary-label">Year to Date</div>
               <div id="fin-stat-surf-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
               <div id="fin-stat-surf-year-budget" style="font-size:11px;margin-top:4px"></div>
+              <div id="fin-stat-surf-year-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-range">€0</div>
@@ -1655,8 +1667,16 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <!-- Finance Budgets -->
       <div class="settings-card">
         <h3><i class="fas fa-chart-line" style="color:#2b8a4b"></i> Finance Budgets</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:10px">Set a monthly budget for each metric. The year total is calculated automatically.</p>
-        <div style="overflow-x:auto;margin-bottom:14px">
+        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:10px">Set a monthly budget for each metric, and last year's figures to compare against. The year total is calculated automatically.</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+          <div class="fc-switch" role="tablist" aria-label="Budget or last year">
+            <button class="active" data-bud-mode="budget" id="bud-mode-budget">Budget</button>
+            <button data-bud-mode="ly" id="bud-mode-ly">Last year</button>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-bud-fill-ly" style="display:none"><i class="fas fa-wand-magic-sparkles"></i> <span id="bud-fill-label">Fill Total Day from Accounting</span></button>
+        </div>
+        <div id="ly-table-wrap" style="display:none;overflow-x:auto;margin-bottom:14px"></div>
+        <div style="overflow-x:auto;margin-bottom:14px" id="budget-table-wrap">
           <table style="width:100%;border-collapse:collapse;font-size:12px">
             <thead>
               <tr style="background:var(--ocean-50)">
@@ -1679,7 +1699,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
             </tfoot>
           </table>
         </div>
-        <button class="btn btn-primary" id="btn-save-budgets"><i class="fas fa-save"></i> Save Budgets</button>
+        <button class="btn btn-primary" id="btn-save-budgets"><i class="fas fa-save"></i> Save budgets and last year</button>
       </div>
       <!-- Team Members moved to Shifts → Team tab -->
       <!-- Tables -->
@@ -2875,6 +2895,7 @@ function syncFromSupabase() {
               db.budgets[k][m] = (rb[k] && rb[k][m] !== undefined) ? parseFloat(rb[k][m]) || 0 : 0;
             });
           });
+          db.budgets.lastYear = (rb.lastYear && typeof rb.lastYear === 'object') ? rb.lastYear : {};
         }
 
         // week_tips — full replace from Supabase
@@ -3731,6 +3752,7 @@ function refreshSection(name) {
             db.budgets[k] = {};
             MONTH_KEYS.forEach(function(m) { db.budgets[k][m] = (rb[k] && rb[k][m] !== undefined) ? parseFloat(rb[k][m]) || 0 : 0; });
           });
+          db.budgets.lastYear = (rb.lastYear && typeof rb.lastYear === 'object') ? rb.lastYear : {};
         }
       }
       saveDB(db);
@@ -4191,9 +4213,73 @@ function saveFundoCaixa() {
     .catch(function(e){ console.error('fundo sync failed:',e); toast('Saved locally — sync failed','error'); });
 }
 function parseBudgetVal(s){ return parseFloat((s||'').trim().replace(',','.'))||0; }
+// ── Last year's figures (Settings → Finance Budgets → Last year) ──
+var budMode = 'budget';
+function renderLastYearTable(db) {
+  var Y = new Date().getFullYear(), LY = Y - 1;
+  var bb = document.getElementById('bud-mode-budget'), bl = document.getElementById('bud-mode-ly');
+  if (bb) bb.textContent = 'Budget ' + Y; if (bl) bl.textContent = 'Last year ' + LY;
+  var fl = document.getElementById('bud-fill-label'); if (fl) fl.textContent = 'Fill Total Day from ' + LY + ' sales';
+  var wrap = document.getElementById('ly-table-wrap'); if (!wrap) return;
+  var ly = ((db.budgets || {}).lastYear || {})[String(LY)] || {};
+  var iStyle = 'width:100%;border:1px solid var(--ocean-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
+  var tot = { day:0, t51:0, surf:0 };
+  var rows = MONTH_KEYS.map(function(m, i){
+    var cells = ['day','t51','surf'].map(function(k){
+      var typed = ly[k] && parseFloat(ly[k][m]) > 0 ? parseFloat(ly[k][m]) : 0;
+      var fromCloses = typed ? null : finLastYear(db, k, LY, m);
+      tot[k] += typed || fromCloses || 0;
+      return '<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="ly-' + k + '-' + m + '" value="' + (typed || '') + '" placeholder="' + (fromCloses ? Math.round(fromCloses) + ' (closes)' : '0') + '" style="' + iStyle + 'color:var(--gold)" aria-label="' + MONTH_NAMES[i] + ' ' + LY + ' ' + k + '" /></td>';
+    }).join('');
+    return '<tr style="border-bottom:1px solid var(--ocean-50)"><td style="padding:5px 8px;font-weight:700;color:var(--ocean-700)">' + MONTH_NAMES[i] + '</td>' + cells + '</tr>';
+  }).join('');
+  wrap.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--gold-50)">'
+    + '<th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:60px">' + LY + '</th>'
+    + '<th style="padding:6px 4px;font-weight:700;color:var(--gold);text-align:right;min-width:80px">Total Day</th>'
+    + '<th style="padding:6px 4px;font-weight:700;color:var(--gold);text-align:right;min-width:80px">T 51</th>'
+    + '<th style="padding:6px 4px;font-weight:700;color:var(--gold);text-align:right;min-width:80px">Surf</th></tr></thead><tbody>' + rows + '</tbody>'
+    + '<tfoot><tr style="background:var(--gold-50);border-top:2px solid var(--gold-200)"><td style="padding:6px 8px;font-weight:800;font-size:12px">Year Total</td>'
+    + ['day','t51','surf'].map(function(k){ return '<td id="ly-total-' + k + '" style="padding:6px 4px;font-weight:800;color:var(--gold);text-align:right;font-size:12px">' + fmtEur(tot[k]) + '</td>'; }).join('') + '</tr></tfoot></table>'
+    + '<p class="acc-note" style="margin-top:8px">Months left empty use that year\u2019s daily closes when there are any (shown in grey).</p>';
+  setBudMode(budMode);
+}
+function updateLastYearTotals() {
+  var db = getDB(), LY = new Date().getFullYear() - 1;
+  ['day','t51','surf'].forEach(function(k){
+    var sum = 0;
+    MONTH_KEYS.forEach(function(m){ var el = document.getElementById('ly-' + k + '-' + m); var v = el ? accNum(el.value) : null; sum += v > 0 ? v : (finLastYear(db, k, LY, m) || 0); });
+    var c = document.getElementById('ly-total-' + k); if (c) c.textContent = fmtEur(sum);
+  });
+}
+function setBudMode(mode) {
+  budMode = mode;
+  var bw = document.getElementById('budget-table-wrap'), lw = document.getElementById('ly-table-wrap'), fb = document.getElementById('btn-bud-fill-ly');
+  if (bw) bw.style.display = mode === 'ly' ? 'none' : '';
+  if (lw) lw.style.display = mode === 'ly' ? '' : 'none';
+  if (fb) fb.style.display = mode === 'ly' && isAdmin ? '' : 'none';
+  document.querySelectorAll('[data-bud-mode]').forEach(function(b){ b.classList.toggle('active', b.dataset.budMode === mode); });
+}
+// Admins: last year's Total of the day from the sales imported into Accounting (Caixa 1 + Caixa FCP)
+function fillLastYearFromAccounting() {
+  var LY = new Date().getFullYear() - 1;
+  toast('Reading ' + LY + ' sales…');
+  sbFetchAll('acc_entries', 'year=eq.' + LY + '&kind=eq.revenue&order=id.asc').then(function(rows){
+    var sums = {}; (rows || []).forEach(function(r){ var m = String(r.month).padStart(2, '0'); sums[m] = (sums[m] || 0) + (parseFloat(r.amount) || 0); });
+    var n = 0;
+    MONTH_KEYS.forEach(function(m){ var el = document.getElementById('ly-day-' + m); if (el && sums[m] > 0) { el.value = Math.round(sums[m] * 100) / 100; n++; } });
+    updateLastYearTotals();
+    toast(n ? 'Filled ' + n + ' months. Press Save to keep them.' : 'No ' + LY + ' sales found in Accounting', n ? 'success' : 'error');
+  }).catch(function(){ toast('Could not read Accounting', 'error'); });
+}
 function saveBudgets() {
   var db = getDB();
   var b = db.budgets;
+  var LY = String(new Date().getFullYear() - 1), lyObj = { day:{}, t51:{}, surf:{} }, anyLy = false;
+  MONTH_KEYS.forEach(function(m){ ['day','t51','surf'].forEach(function(k){
+    var el = document.getElementById('ly-' + k + '-' + m); if (!el) return;
+    var v = accNum(el.value) || 0; if (v > 0) { lyObj[k][m] = Math.round(v * 100) / 100; anyLy = true; }
+  }); });
+  if (document.getElementById('ly-day-01')) { b.lastYear = b.lastYear || {}; if (anyLy) b.lastYear[LY] = lyObj; else delete b.lastYear[LY]; }
   var yearDay=0, yearT51=0, yearSurf=0;
   MONTH_KEYS.forEach(function(m){
     var d=parseBudgetVal(document.getElementById('bud-day-'+m) ?document.getElementById('bud-day-'+m).value:'');
@@ -4263,6 +4349,7 @@ function renderSettings() {
     var yt=document.getElementById('budget-year-t51');  if(yt)  yt.textContent=fmtEur(yearT51);
     var ys=document.getElementById('budget-year-surf'); if(ys)  ys.textContent=fmtEur(yearSurf);
   }
+  renderLastYearTable(db);
   updateSupabaseStatus();
   updateAllDropdowns();
 }
@@ -4543,6 +4630,37 @@ function finBudgetDeviation(actual, budget){
   var sign = pct >= 0 ? '+' : '';
   return '<span style="font-size:11px;font-weight:700;color:'+color+'">'+sign+pct.toFixed(1)+'% vs budget</span>';
 }
+// Last year's figure for one line and month: typed in Settings → Finance Budgets (Last year),
+// otherwise the sum of that year's daily closes. null = nothing known.
+function finLastYear(db, line, year, mKey) {
+  var ly = ((db.budgets || {}).lastYear || {})[String(year)] || {};
+  var typed = ly[line] && parseFloat(ly[line][mKey]);
+  if (typed > 0) return typed;
+  var ym = year + '-' + mKey, sum = 0, any = false, f = line === 'day' ? 'totalDay' : line;
+  (db.finEntries || []).forEach(function(e){ if (e.date && e.date.slice(0, 7) === ym) { sum += (e[f] || 0); any = true; } });
+  return any ? sum : null;
+}
+function finPctTxt(a, b) { var p = (a - b) / b * 100; return (p >= 0 ? '+' : '') + p.toFixed(1) + '%'; }
+// Card lines. This month: how far the month is against the same month last year.
+// Year to date: complete months only, against the same months last year.
+function finLyLines(db, line, yearStr, curMon, monthTotal, idMonth, idYear) {
+  var year = +yearStr, lyYear = year - 1, cur = +curMon;
+  var mEl = document.getElementById(idMonth), yEl = document.getElementById(idYear);
+  var lyMonth = finLastYear(db, line, lyYear, curMon);
+  if (mEl) mEl.innerHTML = lyMonth > 0 ? '<span class="fin-ly-dot"></span>' + Math.round(monthTotal / lyMonth * 100) + '% of ' + MONTH_NAMES[cur - 1] + ' ' + lyYear + ' <span class="fin-ly-sub">(' + fmtEurShort(lyMonth) + ')</span>' : '';
+  if (!yEl) return;
+  var thisY = 0, lastY = 0, first = null, last = null, f = line === 'day' ? 'totalDay' : line;
+  for (var m = 1; m < cur; m++) {
+    var mk = String(m).padStart(2, '0'), ly = finLastYear(db, line, lyYear, mk);
+    var ym = yearStr + '-' + mk, t = 0, any = false;
+    (db.finEntries || []).forEach(function(e){ if (e.date && e.date.slice(0, 7) === ym) { t += (e[f] || 0); any = true; } });
+    if (!(ly > 0) || !any) continue;
+    thisY += t; lastY += ly; if (first === null) first = m; last = m;
+  }
+  if (!(lastY > 0)) { yEl.innerHTML = ''; return; }
+  var up = thisY >= lastY;
+  yEl.innerHTML = '<span class="fin-ly-dot"></span><b class="' + (up ? 'pos' : 'neg') + '">' + finPctTxt(thisY, lastY) + '</b> vs ' + lyYear + ' <span class="fin-ly-sub">(' + MONTH_NAMES[first - 1] + (last !== first ? '–' + MONTH_NAMES[last - 1] : '') + ')</span>';
+}
 function finStatBox(sumId, avgId, budgetDevId, total, count, budget){
   var el=document.getElementById(sumId); if(el) el.textContent=fmtEur(total);
   var avgEl=document.getElementById(avgId); if(avgEl) avgEl.textContent=count>0?('avg '+fmtEur(total/count)+'/day'):'';
@@ -4576,7 +4694,8 @@ function renderFinYearCharts(db, yearStr, curMon) {
   ['day','t51','surf'].forEach(function(line){
     var el = document.getElementById('fin-chart-' + line); if (!el) return;
     var budget = MONTH_KEYS.map(function(m){ return (bud[line] && bud[line][m]) || 0; });
-    el._finChart = { line: line, year: yearStr, curMon: curMon, actual: actual[line], budget: budget, hasData: hasData[line] };
+    var lastYear = MONTH_KEYS.map(function(m){ return finLastYear(db, line, +yearStr - 1, m) || 0; });
+    el._finChart = { line: line, year: yearStr, curMon: curMon, actual: actual[line], budget: budget, lastYear: lastYear, hasData: hasData[line] };
     drawFinYearChart(el);
   });
 }
@@ -4586,6 +4705,7 @@ function drawFinYearChart(el) {
   var H = 150, padL = 40, padR = 6, padT = 16, padB = 22;
   var plotW = W - padL - padR, plotH = H - padT - padB;
   var maxV = 0; d.actual.forEach(function(v){ if (v > maxV) maxV = v; }); d.budget.forEach(function(v){ if (v > maxV) maxV = v; });
+  var lyArr = d.lastYear || []; lyArr.forEach(function(v){ if (v > maxV) maxV = v; }); var hasLy = lyArr.some(function(v){ return v > 0; });
   var yMax = finNiceMax(maxV * 1.05);
   var y = function(v){ return padT + plotH - (v / yMax) * plotH; };
   var band = plotW / 12, barW = Math.min(24, Math.round(band * 0.55));
@@ -4601,7 +4721,9 @@ function drawFinYearChart(el) {
     var cx = padL + band * i + band / 2, a = d.actual[i], b = d.budget[i];
     var isNow = i === curIdx;
     var diff = b > 0 ? Math.round((a - b) / b * 100) : null;
-    var tip = MONTH_NAMES[i] + ' ' + d.year + ': actual ' + fmtEur(a) + (b > 0 ? ' · budget ' + fmtEur(b) + ' (' + (diff >= 0 ? '+' : '') + diff + '%)' : ' · no budget');
+    var lyv = lyArr[i] || 0;
+    var tip = MONTH_NAMES[i] + ' ' + d.year + ': actual ' + fmtEur(a) + (b > 0 ? ' · budget ' + fmtEur(b) + ' (' + (diff >= 0 ? '+' : '') + diff + '%)' : ' · no budget')
+      + (lyv > 0 ? ' · last year ' + fmtEur(lyv) + (d.hasData[i] && a > 0 ? ' (' + finPctTxt(a, lyv) + ')' : '') : '');
     svg += '<g class="fc-month-g" tabindex="0" data-i="' + i + '"><title>' + tip + '</title>';
     svg += '<rect class="fc-hit" x="' + (padL + band * i) + '" y="' + padT + '" width="' + band + '" height="' + plotH + '"/>';
     if (d.hasData[i] && a > 0) {
@@ -4611,28 +4733,37 @@ function drawFinYearChart(el) {
       if (isNow) { var labelY = Math.min(top, b > 0 ? y(b) : top) - 6; svg += '<text class="fc-label" x="' + cx + '" y="' + labelY + '" text-anchor="middle">' + fmtEurShort(a) + '</text>'; }
     }
     if (b > 0) { var by = y(b); svg += '<line class="fc-budget" x1="' + (cx - barW / 2 - 3) + '" x2="' + (cx + barW / 2 + 3) + '" y1="' + by + '" y2="' + by + '"/>'; }
+    if (lyv > 0) svg += '<circle class="fc-ly" cx="' + (cx + barW / 2 + 7) + '" cy="' + y(lyv) + '" r="4"/>';
     svg += '<text class="fc-month' + (isNow ? ' now' : '') + '" x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle">' + (band >= 40 ? MONTH_NAMES[i] : MONTH_NAMES[i].charAt(0)) + '</text>';
     svg += '</g>';
   }
   svg += '</svg>';
-  var rows = ''; var totA = 0, totB = 0;
+  var rows = ''; var totA = 0, totB = 0, totL = 0, totLA = 0;
   for (var j = 0; j < 12; j++) {
-    var a2 = d.actual[j], b2 = d.budget[j]; totA += a2; totB += b2;
+    var a2 = d.actual[j], b2 = d.budget[j], l2 = lyArr[j] || 0; totA += a2; totB += b2; totL += l2;
+    if (l2 > 0 && d.hasData[j]) totLA += a2;
     var df = (d.hasData[j] && b2 > 0) ? a2 - b2 : null;
-    rows += '<tr' + (j === curIdx ? ' class="now"' : '') + '><td>' + MONTH_NAMES[j] + '</td><td>' + (d.hasData[j] ? fmtEur(a2) : '—') + '</td><td>' + (b2 > 0 ? fmtEur(b2) : '—') + '</td><td class="' + (df === null ? '' : df < 0 ? 'neg' : 'pos') + '">' + (df === null ? '—' : (df >= 0 ? '+' : '−') + fmtEur(Math.abs(df))) + '</td></tr>';
+    var lyCells = hasLy ? '<td>' + (l2 > 0 ? fmtEur(l2) : '—') + '</td><td class="' + (l2 > 0 && d.hasData[j] ? (a2 < l2 ? 'neg' : 'pos') : '') + '">' + (l2 > 0 && d.hasData[j] ? finPctTxt(a2, l2) : '—') + '</td>' : '';
+    rows += '<tr' + (j === curIdx ? ' class="now"' : '') + '><td>' + MONTH_NAMES[j] + '</td><td>' + (d.hasData[j] ? fmtEur(a2) : '—') + '</td><td>' + (b2 > 0 ? fmtEur(b2) : '—') + '</td><td class="' + (df === null ? '' : df < 0 ? 'neg' : 'pos') + '">' + (df === null ? '—' : (df >= 0 ? '+' : '−') + fmtEur(Math.abs(df))) + '</td>' + lyCells + '</tr>';
   }
-  rows += '<tr><td><b>Year</b></td><td><b>' + fmtEur(totA) + '</b></td><td><b>' + fmtEur(totB) + '</b></td><td class="' + (totA - totB < 0 ? 'neg' : 'pos') + '"><b>' + (totA - totB >= 0 ? '+' : '−') + fmtEur(Math.abs(totA - totB)) + '</b></td></tr>';
+  // year comparison: complete months only (the running month is left out, as on the cards)
+  var nowY = String(new Date().getFullYear()) === String(d.year), totLyMatched = 0; totLA = 0;
+  for (var k2 = 0; k2 < 12; k2++) if ((lyArr[k2] || 0) > 0 && d.hasData[k2] && !(nowY && k2 >= curIdx)) { totLyMatched += lyArr[k2]; totLA += d.actual[k2]; }
+  rows += '<tr><td><b>Year</b></td><td><b>' + fmtEur(totA) + '</b></td><td><b>' + fmtEur(totB) + '</b></td><td class="' + (totA - totB < 0 ? 'neg' : 'pos') + '"><b>' + (totA - totB >= 0 ? '+' : '−') + fmtEur(Math.abs(totA - totB)) + '</b></td>'
+    + (hasLy ? '<td><b>' + fmtEur(totL) + '</b></td><td class="' + (totLA < totLyMatched ? 'neg' : 'pos') + '"><b>' + (totLyMatched > 0 ? finPctTxt(totLA, totLyMatched) : '—') + '</b></td>' : '') + '</tr>';
   el.innerHTML = '<div class="fin-chart-head"><div class="fin-chart-title">' + d.year + ' · budget vs actual</div>'
-    + '<div class="fin-chart-legend"><span><i class="sw-bar"></i>Actual</span><span><i class="sw-line"></i>Budget</span></div></div>'
+    + '<div class="fin-chart-legend"><span><i class="sw-bar"></i>Actual</span><span><i class="sw-line"></i>Budget</span>' + (hasLy ? '<span><i class="sw-dot"></i>' + (+d.year - 1) + '</span>' : '') + '</div></div>'
     + '<div class="fc-wrap">' + svg + '<div class="fc-tip" aria-hidden="true"></div></div>'
-    + '<details><summary><i class="fas fa-table"></i> Monthly table</summary><table><thead><tr><th>Month</th><th>Actual</th><th>Budget</th><th>Diff</th></tr></thead><tbody>' + rows + '</tbody></table></details>';
+    + '<details><summary><i class="fas fa-table"></i> Monthly table</summary><table><thead><tr><th>Month</th><th>Actual</th><th>Budget</th><th>Diff</th>' + (hasLy ? '<th>' + (+d.year - 1) + '</th><th>vs ' + (+d.year - 1) + '</th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table></details>';
   // hover / focus tooltip (title carries the same text for assistive tech)
   var tipEl = el.querySelector('.fc-tip'), wrap = el.querySelector('.fc-wrap');
   el.querySelectorAll('.fc-month-g').forEach(function(g){
     var show = function(){
       var i = parseInt(g.getAttribute('data-i'), 10), a = d.actual[i], b = d.budget[i];
       var pct = b > 0 ? Math.round((a - b) / b * 100) : null;
-      tipEl.innerHTML = '<b>' + MONTH_NAMES[i] + '</b> actual ' + fmtEur(a) + (b > 0 ? '<br>budget ' + fmtEur(b) + ' · ' + (pct >= 0 ? '+' : '') + pct + '%' : '<br>no budget set');
+      var lv = lyArr[i] || 0;
+      tipEl.innerHTML = '<b>' + MONTH_NAMES[i] + '</b> actual ' + fmtEur(a) + (b > 0 ? '<br>budget ' + fmtEur(b) + ' · ' + (pct >= 0 ? '+' : '') + pct + '%' : '<br>no budget set')
+        + (lv > 0 ? '<br>' + (+d.year - 1) + ' ' + fmtEur(lv) + (d.hasData[i] && a > 0 ? ' · ' + finPctTxt(a, lv) : '') : '');
       var r = g.querySelector('.fc-hit').getBoundingClientRect(), wr = wrap.getBoundingClientRect();
       var lx = r.left - wr.left + r.width / 2; lx = Math.max(70, Math.min(wr.width - 70, lx));
       tipEl.style.left = lx + 'px'; tipEl.style.top = (padT - 4) + 'px'; tipEl.style.opacity = '1';
@@ -4704,6 +4835,9 @@ function renderFinRecords() {
   finStatBox('fin-stat-surf-month','fin-stat-surf-month-avg','fin-stat-surf-month-budget', surfMonth, cntMonth, budgetSurf);
   finStatBox('fin-stat-surf-year', 'fin-stat-surf-year-avg', 'fin-stat-surf-year-budget',  surfYear,  cntYear,  budgetSurfYear);
   finStatBox('fin-stat-surf-range','fin-stat-surf-range-avg',null, surfRange, cntRange, 0);
+  finLyLines(db, 'day',  yearStr, curMon, dayMonth,  'fin-stat-day-month-ly',  'fin-stat-day-year-ly');
+  finLyLines(db, 't51',  yearStr, curMon, t51Month,  'fin-stat-t51-month-ly',  'fin-stat-t51-year-ly');
+  finLyLines(db, 'surf', yearStr, curMon, surfMonth, 'fin-stat-surf-month-ly', 'fin-stat-surf-year-ly');
 
   // --- Cash Over/Under Log ---
   var shortMonthEl=document.getElementById('fin-stat-short-month'); if(shortMonthEl) shortMonthEl.textContent=fmtEur(shortMonth);
@@ -7331,6 +7465,7 @@ document.addEventListener('input', function(e){
     renderFcTotals();
   }
   if (t.id === 'fc-dish-price' || t.id === 'fc-dish-portions') renderFcTotals();
+  if (/^ly-(day|t51|surf)-\\d\\d$/.test(t.id || '')) updateLastYearTotals();
   if (t.id === 'fc-search') { fcSearch = t.value; var pos = t.selectionStart; renderFoodCost(); var ns = document.getElementById('fc-search'); if (ns) { ns.focus(); try { ns.setSelectionRange(pos, pos); } catch (er) {} } }
 });
 
@@ -8625,6 +8760,8 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-supabase')) { saveSupabase(); return; }
   if (t.closest('[data-test-notif]')) { sendTestNotification(); return; }
   if (t.closest('#btn-update-reload')) { location.reload(); return; }
+  el = t.closest('[data-bud-mode]'); if (el) { setBudMode(el.dataset.budMode); return; }
+  if (t.closest('#btn-bud-fill-ly')) { fillLastYearFromAccounting(); return; }
   if (t.closest('#btn-secure-migrate')) { runSecureMigrate(); return; }
   // Accounting
   el = t.closest('[data-acc-tab]'); if (el) { accTab = el.dataset.accTab; renderAccounting(); return; }
