@@ -165,12 +165,13 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .fin-chart-legend span { display:inline-flex; align-items:center; gap:5px; }
     .fin-chart-legend .sw-bar { width:10px; height:10px; border-radius:2px; background:var(--chart-teal); display:inline-block; }
     .fin-chart-legend .sw-line { width:14px; height:0; border-top:2px solid var(--slate-700); display:inline-block; }
-    .fin-chart-legend .sw-dot { width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 2px var(--panel); display:inline-block; }
-    .fin-chart .fc-ly { fill:var(--gold); stroke:var(--panel); stroke-width:2; }
+    .fin-chart-legend .sw-ly { width:16px; height:3px; border-radius:2px; background:var(--gold); display:inline-block; }
+    .fin-chart .fc-ly-line { fill:none; stroke:var(--gold); stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round; pointer-events:none; }
+    .fin-chart .fc-ly-pt { fill:var(--gold); stroke:var(--panel); stroke-width:1.5; pointer-events:none; }
     .fin-ly-line { font-size:11px; margin-top:2px; color:var(--slate-600); font-weight:600; }
     .fin-ly-line b.pos { color:#2b8a4b; } .fin-ly-line b.neg { color:#b4402f; }
     .fin-ly-sub { color:var(--slate-400); font-weight:500; }
-    .fin-ly-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--gold); margin-right:5px; vertical-align:1px; }
+    .fin-ly-dot { display:inline-block; width:12px; height:3px; border-radius:2px; background:var(--gold); margin-right:5px; vertical-align:3px; }
     .fin-chart svg { display:block; width:100%; height:auto; overflow:visible; font-family:var(--font); }
     .fin-chart svg text { font-variant-numeric:tabular-nums; }
     .fin-chart .fc-grid { stroke:var(--slate-100); stroke-width:1; }
@@ -1673,7 +1674,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
             <button class="active" data-bud-mode="budget" id="bud-mode-budget">Budget</button>
             <button data-bud-mode="ly" id="bud-mode-ly">Last year</button>
           </div>
-          <button class="btn btn-secondary btn-sm" id="btn-bud-fill-ly" style="display:none"><i class="fas fa-wand-magic-sparkles"></i> <span id="bud-fill-label">Fill Total Day from Accounting</span></button>
+          <button class="btn btn-secondary btn-sm" id="btn-bud-fill-ly" style="display:none"><i class="fas fa-wand-magic-sparkles"></i> <span id="bud-fill-label">Fill Total Day and T 51 from Accounting</span></button>
         </div>
         <div id="ly-table-wrap" style="display:none;overflow-x:auto;margin-bottom:14px"></div>
         <div style="overflow-x:auto;margin-bottom:14px" id="budget-table-wrap">
@@ -4219,7 +4220,7 @@ function renderLastYearTable(db) {
   var Y = new Date().getFullYear(), LY = Y - 1;
   var bb = document.getElementById('bud-mode-budget'), bl = document.getElementById('bud-mode-ly');
   if (bb) bb.textContent = 'Budget ' + Y; if (bl) bl.textContent = 'Last year ' + LY;
-  var fl = document.getElementById('bud-fill-label'); if (fl) fl.textContent = 'Fill Total Day from ' + LY + ' sales';
+  var fl = document.getElementById('bud-fill-label'); if (fl) fl.textContent = 'Fill Total Day and T 51 from ' + LY + ' sales';
   var wrap = document.getElementById('ly-table-wrap'); if (!wrap) return;
   var ly = ((db.budgets || {}).lastYear || {})[String(LY)] || {};
   var iStyle = 'width:100%;border:1px solid var(--ocean-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
@@ -4240,7 +4241,7 @@ function renderLastYearTable(db) {
     + '<th style="padding:6px 4px;font-weight:700;color:var(--gold);text-align:right;min-width:80px">Surf</th></tr></thead><tbody>' + rows + '</tbody>'
     + '<tfoot><tr style="background:var(--gold-50);border-top:2px solid var(--gold-200)"><td style="padding:6px 8px;font-weight:800;font-size:12px">Year Total</td>'
     + ['day','t51','surf'].map(function(k){ return '<td id="ly-total-' + k + '" style="padding:6px 4px;font-weight:800;color:var(--gold);text-align:right;font-size:12px">' + fmtEur(tot[k]) + '</td>'; }).join('') + '</tr></tfoot></table>'
-    + '<p class="acc-note" style="margin-top:8px">Months left empty use that year\u2019s daily closes when there are any (shown in grey).</p>';
+    + '<p class="acc-note" style="margin-top:8px">Months left empty use that year\u2019s daily closes when there are any (shown in grey). Filling from Accounting puts Caixa 1 + Caixa FCP in Total Day and Caixa FCP in T 51.</p>';
   setBudMode(budMode);
 }
 function updateLastYearTotals() {
@@ -4264,9 +4265,18 @@ function fillLastYearFromAccounting() {
   var LY = new Date().getFullYear() - 1;
   toast('Reading ' + LY + ' sales…');
   sbFetchAll('acc_entries', 'year=eq.' + LY + '&kind=eq.revenue&order=id.asc').then(function(rows){
-    var sums = {}; (rows || []).forEach(function(r){ var m = String(r.month).padStart(2, '0'); sums[m] = (sums[m] || 0) + (parseFloat(r.amount) || 0); });
+    // Total Day = every till (Caixa 1 + Caixa FCP); T 51 = the Caixa FCP till
+    var sums = {}, t51 = {}; (rows || []).forEach(function(r){
+      var m = String(r.month).padStart(2, '0'), v = parseFloat(r.amount) || 0;
+      sums[m] = (sums[m] || 0) + v;
+      if (/fcp|t\\s*51/i.test(r.line || '')) t51[m] = (t51[m] || 0) + v;
+    });
     var n = 0;
-    MONTH_KEYS.forEach(function(m){ var el = document.getElementById('ly-day-' + m); if (el && sums[m] > 0) { el.value = Math.round(sums[m] * 100) / 100; n++; } });
+    MONTH_KEYS.forEach(function(m){
+      var el = document.getElementById('ly-day-' + m), et = document.getElementById('ly-t51-' + m);
+      if (el && sums[m] > 0) { el.value = Math.round(sums[m] * 100) / 100; n++; }
+      if (et && t51[m] > 0) et.value = Math.round(t51[m] * 100) / 100;
+    });
     updateLastYearTotals();
     toast(n ? 'Filled ' + n + ' months. Press Save to keep them.' : 'No ' + LY + ' sales found in Accounting', n ? 'success' : 'error');
   }).catch(function(){ toast('Could not read Accounting', 'error'); });
@@ -4733,9 +4743,18 @@ function drawFinYearChart(el) {
       if (isNow) { var labelY = Math.min(top, b > 0 ? y(b) : top) - 6; svg += '<text class="fc-label" x="' + cx + '" y="' + labelY + '" text-anchor="middle">' + fmtEurShort(a) + '</text>'; }
     }
     if (b > 0) { var by = y(b); svg += '<line class="fc-budget" x1="' + (cx - barW / 2 - 3) + '" x2="' + (cx + barW / 2 + 3) + '" y1="' + by + '" y2="' + by + '"/>'; }
-    if (lyv > 0) svg += '<circle class="fc-ly" cx="' + (cx + barW / 2 + 7) + '" cy="' + y(lyv) + '" r="4"/>';
     svg += '<text class="fc-month' + (isNow ? ' now' : '') + '" x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle">' + (band >= 40 ? MONTH_NAMES[i] : MONTH_NAMES[i].charAt(0)) + '</text>';
     svg += '</g>';
+  }
+  // last year: one gold line across the months, broken where a month has no figure
+  if (hasLy) {
+    var lyPath = '', pen = false, lyPts = '';
+    for (var li = 0; li < 12; li++) {
+      var lv = lyArr[li] || 0, lx = padL + band * li + band / 2;
+      if (lv > 0) { lyPath += (pen ? ' L' : 'M') + lx.toFixed(1) + ' ' + y(lv).toFixed(1); pen = true; lyPts += '<circle class="fc-ly-pt" cx="' + lx.toFixed(1) + '" cy="' + y(lv).toFixed(1) + '" r="2.5"/>'; }
+      else pen = false;
+    }
+    svg += '<path class="fc-ly-line" d="' + lyPath + '"/>' + lyPts;
   }
   svg += '</svg>';
   var rows = ''; var totA = 0, totB = 0, totL = 0, totLA = 0;
@@ -4752,7 +4771,7 @@ function drawFinYearChart(el) {
   rows += '<tr><td><b>Year</b></td><td><b>' + fmtEur(totA) + '</b></td><td><b>' + fmtEur(totB) + '</b></td><td class="' + (totA - totB < 0 ? 'neg' : 'pos') + '"><b>' + (totA - totB >= 0 ? '+' : '−') + fmtEur(Math.abs(totA - totB)) + '</b></td>'
     + (hasLy ? '<td><b>' + fmtEur(totL) + '</b></td><td class="' + (totLA < totLyMatched ? 'neg' : 'pos') + '"><b>' + (totLyMatched > 0 ? finPctTxt(totLA, totLyMatched) : '—') + '</b></td>' : '') + '</tr>';
   el.innerHTML = '<div class="fin-chart-head"><div class="fin-chart-title">' + d.year + ' · budget vs actual</div>'
-    + '<div class="fin-chart-legend"><span><i class="sw-bar"></i>Actual</span><span><i class="sw-line"></i>Budget</span>' + (hasLy ? '<span><i class="sw-dot"></i>' + (+d.year - 1) + '</span>' : '') + '</div></div>'
+    + '<div class="fin-chart-legend"><span><i class="sw-bar"></i>Actual</span><span><i class="sw-line"></i>Budget</span>' + (hasLy ? '<span><i class="sw-ly"></i>' + (+d.year - 1) + '</span>' : '') + '</div></div>'
     + '<div class="fc-wrap">' + svg + '<div class="fc-tip" aria-hidden="true"></div></div>'
     + '<details><summary><i class="fas fa-table"></i> Monthly table</summary><table><thead><tr><th>Month</th><th>Actual</th><th>Budget</th><th>Diff</th>' + (hasLy ? '<th>' + (+d.year - 1) + '</th><th>vs ' + (+d.year - 1) + '</th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table></details>';
   // hover / focus tooltip (title carries the same text for assistive tech)
