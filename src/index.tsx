@@ -221,6 +221,31 @@ app.post('/api/users/save', async (c) => {
   } catch (e: any) { return c.json({ error: 'Saved, but the login was not updated: ' + e.message }, 500) }
   return c.json({ ok: true })
 })
+// Impersonate (admins, for testing): a real session for another staff login, so the app and the
+// database behave exactly as they would for that person. No email is sent; the person stays logged in
+// on their own devices.
+app.post('/api/auth/impersonate', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const { userId } = await c.req.json().catch(() => ({}))
+  if (!userId || typeof userId !== 'string') return c.json({ error: 'Choose a person' }, 400)
+  if (userId === a.me!.appUserId) return c.json({ error: 'That is you' }, 400)
+  const rows: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(userId)}&select=id,name,username,active`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })).json().catch(() => [])
+  const u = Array.isArray(rows) ? rows[0] : null
+  if (!u) return c.json({ error: 'Person not found' }, 404)
+  if (u.active === false) return c.json({ error: u.name + ' is not active, so they cannot log in' }, 400)
+  const email = emailFor(cfg, u.username)
+  const gl = await fetch(`${cfg.SB_URL}/auth/v1/admin/generate_link`, { method: 'POST', headers: { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'magiclink', email }) })
+  const gj: any = await gl.json().catch(() => ({}))
+  if (!gl.ok) return c.json({ error: 'No secure login for ' + u.name + ' yet (' + (gj.msg || gj.error_description || gj.message || gl.status) + ')' }, 400)
+  const props = gj.properties || gj
+  const verify = (body: any) => fetch(`${cfg.SB_URL}/auth/v1/verify`, { method: 'POST', headers: { apikey: cfg.SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  let vr = await verify({ type: props.verification_type || 'magiclink', token_hash: props.hashed_token })
+  if (!vr.ok && props.email_otp) vr = await verify({ type: 'magiclink', email, token: props.email_otp })
+  const vj: any = await vr.json().catch(() => ({}))
+  if (!vr.ok || !vj.access_token) return c.json({ error: 'Could not start a session for ' + u.name + ' (' + (vj.msg || vj.error_description || vj.message || vr.status) + ')' }, 400)
+  console.log(`[Impersonate] ${a.me!.username} -> ${u.username}`)
+  return c.json({ session: vj, name: u.name })
+})
 app.post('/api/users/delete', async (c) => {
   const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
   const { id } = await c.req.json()

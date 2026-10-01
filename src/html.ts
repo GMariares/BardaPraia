@@ -672,6 +672,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .today-res-item:last-child { border-bottom:none; }
     .fin-day-note { margin-top:8px; padding:8px 12px; border-radius:8px; background:var(--slate-50); border:var(--rule); font-size:13px; color:var(--slate-700); white-space:pre-wrap; overflow-wrap:anywhere; }
     .fin-day-note i { color:var(--slate-400); margin-right:4px; }
+    /* impersonation banner */
+    #imp-banner { position:sticky; top:-16px; z-index:20; margin:-16px -16px 12px; padding:9px 16px; background:var(--amber-700); color:white; display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; }
+    #imp-banner span { flex:1; min-width:0; }
+    #imp-banner button { background:white; color:var(--amber-700); border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
+    @media(min-width:1024px){ #imp-banner { top:-24px; margin:-24px -32px 16px; padding:10px 32px; } }
     /* notifications inbox (Home) */
     #section-dashboard > #dash-notif-panel { grid-column:1 / -1; }
     .notif-head-actions { margin-left:auto; display:flex; gap:14px; }
@@ -1024,6 +1029,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 
 <!-- MAIN CONTENT -->
 <div id="content-wrap">
+  <div id="imp-banner" role="status" style="display:none"><i class="fas fa-user-secret"></i><span id="imp-banner-text"></span><button id="btn-imp-exit"><i class="fas fa-arrow-right-from-bracket"></i> Back to my account</button></div>
 
   <!-- ═══ DASHBOARD ═══ -->
   <section id="section-dashboard" class="page-section active">
@@ -1752,6 +1758,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Moves every login to Supabase's secure sign-in, keeping each person's password. After that, the database itself checks who may see what.</p>
       <div id="secure-login-body"></div>
       <div id="secure-migrate-result" aria-live="polite"></div>
+    </div>
+    <!-- Impersonate (admins, for testing) -->
+    <div class="settings-card" id="imp-card" style="display:none">
+      <h3><i class="fas fa-user-secret" style="color:var(--teal-600)"></i> Impersonate</h3>
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">See the app exactly as someone else does, to test what they can see and do. Anything you change while impersonating is real and saved as them. Their own devices stay logged in, and nothing is sent to them.</p>
+      <label class="label" for="imp-user">Log in as</label>
+      <select class="select-field" id="imp-user"></select>
+      <button class="btn btn-primary" id="btn-imp-start" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-user-secret"></i> Impersonate</button>
     </div>
     <!-- Notifications card — visible to ALL users -->
     <div class="settings-card" id="notif-settings-card">
@@ -2693,6 +2707,54 @@ function loginFromSession(showWelcome) {
   applyLogin(user, showWelcome);
 }
 function isSecure() { return authStatus.secure; }
+// ── Impersonate (admins, testing): a real session for someone else; the admin's own session is kept aside ──
+var IMP_KEY = 'bardapraia_imp';
+function impState() { try { return JSON.parse(localStorage.getItem(IMP_KEY) || 'null'); } catch (e) { return null; } }
+function isImpersonating() { var st = impState(); return !!(st && st.admin && authSession); }
+function renderImpCard() {
+  var card = document.getElementById('imp-card'); if (!card) return;
+  var show = isAdmin && !isImpersonating(); card.style.display = show ? '' : 'none'; if (!show) return;
+  var sel = document.getElementById('imp-user'), keep = sel.value;
+  var users = (getDB().appUsers || []).filter(function(u){ return u.active !== false && u.id !== 'admin_seed' && (!currentUser || u.id !== currentUser.id); })
+    .sort(function(a, b){ return a.name.localeCompare(b.name); });
+  sel.innerHTML = '<option value="">Choose a person…</option>' + users.map(function(u){
+    var plain = { admin:'Admin', finance:'Finance', shift_mgr:'Shift manager', employee:'Employee', chef:'Chef' };
+    return '<option value="' + esc(u.id) + '">' + esc(u.name) + ' — ' + esc((u.roles || []).map(function(r){ return plain[r] || r; }).join(', ') || 'no roles') + '</option>';
+  }).join('');
+  sel.value = keep;
+  var btn = document.getElementById('btn-imp-start'); btn.disabled = !isSecure();
+  if (!isSecure()) btn.title = 'Needs secure login (see Secure login above)';
+}
+function startImpersonate() {
+  var id = document.getElementById('imp-user').value;
+  if (!id) { toast('Choose a person first', 'error'); return; }
+  if (!isSecure() || !authSession) { toast('Impersonate needs secure login', 'error'); return; }
+  var btn = document.getElementById('btn-imp-start'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
+  fetch('/api/auth/impersonate', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ userId:id }) })
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'Not possible'); return j; }); })
+    .then(function(j){
+      var mine = authSession;
+      try { localStorage.setItem(IMP_KEY, JSON.stringify({ admin: mine, adminName: currentUser ? currentUser.name : '', name: j.name, at: new Date().toISOString() })); } catch (e) {}
+      saveAuthSession(authFromResponse(j.session));
+      try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+      location.replace('/');   // start fresh as them: their data, their screens
+    })
+    .catch(function(e){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-secret"></i> Impersonate'; toast(e.message || 'Not possible', 'error'); });
+}
+function exitImpersonate() {
+  var st = impState();
+  // end only this session (scope=local): the person stays logged in on their own devices
+  if (authSession) rawFetch(SB_URL + '/auth/v1/logout?scope=local', { method:'POST', headers:{ apikey:SB_KEY, Authorization:'Bearer ' + authSession.access_token } }).catch(function(){});
+  try { localStorage.removeItem(IMP_KEY); localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  saveAuthSession(st && st.admin ? st.admin : null);
+  location.replace('/');
+}
+function renderImpBanner() {
+  var b = document.getElementById('imp-banner'); if (!b) return;
+  var on = isImpersonating() && !!currentUser;
+  b.style.display = on ? '' : 'none';
+  if (on) document.getElementById('imp-banner-text').innerHTML = 'Impersonating <b>' + esc(currentUser.name) + '</b>. Changes are real and saved as them.';
+}
 // Settings → Secure login (admins)
 function renderSecureCard() {
   var el = document.getElementById('secure-login-body'); if (!el) return;
@@ -3407,6 +3469,7 @@ function applyLogin(user, showWelcome) {
   document.getElementById('login-error').textContent = '';
   document.getElementById('login-screen').classList.add('hidden');
   updateSessionUI();
+  renderImpBanner();
   showSection('dashboard');
   if (pendingDeepLink) { var dl = pendingDeepLink; pendingDeepLink = ''; openDeepLink(dl); }
   ensurePushCurrent();
@@ -3419,6 +3482,7 @@ function applyLogin(user, showWelcome) {
 }
 
 function appLogout() {
+  if (isImpersonating()) { exitImpersonate(); return; }
   if (authSession) { var tok = authSession.access_token; rawFetch(SB_URL + '/auth/v1/logout', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } }).catch(function(){}); saveAuthSession(null); }
   forgetAccounting(); forgetFoodCost();
   notifItems = []; notifShowAll = false; renderNotifPanel();
@@ -3480,6 +3544,7 @@ function openDeepLink(url) {
 // Keep this device's push subscription on the server's current key and owned by whoever is logged in
 var pushChecked = '';
 function ensurePushCurrent() {
+  if (isImpersonating()) return;   // this device's notifications stay with the admin
   if (!swRegistration || !currentUser || pushChecked === currentUser.id) return;
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   pushChecked = currentUser.id;
@@ -3576,7 +3641,7 @@ function notifLoad() {
   var me = currentUser.id;
   // tidy: notifications older than 60 days go
   var cut = new Date(Date.now() - 60 * 864e5).toISOString();
-  sbFetch('DELETE', 'notifications', null, 'user_id=eq.' + encodeURIComponent(me) + '&created_at=lt.' + encodeURIComponent(cut)).catch(function(){});
+  if (!isImpersonating()) sbFetch('DELETE', 'notifications', null, 'user_id=eq.' + encodeURIComponent(me) + '&created_at=lt.' + encodeURIComponent(cut)).catch(function(){});
   sbFetch('GET', 'notifications', null, 'user_id=eq.' + encodeURIComponent(me) + '&order=created_at.desc&limit=60').then(function(rows){
     if (!currentUser || currentUser.id !== me) return;
     sbCols.notif = true; notifItems = (rows || []).slice().sort(function(a, b){ return String(b.created_at).localeCompare(String(a.created_at)); });
@@ -3627,7 +3692,7 @@ function renderNotifPanel() {
 }
 function notifOpen(id) {
   var x = notifItems.find(function(n){ return String(n.id) === String(id); }); if (!x) return;
-  if (!x.read_at) {
+  if (!x.read_at && !isImpersonating()) {   // impersonating: their inbox is read-only
     x.read_at = new Date().toISOString(); renderNotifPanel();
     sbFetch('PATCH', 'notifications', { read_at:x.read_at }, 'id=eq.' + encodeURIComponent(x.id)).catch(function(){});
   }
@@ -3635,12 +3700,14 @@ function notifOpen(id) {
 }
 function notifReadAll() {
   if (!currentUser) return;
+  if (isImpersonating()) { toast('Their inbox is read-only while impersonating'); return; }
   var now = new Date().toISOString();
   notifItems.forEach(function(x){ if (!x.read_at) x.read_at = now; }); renderNotifPanel();
   sbFetch('PATCH', 'notifications', { read_at:now }, 'user_id=eq.' + encodeURIComponent(currentUser.id) + '&read_at=is.null').catch(function(){ toast('Not saved. Check the connection.', 'error'); });
 }
 function notifClearRead() {
   if (!currentUser) return;
+  if (isImpersonating()) { toast('Their inbox is read-only while impersonating'); return; }
   notifItems = notifItems.filter(function(x){ return !x.read_at; }); notifShowAll = false; renderNotifPanel();
   sbFetch('DELETE', 'notifications', null, 'user_id=eq.' + encodeURIComponent(currentUser.id) + '&read_at=not.is.null').catch(function(){ toast('Not cleared. Check the connection.', 'error'); });
 }
@@ -3653,6 +3720,7 @@ function onPushArrived(tag) {
 }
 
 function requestNotifPermission() {
+  if (isImpersonating()) return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
   if (Notification.permission !== 'default') return;   // already answered: ensurePushCurrent() keeps a 'granted' device current
   Notification.requestPermission().then(function(perm) {
@@ -4616,6 +4684,7 @@ function renderSettings() {
   updateNotifStatusUI();
   var secCard = document.getElementById('secure-login-card');
   if (secCard) { secCard.style.display = isAdmin ? '' : 'none'; if (isAdmin) { renderSecureCard(); loadAuthStatus().then(renderSecureCard); } }
+  renderImpCard();
   if (!isAdmin) {
     settingsLocked.style.display = 'flex';
     settingsContent.style.display = 'none';
@@ -9241,6 +9310,8 @@ document.addEventListener('click', function(e) {
   }
 
   // Inv actions
+  if (t.closest('#btn-imp-start')) { startImpersonate(); return; }
+  if (t.closest('#btn-imp-exit')) { exitImpersonate(); return; }
   el = t.closest('[data-notif-id]'); if (el) { notifOpen(el.dataset.notifId); return; }
   if (t.closest('#btn-notif-read-all')) { notifReadAll(); return; }
   if (t.closest('#btn-notif-clear')) { notifClearRead(); return; }
@@ -9559,6 +9630,7 @@ document.addEventListener('click', function(e) {
   if (t.closest('#acc-wage-add')) { accAddPerson(); return; }
   if (t.closest('#btn-notify-week')) { notifyWeekShifts(toDateStr(getWeekStart(shiftsWeekOffset))); return; }
   if (t.closest('#btn-enable-notif') || t.closest('#btn-enable-notif-2')) {
+    if (isImpersonating()) { toast('Not while impersonating: this device would get their notifications', 'error'); return; }
     if (notifState === 'ios-install') { openModal('modal-ios-install'); return; }
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
       toast(isIOSDevice() ? 'Notifications need iOS 16.4 or newer' : 'Push notifications not supported on this browser', 'error'); return;
