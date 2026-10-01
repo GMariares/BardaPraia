@@ -185,6 +185,13 @@ app.get('/api/users', async (c) => {
   const r = await fetch(`${cfg.SB_URL}/rest/v1/app_users?select=${USER_COLS}&order=name.asc`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
   return c.json(await r.json(), r.ok ? 200 : 500)
 })
+// Which people have a device registered for notifications (admins only). Since the lock-down the
+// app may not read push_subscriptions itself, so the Users screen asks the server.
+app.get('/api/push/devices', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/push_subscriptions?select=user_id,endpoint,updated_at`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  return c.json(await r.json(), r.ok ? 200 : 500)
+})
 // Create or update a user: the app_users row and the matching Supabase Auth login
 app.post('/api/users/save', async (c) => {
   const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error

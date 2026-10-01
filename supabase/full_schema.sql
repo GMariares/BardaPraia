@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS fin_entries (
   coins NUMERIC DEFAULT 0,
   surf NUMERIC DEFAULT 0,
   cash_diff NUMERIC DEFAULT 0,
+  day_notes TEXT DEFAULT '',
   saved_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -268,6 +269,25 @@ CREATE TABLE IF NOT EXISTS shopping_items (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Calendar events (policies in migrations/2026-10-01-n-calendar-events-and-day-notes.sql)
+CREATE TABLE IF NOT EXISTS cal_events (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL DEFAULT 'meeting',
+  title TEXT NOT NULL,
+  date DATE NOT NULL,
+  all_day BOOLEAN NOT NULL DEFAULT false,
+  start_time TEXT DEFAULT '',
+  end_time TEXT DEFAULT '',
+  everyone BOOLEAN NOT NULL DEFAULT false,
+  attendees JSONB NOT NULL DEFAULT '[]'::jsonb,
+  notes TEXT DEFAULT '',
+  created_by TEXT DEFAULT '',
+  created_by_id TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS cal_events_date ON cal_events (date);
+
 -- Notifications inbox (written by the server; per-person policies in migrations/2026-10-01-m-notifications-inbox.sql)
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -286,7 +306,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items','notifications']
+                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items','notifications','cal_events']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);
