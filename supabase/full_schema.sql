@@ -249,13 +249,32 @@ CREATE TABLE IF NOT EXISTS shift_requests (
 );
 CREATE INDEX IF NOT EXISTS shift_requests_week ON shift_requests (week_start);
 
+-- Shopping list: things outside the stock (approved / bought ticked by admins;
+-- the guard trigger that enforces that lives in migrations/2026-10-01-l-shopping-list.sql)
+CREATE TABLE IF NOT EXISTS shopping_items (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  link TEXT DEFAULT '',
+  price NUMERIC,
+  notes TEXT DEFAULT '',
+  requested_by TEXT DEFAULT '',
+  requested_by_id TEXT DEFAULT '',
+  approved BOOLEAN NOT NULL DEFAULT false,
+  approved_by TEXT DEFAULT '',
+  approved_at TIMESTAMPTZ,
+  bought BOOLEAN NOT NULL DEFAULT false,
+  bought_by TEXT DEFAULT '',
+  bought_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Row Level Security: open access with the anon key (the app does its own login)
 DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes']
+                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);

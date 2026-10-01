@@ -310,6 +310,36 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
     .section-header h2 { font-size:20px; font-weight:800; letter-spacing:-.01em; color:var(--slate-900); }
 
+    /* ── SHOPPING LIST (extras outside the stock) ── */
+    .shop-badge { background:var(--amber-700); color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; margin-left:2px; }
+    .shop-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .shop-sum { font-size:13px; color:var(--slate-500); margin-left:auto; }
+    .shop-sum b { color:var(--slate-900); }
+    .shop-row { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--panel); border:var(--rule); border-radius:10px; margin-bottom:8px; }
+    .shop-row.is-bought { opacity:.62; }
+    .shop-row.is-bought .shop-name { text-decoration:line-through; }
+    .shop-main { flex:1; min-width:0; }
+    .shop-name { font-weight:700; font-size:15px; color:var(--slate-900); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .shop-link { font-size:12px; font-weight:600; color:var(--teal-700); text-decoration:none; white-space:nowrap; }
+    .shop-link:hover { text-decoration:underline; }
+    .shop-meta { font-size:12px; color:var(--slate-500); margin-top:3px; }
+    .shop-meta .shop-price { font-weight:800; color:var(--slate-900); }
+    .shop-pill { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:10px; background:var(--amber-50); color:var(--amber-700); border:1px solid var(--amber-200); }
+    .shop-checks { display:flex; gap:6px; flex-shrink:0; }
+    .shop-check { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:62px; padding:6px 4px; border:var(--rule); border-radius:8px; background:var(--panel); cursor:pointer; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--slate-500); }
+    .shop-check i { font-size:18px; color:var(--slate-300); }
+    .shop-check.on { background:var(--mint-50); border-color:var(--mint-200); color:var(--teal-700); }
+    .shop-check.on i { color:var(--teal-700); }
+    .shop-check:disabled { cursor:default; }
+    .shop-check:not(:disabled):hover { border-color:var(--slate-400); }
+    .shop-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+    @media(max-width:560px){
+      .shop-row { flex-wrap:wrap; }
+      .shop-main { flex-basis:calc(100% - 44px); }
+      .shop-checks { flex:1; }
+      .shop-check { flex:1; flex-direction:row; justify-content:center; gap:6px; }
+      .shop-actions { flex-direction:row; }
+    }
     /* ── INVENTORY ── */
     .inv-slicer { display:inline-flex; align-items:center; gap:6px; padding:8px 13px; min-height:36px; border-radius:18px; border:var(--rule); background:var(--panel); color:var(--slate-600); font-size:12px; font-weight:700; cursor:pointer; transition:background .15s, color .15s, border-color .15s; white-space:nowrap; }
     .inv-slicer:active { transform:scale(.97); }
@@ -879,7 +909,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <nav style="padding:14px 10px;flex:1;overflow-y:auto;">
     <div class="section-label">Main</div>
     <button class="drawer-item active" id="ditem-dashboard" data-nav="dashboard"><i class="fas fa-home"></i> Dashboard</button>
-    <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Inventory</button>
+    <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Shopping List</button>
     <button class="drawer-item" id="ditem-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i> Reservations</button>
     <button class="drawer-item" id="ditem-tasks" data-nav="tasks"><i class="fas fa-list-check"></i> Tasks</button>
     <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts<span class="nav-dot" id="ditem-shifts-dot" style="display:none"></span></button>
@@ -950,6 +980,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn active" id="inv-tab-stock" data-inv-tab="stock"><i class="fas fa-warehouse"></i> Stock</button>
         <button class="tab-btn" id="inv-tab-log" data-inv-tab="log"><i class="fas fa-clock-rotate-left"></i> Log</button>
         <button class="tab-btn" id="inv-tab-orders" data-inv-tab="orders"><i class="fas fa-truck"></i> Orders <span id="orders-standby-badge" style="display:none;background:#b7791f;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
+        <button class="tab-btn" id="inv-tab-shop" data-inv-tab="shop"><i class="fas fa-bag-shopping"></i> Shopping List <span id="shop-badge" class="shop-badge" style="display:none"></span></button>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" id="btn-open-order"><i class="fas fa-cart-shopping"></i> Cart <span id="cart-badge" style="display:none;background:#b7791f;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
@@ -997,6 +1028,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
     <div id="inv-panel-orders" style="display:none">
       <div id="inv-orders-list"><div class="empty-state"><i class="fas fa-truck"></i><p>No orders placed yet.</p></div></div>
+    </div>
+    <div id="inv-panel-shop" style="display:none">
+      <div id="shop-list"></div>
     </div>
   </section>
 
@@ -1735,7 +1769,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <nav id="bottom-nav">
   <span id="bnav-marker" aria-hidden="true"></span>
   <button class="bnav-item active" id="bnav-dashboard" data-nav="dashboard"><i class="fas fa-home"></i>Home</button>
-  <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Stock</button>
+  <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Shopping</button>
   <button class="bnav-item" id="bnav-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i>Book</button>
   <button class="bnav-item" id="bnav-tasks" data-nav="tasks"><i class="fas fa-list-check"></i>Tasks</button>
   <button class="bnav-item" id="bnav-shifts" data-nav="shifts"><i class="fas fa-clock"></i>Shifts<span class="nav-dot" id="bnav-shifts-dot" style="display:none"></span></button>
@@ -1914,6 +1948,22 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </div>
 </div>
 
+<!-- Add / Edit Shopping List item -->
+<div class="modal-overlay" id="modal-shop-item">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-bag-shopping" style="color:var(--ocean-400)"></i><span id="shop-modal-title">Add to Shopping List</span></h2>
+    <input type="hidden" id="shop-edit-id" />
+    <div class="form-row"><label class="label" for="shop-name">Item *</label><input type="text" class="input-field" id="shop-name" placeholder="e.g. Ice cream scoop" /></div>
+    <div class="form-row"><label class="label" for="shop-link">Link (if there is one)</label><input type="url" inputmode="url" class="input-field" id="shop-link" placeholder="https://…" /></div>
+    <div class="form-row"><label class="label" for="shop-price">Price € (if known)</label><input type="text" inputmode="decimal" class="input-field" id="shop-price" placeholder="0,00" /></div>
+    <div class="form-row" style="margin-bottom:14px"><label class="label" for="shop-notes">Notes</label><input type="text" class="input-field" id="shop-notes" placeholder="Quantity, size, colour…" /></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-shop-item"><i class="fas fa-save"></i> Save</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-shop-item">Cancel</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-add-inventory">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -3255,10 +3305,11 @@ setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts|reservations)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations|shopping)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
+  if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
   if (m[1] === 'reservations') {
     var rd = /date=(\\d{4}-\\d{2}-\\d{2})/.exec(url);
     if (rd) { calendarWeekStart = getMonday(new Date(rd[1] + 'T12:00:00')); selectedCalendarDay = rd[1]; }
@@ -3643,6 +3694,7 @@ function refreshSection(name) {
       saveDB(db);
       if (currentSection === name) renderInventory();
     }).catch(function(){});
+    shopLoad();
 
   } else if (name === 'reservations') {
     sbFetch('GET','reservations',null,'order=date.asc,time.asc').then(function(rows) {
@@ -3799,7 +3851,7 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + name);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Dashboard',inventory:'Inventory',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Users',settings:'Settings'};
+  var titles = {dashboard:'Dashboard',inventory:'Shopping List',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Users',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   moveBnavMarker();
   currentSection = name;
@@ -4940,15 +4992,165 @@ function renderFinRecords() {
 // ================================================
 var catIconMap={beverages:'<i class="fas fa-martini-glass-citrus"></i>',food:'<i class="fas fa-utensils"></i>',supplies:'<i class="fas fa-broom"></i>',equipment:'<i class="fas fa-screwdriver-wrench"></i>',other:'<i class="fas fa-box"></i>'};
 var catLabelMap={beverages:'Bar',food:'Cozinha',supplies:'Limpeza',equipment:'Economato',other:'Other'};
+var currentInvTab = 'stock';
 function switchInvTab(t) {
-  ['stock','log','orders'].forEach(function(x){
+  currentInvTab = t;
+  ['stock','log','orders','shop'].forEach(function(x){
     document.getElementById('inv-tab-'+x).classList.toggle('active',x===t);
     document.getElementById('inv-panel-'+x).style.display=x===t?'block':'none';
   });
+  var cartBtn=document.getElementById('btn-open-order'); if(cartBtn) cartBtn.style.display=t==='shop'?'none':'';
   if(t==='stock') { renderSuppliers(); renderInventory(); }
   if(t==='log') { renderInvLogSupplierFilter(); renderInvLog(); }
   if(t==='orders') renderOrderHistory();
+  if(t==='shop') renderShopList();
   refreshSection('inventory');
+}
+
+// ── Shopping list: extras outside the stock. Anyone adds; admins tick Approved and Bought ──
+var shopFilter = 'open';
+function shopFromRow(r) {
+  return { id:r.id, name:r.name, link:r.link||'', price:r.price==null?null:parseFloat(r.price), notes:r.notes||'',
+    requestedBy:r.requested_by||'', requestedById:r.requested_by_id||'', approved:!!r.approved, approvedBy:r.approved_by||'', approvedAt:r.approved_at||'',
+    bought:!!r.bought, boughtBy:r.bought_by||'', boughtAt:r.bought_at||'', createdAt:r.created_at||'' };
+}
+function shopLoad() {
+  return sbFetch('GET', 'shopping_items', null, 'order=created_at.desc').then(function(rows){
+    var db = getDB(); sbCols.shop = true;
+    db.shopItems = (rows || []).map(shopFromRow); saveDB(db);
+  }).catch(function(){ sbCols.shop = false; }).then(function(){
+    updateShopBadge();
+    if (currentSection === 'inventory' && currentInvTab === 'shop') renderShopList();
+  });
+}
+function shopItems() { return getDB().shopItems || []; }
+function updateShopBadge() {
+  var b = document.getElementById('shop-badge'); if (!b) return;
+  // admins: items waiting for approval; everyone else: approved items still to buy
+  var n = shopItems().filter(function(i){ return isAdmin ? !i.approved && !i.bought : i.approved && !i.bought; }).length;
+  b.textContent = n; b.style.display = n ? '' : 'none';
+}
+function shopSafeLink(u) {
+  u = String(u || '').trim(); if (!u) return '';
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u;
+  return /^https?:\\/\\//i.test(u) ? u : '';
+}
+function shopLinkLabel(u) { try { return new URL(u).hostname.replace(/^www\\./, ''); } catch (e) { return 'Link'; } }
+function shopDay(iso) { return iso ? fmtDateShort(String(iso).slice(0, 10)) : ''; }
+function shopCanEdit(i) { return isAdmin || (!i.approved && !i.bought && currentUser && i.requestedById === currentUser.id); }
+function renderShopList() {
+  var el = document.getElementById('shop-list'); if (!el) return;
+  var all = shopItems(), open = all.filter(function(i){ return !i.bought; }), bought = all.filter(function(i){ return i.bought; });
+  var toBuy = open.filter(function(i){ return i.approved; }), toBuySum = toBuy.reduce(function(s, i){ return s + (i.price || 0); }, 0);
+  var list = shopFilter === 'bought' ? bought : open;
+  // waiting approval first, then approved; newest first inside each
+  if (shopFilter !== 'bought') list = list.slice().sort(function(a, b){ return (a.approved - b.approved) || String(b.createdAt).localeCompare(String(a.createdAt)); });
+  var h = '';
+  if (sbCols.shop === false) h += '<div class="req-banner"><i class="fas fa-circle-info"></i> The shopping list switches on once the shopping list SQL has run in Supabase.</div>';
+  h += '<div class="shop-toolbar"><div class="fc-switch" role="tablist">'
+    + '<button class="' + (shopFilter !== 'bought' ? 'active' : '') + '" data-shop-filter="open">To buy <span>' + open.length + '</span></button>'
+    + '<button class="' + (shopFilter === 'bought' ? 'active' : '') + '" data-shop-filter="bought">Bought <span>' + bought.length + '</span></button></div>'
+    + (toBuy.length ? '<div class="shop-sum">Approved, still to buy: <b>' + toBuy.length + '</b>' + (toBuySum > 0 ? ' · <b>' + fmtEur(toBuySum) + '</b>' : '') + '</div>' : '')
+    + '</div>';
+  if (!list.length) {
+    h += '<div class="empty-state"><i class="fas fa-bag-shopping"></i><p>' + (shopFilter === 'bought' ? 'Nothing bought yet.' : 'Nothing on the list. Tap Add for anything outside the stock that needs buying.') + '</p></div>';
+    el.innerHTML = h; return;
+  }
+  h += list.map(function(i){
+    var link = shopSafeLink(i.link), meta = [];
+    if (i.price != null && !isNaN(i.price)) meta.push('<span class="shop-price">' + fmtEur(i.price) + '</span>');
+    if (i.requestedBy) meta.push('added by ' + esc(i.requestedBy) + (i.createdAt ? ' · ' + shopDay(i.createdAt) : ''));
+    if (i.bought) meta.push('bought' + (i.boughtBy ? ' by ' + esc(i.boughtBy) : '') + (i.boughtAt ? ' · ' + shopDay(i.boughtAt) : ''));
+    else if (i.approved) meta.push('approved' + (i.approvedBy ? ' by ' + esc(i.approvedBy) : ''));
+    var dis = isAdmin ? '' : ' disabled';
+    return '<div class="shop-row' + (i.bought ? ' is-bought' : '') + '">'
+      + '<div class="shop-main"><div class="shop-name">' + esc(i.name)
+        + (!i.approved && !i.bought ? '<span class="shop-pill">Waiting approval</span>' : '')
+        + (link ? '<a class="shop-link" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square"></i> ' + esc(shopLinkLabel(link)) + '</a>' : '') + '</div>'
+        + '<div class="shop-meta">' + meta.join(' · ') + '</div>'
+        + (i.notes ? '<div class="shop-meta">' + esc(i.notes) + '</div>' : '') + '</div>'
+      + '<div class="shop-checks">'
+        + '<button class="shop-check' + (i.approved ? ' on' : '') + '" data-shop-approve="' + esc(i.id) + '" aria-pressed="' + i.approved + '"' + dis + ' title="' + (isAdmin ? 'Approved: the person can buy it' : 'Only admins can approve') + '"><i class="fas ' + (i.approved ? 'fa-square-check' : 'fa-square') + '"></i>Approved</button>'
+        + '<button class="shop-check' + (i.bought ? ' on' : '') + '" data-shop-bought="' + esc(i.id) + '" aria-pressed="' + i.bought + '"' + dis + ' title="' + (isAdmin ? 'Bought' : 'Only admins can mark it bought') + '"><i class="fas ' + (i.bought ? 'fa-square-check' : 'fa-square') + '"></i>Bought</button>'
+      + '</div>'
+      + (shopCanEdit(i) ? '<div class="shop-actions"><button class="btn btn-secondary btn-sm btn-icon" data-shop-edit="' + esc(i.id) + '" aria-label="Edit"><i class="fas fa-pen"></i></button>'
+        + '<button class="btn btn-secondary btn-sm btn-icon" data-shop-delete="' + esc(i.id) + '" aria-label="Remove"><i class="fas fa-trash"></i></button></div>' : '')
+      + '</div>';
+  }).join('');
+  el.innerHTML = h;
+}
+function openShopModal(id) {
+  var i = id ? shopItems().find(function(x){ return x.id === id; }) : null;
+  document.getElementById('shop-edit-id').value = i ? i.id : '';
+  document.getElementById('shop-modal-title').textContent = i ? 'Edit item' : 'Add to Shopping List';
+  document.getElementById('shop-name').value = i ? i.name : '';
+  document.getElementById('shop-link').value = i ? i.link : '';
+  document.getElementById('shop-price').value = i && i.price != null ? String(i.price).replace('.', ',') : '';
+  document.getElementById('shop-notes').value = i ? i.notes : '';
+  openModal('modal-shop-item');
+  setTimeout(function(){ var n = document.getElementById('shop-name'); if (n) n.focus(); }, 50);
+}
+function adminUserIds() {
+  return (getDB().appUsers || []).filter(function(u){ return u.active !== false && Array.isArray(u.roles) && u.roles.indexOf('admin') !== -1; }).map(function(u){ return u.id; });
+}
+function saveShopItem() {
+  if (sbCols.shop === false) { toast('The shopping list is not switched on yet (SQL missing)', 'error'); return; }
+  var id = document.getElementById('shop-edit-id').value;
+  var name = document.getElementById('shop-name').value.trim();
+  if (!name) { toast('Write what needs buying', 'error'); return; }
+  var linkRaw = document.getElementById('shop-link').value.trim(), link = shopSafeLink(linkRaw);
+  if (linkRaw && !link) { toast('That link doesn\u2019t look right', 'error'); return; }
+  var pRaw = document.getElementById('shop-price').value.trim(), price = pRaw ? accNum(pRaw) : null;
+  if (pRaw && (price === null || isNaN(price) || price < 0)) { toast('Price should be a number, e.g. 12,50', 'error'); return; }
+  if (price != null) price = Math.round(price * 100) / 100;
+  var notes = document.getElementById('shop-notes').value.trim();
+  var db = getDB(); db.shopItems = db.shopItems || [];
+  var row = { name:name, link:link, price:price, notes:notes };
+  if (id) {
+    var cur = db.shopItems.find(function(x){ return x.id === id; }); if (!cur) return;
+    sbFetch('PATCH', 'shopping_items', row, 'id=eq.' + encodeURIComponent(id)).then(function(rows){
+      if (rows && rows[0]) Object.assign(cur, shopFromRow(rows[0])); else Object.assign(cur, { name:name, link:link, price:price, notes:notes });
+      saveDB(db); closeModal('modal-shop-item'); renderShopList(); toast('Saved', 'success');
+    }).catch(function(){ toast('Not saved. Check the connection.', 'error'); });
+    return;
+  }
+  row.id = uid(); row.requested_by = currentUser ? currentUser.name : ''; row.requested_by_id = currentUser ? currentUser.id : '';
+  sbFetch('POST', 'shopping_items', row).then(function(rows){
+    db = getDB(); db.shopItems = db.shopItems || [];
+    db.shopItems.unshift(shopFromRow(rows && rows[0] ? rows[0] : Object.assign({ created_at:new Date().toISOString() }, row)));
+    saveDB(db); closeModal('modal-shop-item'); shopFilter = 'open'; renderShopList(); updateShopBadge();
+    toast(isAdmin ? 'Added to the shopping list' : 'Added. An admin will approve it.', 'success');
+    if (!isAdmin) sendPush(adminUserIds(), 'Shopping list: ' + name, (row.requested_by ? row.requested_by + ' added it' : 'New item') + (price != null ? ' · ' + fmtEur(price) : '') + '. Needs approval.', '/?open=shopping');
+  }).catch(function(){ toast('Not saved. Check the connection.', 'error'); });
+}
+function setShopFlag(id, flag) {
+  if (!isAdmin) { toast('Only admins can tick this', 'error'); return; }
+  var db = getDB(), i = (db.shopItems || []).find(function(x){ return x.id === id; }); if (!i) return;
+  var who = currentUser ? currentUser.name : '', now = new Date().toISOString(), patch;
+  if (flag === 'approved') {
+    var on = !i.approved;
+    if (!on && i.bought) { toast('Untick Bought first', 'error'); return; }
+    patch = { approved:on, approved_by:on ? who : '', approved_at:on ? now : null };
+  } else {
+    var onB = !i.bought;
+    patch = { bought:onB, bought_by:onB ? who : '', bought_at:onB ? now : null };
+    // buying something counts as approving it
+    if (onB && !i.approved) { patch.approved = true; patch.approved_by = who; patch.approved_at = now; }
+  }
+  sbFetch('PATCH', 'shopping_items', patch, 'id=eq.' + encodeURIComponent(id)).then(function(rows){
+    var wasApproved = i.approved;
+    Object.assign(i, rows && rows[0] ? shopFromRow(rows[0]) : shopFromRow(Object.assign({}, { id:i.id, name:i.name, link:i.link, price:i.price, notes:i.notes, requested_by:i.requestedBy, requested_by_id:i.requestedById, approved:i.approved, approved_by:i.approvedBy, approved_at:i.approvedAt, bought:i.bought, bought_by:i.boughtBy, bought_at:i.boughtAt, created_at:i.createdAt }, patch)));
+    saveDB(db); renderShopList(); updateShopBadge();
+    if (flag === 'approved' && i.approved && !wasApproved && i.requestedById) sendPush([i.requestedById], 'Approved: ' + i.name, 'You can buy it' + (i.price != null ? ' (' + fmtEur(i.price) + ')' : '') + '.', '/?open=shopping');
+  }).catch(function(){ toast('Not saved. Check the connection.', 'error'); });
+}
+function deleteShopItem(id) {
+  var db = getDB(), i = (db.shopItems || []).find(function(x){ return x.id === id; }); if (!i) return;
+  if (!confirm('Remove \u201c' + i.name + '\u201d from the shopping list?')) return;
+  sbFetch('DELETE', 'shopping_items', null, 'id=eq.' + encodeURIComponent(id)).then(function(){
+    db = getDB(); db.shopItems = (db.shopItems || []).filter(function(x){ return x.id !== id; });
+    saveDB(db); renderShopList(); updateShopBadge(); toast('Removed');
+  }).catch(function(){ toast('Not removed. Check the connection.', 'error'); });
 }
 function openAddInventoryModal(editId) {
   updateAllDropdowns();
@@ -5900,7 +6102,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -8544,7 +8746,13 @@ document.addEventListener('click', function(e) {
   }
 
   // Inv actions
-  if (t.closest('#btn-add-inventory')) { openAddInventoryModal(); return; }
+  if (t.closest('#btn-add-inventory')) { if (currentInvTab === 'shop') openShopModal(); else openAddInventoryModal(); return; }
+  el = t.closest('[data-shop-filter]'); if (el) { shopFilter = el.dataset.shopFilter; renderShopList(); return; }
+  el = t.closest('[data-shop-approve]'); if (el) { setShopFlag(el.dataset.shopApprove, 'approved'); return; }
+  el = t.closest('[data-shop-bought]'); if (el) { setShopFlag(el.dataset.shopBought, 'bought'); return; }
+  el = t.closest('[data-shop-edit]'); if (el) { openShopModal(el.dataset.shopEdit); return; }
+  el = t.closest('[data-shop-delete]'); if (el) { deleteShopItem(el.dataset.shopDelete); return; }
+  if (t.closest('#btn-save-shop-item')) { saveShopItem(); return; }
   if (t.closest('#btn-open-order')) { switchInvTab('orders'); return; }
   if (t.closest('#btn-save-inventory')) { saveInventoryItem(); return; }
   if (t.closest('#btn-save-qty-update')) { saveQtyUpdate(); return; }
