@@ -609,6 +609,25 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .alert-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--red-50); border:1px solid var(--red-200); border-radius:10px; margin-bottom:6px; }
     .today-res-item { display:flex; align-items:center; gap:12px; padding:12px 4px; min-height:52px; background:transparent; border-bottom:1px solid var(--slate-100); border-radius:0; margin-bottom:0; cursor:pointer; }
     .today-res-item:last-child { border-bottom:none; }
+    /* notifications inbox (Home) */
+    #section-dashboard > #dash-notif-panel { grid-column:1 / -1; }
+    .notif-head-actions { margin-left:auto; display:flex; gap:14px; }
+    .notif-link { background:none; border:none; padding:4px 0; font-size:12px; font-weight:700; letter-spacing:0; text-transform:none; color:var(--teal-700); cursor:pointer; }
+    .notif-link:hover { text-decoration:underline; }
+    .notif-item { display:flex; align-items:flex-start; gap:12px; width:100%; padding:11px 4px; border:none; border-bottom:1px solid var(--slate-100); background:none; text-align:left; cursor:pointer; font:inherit; color:inherit; }
+    .notif-item:last-child { border-bottom:none; }
+    .notif-item:hover { background:var(--slate-50); }
+    .notif-ic { width:34px; height:34px; border-radius:9px; background:var(--slate-100); color:var(--slate-500); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; }
+    .notif-item.unread .notif-ic { background:var(--mint-50); color:var(--teal-700); }
+    .notif-txt { flex:1; min-width:0; }
+    .notif-title { font-size:14px; font-weight:600; color:var(--slate-700); }
+    .notif-item.unread .notif-title { font-weight:800; color:var(--slate-900); }
+    .notif-body { font-size:12px; color:var(--slate-500); margin-top:2px; overflow-wrap:anywhere; }
+    .notif-time { font-size:11px; color:var(--slate-400); white-space:nowrap; margin-top:2px; display:flex; align-items:center; gap:6px; }
+    .notif-item.unread .notif-time::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--teal-600); }
+    .notif-more { width:100%; padding:10px 0 8px; background:none; border:none; font-size:12px; font-weight:700; color:var(--teal-700); cursor:pointer; }
+    .bnav-count { position:absolute; top:0; left:calc(50% + 6px); min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--red); color:white; font-size:10px; font-weight:800; line-height:17px; text-align:center; letter-spacing:0; }
+    .notif-dot-count { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--red); color:white; font-size:11px; font-weight:800; line-height:20px; text-align:center; }
     .dash-panel { background:var(--panel); border-radius:var(--radius); padding:16px 16px 8px; margin-bottom:12px; border:var(--rule); }
     .dash-panel h3 { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate-700); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
     .dash-panel h3 i { color:var(--teal-600); }
@@ -908,7 +927,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </div>
   <nav style="padding:14px 10px;flex:1;overflow-y:auto;">
     <div class="section-label">Main</div>
-    <button class="drawer-item active" id="ditem-dashboard" data-nav="dashboard"><i class="fas fa-home"></i> Dashboard</button>
+    <button class="drawer-item active" id="ditem-dashboard" data-nav="dashboard"><i class="fas fa-home"></i> Dashboard <span class="notif-dot-count" id="ditem-notif-count" style="display:none"></span></button>
     <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Shopping List</button>
     <button class="drawer-item" id="ditem-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i> Reservations</button>
     <button class="drawer-item" id="ditem-tasks" data-nav="tasks"><i class="fas fa-list-check"></i> Tasks</button>
@@ -945,6 +964,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <!-- ═══ DASHBOARD ═══ -->
   <section id="section-dashboard" class="page-section active">
     <div class="dash-date" id="dash-date"><b id="dash-date-day"></b><span id="dash-date-full"></span></div>
+    <div class="dash-panel" id="dash-notif-panel" style="display:none">
+      <h3><i class="fas fa-bell"></i> Notifications <span class="badge badge-orange" id="dash-notif-badge" style="display:none"></span>
+        <span class="notif-head-actions"><button class="notif-link" id="btn-notif-read-all" style="display:none">Mark all read</button><button class="notif-link" id="btn-notif-clear" style="display:none">Clear read</button></span></h3>
+      <div id="dash-notif-list"></div>
+    </div>
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-chair"></i></div><span class="badge badge-gray">Today</span></div>
@@ -1768,7 +1792,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <!-- BOTTOM NAV -->
 <nav id="bottom-nav">
   <span id="bnav-marker" aria-hidden="true"></span>
-  <button class="bnav-item active" id="bnav-dashboard" data-nav="dashboard"><i class="fas fa-home"></i>Home</button>
+  <button class="bnav-item active" id="bnav-dashboard" data-nav="dashboard"><i class="fas fa-home"></i>Home<span class="bnav-count" id="bnav-notif-count" style="display:none"></span></button>
   <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Shopping</button>
   <button class="bnav-item" id="bnav-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i>Book</button>
   <button class="bnav-item" id="bnav-tasks" data-nav="tasks"><i class="fas fa-list-check"></i>Tasks</button>
@@ -3257,6 +3281,7 @@ function applyLogin(user, showWelcome) {
   if (pendingDeepLink) { var dl = pendingDeepLink; pendingDeepLink = ''; openDeepLink(dl); }
   ensurePushCurrent();
   updateNotifStatusUI();
+  notifLoad();
   if (showWelcome) {
     toast('Welcome, ' + user.name + '!', 'gold');
     requestNotifPermission();
@@ -3266,6 +3291,7 @@ function applyLogin(user, showWelcome) {
 function appLogout() {
   if (authSession) { var tok = authSession.access_token; rawFetch(SB_URL + '/auth/v1/logout', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } }).catch(function(){}); saveAuthSession(null); }
   forgetAccounting(); forgetFoodCost();
+  notifItems = []; notifShowAll = false; renderNotifPanel();
   currentUser = null;
   isAdmin = false;
   isFinance = false;
@@ -3299,7 +3325,7 @@ function checkForUpdate() {
     document.body.appendChild(bar);
   }).catch(function(){});
 }
-document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') checkForUpdate(); });
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') { checkForUpdate(); notifLoad(); } });
 window.addEventListener('focus', checkForUpdate);
 setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
@@ -3411,7 +3437,84 @@ function sendTestNotification() {
     })
     .catch(function(){ toast('Could not send the test. Check the connection.', 'error'); });
 }
+// ── Notifications inbox: everything sent to this person, kept on the server ──
+var notifItems = [], notifShowAll = false, notifLoading = false;
+function notifLoad() {
+  if (!currentUser || notifLoading) return;
+  notifLoading = true;
+  var me = currentUser.id;
+  // tidy: notifications older than 60 days go
+  var cut = new Date(Date.now() - 60 * 864e5).toISOString();
+  sbFetch('DELETE', 'notifications', null, 'user_id=eq.' + encodeURIComponent(me) + '&created_at=lt.' + encodeURIComponent(cut)).catch(function(){});
+  sbFetch('GET', 'notifications', null, 'user_id=eq.' + encodeURIComponent(me) + '&order=created_at.desc&limit=60').then(function(rows){
+    if (!currentUser || currentUser.id !== me) return;
+    sbCols.notif = true; notifItems = (rows || []).slice().sort(function(a, b){ return String(b.created_at).localeCompare(String(a.created_at)); });
+  }).catch(function(){ sbCols.notif = false; notifItems = []; }).then(function(){ notifLoading = false; renderNotifPanel(); });
+}
+function notifUnread() { return notifItems.filter(function(n){ return !n.read_at; }).length; }
+function notifIcon(url) {
+  var u = String(url || '');
+  if (/open=tasks/.test(u)) return 'fa-list-check';
+  if (/open=(shifts|requests)/.test(u)) return 'fa-clock';
+  if (/open=reservations/.test(u)) return 'fa-calendar-day';
+  if (/open=shopping/.test(u)) return 'fa-bag-shopping';
+  return 'fa-bell';
+}
+function notifWhen(iso) {
+  var d = new Date(iso); if (isNaN(d)) return '';
+  var mins = Math.round((Date.now() - d) / 6e4);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  var hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var dayDiff = Math.round((today - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  if (dayDiff === 0) return 'Today ' + hm;
+  if (dayDiff === 1) return 'Yesterday ' + hm;
+  return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }) + ' ' + hm;
+}
+function renderNotifPanel() {
+  var n = notifUnread();
+  [['bnav-notif-count', n > 9 ? '9+' : n], ['ditem-notif-count', n]].forEach(function(x){
+    var b = document.getElementById(x[0]); if (b) { b.textContent = x[1]; b.style.display = n ? '' : 'none'; }
+  });
+  var panel = document.getElementById('dash-notif-panel'), list = document.getElementById('dash-notif-list'); if (!panel || !list) return;
+  // hidden until the inbox SQL has run
+  panel.style.display = sbCols.notif ? '' : 'none'; if (!sbCols.notif) return;
+  var badge = document.getElementById('dash-notif-badge'); if (badge) { badge.textContent = n + ' new'; badge.style.display = n ? '' : 'none'; }
+  var ra = document.getElementById('btn-notif-read-all'); if (ra) ra.style.display = n ? '' : 'none';
+  var cl = document.getElementById('btn-notif-clear'); if (cl) cl.style.display = notifItems.some(function(x){ return x.read_at; }) ? '' : 'none';
+  if (!notifItems.length) { list.innerHTML = '<div class="empty-state" style="padding:12px"><i class="fas fa-bell-slash" style="font-size:22px"></i><p>No notifications. Anything sent to you shows up here, even when you were away.</p></div>'; return; }
+  // unread first, then the most recent read ones
+  var ordered = notifItems.filter(function(x){ return !x.read_at; }).concat(notifItems.filter(function(x){ return x.read_at; }));
+  var LIMIT = Math.max(5, n), shown = notifShowAll ? ordered : ordered.slice(0, LIMIT);
+  list.innerHTML = shown.map(function(x){
+    return '<button class="notif-item' + (x.read_at ? '' : ' unread') + '" data-notif-id="' + esc(x.id) + '">'
+      + '<span class="notif-ic"><i class="fas ' + notifIcon(x.url) + '"></i></span>'
+      + '<span class="notif-txt"><span class="notif-title" style="display:block">' + esc(x.title) + '</span>' + (x.body ? '<span class="notif-body" style="display:block">' + esc(x.body) + '</span>' : '') + '</span>'
+      + '<span class="notif-time">' + esc(notifWhen(x.created_at)) + '</span></button>';
+  }).join('') + (ordered.length > LIMIT ? '<button class="notif-more" id="btn-notif-more">' + (notifShowAll ? 'Show fewer' : 'Show all ' + ordered.length) + '</button>' : '');
+}
+function notifOpen(id) {
+  var x = notifItems.find(function(n){ return String(n.id) === String(id); }); if (!x) return;
+  if (!x.read_at) {
+    x.read_at = new Date().toISOString(); renderNotifPanel();
+    sbFetch('PATCH', 'notifications', { read_at:x.read_at }, 'id=eq.' + encodeURIComponent(x.id)).catch(function(){});
+  }
+  if (/open=/.test(x.url || '')) openDeepLink(x.url);
+}
+function notifReadAll() {
+  if (!currentUser) return;
+  var now = new Date().toISOString();
+  notifItems.forEach(function(x){ if (!x.read_at) x.read_at = now; }); renderNotifPanel();
+  sbFetch('PATCH', 'notifications', { read_at:now }, 'user_id=eq.' + encodeURIComponent(currentUser.id) + '&read_at=is.null').catch(function(){ toast('Not saved. Check the connection.', 'error'); });
+}
+function notifClearRead() {
+  if (!currentUser) return;
+  notifItems = notifItems.filter(function(x){ return !x.read_at; }); notifShowAll = false; renderNotifPanel();
+  sbFetch('DELETE', 'notifications', null, 'user_id=eq.' + encodeURIComponent(currentUser.id) + '&read_at=not.is.null').catch(function(){ toast('Not cleared. Check the connection.', 'error'); });
+}
 function onPushArrived(tag) {
+  if (tag !== 'bardapraia-test') notifLoad();
   if (tag !== 'bardapraia-test' || !notifTestTimer) return;
   clearTimeout(notifTestTimer); notifTestTimer = null;
   toast('Test received on this device', 'success');
@@ -3664,6 +3767,7 @@ function refreshSection(name) {
   }
 
   if (name === 'dashboard') {
+    notifLoad();
     fetches = [
       sbFetch('GET','reservations',null,'order=date.asc,time.asc'),
       sbFetch('GET','tasks',null,'order=created_at.desc'),
@@ -6102,7 +6206,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -8746,6 +8850,10 @@ document.addEventListener('click', function(e) {
   }
 
   // Inv actions
+  el = t.closest('[data-notif-id]'); if (el) { notifOpen(el.dataset.notifId); return; }
+  if (t.closest('#btn-notif-read-all')) { notifReadAll(); return; }
+  if (t.closest('#btn-notif-clear')) { notifClearRead(); return; }
+  if (t.closest('#btn-notif-more')) { notifShowAll = !notifShowAll; renderNotifPanel(); return; }
   if (t.closest('#btn-add-inventory')) { if (currentInvTab === 'shop') openShopModal(); else openAddInventoryModal(); return; }
   el = t.closest('[data-shop-filter]'); if (el) { shopFilter = el.dataset.shopFilter; renderShopList(); return; }
   el = t.closest('[data-shop-approve]'); if (el) { setShopFlag(el.dataset.shopApprove, 'approved'); return; }
