@@ -387,6 +387,27 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .cal-day-num { font-size:17px; font-weight:800; color:var(--slate-900); }
     .cal-day.today .cal-day-num { color:var(--teal-700); }
     .cal-day.selected .cal-day-num { color:white; }
+    .cal-ev { display:inline-flex; align-items:center; gap:3px; margin-top:4px; padding:1px 6px; border-radius:8px; background:var(--amber-50); color:var(--amber-700); font-size:10px; font-weight:800; }
+    .cal-day.selected .cal-ev { background:rgba(255,255,255,.18); color:white; }
+    .ev-list { margin-bottom:12px; }
+    .ev-item { display:flex; align-items:flex-start; gap:12px; width:100%; padding:10px 12px; margin-bottom:8px; border:var(--rule); border-left:4px solid var(--amber-700); border-radius:var(--radius); background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
+    .ev-item.k-meeting { border-left-color:var(--teal-600); }
+    .ev-item.k-hours { border-left-color:var(--amber-700); }
+    .ev-item.k-event { border-left-color:#6d4fc2; }
+    .ev-item.k-other { border-left-color:var(--slate-400); }
+    .ev-ic { width:32px; height:32px; border-radius:8px; background:var(--slate-100); color:var(--slate-700); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .ev-main { flex:1; min-width:0; }
+    .ev-when { font-size:12px; font-weight:800; color:var(--slate-700); }
+    .ev-title { font-size:14px; font-weight:700; color:var(--slate-900); }
+    .ev-sub { font-size:12px; color:var(--slate-500); margin-top:2px; overflow-wrap:anywhere; }
+    .ev-you { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:10px; background:var(--mint-50); color:var(--teal-700); border:1px solid var(--mint-200); margin-left:6px; }
+    .ev-check { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--slate-700); cursor:pointer; }
+    .ev-check input { width:18px; height:18px; }
+    .ev-people { display:flex; flex-wrap:wrap; gap:6px; }
+    .ev-person { padding:6px 10px; border-radius:16px; border:var(--rule); background:var(--panel); font-size:13px; font-weight:600; color:var(--slate-700); cursor:pointer; }
+    .ev-person.on { background:var(--slate-700); border-color:var(--slate-700); color:white; }
+    .ev-people.is-off { opacity:.4; pointer-events:none; }
+    .ev-notify-note { font-size:12px; color:var(--slate-500); margin:0 0 10px; }
     .cal-dots { display:flex; gap:2px; justify-content:center; margin-top:4px; flex-wrap:wrap; }
     .cal-dots span { width:5px; height:5px; border-radius:50%; display:inline-block; }
     .cal-count { font-size:10px; font-weight:600; color:var(--slate-500); margin-top:1px; }
@@ -609,6 +630,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .alert-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--red-50); border:1px solid var(--red-200); border-radius:10px; margin-bottom:6px; }
     .today-res-item { display:flex; align-items:center; gap:12px; padding:12px 4px; min-height:52px; background:transparent; border-bottom:1px solid var(--slate-100); border-radius:0; margin-bottom:0; cursor:pointer; }
     .today-res-item:last-child { border-bottom:none; }
+    .fin-day-note { margin-top:8px; padding:8px 12px; border-radius:8px; background:var(--slate-50); border:var(--rule); font-size:13px; color:var(--slate-700); white-space:pre-wrap; overflow-wrap:anywhere; }
+    .fin-day-note i { color:var(--slate-400); margin-right:4px; }
     /* notifications inbox (Home) */
     #section-dashboard > #dash-notif-panel { grid-column:1 / -1; }
     .notif-head-actions { margin-left:auto; display:flex; gap:14px; }
@@ -1065,7 +1088,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn active" id="res-tab-calendar" data-res-tab="calendar"><i class="fas fa-calendar-week"></i> Calendar</button>
         <button class="tab-btn" id="res-tab-list" data-res-tab="list"><i class="fas fa-list"></i> All</button>
       </div>
-      <button class="btn btn-primary btn-sm" id="btn-add-reservation"><i class="fas fa-plus"></i> New</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" id="btn-add-event" style="display:none"><i class="fas fa-calendar-plus"></i> Event</button>
+        <button class="btn btn-primary btn-sm" id="btn-add-reservation"><i class="fas fa-plus"></i> New</button>
+      </div>
     </div>
     <div id="res-panel-calendar">
       <div class="card" style="padding:14px;margin-bottom:12px">
@@ -1081,6 +1107,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           <i class="fas fa-calendar-day" style="color:var(--ocean-400)"></i>
           <span id="res-day-label">Select a day</span>
         </div>
+        <div id="res-day-events"></div>
         <div id="res-day-list"><div class="empty-state"><i class="fas fa-hand-pointer"></i><p>Tap a day to see reservations</p></div></div>
       </div>
     </div>
@@ -1372,6 +1399,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           </div>
         </div>
 
+        <!-- Notes for the day (optional) -->
+        <div class="fin-card">
+          <h3><i class="fas fa-note-sticky" style="color:var(--slate-500)"></i> Notes for the day <span style="font-size:11px;font-weight:600;color:var(--slate-400);text-transform:none;letter-spacing:0">optional</span></h3>
+          <textarea id="fin-day-notes" class="input-field" rows="3" maxlength="1000" placeholder="Anything worth remembering about today: a refund, a broken card machine, a big group…" style="resize:vertical"></textarea>
+        </div>
         <!-- Action buttons — shown when entry is NOT yet saved for this date -->
         <div id="fin-entry-actions">
           <button class="btn btn-primary" style="width:100%;justify-content:center;background:#6d4fc2;border-color:#6d4fc2;margin-bottom:8px" id="btn-save-finance-entry">
@@ -2124,6 +2156,40 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 </div>
 
 <!-- Reservation Detail -->
+<!-- Calendar event (meeting, opening hours, …) -->
+<div class="modal-overlay" id="modal-event">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-calendar-plus" style="color:var(--ocean-400)"></i><span id="ev-modal-title">New event</span></h2>
+    <input type="hidden" id="ev-edit-id" />
+    <div class="form-row"><label class="label" for="ev-kind">Type</label>
+      <select class="select-field" id="ev-kind">
+        <option value="meeting">Meeting</option>
+        <option value="hours">Opening hours change</option>
+        <option value="event">Event</option>
+        <option value="other">Other</option>
+      </select></div>
+    <div class="form-row"><label class="label" for="ev-title">Title *</label><input type="text" class="input-field" id="ev-title" maxlength="120" placeholder="e.g. Staff meeting · Closing at 18:00" /></div>
+    <div class="form-grid-2" style="margin-bottom:10px">
+      <div style="min-width:0"><label class="label" for="ev-date">Date *</label><input type="date" class="input-field" id="ev-date" style="min-width:0" /></div>
+      <div style="display:flex;align-items:flex-end"><label class="ev-check"><input type="checkbox" id="ev-allday" /> All day</label></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:14px" id="ev-times">
+      <div style="min-width:0"><label class="label" for="ev-start">Start *</label><input type="time" class="input-field" id="ev-start" style="min-width:0" /></div>
+      <div style="min-width:0"><label class="label" for="ev-end">End (optional)</label><input type="time" class="input-field" id="ev-end" style="min-width:0" /></div>
+    </div>
+    <div class="form-row"><label class="label">Who is in it</label>
+      <label class="ev-check" style="margin-bottom:8px"><input type="checkbox" id="ev-everyone" /> Everyone on the team</label>
+      <div id="ev-people" class="ev-people"></div></div>
+    <div class="form-row" style="margin-bottom:14px"><label class="label" for="ev-notes">Notes</label><textarea class="input-field" id="ev-notes" rows="2" maxlength="1000" placeholder="Agenda, where, what changes…" style="resize:vertical"></textarea></div>
+    <p class="ev-notify-note" id="ev-notify-note">The people in it get a notification.</p>
+    <div style="display:flex;gap:10px" id="ev-actions">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-event"><i class="fas fa-save"></i> Save</button>
+      <button class="btn btn-danger btn-icon" id="btn-delete-event" style="display:none" aria-label="Delete event"><i class="fas fa-trash"></i></button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-event">Close</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-res-detail">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -3074,8 +3140,10 @@ function syncFromSupabase() {
         cashNotes: parseFloat(r.cash_notes)||0, coins: parseFloat(r.coins)||0,
         genExpenses: parseFloat(r.gen_expenses)||0, surf: parseFloat(r.surf)||0,
         cashDiff: parseFloat(r.cash_diff)||0,
+        dayNotes: r.day_notes || '',
         savedAt: r.saved_at
       }; });
+      if (rows && rows.length) sbCols.finNotes = ('day_notes' in rows[0]);
     }).catch(function(){ sbMissingItems.push('fin_entries table'); }),
     sbFetch('GET', 'app_users', null, appUsersQuery()).then(function(rows) {
       if (rows && rows.length) sbCols.userEmployee = ('employee' in rows[0]);
@@ -3809,6 +3877,7 @@ function refreshSection(name) {
       saveDB(db);
       if (currentSection === name) { renderCalendar(); renderAllReservations(); }
     }).catch(function(){});
+    evLoad();
 
   } else if (name === 'tasks') {
     sbFetch('GET','tasks',null,'order=created_at.desc').then(function(rows) {
@@ -3864,8 +3933,10 @@ function refreshSection(name) {
         cashNotes:parseFloat(r.cash_notes)||0, coins:parseFloat(r.coins)||0,
         genExpenses:parseFloat(r.gen_expenses)||0, surf:parseFloat(r.surf)||0,
         cashDiff:parseFloat(r.cash_diff)||0,
+        dayNotes:r.day_notes||'',
         savedAt:r.saved_at
       }; });
+      if (rows.length) sbCols.finNotes = ('day_notes' in rows[0]);
       saveDB(db);
       if (currentSection === name) renderFinance();
     }).catch(function(){});
@@ -3878,8 +3949,10 @@ function refreshSection(name) {
 
   } else if (name === 'users') {
     if (isSecure()) loadUsersSecure();
-    sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at').then(function(rows) {
-      if (!rows) return; var db = getDB(); db.pushSubs = rows.map(function(x){ return { userId:x.user_id, endpoint:x.endpoint, updatedAt:x.updated_at }; }); saveDB(db);
+    // secure mode: the database no longer shows devices to the app, the server does (admins)
+    (isSecure() ? fetch('/api/push/devices').then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                : sbFetch('GET','push_subscriptions',null,'select=user_id,endpoint,updated_at')).then(function(rows) {
+      if (!Array.isArray(rows)) return; var db = getDB(); db.pushSubs = rows.map(function(x){ return { userId:x.user_id, endpoint:x.endpoint, updatedAt:x.updated_at }; }); saveDB(db);
       if (currentSection === name) renderUsers();
     }).catch(function(){});
     if (!isSecure()) sbFetch('GET','app_users',null,'order=name.asc').then(function(rows) {
@@ -4555,6 +4628,7 @@ function updateSupabaseStatus() {
 // FINANCE
 // ================================================
 function switchFinTab(tab) {
+  if (tab === 'records' && !isAdmin) tab = 'entry';
   ['entry','records'].forEach(function(x){
     document.getElementById('fin-tab-'+x).classList.toggle('active',x===tab);
     document.getElementById('fin-panel-'+x).style.display=x===tab?'block':'none';
@@ -4574,6 +4648,9 @@ function renderFinance() {
   }
   locked.style.display = 'none';
   content.style.display = 'block';
+  // Records (history, charts, budgets) are for admins; finance users keep the daily entry
+  var recTab = document.getElementById('fin-tab-records'); if (recTab) recTab.style.display = isAdmin ? '' : 'none';
+  if (!isAdmin && currentFinTab === 'records') switchFinTab('entry');
   // Set date picker — default to today if not already selected
   var datePicker = document.getElementById('fin-entry-date');
   if (!finSelectedDate) finSelectedDate = toDateStr(new Date());
@@ -4629,7 +4706,7 @@ function applyFinLockState(dateStr) {
   var lockedEl   = document.getElementById('fin-entry-locked');
   var editBtnEl  = document.getElementById('btn-fin-edit-entry');
   var FIN_INPUTS = ['fin-t51','fin-multibanco','fin-invoiced','fin-tips',
-                    'fin-gen-expenses','fin-cash-notes','fin-coins','fin-surf'];
+                    'fin-gen-expenses','fin-cash-notes','fin-coins','fin-surf','fin-day-notes'];
 
   if (hasSaved && !finEditMode) {
     // Locked state — entry exists, not in edit mode
@@ -4669,6 +4746,7 @@ function setFinForm(entry) {
   document.getElementById('fin-cash-notes').value = entry.cashNotes || '';
   document.getElementById('fin-coins').value = entry.coins || '';
   document.getElementById('fin-surf').value = entry.surf || '';
+  document.getElementById('fin-day-notes').value = entry.dayNotes || '';
   updateFinDayTotal();
 }
 
@@ -4760,6 +4838,7 @@ function saveFinanceEntry() {
     tips: v.tips, entregar: v.entregar,
     cashNotes: v.cashNotes, coins: v.coins, surf: v.surf,
     cashDiff: cashDiff,
+    dayNotes: (document.getElementById('fin-day-notes').value || '').trim(),
     savedAt: new Date().toISOString()
   };
   if (idx !== -1) { db.finEntries[idx] = entry; } else { db.finEntries.unshift(entry); }
@@ -4768,19 +4847,22 @@ function saveFinanceEntry() {
   toast('Daily finance entry saved!', 'gold');
   updateFinDayTotal();
   applyFinLockState(saveDate);
-  sbFetch(idx !== -1 ? 'PATCH' : 'POST', 'fin_entries',
-    { id: entry.id, date: entry.date, t51: entry.t51, multibanco: entry.multibanco,
+  var finRow = { id: entry.id, date: entry.date, t51: entry.t51, multibanco: entry.multibanco,
       total_day: entry.totalDay, invoiced: entry.invoiced,
       gen_expenses: entry.genExpenses, tips: entry.tips,
       entregar: entry.entregar, cash_notes: entry.cashNotes,
       coins: entry.coins, surf: entry.surf,
-      saved_at: entry.savedAt },
+      saved_at: entry.savedAt };
+  // day notes only once the column exists (the SQL adds it); otherwise the whole save would be refused
+  if (sbCols.finNotes) finRow.day_notes = entry.dayNotes;
+  else if (entry.dayNotes) setTimeout(function(){ toast('Saved, but the notes need the latest SQL in Supabase to be kept', 'error'); }, 1200);
+  sbFetch(idx !== -1 ? 'PATCH' : 'POST', 'fin_entries', finRow,
     idx !== -1 ? 'id=eq.'+entry.id : null
   ).catch(function(){ /* saved locally */ });
 }
 
 function clearFinanceFields() {
-  ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-gen-expenses','fin-cash-notes','fin-coins','fin-surf'].forEach(function(id){
+  ['fin-t51','fin-multibanco','fin-invoiced','fin-tips','fin-gen-expenses','fin-cash-notes','fin-coins','fin-surf','fin-day-notes'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.value='';
   });
 }
@@ -4955,6 +5037,7 @@ if (typeof ResizeObserver !== 'undefined') {
   ['day','t51','surf'].forEach(function(l){ var el = document.getElementById('fin-chart-' + l); if (el) finChartRO.observe(el); });
 }
 function renderFinRecords() {
+  if (!isAdmin) return;
   var db = getDB();
   var allEntries = (db.finEntries||[]).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
   var today = toDateStr(new Date());
@@ -5087,6 +5170,7 @@ function renderFinRecords() {
       +'<div class="fin-row"><span class="fin-row-label" style="color:#6d4fc2;font-weight:800"><i class="fas fa-arrow-right" style="color:#6d4fc2"></i> Entregar</span><span class="fin-row-val" style="color:#6d4fc2">'+fmtEur(e.entregar||0)+'</span></div>'
       +(cashTotal ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-coins" style="color:#b7791f"></i> Cash Total</span><span class="fin-row-val">'+fmtEur(cashTotal)+'</span></div>' : '')
       +balHtml
+      +(e.dayNotes ? '<div class="fin-day-note"><i class="fas fa-note-sticky"></i> '+esc(e.dayNotes)+'</div>' : '')
     +'</div>';
   }).join('');
 }
@@ -5822,10 +5906,151 @@ function renderCalendar(){
     for(var c=0;c<Math.min(conf,3);c++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#2b8a4b')+'"></span>';
     for(var p=0;p<Math.min(pend,3);p++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#b7791f')+'"></span>';
     for(var n=0;n<Math.min(nos,3);n++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#b4402f')+'"></span>';
-    el.innerHTML='<div class="cal-day-name">'+dnames[i]+'</div><div class="cal-day-num">'+day.getDate()+'</div>'+(dots?'<div class="cal-dots">'+dots+'</div>':'')+(dayRes.length>0?'<div class="cal-count">'+dayRes.length+'</div>':'');
+    var dayEv=evOnDay(dateStr).length;
+    el.innerHTML='<div class="cal-day-name">'+dnames[i]+'</div><div class="cal-day-num">'+day.getDate()+'</div>'+(dots?'<div class="cal-dots">'+dots+'</div>':'')+(dayRes.length>0?'<div class="cal-count">'+dayRes.length+'</div>':'')
+      +(dayEv?'<div class="cal-ev" title="'+dayEv+(dayEv===1?' event':' events')+'"><i class="fas fa-calendar-check"></i>'+dayEv+'</div>':'');
     grid.appendChild(el);
   }
   if(selectedCalendarDay) renderDayReservations(selectedCalendarDay);
+}
+// ── Calendar events: meetings, opening-hours changes… (admins and shift managers manage them) ──
+var EV_KINDS = { meeting:{ label:'Meeting', icon:'fa-people-group' }, hours:{ label:'Opening hours', icon:'fa-store' }, event:{ label:'Event', icon:'fa-star' }, other:{ label:'Other', icon:'fa-thumbtack' } };
+var evPicked = [];
+function canManageEvents() { return isAdmin || hasRole('shift_mgr'); }
+function evFromRow(r) {
+  return { id:r.id, kind:r.kind||'meeting', title:r.title||'', date:r.date, allDay:!!r.all_day, start:(r.start_time||'').slice(0,5), end:(r.end_time||'').slice(0,5),
+    everyone:!!r.everyone, attendees:Array.isArray(r.attendees)?r.attendees:[], notes:r.notes||'', createdBy:r.created_by||'', createdById:r.created_by_id||'', updatedAt:r.updated_at||'' };
+}
+function evToRow(e) {
+  return { id:e.id, kind:e.kind, title:e.title, date:e.date, all_day:e.allDay, start_time:e.allDay?'':e.start, end_time:e.allDay?'':e.end,
+    everyone:e.everyone, attendees:e.attendees, notes:e.notes, created_by:e.createdBy, created_by_id:e.createdById, updated_at:new Date().toISOString() };
+}
+function evLoad() {
+  return sbFetch('GET', 'cal_events', null, 'order=date.asc').then(function(rows){
+    var db = getDB(); sbCols.events = true; db.calEvents = (rows || []).map(evFromRow); saveDB(db);
+  }).catch(function(){ sbCols.events = false; }).then(function(){
+    var b = document.getElementById('btn-add-event'); if (b) b.style.display = canManageEvents() ? '' : 'none';
+    if (currentSection === 'reservations') renderCalendar();
+  });
+}
+function evOnDay(dateStr) {
+  return (getDB().calEvents || []).filter(function(e){ return e.date === dateStr; })
+    .sort(function(a, b){ return (b.allDay - a.allDay) || String(a.start).localeCompare(String(b.start)); });
+}
+function evWhen(e) { return e.allDay ? 'All day' : (e.start + (e.end ? '–' + e.end : '')); }
+function evIncludesMe(e) { return !!currentUser && (e.everyone || e.attendees.indexOf(currentUser.id) !== -1); }
+function evPeopleLabel(e) {
+  if (e.everyone) return 'Everyone';
+  var users = getDB().appUsers || [];
+  var names = e.attendees.map(function(id){ var u = users.find(function(x){ return x.id === id; }); return u ? u.name.split(' ')[0] : null; }).filter(Boolean);
+  if (!names.length) return '';
+  return names.length <= 4 ? names.join(', ') : names.slice(0, 3).join(', ') + ' +' + (names.length - 3);
+}
+function renderDayEvents(dateStr) {
+  var el = document.getElementById('res-day-events'); if (!el) return;
+  var list = evOnDay(dateStr);
+  if (!list.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="ev-list">' + list.map(function(e){
+    var k = EV_KINDS[e.kind] || EV_KINDS.other, who = evPeopleLabel(e);
+    return '<button class="ev-item k-' + esc(e.kind) + '" data-open-event="' + esc(e.id) + '">'
+      + '<span class="ev-ic"><i class="fas ' + k.icon + '"></i></span>'
+      + '<span class="ev-main"><span class="ev-when" style="display:block">' + esc(k.label) + ' · ' + esc(evWhen(e)) + (evIncludesMe(e) ? '<span class="ev-you">You</span>' : '') + '</span>'
+      + '<span class="ev-title" style="display:block">' + esc(e.title) + '</span>'
+      + ((who || e.notes) ? '<span class="ev-sub" style="display:block">' + (who ? '<i class="fas fa-user-group" style="margin-right:4px"></i>' + esc(who) : '') + (who && e.notes ? ' · ' : '') + esc(e.notes) + '</span>' : '')
+      + '</span></button>';
+  }).join('') + '</div>';
+}
+function evRenderPeople() {
+  var box = document.getElementById('ev-people'); if (!box) return;
+  var users = (getDB().appUsers || []).filter(function(u){ return u.active !== false && u.id !== 'admin_seed'; })
+    .sort(function(a, b){ return a.name.localeCompare(b.name); });
+  var every = document.getElementById('ev-everyone').checked;
+  box.classList.toggle('is-off', every);
+  box.innerHTML = users.map(function(u){
+    var on = evPicked.indexOf(u.id) !== -1;
+    return '<button type="button" class="ev-person' + (on ? ' on' : '') + '" data-ev-person="' + esc(u.id) + '" aria-pressed="' + on + '">' + esc(u.name) + '</button>';
+  }).join('') || '<span class="ev-sub">No people found.</span>';
+}
+function evSyncTimes() { document.getElementById('ev-times').style.display = document.getElementById('ev-allday').checked ? 'none' : ''; }
+function openEventModal(id, dateStr) {
+  var e = id ? (getDB().calEvents || []).find(function(x){ return x.id === id; }) : null;
+  var can = canManageEvents();
+  if (!e && !can) return;
+  if (!e && sbCols.events === false) { toast('Events switch on once the calendar SQL has run in Supabase', 'error'); return; }
+  document.getElementById('ev-edit-id').value = e ? e.id : '';
+  document.getElementById('ev-modal-title').textContent = e ? (can ? 'Edit event' : (EV_KINDS[e.kind] || EV_KINDS.other).label) : 'New event';
+  document.getElementById('ev-kind').value = e ? e.kind : 'meeting';
+  document.getElementById('ev-title').value = e ? e.title : '';
+  document.getElementById('ev-date').value = e ? e.date : (dateStr || toDateStr(new Date()));
+  document.getElementById('ev-allday').checked = e ? e.allDay : false;
+  document.getElementById('ev-start').value = e ? e.start : '';
+  document.getElementById('ev-end').value = e ? e.end : '';
+  document.getElementById('ev-everyone').checked = e ? e.everyone : false;
+  document.getElementById('ev-notes').value = e ? e.notes : '';
+  evPicked = e ? e.attendees.slice() : [];
+  evSyncTimes(); evRenderPeople();
+  // people who cannot manage events see it read-only
+  ['ev-kind','ev-title','ev-date','ev-allday','ev-start','ev-end','ev-everyone','ev-notes'].forEach(function(f){ document.getElementById(f).disabled = !can; });
+  document.getElementById('ev-people').style.pointerEvents = can ? '' : 'none';
+  document.getElementById('btn-save-event').style.display = can ? '' : 'none';
+  document.getElementById('btn-delete-event').style.display = can && e ? '' : 'none';
+  document.getElementById('ev-notify-note').style.display = can ? '' : 'none';
+  openModal('modal-event');
+}
+function evRecipients(e) {
+  if (e.everyone) return (getDB().appUsers || []).filter(function(u){ return u.active !== false && u.id !== 'admin_seed'; }).map(function(u){ return u.id; });
+  return e.attendees.slice();
+}
+function evDayLabel(dateStr) { return fmtDateShort(dateStr); }
+function evNotify(ids, title, e) {
+  sendPush(ids, title, evDayLabel(e.date) + ' · ' + evWhen(e) + (e.notes ? ' · ' + e.notes : ''), '/?open=reservations&date=' + e.date);
+}
+function saveEvent() {
+  if (!canManageEvents()) return;
+  var id = document.getElementById('ev-edit-id').value;
+  var title = document.getElementById('ev-title').value.trim();
+  var date = document.getElementById('ev-date').value;
+  var allDay = document.getElementById('ev-allday').checked;
+  var start = document.getElementById('ev-start').value, end = document.getElementById('ev-end').value;
+  var everyone = document.getElementById('ev-everyone').checked;
+  if (!title) { toast('Give the event a title', 'error'); return; }
+  if (!date) { toast('Pick a date', 'error'); return; }
+  if (!allDay && !start) { toast('Add a start time, or tick All day', 'error'); return; }
+  if (!allDay && end && end <= start) { toast('The end time is before the start', 'error'); return; }
+  if (!everyone && !evPicked.length) { toast('Choose who is in it, or tick Everyone', 'error'); return; }
+  var db = getDB(); db.calEvents = db.calEvents || [];
+  var old = id ? db.calEvents.find(function(x){ return x.id === id; }) : null;
+  var e = { id:id || uid(), kind:document.getElementById('ev-kind').value, title:title, date:date, allDay:allDay, start:allDay ? '' : start, end:allDay ? '' : end,
+    everyone:everyone, attendees:everyone ? [] : evPicked.slice(), notes:document.getElementById('ev-notes').value.trim(),
+    createdBy:old ? old.createdBy : (currentUser ? currentUser.name : ''), createdById:old ? old.createdById : (currentUser ? currentUser.id : '') };
+  var btn = document.getElementById('btn-save-event'); btn.disabled = true;
+  var req = old ? sbFetch('PATCH', 'cal_events', evToRow(e), 'id=eq.' + encodeURIComponent(e.id)) : sbFetch('POST', 'cal_events', evToRow(e));
+  req.then(function(){
+    btn.disabled = false;
+    db = getDB(); db.calEvents = (db.calEvents || []).filter(function(x){ return x.id !== e.id; }).concat([e]); saveDB(db);
+    closeModal('modal-event'); selectedCalendarDay = e.date;
+    calendarWeekStart = getMonday(new Date(e.date + 'T12:00:00')); renderCalendar();
+    var k = (EV_KINDS[e.kind] || EV_KINDS.other).label, now = evRecipients(e);
+    if (!old) { evNotify(now, k + ': ' + e.title, e); toast('Event saved. ' + (now.length ? 'The people in it were notified.' : ''), 'success'); return; }
+    var before = evRecipients(old), whenChanged = old.date !== e.date || old.allDay !== e.allDay || old.start !== e.start || old.end !== e.end || old.title !== e.title;
+    var added = now.filter(function(x){ return before.indexOf(x) === -1; }), kept = now.filter(function(x){ return before.indexOf(x) !== -1; });
+    var removed = before.filter(function(x){ return now.indexOf(x) === -1; });
+    if (added.length) evNotify(added, k + ': ' + e.title, e);
+    if (whenChanged && kept.length) evNotify(kept, 'Changed: ' + e.title, e);
+    if (removed.length) sendPush(removed, 'No longer in: ' + old.title, evDayLabel(old.date) + ' · ' + evWhen(old), '/?open=reservations&date=' + old.date);
+    toast('Event updated', 'success');
+  }).catch(function(){ btn.disabled = false; toast('Not saved. Check the connection.', 'error'); });
+}
+function deleteEvent() {
+  var id = document.getElementById('ev-edit-id').value; if (!id || !canManageEvents()) return;
+  var db = getDB(), e = (db.calEvents || []).find(function(x){ return x.id === id; }); if (!e) return;
+  if (!confirm('Delete \u201c' + e.title + '\u201d? The people in it get a cancellation notice.')) return;
+  sbFetch('DELETE', 'cal_events', null, 'id=eq.' + encodeURIComponent(id)).then(function(){
+    db = getDB(); db.calEvents = (db.calEvents || []).filter(function(x){ return x.id !== id; }); saveDB(db);
+    closeModal('modal-event'); renderCalendar();
+    sendPush(evRecipients(e), 'Cancelled: ' + e.title, evDayLabel(e.date) + ' · ' + evWhen(e), '/?open=reservations&date=' + e.date);
+    toast('Event deleted');
+  }).catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
 }
 function renderDayReservations(dateStr){
   var db=getDB();
@@ -5834,6 +6059,7 @@ function renderDayReservations(dateStr){
   var dnames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var mnames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('res-day-label').textContent=dnames[d.getDay()]+', '+mnames[d.getMonth()]+' '+d.getDate();
+  renderDayEvents(dateStr);
   var el=document.getElementById('res-day-list'); if(!el) return;
   if(res.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-calendar-xmark"></i><p>No reservations this day. Tap New to add one.</p></div>';return;}
   el.innerHTML=res.map(function(r){
@@ -6206,7 +6432,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -8939,6 +9165,11 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-prev-week')) { prevWeek(); return; }
   if (t.closest('#btn-next-week')) { nextWeek(); return; }
   if (t.closest('#btn-add-reservation')) { openAddReservationModal(); return; }
+  if (t.closest('#btn-add-event')) { openEventModal(null, selectedCalendarDay); return; }
+  el = t.closest('[data-open-event]'); if (el) { openEventModal(el.dataset.openEvent); return; }
+  el = t.closest('[data-ev-person]'); if (el) { var pid = el.dataset.evPerson, pi = evPicked.indexOf(pid); if (pi === -1) evPicked.push(pid); else evPicked.splice(pi, 1); evRenderPeople(); return; }
+  if (t.closest('#btn-save-event')) { saveEvent(); return; }
+  if (t.closest('#btn-delete-event')) { deleteEvent(); return; }
   if (t.closest('#btn-save-reservation')) { saveReservation(); return; }
   el = t.closest('[data-open-res-detail]');
   if (el) { openResDetail(el.dataset.openResDetail); return; }
@@ -9227,6 +9458,8 @@ document.addEventListener('click', function(e) {
 document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
+  if (t.id === 'ev-allday') evSyncTimes();
+  if (t.id === 'ev-everyone') evRenderPeople();
   if (t.name === 'req-kind') { reqKindChanged(); }
   if (t.dataset && t.dataset.fcLineItem !== undefined) {
     var li = +t.dataset.fcLineItem, lv = t.value, ln = fcEdit.lines[li];
