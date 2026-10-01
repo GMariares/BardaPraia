@@ -387,8 +387,48 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .cal-day-num { font-size:17px; font-weight:800; color:var(--slate-900); }
     .cal-day.today .cal-day-num { color:var(--teal-700); }
     .cal-day.selected .cal-day-num { color:white; }
-    .cal-ev { display:inline-flex; align-items:center; gap:3px; margin-top:4px; padding:1px 6px; border-radius:8px; background:var(--amber-50); color:var(--amber-700); font-size:10px; font-weight:800; }
-    .cal-day.selected .cal-ev { background:rgba(255,255,255,.18); color:white; }
+    /* Calendar (all-in-one) */
+    .calv-head { flex-wrap:wrap; gap:10px; }
+    .calv-nav { display:flex; align-items:center; gap:8px; }
+    .calv-month-label { font-size:17px; font-weight:800; color:var(--slate-900); min-width:150px; text-align:center; }
+    .calv-filters { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    .calv-filter { display:inline-flex; align-items:center; gap:6px; padding:6px 11px; border-radius:16px; border:var(--rule); background:var(--panel); font-size:12px; font-weight:700; color:var(--slate-500); cursor:pointer; }
+    .calv-filter i.sw { width:9px; height:9px; border-radius:50%; display:inline-block; opacity:.35; }
+    .calv-filter.on { color:var(--slate-900); border-color:var(--slate-400); }
+    .calv-filter.on i.sw { opacity:1; }
+    .calv-layout { display:grid; grid-template-columns:1fr; gap:12px; align-items:start; }
+    @media(min-width:1024px){ .calv-layout { grid-template-columns:minmax(0,2fr) minmax(300px,1fr); } }
+    .calv-month { padding:10px; }
+    .calv-wk { display:grid; grid-template-columns:repeat(7,1fr); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--slate-500); text-align:center; padding:2px 0 6px; }
+    .calv-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+    .calv-cell { min-height:62px; border-radius:8px; border:1px solid transparent; background:none; padding:5px 3px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; font:inherit; color:inherit; min-width:0; }
+    .calv-cell:hover { background:var(--slate-50); }
+    .calv-cell.out { opacity:.4; }
+    .calv-cell.today .calv-num { background:var(--teal-600); color:white; }
+    .calv-cell.sel { border-color:var(--slate-700); background:var(--slate-50); }
+    .calv-num { font-size:13px; font-weight:800; color:var(--slate-900); width:24px; height:24px; line-height:24px; border-radius:50%; text-align:center; flex-shrink:0; }
+    .calv-dots { display:flex; flex-wrap:wrap; justify-content:center; gap:3px; }
+    .calv-dots i { width:7px; height:7px; border-radius:50%; display:inline-block; }
+    .calv-chips { display:none; width:100%; flex-direction:column; gap:2px; }
+    .calv-chip { display:block; font-size:11px; line-height:1.3; text-align:left; padding:1px 5px; border-radius:4px; background:var(--slate-100); color:var(--slate-900); border-left:3px solid var(--slate-400); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .calv-more { font-size:10px; font-weight:700; color:var(--slate-500); text-align:left; padding-left:5px; }
+    @media(min-width:760px){
+      .calv-cell { min-height:96px; align-items:stretch; text-align:left; padding:5px; }
+      .calv-num { align-self:flex-start; }
+      .calv-dots { display:none; }
+      .calv-chips { display:flex; }
+    }
+    .calv-day { padding:14px; }
+    .calv-day-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .calv-day-head h3 { font-size:15px; font-weight:800; color:var(--slate-900); margin:0; }
+    .calv-item { display:flex; align-items:flex-start; gap:10px; width:100%; padding:10px; margin-bottom:6px; border:var(--rule); border-left:4px solid var(--slate-400); border-radius:10px; background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
+    .calv-item:hover { background:var(--slate-50); }
+    .calv-item.done .calv-item-title { text-decoration:line-through; color:var(--slate-500); }
+    .calv-time { width:62px; flex-shrink:0; font-size:12px; font-weight:800; color:var(--slate-700); padding-top:1px; }
+    .calv-item-main { flex:1; min-width:0; }
+    .calv-item-type { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .calv-item-title { font-size:14px; font-weight:700; color:var(--slate-900); }
+    .calv-item-sub { font-size:12px; color:var(--slate-500); margin-top:2px; overflow-wrap:anywhere; }
     .ev-list { margin-bottom:12px; }
     .ev-item { display:flex; align-items:flex-start; gap:12px; width:100%; padding:10px 12px; margin-bottom:8px; border:var(--rule); border-left:4px solid var(--amber-700); border-radius:var(--radius); background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
     .ev-item.k-meeting { border-left-color:var(--teal-600); }
@@ -953,6 +993,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <button class="drawer-item active" id="ditem-dashboard" data-nav="dashboard"><i class="fas fa-home"></i> Dashboard <span class="notif-dot-count" id="ditem-notif-count" style="display:none"></span></button>
     <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Shopping List</button>
     <button class="drawer-item" id="ditem-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i> Reservations</button>
+    <button class="drawer-item" id="ditem-calendar" data-nav="calendar"><i class="fas fa-calendar-week"></i> Calendar</button>
     <button class="drawer-item" id="ditem-tasks" data-nav="tasks"><i class="fas fa-list-check"></i> Tasks</button>
     <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts<span class="nav-dot" id="ditem-shifts-dot" style="display:none"></span></button>
     <div class="section-label" style="margin-top:12px">Admin</div>
@@ -1085,13 +1126,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <section id="section-reservations" class="page-section">
     <div class="section-header">
       <div class="tab-row" style="margin-bottom:0">
-        <button class="tab-btn active" id="res-tab-calendar" data-res-tab="calendar"><i class="fas fa-calendar-week"></i> Calendar</button>
+        <button class="tab-btn active" id="res-tab-calendar" data-res-tab="calendar"><i class="fas fa-calendar-week"></i> Week</button>
         <button class="tab-btn" id="res-tab-list" data-res-tab="list"><i class="fas fa-list"></i> All</button>
+        <button class="tab-btn" data-nav="calendar"><i class="fas fa-calendar-days"></i> Calendar</button>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary btn-sm" id="btn-add-event" style="display:none"><i class="fas fa-calendar-plus"></i> Event</button>
-        <button class="btn btn-primary btn-sm" id="btn-add-reservation"><i class="fas fa-plus"></i> New</button>
-      </div>
+      <button class="btn btn-primary btn-sm" id="btn-add-reservation"><i class="fas fa-plus"></i> New</button>
     </div>
     <div id="res-panel-calendar">
       <div class="card" style="padding:14px;margin-bottom:12px">
@@ -1107,7 +1146,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           <i class="fas fa-calendar-day" style="color:var(--ocean-400)"></i>
           <span id="res-day-label">Select a day</span>
         </div>
-        <div id="res-day-events"></div>
         <div id="res-day-list"><div class="empty-state"><i class="fas fa-hand-pointer"></i><p>Tap a day to see reservations</p></div></div>
       </div>
     </div>
@@ -1119,6 +1157,30 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       </div>
       <div class="card" style="overflow:hidden">
         <div id="res-all-list"><div class="empty-state"><i class="fas fa-calendar-xmark"></i><p>No reservations yet.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CALENDAR: events, reservations, task deadlines and your shifts in one view ═══ -->
+  <section id="section-calendar" class="page-section">
+    <div class="section-header calv-head">
+      <div class="calv-nav">
+        <button class="btn btn-secondary btn-sm btn-icon" id="calv-prev" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
+        <span class="calv-month-label" id="calv-month-label"></span>
+        <button class="btn btn-secondary btn-sm btn-icon" id="calv-next" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
+        <button class="btn btn-secondary btn-sm" id="calv-today">Today</button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-add-event" style="display:none"><i class="fas fa-calendar-plus"></i> Event</button>
+    </div>
+    <div class="calv-filters" id="calv-filters" role="group" aria-label="Show on the calendar"></div>
+    <div class="calv-layout">
+      <div class="card calv-month">
+        <div class="calv-wk"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+        <div class="calv-grid" id="calv-grid"></div>
+      </div>
+      <div class="card calv-day">
+        <div class="calv-day-head"><h3 id="calv-day-label"></h3><button class="btn btn-secondary btn-sm" id="calv-day-add" style="display:none"><i class="fas fa-plus"></i> Event</button></div>
+        <div id="calv-agenda"></div>
       </div>
     </div>
   </section>
@@ -3399,11 +3461,12 @@ setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts|reservations|shopping)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations|shopping|calendar)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
   if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
+  if (m[1] === 'calendar') { var cd = /date=(\\d{4}-\\d{2}-\\d{2})/.exec(url); showSection('calendar'); if (cd) calvGoTo(cd[1]); return; }
   if (m[1] === 'reservations') {
     var rd = /date=(\\d{4}-\\d{2}-\\d{2})/.exec(url);
     if (rd) { calendarWeekStart = getMonday(new Date(rd[1] + 'T12:00:00')); selectedCalendarDay = rd[1]; }
@@ -3524,7 +3587,7 @@ function notifIcon(url) {
   var u = String(url || '');
   if (/open=tasks/.test(u)) return 'fa-list-check';
   if (/open=(shifts|requests)/.test(u)) return 'fa-clock';
-  if (/open=reservations/.test(u)) return 'fa-calendar-day';
+  if (/open=(reservations|calendar)/.test(u)) return 'fa-calendar-day';
   if (/open=shopping/.test(u)) return 'fa-bag-shopping';
   return 'fa-bell';
 }
@@ -3756,6 +3819,7 @@ function updateSessionUI() {
   dshow('ditem-dashboard',    true);
   dshow('ditem-inventory',    true);
   dshow('ditem-reservations', true);
+  dshow('ditem-calendar',     true);
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
   dshow('ditem-accounting',   isAdmin);
@@ -3868,6 +3932,9 @@ function refreshSection(name) {
     }).catch(function(){});
     shopLoad();
 
+  } else if (name === 'calendar') {
+    calvLoad();
+
   } else if (name === 'reservations') {
     sbFetch('GET','reservations',null,'order=date.asc,time.asc').then(function(rows) {
       if (!rows) return;
@@ -3877,7 +3944,6 @@ function refreshSection(name) {
       saveDB(db);
       if (currentSection === name) { renderCalendar(); renderAllReservations(); }
     }).catch(function(){});
-    evLoad();
 
   } else if (name === 'tasks') {
     sbFetch('GET','tasks',null,'order=created_at.desc').then(function(rows) {
@@ -4022,13 +4088,14 @@ function showSection(name) {
   sec.classList.add('active');
 
   document.querySelectorAll('.bnav-item').forEach(function(b){ b.classList.remove('active'); });
-  var bn = document.getElementById('bnav-' + name);
+  // Calendar lives under Reservations, so the phone's Book button stays lit there
+  var bn = document.getElementById('bnav-' + (name === 'calendar' ? 'reservations' : name));
   if (bn) bn.classList.add('active');
   document.querySelectorAll('.drawer-item').forEach(function(b){ b.classList.remove('active'); });
   var di = document.getElementById('ditem-' + name);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Dashboard',inventory:'Shopping List',reservations:'Reservations',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Users',settings:'Settings'};
+  var titles = {dashboard:'Dashboard',inventory:'Shopping List',reservations:'Reservations',calendar:'Calendar',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Users',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   moveBnavMarker();
   currentSection = name;
@@ -4038,6 +4105,7 @@ function showSection(name) {
   if (name === 'dashboard')    renderDashboard();
   if (name === 'inventory')    { renderInventory(); renderSuppliers(); renderInvLogSupplierFilter(); }
   if (name === 'reservations') { renderCalendar(); renderAllReservations(); }
+  if (name === 'calendar')     renderCalView();
   if (name === 'tasks')        renderTasks();
   if (name === 'shifts')       renderShifts();
   if (name === 'blackbox')     renderBlackBox();
@@ -5906,13 +5974,126 @@ function renderCalendar(){
     for(var c=0;c<Math.min(conf,3);c++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#2b8a4b')+'"></span>';
     for(var p=0;p<Math.min(pend,3);p++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#b7791f')+'"></span>';
     for(var n=0;n<Math.min(nos,3);n++) dots+='<span style="background:'+(isSel?'rgba(255,255,255,.8)':'#b4402f')+'"></span>';
-    var dayEv=evOnDay(dateStr).length;
-    el.innerHTML='<div class="cal-day-name">'+dnames[i]+'</div><div class="cal-day-num">'+day.getDate()+'</div>'+(dots?'<div class="cal-dots">'+dots+'</div>':'')+(dayRes.length>0?'<div class="cal-count">'+dayRes.length+'</div>':'')
-      +(dayEv?'<div class="cal-ev" title="'+dayEv+(dayEv===1?' event':' events')+'"><i class="fas fa-calendar-check"></i>'+dayEv+'</div>':'');
+    el.innerHTML='<div class="cal-day-name">'+dnames[i]+'</div><div class="cal-day-num">'+day.getDate()+'</div>'+(dots?'<div class="cal-dots">'+dots+'</div>':'')+(dayRes.length>0?'<div class="cal-count">'+dayRes.length+'</div>':'');
     grid.appendChild(el);
   }
   if(selectedCalendarDay) renderDayReservations(selectedCalendarDay);
 }
+// ── Calendar (one view): events, reservations, task deadlines and your own shifts ──
+var calvMonth = (function(){ var d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+var calvSel = toDateStr(new Date());
+var calvShifts = null;   // this person's shifts around the month shown (null until loaded)
+var CALV_TYPES = [
+  { key:'events', label:'Events', color:'#b7791f' },
+  { key:'res',    label:'Reservations', color:'#2f6fa8' },
+  { key:'tasks',  label:'Task deadlines', color:'#b4402f' },
+  { key:'shifts', label:'My shifts', color:'#5f7079' }
+];
+var calvOn = (function(){ try { var v = JSON.parse(localStorage.getItem('bp_calv_filters') || 'null'); if (v && typeof v === 'object') return v; } catch (e) {} return { events:true, res:true, tasks:true, shifts:true }; })();
+function calvSaveFilters() { try { localStorage.setItem('bp_calv_filters', JSON.stringify(calvOn)); } catch (e) {} }
+function resFromRow(x) { return {id:x.id,guestName:x.guest_name,phone:x.phone||'',date:x.date,time:x.time?x.time.slice(0,5):'',endTime:x.end_time?x.end_time.slice(0,5):'',guests:x.guests,tables:x.tables||[],notes:x.notes||'',status:x.status,createdAt:x.created_at}; }
+function taskFromRow(x) { var a=x.assigned_to||[]; if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[];}} if(!Array.isArray(a))a=[]; return {id:x.id,title:x.title,description:x.description||'',category:x.category,priority:x.priority,status:x.status,assignedTo:a,deadline:x.deadline||'',doneAt:x.done_at||'',createdAt:x.created_at,recurrence:x.recurrence||''}; }
+function calvRange() {
+  var first = new Date(calvMonth), start = getMonday(first);
+  var last = new Date(calvMonth.getFullYear(), calvMonth.getMonth() + 1, 0);
+  var end = new Date(last); end.setDate(end.getDate() + (7 - (end.getDay() || 7)));
+  return { start:start, end:end };
+}
+function calvLoad() {
+  var r = calvRange(), emp = myEmployee();
+  var shiftsReq = emp ? sbFetch('GET', 'shifts', null, 'employee=eq.' + encodeURIComponent(emp) + '&week_start=gte.' + toDateStr(r.start) + '&week_start=lte.' + toDateStr(r.end)) : Promise.resolve([]);
+  Promise.all([
+    sbFetch('GET', 'reservations', null, 'order=date.asc,time.asc').catch(function(){ return null; }),
+    sbFetch('GET', 'tasks', null, 'order=created_at.desc').catch(function(){ return null; }),
+    shiftsReq.catch(function(){ return null; }),
+    evLoad()
+  ]).then(function(res){
+    var db = getDB();
+    if (res[0]) { db.reservations = res[0].map(resFromRow); if (res[0].length) sbCols.resEnd = ('end_time' in res[0][0]); }
+    if (res[1]) db.tasks = res[1].map(taskFromRow);
+    if (res[2]) calvShifts = res[2].map(function(x){ return { employee:x.employee, day:x.day, weekStart:x.week_start, start:x.start_time ? x.start_time.slice(0,5) : '', end:x.end_time ? x.end_time.slice(0,5) : '', zone:x.zone || '', section:x.section || '', dayOff:!!x.day_off }; });
+    saveDB(db);
+    if (currentSection === 'calendar') renderCalView();
+  });
+}
+// Everything on one date, in the order it happens (all-day first)
+function calvItems(dateStr) {
+  var db = getDB(), out = [];
+  if (calvOn.events) evOnDay(dateStr).forEach(function(e){
+    var k = EV_KINDS[e.kind] || EV_KINDS.other, who = evPeopleLabel(e);
+    out.push({ sort:e.allDay ? '00:00' : e.start, time:e.allDay ? 'All day' : evWhen(e), type:k.label + (evIncludesMe(e) ? ' · you' : ''), color:'#b7791f',
+      title:e.title, sub:[who, e.notes].filter(Boolean).join(' · '), chip:(e.allDay ? '' : e.start + ' ') + e.title, attr:'data-open-event="' + esc(e.id) + '"' });
+  });
+  if (calvOn.res) (db.reservations || []).filter(function(r){ return r.date === dateStr; }).forEach(function(r){
+    var tables = Array.isArray(r.tables) ? r.tables.join(', ') : (r.table || '');
+    out.push({ sort:r.time || '99', time:r.time + (r.endTime ? '–' + r.endTime : ''), type:'Reservation' + (r.status ? ' · ' + r.status : ''), color:'#2f6fa8',
+      title:r.guestName + ' (' + r.guests + ')', sub:[tables ? 'Table ' + tables : '', r.notes].filter(Boolean).join(' · '), chip:r.time + ' ' + r.guestName, attr:'data-open-res-detail="' + esc(r.id) + '"' });
+  });
+  if (calvOn.tasks) (db.tasks || []).filter(function(t){
+    return t.deadline && String(t.deadline).slice(0, 10) === dateStr && (isAdmin || (currentUser && taskAssignees(t).indexOf(currentUser.id) !== -1));
+  }).forEach(function(t){
+    var names = assigneeNames(taskAssignees(t));
+    out.push({ sort:'00:01', time:'Due', type:'Task deadline' + (t.status === 'done' ? ' · done' : ''), color:'#b4402f', done:t.status === 'done',
+      title:t.title, sub:names.length ? names.join(', ') : '', chip:'Due: ' + t.title, attr:'data-calv-goto="tasks"' });
+  });
+  if (calvOn.shifts) {
+    var emp = myEmployee();
+    var mine = calvShifts || (db.shifts || []).filter(function(s){ return s.employee === emp; });
+    mine.forEach(function(s){
+      if (s.dayOff || !s.start) return;
+      var d = new Date(s.weekStart + 'T12:00:00'); d.setDate(d.getDate() + DAYS.indexOf(s.day));
+      if (toDateStr(d) !== dateStr) return;
+      out.push({ sort:s.start, time:s.start + (s.end ? '–' + s.end : ''), type:'Your shift', color:'#5f7079',
+        title:[s.zone, s.section].filter(Boolean).join(' · ') || 'Shift', sub:'', chip:s.start + ' Your shift', attr:'data-calv-goto="shifts"' });
+    });
+  }
+  return out.sort(function(a, b){ return String(a.sort).localeCompare(String(b.sort)); });
+}
+function calvGoTo(dateStr) {
+  calvSel = dateStr;
+  var d = new Date(dateStr + 'T12:00:00'), m = new Date(d.getFullYear(), d.getMonth(), 1);
+  var changed = m.getTime() !== calvMonth.getTime(); calvMonth = m;
+  renderCalView(); if (changed) calvLoad();
+}
+function renderCalView() {
+  var grid = document.getElementById('calv-grid'); if (!grid) return;
+  var lbl = document.getElementById('calv-month-label');
+  if (lbl) lbl.textContent = calvMonth.toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+  var addBtn = document.getElementById('btn-add-event'); if (addBtn) addBtn.style.display = canManageEvents() ? '' : 'none';
+  var dayAdd = document.getElementById('calv-day-add'); if (dayAdd) dayAdd.style.display = canManageEvents() ? '' : 'none';
+  document.getElementById('calv-filters').innerHTML = CALV_TYPES.map(function(t){
+    return '<button class="calv-filter' + (calvOn[t.key] ? ' on' : '') + '" data-calv-filter="' + t.key + '" aria-pressed="' + !!calvOn[t.key] + '"><i class="sw" style="background:' + t.color + '"></i>' + t.label + '</button>';
+  }).join('');
+  var r = calvRange(), today = toDateStr(new Date()), html = '';
+  for (var d = new Date(r.start); d <= r.end; d.setDate(d.getDate() + 1)) {
+    var ds = toDateStr(d), items = calvItems(ds), out = d.getMonth() !== calvMonth.getMonth();
+    var colors = []; items.forEach(function(it){ if (colors.indexOf(it.color) === -1) colors.push(it.color); });
+    html += '<button class="calv-cell' + (out ? ' out' : '') + (ds === today ? ' today' : '') + (ds === calvSel ? ' sel' : '') + '" data-calv-day="' + ds + '" aria-label="' + esc(d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })) + (items.length ? ', ' + items.length + ' item' + (items.length === 1 ? '' : 's') : '') + '">'
+      + '<span class="calv-num">' + d.getDate() + '</span>'
+      + (colors.length ? '<span class="calv-dots">' + colors.slice(0, 4).map(function(c){ return '<i style="background:' + c + '"></i>'; }).join('') + '</span>' : '')
+      + (items.length ? '<span class="calv-chips">' + items.slice(0, 3).map(function(it){ return '<span class="calv-chip" style="border-left-color:' + it.color + '">' + esc(it.chip) + '</span>'; }).join('')
+        + (items.length > 3 ? '<span class="calv-more">+' + (items.length - 3) + ' more</span>' : '') + '</span>' : '')
+      + '</button>';
+  }
+  grid.innerHTML = html;
+  renderCalAgenda();
+}
+function renderCalAgenda() {
+  var el = document.getElementById('calv-agenda'); if (!el) return;
+  var d = new Date(calvSel + 'T12:00:00');
+  document.getElementById('calv-day-label').textContent = d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+  var items = calvItems(calvSel);
+  var note = sbCols.events === false ? '<div class="req-banner" style="margin-bottom:10px"><i class="fas fa-circle-info"></i> Events switch on once the calendar SQL has run in Supabase.</div>' : '';
+  if (!items.length) { el.innerHTML = note + '<div class="empty-state" style="padding:16px"><i class="fas fa-calendar"></i><p>Nothing on this day.</p></div>'; return; }
+  el.innerHTML = note + items.map(function(it){
+    return '<button class="calv-item' + (it.done ? ' done' : '') + '" style="border-left-color:' + it.color + '" ' + it.attr + '>'
+      + '<span class="calv-time">' + esc(it.time) + '</span>'
+      + '<span class="calv-item-main"><span class="calv-item-type" style="display:block;color:' + it.color + '">' + esc(it.type) + '</span>'
+      + '<span class="calv-item-title" style="display:block">' + esc(it.title) + '</span>'
+      + (it.sub ? '<span class="calv-item-sub" style="display:block">' + esc(it.sub) + '</span>' : '') + '</span></button>';
+  }).join('');
+}
+
 // ── Calendar events: meetings, opening-hours changes… (admins and shift managers manage them) ──
 var EV_KINDS = { meeting:{ label:'Meeting', icon:'fa-people-group' }, hours:{ label:'Opening hours', icon:'fa-store' }, event:{ label:'Event', icon:'fa-star' }, other:{ label:'Other', icon:'fa-thumbtack' } };
 var evPicked = [];
@@ -5930,7 +6111,7 @@ function evLoad() {
     var db = getDB(); sbCols.events = true; db.calEvents = (rows || []).map(evFromRow); saveDB(db);
   }).catch(function(){ sbCols.events = false; }).then(function(){
     var b = document.getElementById('btn-add-event'); if (b) b.style.display = canManageEvents() ? '' : 'none';
-    if (currentSection === 'reservations') renderCalendar();
+    if (currentSection === 'calendar') renderCalView();
   });
 }
 function evOnDay(dateStr) {
@@ -5945,20 +6126,6 @@ function evPeopleLabel(e) {
   var names = e.attendees.map(function(id){ var u = users.find(function(x){ return x.id === id; }); return u ? u.name.split(' ')[0] : null; }).filter(Boolean);
   if (!names.length) return '';
   return names.length <= 4 ? names.join(', ') : names.slice(0, 3).join(', ') + ' +' + (names.length - 3);
-}
-function renderDayEvents(dateStr) {
-  var el = document.getElementById('res-day-events'); if (!el) return;
-  var list = evOnDay(dateStr);
-  if (!list.length) { el.innerHTML = ''; return; }
-  el.innerHTML = '<div class="ev-list">' + list.map(function(e){
-    var k = EV_KINDS[e.kind] || EV_KINDS.other, who = evPeopleLabel(e);
-    return '<button class="ev-item k-' + esc(e.kind) + '" data-open-event="' + esc(e.id) + '">'
-      + '<span class="ev-ic"><i class="fas ' + k.icon + '"></i></span>'
-      + '<span class="ev-main"><span class="ev-when" style="display:block">' + esc(k.label) + ' · ' + esc(evWhen(e)) + (evIncludesMe(e) ? '<span class="ev-you">You</span>' : '') + '</span>'
-      + '<span class="ev-title" style="display:block">' + esc(e.title) + '</span>'
-      + ((who || e.notes) ? '<span class="ev-sub" style="display:block">' + (who ? '<i class="fas fa-user-group" style="margin-right:4px"></i>' + esc(who) : '') + (who && e.notes ? ' · ' : '') + esc(e.notes) + '</span>' : '')
-      + '</span></button>';
-  }).join('') + '</div>';
 }
 function evRenderPeople() {
   var box = document.getElementById('ev-people'); if (!box) return;
@@ -6003,7 +6170,7 @@ function evRecipients(e) {
 }
 function evDayLabel(dateStr) { return fmtDateShort(dateStr); }
 function evNotify(ids, title, e) {
-  sendPush(ids, title, evDayLabel(e.date) + ' · ' + evWhen(e) + (e.notes ? ' · ' + e.notes : ''), '/?open=reservations&date=' + e.date);
+  sendPush(ids, title, evDayLabel(e.date) + ' · ' + evWhen(e) + (e.notes ? ' · ' + e.notes : ''), '/?open=calendar&date=' + e.date);
 }
 function saveEvent() {
   if (!canManageEvents()) return;
@@ -6028,8 +6195,7 @@ function saveEvent() {
   req.then(function(){
     btn.disabled = false;
     db = getDB(); db.calEvents = (db.calEvents || []).filter(function(x){ return x.id !== e.id; }).concat([e]); saveDB(db);
-    closeModal('modal-event'); selectedCalendarDay = e.date;
-    calendarWeekStart = getMonday(new Date(e.date + 'T12:00:00')); renderCalendar();
+    closeModal('modal-event'); calvGoTo(e.date);
     var k = (EV_KINDS[e.kind] || EV_KINDS.other).label, now = evRecipients(e);
     if (!old) { evNotify(now, k + ': ' + e.title, e); toast('Event saved. ' + (now.length ? 'The people in it were notified.' : ''), 'success'); return; }
     var before = evRecipients(old), whenChanged = old.date !== e.date || old.allDay !== e.allDay || old.start !== e.start || old.end !== e.end || old.title !== e.title;
@@ -6037,7 +6203,7 @@ function saveEvent() {
     var removed = before.filter(function(x){ return now.indexOf(x) === -1; });
     if (added.length) evNotify(added, k + ': ' + e.title, e);
     if (whenChanged && kept.length) evNotify(kept, 'Changed: ' + e.title, e);
-    if (removed.length) sendPush(removed, 'No longer in: ' + old.title, evDayLabel(old.date) + ' · ' + evWhen(old), '/?open=reservations&date=' + old.date);
+    if (removed.length) sendPush(removed, 'No longer in: ' + old.title, evDayLabel(old.date) + ' · ' + evWhen(old), '/?open=calendar&date=' + old.date);
     toast('Event updated', 'success');
   }).catch(function(){ btn.disabled = false; toast('Not saved. Check the connection.', 'error'); });
 }
@@ -6047,8 +6213,8 @@ function deleteEvent() {
   if (!confirm('Delete \u201c' + e.title + '\u201d? The people in it get a cancellation notice.')) return;
   sbFetch('DELETE', 'cal_events', null, 'id=eq.' + encodeURIComponent(id)).then(function(){
     db = getDB(); db.calEvents = (db.calEvents || []).filter(function(x){ return x.id !== id; }); saveDB(db);
-    closeModal('modal-event'); renderCalendar();
-    sendPush(evRecipients(e), 'Cancelled: ' + e.title, evDayLabel(e.date) + ' · ' + evWhen(e), '/?open=reservations&date=' + e.date);
+    closeModal('modal-event'); renderCalView();
+    sendPush(evRecipients(e), 'Cancelled: ' + e.title, evDayLabel(e.date) + ' · ' + evWhen(e), '/?open=calendar&date=' + e.date);
     toast('Event deleted');
   }).catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
 }
@@ -6059,7 +6225,6 @@ function renderDayReservations(dateStr){
   var dnames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var mnames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('res-day-label').textContent=dnames[d.getDay()]+', '+mnames[d.getMonth()]+' '+d.getDate();
-  renderDayEvents(dateStr);
   var el=document.getElementById('res-day-list'); if(!el) return;
   if(res.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-calendar-xmark"></i><p>No reservations this day. Tap New to add one.</p></div>';return;}
   el.innerHTML=res.map(function(r){
@@ -9165,7 +9330,13 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-prev-week')) { prevWeek(); return; }
   if (t.closest('#btn-next-week')) { nextWeek(); return; }
   if (t.closest('#btn-add-reservation')) { openAddReservationModal(); return; }
-  if (t.closest('#btn-add-event')) { openEventModal(null, selectedCalendarDay); return; }
+  if (t.closest('#btn-add-event') || t.closest('#calv-day-add')) { openEventModal(null, calvSel); return; }
+  el = t.closest('[data-calv-day]'); if (el) { calvSel = el.dataset.calvDay; var cm = new Date(calvSel + 'T12:00:00'); if (cm.getMonth() !== calvMonth.getMonth()) { calvGoTo(calvSel); } else renderCalView(); if (window.innerWidth < 1024) { var ag = document.querySelector('.calv-day'); if (ag) ag.scrollIntoView({ behavior:'smooth', block:'start' }); } return; }
+  el = t.closest('[data-calv-filter]'); if (el) { calvOn[el.dataset.calvFilter] = !calvOn[el.dataset.calvFilter]; calvSaveFilters(); renderCalView(); return; }
+  el = t.closest('[data-calv-goto]'); if (el) { showSection(el.dataset.calvGoto); return; }
+  if (t.closest('#calv-prev')) { calvMonth = new Date(calvMonth.getFullYear(), calvMonth.getMonth() - 1, 1); calvSel = toDateStr(calvMonth); renderCalView(); calvLoad(); return; }
+  if (t.closest('#calv-next')) { calvMonth = new Date(calvMonth.getFullYear(), calvMonth.getMonth() + 1, 1); calvSel = toDateStr(calvMonth); renderCalView(); calvLoad(); return; }
+  if (t.closest('#calv-today')) { calvGoTo(toDateStr(new Date())); return; }
   el = t.closest('[data-open-event]'); if (el) { openEventModal(el.dataset.openEvent); return; }
   el = t.closest('[data-ev-person]'); if (el) { var pid = el.dataset.evPerson, pi = evPicked.indexOf(pid); if (pi === -1) evPicked.push(pid); else evPicked.splice(pi, 1); evRenderPeople(); return; }
   if (t.closest('#btn-save-event')) { saveEvent(); return; }
