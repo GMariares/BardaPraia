@@ -1492,15 +1492,15 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
             <span id="bb-today-date" style="font-size:11px;opacity:.7"></span>
           </div>
         </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <button class="btn btn-gold" style="flex:1;justify-content:center" id="btn-save-daily-entry"><i class="fas fa-save"></i> Save Daily Entry</button>
+          <button class="btn btn-secondary" id="btn-clear-daily"><i class="fas fa-eraser"></i> Clear</button>
+        </div>
         <div class="search-bar" style="margin-bottom:10px">
           <i class="fas fa-search"></i>
           <input type="text" placeholder="Search menu items..." id="bb-item-search" />
         </div>
         <div id="bb-menu-selector" style="margin-bottom:14px"></div>
-        <div style="display:flex;gap:10px;margin-bottom:14px">
-          <button class="btn btn-gold" style="flex:1;justify-content:center" id="btn-save-daily-entry"><i class="fas fa-save"></i> Save Daily Entry</button>
-          <button class="btn btn-secondary btn-sm btn-icon" id="btn-clear-daily"><i class="fas fa-rotate-left"></i></button>
-        </div>
         <div class="divider"></div>
         <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px">Selected Items</div>
         <div id="bb-selected-list"><div class="empty-state" style="padding:16px"><p>No items selected yet.</p></div></div>
@@ -3692,7 +3692,8 @@ function refreshSection(name) {
       if (res[0]) db.bbMenu = res[0].map(function(x){ return {id:x.id,name:x.name,price:parseFloat(x.price)||0,category:x.category}; });
       if (res[1]) db.bbEntries = res[1].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],total:parseFloat(x.total)||0,savedAt:x.saved_at}; });
       saveDB(db);
-      if (currentSection === name) renderBlackBox();
+      var ae = document.activeElement;
+      if (currentSection === name && !(ae && ae.dataset && ae.dataset.bbQtyInput)) renderBlackBox();
     }).catch(function(){});
 
   } else if (name === 'finance') {
@@ -8065,7 +8066,6 @@ function switchBbTab(t){
   if(t==='records') renderBbRecords();
   if(t==='items') renderBbItemRecords();
   if(t==='menu') renderBbMenuManage();
-  refreshSection('blackbox');
 }
 function loadBbEntryForDate(dateStr){
   var db=getDB();
@@ -8107,12 +8107,22 @@ function renderBbMenuSelector(){
       +'</div>'
       +'<div class="bb-qty-ctrl" style="flex-shrink:0">'
         +'<button class="bb-qty-btn bb-qty-minus" data-bb-minus="'+esc(item.id)+'" style="'+(qty===0?'opacity:.3':'')+'">-</button>'
-        +'<input type="number" class="bb-qty-val bb-qty-input" data-bb-qty-input="'+esc(item.id)+'" value="'+qty+'" min="0" step="1" />'
+        +'<input type="number" inputmode="numeric" class="bb-qty-val bb-qty-input" data-bb-qty-input="'+esc(item.id)+'" value="'+(qty||'')+'" placeholder="0" min="0" step="1" />'
         +'<button class="bb-qty-btn bb-qty-plus" data-bb-plus="'+esc(item.id)+'">+</button>'
       +'</div>'
       +'<div class="bb-price">'+fmtEur(item.price)+'</div>'
     +'</div>';
   }).join('');
+}
+// one item's quantity changed: refresh its row, the selected list and the total
+function bbQtyChanged(id){
+  var qty=bbSelectedItems[id]||0;
+  document.querySelectorAll('[data-bb-qty-input]').forEach(function(inp){
+    if(inp.dataset.bbQtyInput!==id) return;
+    if(document.activeElement!==inp) inp.value=qty||'';
+    var minus=inp.parentNode.querySelector('[data-bb-minus]'); if(minus) minus.style.opacity=qty===0?'.3':'';
+  });
+  renderBbSelectedList(); updateBbTotal();
 }
 function renderBbSelectedList(){
   var db=getDB();
@@ -8140,7 +8150,13 @@ function updateBbTotal(){
 function saveDailyEntry(){
   var db=getDB();
   var selected=Object.keys(bbSelectedItems).filter(function(id){return bbSelectedItems[id]>0;});
-  if(selected.length===0){toast('Select at least one item!','error');return;}
+  var dateInp0=document.getElementById('bb-entry-date');
+  var date0=(dateInp0&&dateInp0.value)?dateInp0.value:toDateStr(new Date());
+  if(selected.length===0){
+    var had=(db.bbEntries||[]).some(function(e){return e.date===date0;});
+    if(!had){toast('Nothing to save for '+fmtDateShort(date0)+'.','error');return;}
+    if(!confirm('Save '+fmtDateShort(date0)+' as blank (\u20ac0)? This replaces what was saved for that day.')) return;
+  }
   var items=selected.map(function(id){
     var item=db.bbMenu.find(function(i){return i.id===id;});
     return{id:id,name:item?item.name:'?',price:item?item.price:0,qty:bbSelectedItems[id],subtotal:(item?item.price:0)*bbSelectedItems[id]};
@@ -8157,17 +8173,23 @@ function saveDailyEntry(){
   if(diReset) diReset.dataset.bbLoadedDate='';
   renderBbDaily(); renderBbRecords();
   // Use proper upsert header to handle both insert and update
-  fetch(SB_URL+'/rest/v1/bb_entries', {
+  // one row per date: upsert on the date so re-saving a day replaces it
+  fetch(SB_URL+'/rest/v1/bb_entries?on_conflict=date', {
     method:'POST',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
     body:JSON.stringify({date:entryDate,items:items,total:total,saved_at:new Date().toISOString()})
-  }).then(function(){ toast('Entry saved for '+entryDate+'! '+fmtEur(total),'gold'); }).catch(function(){ toast('Saved locally only','error'); });
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast(items.length?'Entry saved for '+entryDate+'! '+fmtEur(total):'Saved '+entryDate+' as blank','gold');
+  }).catch(function(){ toast('Could not save to the database \u2014 try again','error'); });
 }
 function clearDailyEntry(){
   bbSelectedItems={};
-  var dateInpEl=document.getElementById('bb-entry-date');
-  if(dateInpEl) dateInpEl.dataset.bbLoadedDate='';
-  renderBbDaily(); toast('Cleared.');
+  renderBbMenuSelector(); renderBbSelectedList(); updateBbTotal();
+  var dateInp=document.getElementById('bb-entry-date');
+  var d=(dateInp&&dateInp.value)?dateInp.value:toDateStr(new Date());
+  var saved=(getDB().bbEntries||[]).some(function(e){return e.date===d&&(e.items||[]).length;});
+  toast(saved?'List cleared. Press Save to make '+fmtDateShort(d)+' blank.':'List cleared.');
 }
 function renderBbRecords(){
   var db=getDB();
@@ -8731,15 +8753,15 @@ document.addEventListener('click', function(e) {
 
   // Black Box tabs
   el = t.closest('[data-bb-tab]');
-  if (el) { switchBbTab(el.dataset.bbTab); return; }
+  if (el) { switchBbTab(el.dataset.bbTab); refreshSection('blackbox'); return; }
   if (t.closest('#btn-save-daily-entry')) { saveDailyEntry(); return; }
   if (t.closest('#btn-clear-daily')) { clearDailyEntry(); return; }
   if (t.closest('#btn-add-bb-item')) { openAddBbItemModal(); return; }
   if (t.closest('#btn-save-bb-item')) { saveBbItem(); return; }
   el = t.closest('[data-bb-minus]');
-  if (el) { var bid=el.dataset.bbMinus; if(bbSelectedItems[bid]&&bbSelectedItems[bid]>0){bbSelectedItems[bid]--;if(bbSelectedItems[bid]===0) delete bbSelectedItems[bid];} renderBbMenuSelector(); renderBbSelectedList(); updateBbTotal(); return; }
+  if (el) { var bid=el.dataset.bbMinus; if(bbSelectedItems[bid]&&bbSelectedItems[bid]>0){bbSelectedItems[bid]--;if(bbSelectedItems[bid]===0) delete bbSelectedItems[bid];} bbQtyChanged(bid); return; }
   el = t.closest('[data-bb-plus]');
-  if (el) { var bid2=el.dataset.bbPlus; bbSelectedItems[bid2]=(bbSelectedItems[bid2]||0)+1; renderBbMenuSelector(); renderBbSelectedList(); updateBbTotal(); return; }
+  if (el) { var bid2=el.dataset.bbPlus; bbSelectedItems[bid2]=(bbSelectedItems[bid2]||0)+1; bbQtyChanged(bid2); return; }
   el = t.closest('[data-edit-bb-item]');
   if (el) { openAddBbItemModal(el.dataset.editBbItem); return; }
   el = t.closest('[data-delete-bb-item]');
@@ -8863,7 +8885,7 @@ document.addEventListener('input', function(e) {
     var qval=parseInt(t.value,10);
     if(isNaN(qval)||qval<0) qval=0;
     if(qval===0) delete bbSelectedItems[qid]; else bbSelectedItems[qid]=qval;
-    renderBbSelectedList(); updateBbTotal();
+    bbQtyChanged(qid);
   }
   // Finance live total update
   if (['fin-t51','fin-multibanco','fin-invoiced','fin-gen-expenses','fin-cash-notes','fin-coins'].indexOf(t.id) !== -1) { updateFinDayTotal(); }
@@ -8875,6 +8897,16 @@ document.addEventListener('input', function(e) {
     if(dateInpEl2) dateInpEl2.dataset.bbLoadedDate='';
     renderBbDaily();
   }
+});
+// Black Box: tapping a quantity selects it, so typing replaces the number
+document.addEventListener('focusin', function(e) {
+  var t = e.target;
+  if (t && t.dataset && t.dataset.bbQtyInput) { t._bbJustFocused = true; try { t.select(); } catch (er) {} }
+});
+// the tap that focused the box would otherwise drop the selection, so select again once it finishes
+document.addEventListener('click', function(e) {
+  var t = e.target;
+  if (t && t.dataset && t.dataset.bbQtyInput && t._bbJustFocused) { t._bbJustFocused = false; try { t.select(); } catch (er) {} }
 });
 document.addEventListener('change', function(e) {
   var t = e.target;
