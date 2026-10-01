@@ -283,6 +283,23 @@ app.post('/api/push/send', async (c) => {
       return c.json({ error: 'Missing userIds or title' }, 400)
     }
 
+    // Keep a copy in each person's inbox (Home → Notifications), also for people with no
+    // device registered or who are logged off. Tests are not kept. Needs the service key.
+    let stored = 0
+    if (tag !== 'bardapraia-test' && cfg.SB_SERVICE_KEY) {
+      const rows = [...new Set(userIds as unknown[])].filter((id): id is string => typeof id === 'string' && !!id).map(id => ({
+        user_id: id,
+        title: String(title).slice(0, 200),
+        body: String(body || '').slice(0, 1000),
+        url: typeof url === 'string' && url.startsWith('/') ? url.slice(0, 300) : '/'
+      }))
+      try {
+        const r = await fetch(`${SB_URL}/rest/v1/notifications`, { method: 'POST', headers: { ...dbHeaders(cfg), 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(rows) })
+        if (r.ok) stored = rows.length
+        else console.log('[Inbox] not stored: HTTP ' + r.status + ' ' + (await r.text()).slice(0, 160))
+      } catch (e: any) { console.log('[Inbox] not stored: ' + e.message) }
+    }
+
     // Fetch subscriptions for given users — use in.() filter (correct PostgREST syntax)
     const idList = userIds.map((id: string) => encodeURIComponent(id)).join(',')
     const subUrl = `${SB_URL}/rest/v1/push_subscriptions?user_id=in.(${idList})&select=endpoint,p256dh,auth`
@@ -290,7 +307,7 @@ app.post('/api/push/send', async (c) => {
     const subBody = await subRes.text()
     if (!subRes.ok) return c.json({ error: 'Failed to fetch subscriptions', detail: subBody }, 500)
     const subs: any[] = JSON.parse(subBody)
-    if (!subs.length) return c.json({ sent: 0, message: 'No subscriptions found for userIds', userIds })
+    if (!subs.length) return c.json({ sent: 0, stored, message: 'No subscriptions found for userIds', userIds })
 
     // Build VAPID JWT
     const vapidJwt = await buildVapidJwt(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
@@ -345,7 +362,7 @@ app.post('/api/push/send', async (c) => {
       }
     }))
 
-    return c.json({ sent, total: subs.length, errors })
+    return c.json({ sent, stored, total: subs.length, errors })
   } catch (e: any) {
     return c.json({ error: e.message }, 500)
   }

@@ -268,13 +268,25 @@ CREATE TABLE IF NOT EXISTS shopping_items (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Notifications inbox (written by the server; per-person policies in migrations/2026-10-01-m-notifications-inbox.sql)
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT DEFAULT '',
+  url TEXT DEFAULT '/',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  read_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS notifications_user_created ON notifications (user_id, created_at DESC);
+
 -- Row Level Security: open access with the anon key (the app does its own login)
 DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items']
+                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items','notifications']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);
