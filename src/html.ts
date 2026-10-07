@@ -817,6 +817,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .acc-table td.neg { color:var(--red); }
     .acc-table .acc-empty { text-align:center; color:var(--slate-500); padding:18px; }
     .acc-hist td, .acc-hist th { border-bottom:1px solid var(--slate-100); }
+    .acc-table .acc-ref { color:var(--slate-500); }
+    .acc-table th small { font-weight:600; text-transform:none; letter-spacing:0; }
     .acc-src { font-size:10px; font-weight:700; color:var(--slate-500); background:var(--slate-50); border-radius:4px; padding:1px 5px; margin-left:4px; text-transform:uppercase; letter-spacing:.04em; }
     .acc-note { font-size:12.5px; color:var(--slate-500); margin:0 2px 12px; line-height:1.45; }
     .acc-months { display:flex; gap:4px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
@@ -7878,7 +7880,8 @@ function accRevenue(y, m) {
   var fin = (getDB().finEntries || []).filter(function(e){ return e.date && e.date.slice(0, 7) === ym; });
   if (fin.length) {
     var day = accSum(fin, 'totalDay'), surf = accSum(fin, 'surf');
-    return { day: day, surf: surf, total: day + surf, source: 'closes', days: fin.length, genExp: accSum(fin, 'genExpenses') };
+    // Surf is shown for reference but is not part of the bar's revenue
+    return { day: day, surf: surf, total: day, source: 'closes', days: fin.length, genExp: accSum(fin, 'genExpenses') };
   }
   var imp = accRows(y, 'revenue', m), lines = {};
   imp.forEach(function(e){ lines[e.line] = (lines[e.line] || 0) + e.amount; });
@@ -8008,7 +8011,7 @@ function accSummaryHTML() {
   h += '<div class="acc-card"><div class="fin-chart" id="acc-chart"></div></div>';
   var rowsDef = [
     ['Revenue', function(t){ return t.rev.total; }, 'strong'],
-    [' of which Surf', function(t){ return t.rev.surf; }, 'sub', function(){ return tot.surf > 0; }],
+    [' Surf (not in revenue)', function(t){ return t.rev.surf; }, 'sub', function(){ return tot.surf > 0; }],
     ['Staff', function(t){ return t.staff; }],
     ['Suppliers', function(t){ return t.suppliers; }],
     ['Fixed costs', function(t){ return t.fixed; }],
@@ -8054,17 +8057,17 @@ function drawAccChart(el) {
 }
 
 function accRevenueHTML() {
-  var h = '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th>Month</th><th>Total of the day</th><th>Surf</th><th>Revenue</th><th>Days</th><th>' + (accYear - 1) + '</th><th>Change</th></tr></thead><tbody>';
-  var ty = 0, tp = 0, any = false;
+  var h = '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th>Month</th><th>Total of the day</th><th>Revenue</th><th>Surf <small>(not in revenue)</small></th><th>Days</th><th>' + (accYear - 1) + '</th><th>Change</th></tr></thead><tbody>';
+  var ty = 0, tp = 0, ts = 0, any = false;
   for (var m = 1; m <= 12; m++) {
     var r = accRevenue(accYear, m), p = accRevenue(accYear - 1, m).total;
-    if (!r.total && !p) continue; any = true; ty += r.total; tp += p;
+    if (!r.total && !p && !r.surf) continue; any = true; ty += r.total; tp += p; ts += r.surf;
     var src = r.source === 'imported' ? ' <span class="acc-src" title="' + esc(Object.keys(r.lines).map(function(k){ return k + ' ' + accEur(r.lines[k]); }).join(' · ')) + '">imported</span>' : '';
-    h += '<tr><th>' + MONTH_NAMES[m - 1] + src + '</th><td>' + (r.total ? accEur0(r.day) : '—') + '</td><td>' + (r.surf ? accEur0(r.surf) : '—') + '</td><td><b>' + (r.total ? accEur0(r.total) : '—') + '</b></td><td>' + (r.days || '—') + '</td><td>' + (p ? accEur0(p) : '—') + '</td><td>' + (p && r.total ? ((r.total >= p ? '+' : '') + Math.round((r.total - p) / p * 100) + '%') : '—') + '</td></tr>';
+    h += '<tr><th>' + MONTH_NAMES[m - 1] + src + '</th><td>' + (r.total ? accEur0(r.day) : '—') + '</td><td><b>' + (r.total ? accEur0(r.total) : '—') + '</b></td><td class="acc-ref">' + (r.surf ? accEur0(r.surf) : '—') + '</td><td>' + (r.days || '—') + '</td><td>' + (p ? accEur0(p) : '—') + '</td><td>' + (p && r.total ? ((r.total >= p ? '+' : '') + Math.round((r.total - p) / p * 100) + '%') : '—') + '</td></tr>';
   }
   if (!any) h += '<tr><td colspan="7" class="acc-empty">No revenue recorded in ' + accYear + '.</td></tr>';
-  h += '<tr class="strong"><th>Year</th><td></td><td></td><td>' + accEur0(ty) + '</td><td></td><td>' + (tp ? accEur0(tp) : '—') + '</td><td></td></tr></tbody></table></div>';
-  h += '<p class="acc-note">Revenue is the daily close in Finance: Total of the day (Invoiced + T51) plus Surf. Months without closes use the imported sales (Caixa 1 + Caixa FCP).</p>';
+  h += '<tr class="strong"><th>Year</th><td></td><td>' + accEur0(ty) + '</td><td class="acc-ref">' + (ts ? accEur0(ts) : '—') + '</td><td></td><td>' + (tp ? accEur0(tp) : '—') + '</td><td></td></tr></tbody></table></div>';
+  h += '<p class="acc-note">Revenue is the daily close in Finance: Total of the day (Invoiced + T51). Surf is shown for reference only and is not added to revenue. Months without closes use the imported sales (Caixa 1 + Caixa FCP).</p>';
   var hist = accCfg().history.slice().sort(function(a, b){ return a.year - b.year; });
   var yearsSeen = hist.map(function(x){ return x.year; });
   [accYear - 1, accYear].forEach(function(yy){ if (yearsSeen.indexOf(yy) === -1) { var s = 0; for (var mm = 1; mm <= 12; mm++) s += accRevenue(yy, mm).total; if (s > 0) hist.push({ year: yy, total: s, live: true }); } });
