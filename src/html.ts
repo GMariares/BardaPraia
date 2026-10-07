@@ -819,6 +819,33 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .acc-hist td, .acc-hist th { border-bottom:1px solid var(--slate-100); }
     .acc-table .acc-ref { color:var(--slate-500); }
     .acc-table th small { font-weight:600; text-transform:none; letter-spacing:0; }
+    /* invoices */
+    .inv-filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .inv-owed { margin-left:auto; font-size:13px; color:var(--slate-500); }
+    .inv-owed b { color:var(--red); font-size:15px; }
+    .inv-row { display:flex; align-items:center; gap:10px; width:100%; min-height:56px; padding:9px 12px; border-bottom:1px solid var(--slate-100); cursor:pointer; }
+    .inv-row:last-child { border-bottom:none; }
+    .inv-row:hover { background:var(--slate-50); }
+    .inv-main { flex:1; min-width:0; }
+    .inv-name { font-weight:700; font-size:14px; color:var(--slate-900); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .inv-sub { font-size:12px; color:var(--slate-500); margin-top:2px; }
+    .inv-sub.over { color:var(--red); font-weight:700; }
+    .inv-amt { text-align:right; font-variant-numeric:tabular-nums; flex-shrink:0; }
+    .inv-amt b { display:block; font-size:15px; }
+    .inv-amt small { font-size:11px; color:var(--slate-500); }
+    .inv-amt.owed b { color:var(--red); }
+    .inv-tick { width:44px; height:44px; border-radius:10px; border:var(--rule); background:var(--panel); color:var(--slate-300); font-size:20px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .inv-tick.on { background:var(--mint-50); border-color:var(--mint-200); color:var(--teal-700); }
+    .inv-pill { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:10px; }
+    .inv-pill.paid { background:var(--mint-50); color:var(--teal-700); border:1px solid var(--mint-200); }
+    .inv-pill.open { background:var(--amber-50); color:var(--amber-700); border:1px solid var(--amber-200); }
+    .inv-pill.over { background:var(--red-50); color:var(--red); border:1px solid #f1c2bb; }
+    .inv-photo-box { margin-bottom:12px; }
+    .inv-photo-box img { display:block; max-height:220px; max-width:100%; border-radius:10px; border:var(--rule); margin:0 auto 8px; }
+    .inv-photo-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .inv-warn { font-size:12px; color:var(--amber-700); background:var(--amber-50); border:1px solid var(--amber-200); border-radius:8px; padding:6px 10px; margin:0 0 10px; }
+    .inv-paid-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
+    .inv-back { display:inline-flex; align-items:center; gap:6px; }
     .acc-src { font-size:10px; font-weight:700; color:var(--slate-500); background:var(--slate-50); border-radius:4px; padding:1px 5px; margin-left:4px; text-transform:uppercase; letter-spacing:.04em; }
     .acc-note { font-size:12.5px; color:var(--slate-500); margin:0 2px 12px; line-height:1.45; }
     .acc-months { display:flex; gap:4px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
@@ -1355,6 +1382,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn" data-acc-tab="revenue"><i class="fas fa-arrow-trend-up"></i> Revenue</button>
         <button class="tab-btn" data-acc-tab="wages" id="acc-tab-wages-btn"><i class="fas fa-user-group"></i> Wages</button>
         <button class="tab-btn" data-acc-tab="suppliers"><i class="fas fa-truck"></i> Suppliers</button>
+        <button class="tab-btn" data-acc-tab="invoices"><i class="fas fa-file-invoice"></i> Invoices <span id="acc-inv-badge" class="shop-badge" style="display:none"></span></button>
         <button class="tab-btn" data-acc-tab="fixed"><i class="fas fa-house"></i> Fixed costs</button>
         <button class="tab-btn" data-acc-tab="expenses"><i class="fas fa-receipt"></i> Daily expenses</button>
       </div>
@@ -2234,6 +2262,38 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 </div>
 
 <!-- Reservation Detail -->
+<!-- Invoice (Accounting → Invoices) -->
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-file-invoice" style="color:var(--teal-600)"></i><span id="inv-modal-title">New invoice</span></h2>
+    <input type="hidden" id="inv-edit-id" />
+    <input type="file" id="inv-file" accept="image/*,application/pdf" style="display:none" />
+    <div id="inv-photo-box" class="inv-photo-box"></div>
+    <div class="form-row"><label class="label" for="inv-supplier">Supplier *</label><select class="select-field" id="inv-supplier"></select></div>
+    <div class="form-row" id="inv-new-supplier-row" style="display:none"><label class="label" for="inv-supplier-name">New supplier name *</label><input type="text" class="input-field" id="inv-supplier-name" placeholder="e.g. Bidfood" /></div>
+    <div class="form-grid-2" style="margin-bottom:10px">
+      <div style="min-width:0"><label class="label" for="inv-number">Invoice nº</label><input type="text" class="input-field" id="inv-number" placeholder="FT 2026/123" /></div>
+      <div style="min-width:0"><label class="label" for="inv-date">Date *</label><input type="date" class="input-field" id="inv-date" style="min-width:0" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:10px">
+      <div style="min-width:0"><label class="label" for="inv-due">Due date</label><input type="date" class="input-field" id="inv-due" style="min-width:0" /></div>
+      <div style="min-width:0"><label class="label" for="inv-total">Total with VAT *</label><input type="text" inputmode="decimal" class="input-field" id="inv-total" placeholder="0,00" /></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:10px">
+      <div style="min-width:0"><label class="label" for="inv-net">Without VAT</label><input type="text" inputmode="decimal" class="input-field" id="inv-net" placeholder="0,00" /></div>
+      <div style="min-width:0"><label class="label" for="inv-vat">VAT</label><input type="text" inputmode="decimal" class="input-field" id="inv-vat" placeholder="0,00" /></div>
+    </div>
+    <p class="inv-warn" id="inv-warn" style="display:none"></p>
+    <div class="inv-paid-row"><label class="ev-check"><input type="checkbox" id="inv-paid" /> Paid</label><input type="date" class="input-field" id="inv-paid-date" style="display:none;max-width:180px" aria-label="Paid on" /></div>
+    <div class="form-row" style="margin-bottom:14px"><label class="label" for="inv-notes">Notes</label><input type="text" class="input-field" id="inv-notes" placeholder="Optional" /></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" id="btn-save-invoice" style="flex:1;justify-content:center"><i class="fas fa-save"></i> Save</button>
+      <button class="btn btn-danger btn-icon" id="btn-delete-invoice" style="display:none" aria-label="Delete invoice"><i class="fas fa-trash"></i></button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-invoice">Cancel</button>
+    </div>
+  </div>
+</div>
 <!-- Calendar event (meeting, opening hours, …) -->
 <div class="modal-overlay" id="modal-event">
   <div class="modal">
@@ -2675,7 +2735,7 @@ function onAuthLost() { if (currentUser) { toast('Your session ended. Please log
 // Every call to our database or server carries the person's session (overrides window.fetch in this script)
 function fetch(url, opts) {
   var u = String(url || '');
-  var isDb = u.indexOf(SB_URL + '/rest/v1/') === 0;
+  var isDb = u.indexOf(SB_URL + '/rest/v1/') === 0 || u.indexOf(SB_URL + '/storage/v1/') === 0;
   var isApi = u.indexOf('/api/') === 0 && u.indexOf('/api/version') !== 0 && u.indexOf('/api/auth/status') !== 0;
   if (!isDb && !isApi) return rawFetch(url, opts);
   return authToken().then(function(tok){
@@ -3314,7 +3374,7 @@ function syncFromSupabase() {
         var cats=[];
         try { cats=Array.isArray(r.categories)?r.categories:(r.categories?JSON.parse(r.categories):[]); } catch(e){}
         return {
-          id: r.id, name: r.name, email: r.email||'', phone: r.phone||'',
+          id: r.id, name: r.name, email: r.email||'', phone: r.phone||'', nif: r.nif||'',
           totalSpend: parseFloat(r.total_spend)||0, sendEmail: !!r.send_email,
           categories: cats, createdAt: r.created_at
         };
@@ -6668,7 +6728,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null, invoices:null };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -7923,6 +7983,7 @@ function accMonthTotals(y, m) {
 function accLoad() {
   var y = accYear, yrs = [y - 1, y];
   var sync = document.getElementById('acc-sync-note');
+  invoicesLoad();
   return Promise.all([
     sbFetchAll('acc_entries', 'year=in.(' + yrs.join(',') + ')&order=id.asc').then(function(rows){ return rows || []; }),
     sbFetchAll('fin_entries', 'date=gte.' + (y - 1) + '-01-01&date=lte.' + y + '-12-31&order=date.asc,id.asc').catch(function(){ return null; }),
@@ -7969,6 +8030,232 @@ function accSetCell(kind, y, m, line, part, raw) {
     .then(function(){ renderAccounting(); }).catch(function(){ renderAccounting(); });
 }
 
+// ── Invoices: the supplier invoices with their photo, grouped by supplier, with a paid tick ──
+var invFilter = 'open', invSupplier = null, invFile = null, invFileUrl = '', invSaving = false;
+function invFromRow(r) {
+  return { id:r.id, supplierId:r.supplier_id||'', supplierName:r.supplier_name||'', supplierNif:r.supplier_nif||'', number:r.number||'', date:r.date, dueDate:r.due_date||'',
+    net:r.net==null?null:parseFloat(r.net), vat:r.vat==null?null:parseFloat(r.vat), total:parseFloat(r.total)||0, paid:!!r.paid, paidAt:r.paid_at||'', notes:r.notes||'',
+    photoPath:r.photo_path||'', source:r.source||'manual', createdAt:r.created_at||'' };
+}
+function invoicesLoad() {
+  if (!isAdmin) return Promise.resolve();
+  return sbFetchAll('invoices', 'order=date.desc,created_at.desc').then(function(rows){
+    var db = getDB(); sbCols.invoices = true; db.invoices = (rows || []).map(invFromRow); saveDB(db);
+  }).catch(function(){ sbCols.invoices = false; }).then(function(){
+    invUpdateBadge();
+    if (currentSection === 'accounting' && accTab === 'invoices') renderAccounting();
+  });
+}
+function invoices() { return getDB().invoices || []; }
+function invUpdateBadge() {
+  var b = document.getElementById('acc-inv-badge'); if (!b) return;
+  var n = invoices().filter(function(i){ return !i.paid; }).length;
+  b.textContent = n; b.style.display = n ? '' : 'none';
+}
+function invDateTxt(d) { if (!d) return ''; var x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : x.toLocaleDateString('pt-PT'); }
+function invIsOverdue(i) { return !i.paid && i.dueDate && i.dueDate < toDateStr(new Date()); }
+function invSupplierKey(i) { return i.supplierId || ('name:' + normName(i.supplierName)); }
+function invFiltered() {
+  return invoices().filter(function(i){ return invFilter === 'all' || (invFilter === 'paid' ? i.paid : !i.paid); });
+}
+function accInvoicesHTML() {
+  var all = invoices(), open = all.filter(function(i){ return !i.paid; }), owed = open.reduce(function(s, i){ return s + i.total; }, 0);
+  var h = '';
+  if (sbCols.invoices === false) h += '<div class="req-banner"><i class="fas fa-circle-info"></i> Invoices switch on once the invoices SQL has run in Supabase.</div>';
+  h += '<div class="acc-toolbar"><button class="btn btn-primary btn-sm" id="btn-inv-photo"><i class="fas fa-camera"></i> Photo / file</button>'
+    + '<button class="btn btn-secondary btn-sm" id="btn-inv-add"><i class="fas fa-plus"></i> Without photo</button></div>';
+  h += '<div class="inv-filters"><div class="fc-switch" role="tablist">'
+    + '<button class="' + (invFilter === 'open' ? 'active' : '') + '" data-inv-filter="open">To pay <span>' + open.length + '</span></button>'
+    + '<button class="' + (invFilter === 'paid' ? 'active' : '') + '" data-inv-filter="paid">Paid <span>' + (all.length - open.length) + '</span></button>'
+    + '<button class="' + (invFilter === 'all' ? 'active' : '') + '" data-inv-filter="all">All <span>' + all.length + '</span></button></div>'
+    + '<div class="inv-owed">Still to pay: <b>' + accEur(owed) + '</b></div></div>';
+  var list = invFiltered();
+  if (invSupplier) {
+    var mine = list.filter(function(i){ return invSupplierKey(i) === invSupplier; }).sort(function(a, b){ return String(b.date).localeCompare(String(a.date)); });
+    var any = all.filter(function(i){ return invSupplierKey(i) === invSupplier; });
+    var name = any.length ? any[0].supplierName : '', sOwed = any.filter(function(i){ return !i.paid; }).reduce(function(s, i){ return s + i.total; }, 0), sTot = any.reduce(function(s, i){ return s + i.total; }, 0);
+    h += '<div class="acc-toolbar"><button class="btn btn-secondary btn-sm inv-back" id="inv-back"><i class="fas fa-arrow-left"></i> Suppliers</button>'
+      + '<div class="acc-toolbar-title">' + esc(name) + ' <span>' + any.length + ' invoice' + (any.length === 1 ? '' : 's') + ' · ' + accEur(sTot) + (sOwed > 0 ? ' · <b style="color:var(--red)">' + accEur(sOwed) + ' to pay</b>' : '') + '</span></div></div>';
+    if (!mine.length) { h += '<div class="empty-state"><i class="fas fa-file-invoice"></i><p>No ' + (invFilter === 'paid' ? 'paid' : invFilter === 'open' ? 'unpaid' : '') + ' invoices for ' + esc(name) + '.</p></div>'; return h; }
+    h += '<div class="acc-card" style="padding:0">' + mine.map(function(i){
+      var over = invIsOverdue(i);
+      return '<div class="inv-row" data-inv-open="' + esc(i.id) + '" role="button" tabindex="0">'
+        + '<button class="inv-tick' + (i.paid ? ' on' : '') + '" data-inv-paid="' + esc(i.id) + '" aria-pressed="' + i.paid + '" title="' + (i.paid ? 'Paid' + (i.paidAt ? ' ' + invDateTxt(i.paidAt) : '') + ' — tap to undo' : 'Tap when paid') + '"><i class="fas ' + (i.paid ? 'fa-square-check' : 'fa-square') + '"></i></button>'
+        + '<div class="inv-main"><div class="inv-name">' + (i.number ? esc(i.number) : '<span style="color:var(--slate-500)">no number</span>') + (i.photoPath ? '<i class="fas fa-paperclip" style="color:var(--slate-400);font-size:12px"></i>' : '') + '</div>'
+        + '<div class="inv-sub' + (over ? ' over' : '') + '">' + invDateTxt(i.date) + (i.dueDate ? ' · due ' + invDateTxt(i.dueDate) + (over ? ' (overdue)' : '') : '') + (i.paid && i.paidAt ? ' · paid ' + invDateTxt(i.paidAt) : '') + '</div></div>'
+        + '<div class="inv-amt' + (i.paid ? '' : ' owed') + '"><b>' + accEur(i.total) + '</b>' + (i.net != null ? '<small>' + accEur(i.net) + ' + VAT ' + accEur(i.vat || 0) + '</small>' : '') + '</div></div>';
+    }).join('') + '</div>';
+    return h;
+  }
+  // grouped by supplier
+  var groups = {};
+  list.forEach(function(i){ var k = invSupplierKey(i); (groups[k] = groups[k] || { key:k, name:i.supplierName, n:0, total:0, owed:0, over:false, last:'' }); var g = groups[k]; g.n++; g.total += i.total; if (!i.paid) g.owed += i.total; if (invIsOverdue(i)) g.over = true; if (i.date > g.last) g.last = i.date; });
+  var gs = Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a, b){ return (b.owed - a.owed) || a.name.localeCompare(b.name); });
+  if (!gs.length) { h += '<div class="empty-state"><i class="fas fa-file-invoice"></i><p>' + (all.length ? 'Nothing ' + (invFilter === 'paid' ? 'paid yet' : 'left to pay') + '.' : 'No invoices yet. Tap Photo / file to add the first one.') + '</p></div>'; return h; }
+  h += '<div class="acc-card" style="padding:0">' + gs.map(function(g){
+    return '<div class="inv-row" data-inv-supplier="' + esc(g.key) + '" role="button" tabindex="0">'
+      + '<div class="inv-main"><div class="inv-name">' + esc(g.name) + (g.over ? '<span class="inv-pill over">Overdue</span>' : '') + '</div>'
+      + '<div class="inv-sub">' + g.n + ' invoice' + (g.n === 1 ? '' : 's') + (g.last ? ' · last ' + invDateTxt(g.last) : '') + '</div></div>'
+      + '<div class="inv-amt' + (g.owed > 0 ? ' owed' : '') + '"><b>' + accEur(g.owed > 0 ? g.owed : g.total) + '</b><small>' + (g.owed > 0 ? 'to pay' + (g.total > g.owed ? ' of ' + accEur(g.total) : '') : 'all paid') + '</small></div>'
+      + '<i class="fas fa-chevron-right" style="color:var(--slate-400)"></i></div>';
+  }).join('') + '</div>';
+  return h;
+}
+// photos: shrink on the phone before upload (a 12 MP photo becomes ~400 KB), PDFs go as they are
+function invCompress(file) {
+  if (!/^image\\//.test(file.type)) return Promise.resolve(file);
+  return new Promise(function(resolve){
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var max = 2400, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      var c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      c.toBlob(function(b){ resolve(b || file); }, 'image/jpeg', 0.82);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+function invUpload(path, blob) {
+  return fetch(SB_URL + '/storage/v1/object/invoices/' + path, { method:'POST', headers:{ 'Content-Type': blob.type || 'application/octet-stream', 'x-upsert':'true' }, body: blob })
+    .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error('Photo not uploaded (' + r.status + '): ' + t.slice(0, 120)); }); });
+}
+function invSignedUrl(path) {
+  return fetch(SB_URL + '/storage/v1/object/sign/invoices/' + path, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ expiresIn: 3600 }) })
+    .then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ return j && j.signedURL ? SB_URL + '/storage/v1' + j.signedURL : ''; }).catch(function(){ return ''; });
+}
+function invRemoveFile(path) {
+  if (!path) return Promise.resolve();
+  return fetch(SB_URL + '/storage/v1/object/invoices', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prefixes:[path] }) }).catch(function(){});
+}
+function invRenderPhotoBox(existingPath) {
+  var box = document.getElementById('inv-photo-box'); if (!box) return;
+  var btn = '<div class="inv-photo-actions"><button type="button" class="btn btn-secondary btn-sm" id="btn-inv-change-photo"><i class="fas fa-camera"></i> ' + (invFile || existingPath ? 'Change photo' : 'Add photo / file') + '</button>' + (invFile ? '<span class="acc-note" style="align-self:center">' + Math.round(invFile.size / 1024) + ' KB</span>' : '') + '</div>';
+  if (invFile) { box.innerHTML = (invFile.type === 'application/pdf' ? '<p class="acc-note"><i class="fas fa-file-pdf"></i> PDF attached</p>' : '<img src="' + invFileUrl + '" alt="Invoice photo" />') + btn; return; }
+  if (!existingPath) { box.innerHTML = btn; return; }
+  box.innerHTML = '<p class="acc-note">Loading photo…</p>' + btn;
+  invSignedUrl(existingPath).then(function(u){
+    var b2 = document.getElementById('inv-photo-box'); if (!b2 || document.getElementById('inv-edit-id').value !== invPhotoFor) return;
+    b2.innerHTML = (u ? (/\\.pdf$/i.test(existingPath) ? '<p><a class="btn btn-secondary btn-sm" href="' + esc(u) + '" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> Open PDF</a></p>' : '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="Invoice photo" /></a>') : '<p class="acc-note">Photo not available.</p>') + btn;
+  });
+}
+var invPhotoFor = '';
+function invSetFile(file) {
+  if (!file) return;
+  if (file.size > 25 * 1024 * 1024) { toast('That file is too big (max 25 MB)', 'error'); return; }
+  invCompress(file).then(function(blob){
+    invFile = blob; if (invFileUrl) URL.revokeObjectURL(invFileUrl); invFileUrl = blob.type === 'application/pdf' ? '' : URL.createObjectURL(blob);
+    if (!document.getElementById('modal-invoice').classList.contains('open')) openInvoiceModal(null, true);
+    else invRenderPhotoBox('');
+  });
+}
+function invSupplierOptions(selectedId, selectedName) {
+  var sup = (getDB().suppliers || []).slice().sort(function(a, b){ return a.name.localeCompare(b.name); });
+  var sel = selectedId && sup.some(function(s){ return s.id === selectedId; }) ? selectedId : (selectedName ? (sup.find(function(s){ return accSame(s.name, selectedName); }) || {}).id || '' : '');
+  return '<option value="">Choose…</option>' + sup.map(function(s){ return '<option value="' + esc(s.id) + '"' + (s.id === sel ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '<option value="__new__">＋ New supplier…</option>';
+}
+function openInvoiceModal(id, keepFile) {
+  var i = id ? invoices().find(function(x){ return x.id === id; }) : null;
+  if (!i && sbCols.invoices === false) { toast('Invoices switch on once the invoices SQL has run in Supabase', 'error'); return; }
+  if (!keepFile) { invFile = null; if (invFileUrl) URL.revokeObjectURL(invFileUrl); invFileUrl = ''; }
+  invPhotoFor = i ? i.id : '';
+  document.getElementById('inv-edit-id').value = i ? i.id : '';
+  document.getElementById('inv-modal-title').textContent = i ? 'Invoice' : 'New invoice';
+  document.getElementById('inv-supplier').innerHTML = invSupplierOptions(i ? i.supplierId : '', i ? i.supplierName : '');
+  document.getElementById('inv-new-supplier-row').style.display = 'none'; document.getElementById('inv-supplier-name').value = '';
+  if (i && !document.getElementById('inv-supplier').value) { document.getElementById('inv-supplier').value = '__new__'; document.getElementById('inv-new-supplier-row').style.display = ''; document.getElementById('inv-supplier-name').value = i.supplierName; }
+  document.getElementById('inv-number').value = i ? i.number : '';
+  document.getElementById('inv-date').value = i ? i.date : toDateStr(new Date());
+  document.getElementById('inv-due').value = i ? i.dueDate : '';
+  document.getElementById('inv-total').value = i && i.total ? accIn(i.total) : '';
+  document.getElementById('inv-net').value = i && i.net != null ? accIn(i.net) : '';
+  document.getElementById('inv-vat').value = i && i.vat != null ? accIn(i.vat) : '';
+  document.getElementById('inv-paid').checked = !!(i && i.paid);
+  var pd = document.getElementById('inv-paid-date'); pd.style.display = i && i.paid ? '' : 'none'; pd.value = i && i.paidAt ? i.paidAt : toDateStr(new Date());
+  document.getElementById('inv-notes').value = i ? i.notes : '';
+  document.getElementById('btn-delete-invoice').style.display = i ? '' : 'none';
+  document.getElementById('inv-warn').style.display = 'none';
+  invRenderPhotoBox(i ? i.photoPath : '');
+  invCheckAmounts();
+  openModal('modal-invoice');
+  if (!i) setTimeout(function(){ var el = document.getElementById(invFile ? 'inv-supplier' : 'inv-supplier'); if (el) el.focus(); }, 50);
+}
+// net + VAT = total: fill in whichever one is missing, warn when the three disagree
+function invAmt(id) { var v = document.getElementById(id).value.trim(); return v === '' ? null : accNum(v); }
+function invCheckAmounts(fromId) {
+  var net = invAmt('inv-net'), vat = invAmt('inv-vat'), tot = invAmt('inv-total'), w = document.getElementById('inv-warn');
+  var ok = function(v){ return v !== null && !isNaN(v); };
+  if (fromId) {
+    if (ok(net) && ok(vat) && !ok(tot)) document.getElementById('inv-total').value = accIn(net + vat);
+    else if (ok(net) && ok(tot) && !ok(vat) && fromId !== 'inv-vat') document.getElementById('inv-vat').value = accIn(tot - net);
+    else if (ok(vat) && ok(tot) && !ok(net) && fromId !== 'inv-net') document.getElementById('inv-net').value = accIn(tot - vat);
+    net = invAmt('inv-net'); vat = invAmt('inv-vat'); tot = invAmt('inv-total');
+  }
+  if (ok(net) && ok(vat) && ok(tot) && Math.abs(net + vat - tot) > 0.02) { w.textContent = 'Without VAT + VAT = ' + accEur(net + vat) + ', but the total says ' + accEur(tot) + '. Check the figures.'; w.style.display = ''; }
+  else w.style.display = 'none';
+}
+function invEnsureSupplier() {
+  var sel = document.getElementById('inv-supplier').value;
+  if (sel && sel !== '__new__') { var s = (getDB().suppliers || []).find(function(x){ return x.id === sel; }); return Promise.resolve(s ? { id:s.id, name:s.name, nif:s.nif || '' } : null); }
+  var name = document.getElementById('inv-supplier-name').value.trim(); if (!name) return Promise.resolve(null);
+  var db = getDB(), existing = (db.suppliers || []).find(function(x){ return accSame(x.name, name); });
+  if (existing) return Promise.resolve({ id:existing.id, name:existing.name, nif:existing.nif || '' });
+  var row = { id:uid(), name:name, email:'', phone:'', send_email:false, categories:[], total_spend:0 };
+  return sbFetch('POST', 'suppliers', row).then(function(rows){
+    var id = rows && rows[0] ? rows[0].id : row.id;
+    db = getDB(); db.suppliers = (db.suppliers || []).concat([{ id:id, name:name, email:'', phone:'', nif:'', sendEmail:false, categories:[], totalSpend:0, createdAt:new Date().toISOString() }]); saveDB(db);
+    if (typeof updateAllDropdowns === 'function') updateAllDropdowns();
+    return { id:id, name:name, nif:'' };
+  });
+}
+function saveInvoice() {
+  if (invSaving) return;
+  var id = document.getElementById('inv-edit-id').value, old = id ? invoices().find(function(x){ return x.id === id; }) : null;
+  var date = document.getElementById('inv-date').value, tot = invAmt('inv-total'), net = invAmt('inv-net'), vat = invAmt('inv-vat');
+  if (!document.getElementById('inv-supplier').value || (document.getElementById('inv-supplier').value === '__new__' && !document.getElementById('inv-supplier-name').value.trim())) { toast('Choose the supplier', 'error'); return; }
+  if (!date) { toast('Pick the invoice date', 'error'); return; }
+  if (tot === null || isNaN(tot) || tot < 0) { toast('Type the total with VAT', 'error'); return; }
+  if ((net !== null && isNaN(net)) || (vat !== null && isNaN(vat))) { toast('Check the amounts', 'error'); return; }
+  var paid = document.getElementById('inv-paid').checked, paidAt = paid ? (document.getElementById('inv-paid-date').value || toDateStr(new Date())) : null;
+  var btn = document.getElementById('btn-save-invoice'); invSaving = true; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (invFile ? 'Uploading…' : 'Saving…');
+  var newId = id || uid(), path = old ? old.photoPath : '';
+  invEnsureSupplier().then(function(sup){
+    if (!sup) throw new Error('Choose the supplier');
+    var up = Promise.resolve();
+    if (invFile) { path = date.slice(0, 4) + '/' + date.slice(5, 7) + '/' + newId + (invFile.type === 'application/pdf' ? '.pdf' : '.jpg'); up = invUpload(path, invFile); }
+    return up.then(function(){
+      var row = { supplier_id:sup.id, supplier_name:sup.name, supplier_nif:sup.nif || (old ? old.supplierNif : ''), number:document.getElementById('inv-number').value.trim(), date:date,
+        due_date:document.getElementById('inv-due').value || null, net:net === null ? null : Math.round(net * 100) / 100, vat:vat === null ? null : Math.round(vat * 100) / 100, total:Math.round(tot * 100) / 100,
+        paid:paid, paid_at:paidAt, notes:document.getElementById('inv-notes').value.trim(), photo_path:path, updated_at:new Date().toISOString() };
+      if (old) return sbFetch('PATCH', 'invoices', row, 'id=eq.' + encodeURIComponent(id)).then(function(rows){ return rows && rows[0] ? rows[0] : Object.assign({ id:id, created_at:old.createdAt }, row); });
+      row.id = newId; row.source = 'manual'; row.created_by = currentUser ? currentUser.name : '';
+      return sbFetch('POST', 'invoices', row).then(function(rows){ return rows && rows[0] ? rows[0] : Object.assign({ created_at:new Date().toISOString() }, row); });
+    }).then(function(saved){
+      if (old && invFile && old.photoPath && old.photoPath !== path) invRemoveFile(old.photoPath);
+      var db = getDB(); db.invoices = (db.invoices || []).filter(function(x){ return x.id !== saved.id; }).concat([invFromRow(saved)]); saveDB(db);
+      invFile = null; if (invFileUrl) URL.revokeObjectURL(invFileUrl); invFileUrl = '';
+      closeModal('modal-invoice'); invUpdateBadge(); renderAccounting();
+      toast(old ? 'Invoice updated' : 'Invoice saved under ' + sup.name, 'success');
+    });
+  }).catch(function(e){ toast(e && e.message ? e.message : 'Not saved. Check the connection.', 'error'); })
+    .then(function(){ invSaving = false; btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; });
+}
+function invSetPaid(id, on) {
+  var db = getDB(), i = (db.invoices || []).find(function(x){ return x.id === id; }); if (!i) return;
+  var patch = { paid:on, paid_at:on ? toDateStr(new Date()) : null, updated_at:new Date().toISOString() };
+  i.paid = on; i.paidAt = patch.paid_at || ''; saveDB(db); invUpdateBadge(); renderAccounting();
+  sbFetch('PATCH', 'invoices', patch, 'id=eq.' + encodeURIComponent(id)).catch(function(){ toast('Not saved. Check the connection.', 'error'); invoicesLoad(); });
+}
+function deleteInvoice() {
+  var id = document.getElementById('inv-edit-id').value, i = invoices().find(function(x){ return x.id === id; }); if (!i) return;
+  if (!confirm('Delete this invoice' + (i.number ? ' (' + i.number + ')' : '') + ' from ' + i.supplierName + '? The photo is deleted too.')) return;
+  sbFetch('DELETE', 'invoices', null, 'id=eq.' + encodeURIComponent(id)).then(function(){
+    invRemoveFile(i.photoPath);
+    var db = getDB(); db.invoices = (db.invoices || []).filter(function(x){ return x.id !== id; }); saveDB(db);
+    closeModal('modal-invoice'); invUpdateBadge(); renderAccounting(); toast('Invoice deleted');
+  }).catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
+}
+
 // ── screen ──
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
@@ -7979,7 +8266,7 @@ function renderAccounting() {
   document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
   var body = document.getElementById('acc-body');
   if (accTab === 'foodcost') accTab = 'summary';
-  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
+  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
   body.innerHTML = html;
   if (accTab === 'summary') { var ch = document.getElementById('acc-chart'); if (ch) drawAccChart(ch); }
 }
@@ -9598,6 +9885,16 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-secure-migrate')) { runSecureMigrate(); return; }
   // Accounting
   el = t.closest('[data-acc-tab]'); if (el) { accTab = el.dataset.accTab; renderAccounting(); return; }
+  // Invoices
+  if (t.closest('#btn-inv-photo') || t.closest('#btn-inv-change-photo')) { var fi = document.getElementById('inv-file'); if (fi) { fi.value = ''; fi.click(); } return; }
+  if (t.closest('#btn-inv-add')) { openInvoiceModal(null); return; }
+  el = t.closest('[data-inv-filter]'); if (el) { invFilter = el.dataset.invFilter; renderAccounting(); return; }
+  el = t.closest('[data-inv-paid]'); if (el) { var pi = invoices().find(function(x){ return x.id === el.dataset.invPaid; }); if (pi) invSetPaid(pi.id, !pi.paid); return; }
+  el = t.closest('[data-inv-open]'); if (el) { openInvoiceModal(el.dataset.invOpen); return; }
+  el = t.closest('[data-inv-supplier]'); if (el) { invSupplier = el.dataset.invSupplier; renderAccounting(); window.scrollTo(0, 0); return; }
+  if (t.closest('#inv-back')) { invSupplier = null; renderAccounting(); return; }
+  if (t.closest('#btn-save-invoice')) { saveInvoice(); return; }
+  if (t.closest('#btn-delete-invoice')) { deleteInvoice(); return; }
   el = t.closest('[data-acc-month]'); if (el) { accMonth = +el.dataset.accMonth; renderAccounting(); return; }
   if (t.closest('#acc-year-prev') || t.closest('#acc-year-next')) { accYear += t.closest('#acc-year-prev') ? -1 : 1; renderAccounting(); accLoad(); return; }
   el = t.closest('[data-acc-open]'); if (el) { var ao = el.dataset.accOpen.split('|'); openAccLedger(ao[0], ao.slice(1).join('|')); return; }
@@ -9705,6 +10002,9 @@ document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.id === 'ev-allday') evSyncTimes();
+  if (t.id === 'inv-file' && t.files && t.files[0]) invSetFile(t.files[0]);
+  if (t.id === 'inv-supplier') document.getElementById('inv-new-supplier-row').style.display = t.value === '__new__' ? '' : 'none';
+  if (t.id === 'inv-paid') { var ipd = document.getElementById('inv-paid-date'); ipd.style.display = t.checked ? '' : 'none'; if (t.checked && !ipd.value) ipd.value = toDateStr(new Date()); }
   if (t.id === 'ev-everyone') evRenderPeople();
   if (t.name === 'req-kind') { reqKindChanged(); }
   if (t.dataset && t.dataset.fcLineItem !== undefined) {
@@ -9723,6 +10023,7 @@ document.addEventListener('change', function(e) {
     renderFcTotals();
   }
   if (t.id === 'fc-dish-price' || t.id === 'fc-dish-vat' || t.id === 'fc-dish-portions') renderFcTotals();
+  if (t.id === 'inv-net' || t.id === 'inv-vat' || t.id === 'inv-total') invCheckAmounts(t.id);
   if (t.dataset && t.dataset.accCell) {
     var ac = t.dataset.accCell.split('|');   // kind|line|part|month
     accSetCell(ac[0], accYear, ac[3] ? +ac[3] : accMonth, ac[1], ac[2] || '', t.value);

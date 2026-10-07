@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
   total_spend NUMERIC DEFAULT 0,
   send_email BOOLEAN DEFAULT false,
   categories JSONB DEFAULT '[]'::jsonb,
+  nif TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -288,6 +289,29 @@ CREATE TABLE IF NOT EXISTS cal_events (
 );
 CREATE INDEX IF NOT EXISTS cal_events_date ON cal_events (date);
 
+-- Supplier invoices with photo (policies and the storage bucket in migrations/2026-10-07-o-invoices.sql)
+CREATE TABLE IF NOT EXISTS invoices (
+  id TEXT PRIMARY KEY,
+  supplier_id TEXT DEFAULT '',
+  supplier_name TEXT NOT NULL DEFAULT '',
+  supplier_nif TEXT DEFAULT '',
+  number TEXT DEFAULT '',
+  date DATE NOT NULL,
+  due_date DATE,
+  net NUMERIC,
+  vat NUMERIC,
+  total NUMERIC NOT NULL DEFAULT 0,
+  paid BOOLEAN NOT NULL DEFAULT false,
+  paid_at DATE,
+  notes TEXT DEFAULT '',
+  photo_path TEXT DEFAULT '',
+  source TEXT DEFAULT 'manual',
+  created_by TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS invoices_supplier ON invoices (supplier_id, date DESC);
+
 -- Notifications inbox (written by the server; per-person policies in migrations/2026-10-01-m-notifications-inbox.sql)
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -306,7 +330,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items','notifications','cal_events']
+                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items','notifications','cal_events','invoices']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);
