@@ -7992,10 +7992,16 @@ function accWages(y, m) {
     return { person: p, parts: parts, total: total };
   }).sort(function(a, b){ return a.person.localeCompare(b.person); });
 }
+// Invoices (Accounting → Invoices) count as supplier costs in the month of the invoice date,
+// matched to the supplier line by name. Ones still needing attention have no supplier yet.
+function accInvoicesIn(y, m, name) {
+  var ym = y + '-' + String(m).padStart(2, '0');
+  return invoices().filter(function(i){ return !i.review && i.supplierName && String(i.date).slice(0, 7) === ym && (!name || accSame(i.supplierName, name)); });
+}
 function accMonthTotals(y, m) {
   var rev = accRevenue(y, m);
   var staff = accSum(accWages(y, m), 'total');
-  var suppliers = accSum(accRows(y, 'supplier', m), 'amount');
+  var suppliers = accSum(accRows(y, 'supplier', m), 'amount') + accSum(accInvoicesIn(y, m), 'total');
   var fixed = accSum(accRows(y, 'fixed', m), 'amount');
   var expenses = accSum(accRows(y, 'expense', m), 'amount') + (rev.genExp || 0);
   var costs = staff + suppliers + fixed + expenses;
@@ -8066,7 +8072,7 @@ function invoicesLoad() {
     var db = getDB(); sbCols.invoices = true; db.invoices = (rows || []).map(invFromRow); saveDB(db);
   }).catch(function(){ sbCols.invoices = false; }).then(function(){
     invUpdateBadge();
-    if (currentSection === 'accounting' && accTab === 'invoices') renderAccounting();
+    if (currentSection === 'accounting') renderAccounting();
   });
 }
 function invoices() { return getDB().invoices || []; }
@@ -8578,7 +8584,7 @@ function accWagesHTML() {
 function accLedgerNames(kind) {
   var names = [];
   var push = function(n){ n = String(n || '').trim(); if (n && !names.some(function(x){ return accSame(x, n); })) names.push(n); };
-  if (kind === 'supplier') (getDB().suppliers || []).forEach(function(s){ push(s.name); });
+  if (kind === 'supplier') { (getDB().suppliers || []).forEach(function(s){ push(s.name); }); invoices().forEach(function(i){ if (!i.review && String(i.date).slice(0, 4) === String(accYear)) push(i.supplierName); }); }
   if (kind === 'expense') accCfg().expenseCats.forEach(push);
   accRows(accYear, kind).forEach(function(e){ push(e.line); });
   return names;
@@ -8588,7 +8594,9 @@ function accLedgerHTML(kind) {
   var list = names.map(function(n){
     var es = rows.filter(function(e){ return accSame(e.line, n); });
     var yearTot = accSum(accRows(accYear, kind).filter(function(e){ return accSame(e.line, n); }), 'amount');
-    return { name: n, total: accSum(es, 'amount'), count: es.length, year: yearTot };
+    var inv = kind === 'supplier' ? accInvoicesIn(accYear, accMonth, n) : [], invTot = accSum(inv, 'total');
+    if (kind === 'supplier') yearTot += accSum(invoices().filter(function(i){ return !i.review && String(i.date).slice(0, 4) === String(accYear) && accSame(i.supplierName, n); }), 'total');
+    return { name: n, total: accSum(es, 'amount') + invTot, count: es.length, inv: inv.length, invTot: invTot, year: yearTot };
   }).sort(function(a, b){ return (b.total - a.total) || (b.year - a.year) || a.name.localeCompare(b.name); });
   var monthTot = accSum(list, 'total'), rev = accRevenue(accYear, accMonth);
   var title = kind === 'supplier' ? 'Suppliers' : 'Daily expenses';
@@ -8598,10 +8606,11 @@ function accLedgerHTML(kind) {
   if (kind === 'expense' && rev.genExp) h += '<div class="acc-line is-ro"><span class="acc-line-name">From the daily closes<small>General expenses in Finance</small></span><span class="acc-line-amt">' + accEur(rev.genExp) + '</span></div>';
   list.forEach(function(x){
     h += '<button class="acc-line' + (x.total ? '' : ' is-zero') + '" data-acc-open="' + kind + '|' + esc(x.name) + '"><span class="acc-line-name">' + esc(x.name)
-      + '<small>' + (x.count ? x.count + (x.count === 1 ? ' entry' : ' entries') : 'Nothing this month') + (x.year ? ' · ' + accEur0(x.year) + ' in ' + accYear : '') + '</small></span><span class="acc-line-amt">' + (x.total ? accEur(x.total) : '—') + '</span><i class="fas fa-chevron-right"></i></button>';
+      + '<small>' + (x.inv ? '<i class="fas fa-file-invoice" style="font-size:11px"></i> ' + x.inv + (x.inv === 1 ? ' invoice ' : ' invoices ') + accEur(x.invTot) + (x.count ? ' · ' : '') : '') + (x.count ? x.count + (x.count === 1 ? ' entry' : ' entries') : (x.inv ? '' : 'Nothing this month')) + (x.year ? ' · ' + accEur0(x.year) + ' in ' + accYear : '') + '</small></span><span class="acc-line-amt">' + (x.total ? accEur(x.total) : '—') + '</span><i class="fas fa-chevron-right"></i></button>';
   });
   h += '</div>';
   if (kind === 'supplier' && rev.total) h += '<p class="acc-note">Suppliers are ' + accPct(monthTot, rev.total) + ' of ' + accMonthLabel(accYear, accMonth) + ' revenue.</p>';
+  if (kind === 'supplier') h += '<p class="acc-note">Invoices added in <b>Invoices</b> count here by themselves (total with VAT, in the month of the invoice date, matched to the supplier by name) — only type amounts that have no invoice.</p>';
   return h;
 }
 function accSuppliersHTML() { return accLedgerHTML('supplier'); }
@@ -8620,10 +8629,15 @@ function renderAccLedger() {
   var es = accRows(accYear, accLedger.kind, accMonth).filter(function(e){ return accSame(e.line, accLedger.line); })
     .sort(function(a, b){ return String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id); });
   var el = document.getElementById('acc-ledger-list');
-  el.innerHTML = es.length ? es.map(function(e){
+  var inv = accLedger.kind === 'supplier' ? accInvoicesIn(accYear, accMonth, accLedger.line).sort(function(a, b){ return String(a.date).localeCompare(String(b.date)); }) : [];
+  var invHtml = inv.map(function(i){
+    return '<div class="acc-entry is-ro"><span class="acc-entry-amt">' + accEur(i.total) + '</span><span class="acc-entry-meta"><i class="fas fa-file-invoice" style="color:var(--teal-600)"></i> ' + esc(i.number || 'invoice') + ' · ' + esc(i.date.slice(8, 10) + ' ' + MONTH_NAMES[+i.date.slice(5, 7) - 1]) + (i.paid ? ' · paid' : ' · <b style="color:var(--red)">to pay</b>') + '</span><span class="acc-icon" style="visibility:hidden"></span></div>';
+  }).join('');
+  if (!es.length && inv.length) { el.innerHTML = invHtml + '<div class="acc-entry is-total"><span class="acc-entry-amt">' + accEur(accSum(inv, 'total')) + '</span><span class="acc-entry-meta">Total, ' + inv.length + (inv.length === 1 ? ' invoice' : ' invoices') + '</span></div>'; return; }
+  el.innerHTML = es.length ? invHtml + es.map(function(e){
     return '<div class="acc-entry"><span class="acc-entry-amt">' + accEur(e.amount) + '</span><span class="acc-entry-meta">' + (e.date ? esc(e.date.slice(8, 10) + ' ' + MONTH_NAMES[+e.date.slice(5, 7) - 1]) : '') + (e.note ? ' · ' + esc(e.note) : '') + '</span>'
       + '<button class="acc-icon" data-acc-entry-del="' + esc(e.id) + '" aria-label="Delete ' + accEur(e.amount) + '"><i class="fas fa-trash"></i></button></div>';
-  }).join('') + '<div class="acc-entry is-total"><span class="acc-entry-amt">' + accEur(accSum(es, 'amount')) + '</span><span class="acc-entry-meta">Total, ' + es.length + (es.length === 1 ? ' entry' : ' entries') + '</span></div>'
+  }).join('') + '<div class="acc-entry is-total"><span class="acc-entry-amt">' + accEur(accSum(es, 'amount') + accSum(inv, 'total')) + '</span><span class="acc-entry-meta">Total, ' + es.length + (es.length === 1 ? ' entry' : ' entries') + (inv.length ? ' + ' + inv.length + (inv.length === 1 ? ' invoice' : ' invoices') : '') + '</span></div>'
     : '<div class="acc-empty">Nothing recorded this month.</div>';
 }
 function addAccLedgerEntry() {
