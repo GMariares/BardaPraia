@@ -844,6 +844,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-photo-box img { display:block; max-height:220px; max-width:100%; border-radius:10px; border:var(--rule); margin:0 auto 8px; }
     .inv-photo-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .inv-warn { font-size:12px; color:var(--amber-700); background:var(--amber-50); border:1px solid var(--amber-200); border-radius:8px; padding:6px 10px; margin:0 0 10px; }
+    .inv-qr-note { font-size:13px; border-radius:8px; padding:8px 12px; margin:0 0 12px; display:flex; align-items:flex-start; gap:8px; }
+    .inv-qr-note.ok { background:var(--mint-50); border:1px solid var(--mint-200); color:var(--teal-700); }
+    .inv-qr-note.busy { background:var(--slate-50); border:var(--rule); color:var(--slate-700); }
+    .inv-qr-note.none { background:var(--amber-50); border:1px solid var(--amber-200); color:var(--amber-700); }
+    .inv-qr-note.bad { background:var(--red-50); border:1px solid #f1c2bb; color:var(--red); }
+    .inv-qr-note b { font-weight:800; }
     .inv-paid-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
     .inv-back { display:inline-flex; align-items:center; gap:6px; }
     .acc-src { font-size:10px; font-weight:700; color:var(--slate-500); background:var(--slate-50); border-radius:4px; padding:1px 5px; margin-left:4px; text-transform:uppercase; letter-spacing:.04em; }
@@ -2086,6 +2092,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="form-row" style="margin-bottom:12px"><label class="label">Name *</label><input type="text" class="input-field" id="supplier-name" placeholder="Supplier name" /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Email</label><input type="email" class="input-field" id="supplier-email" placeholder="supplier@example.com" /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Phone</label><input type="text" class="input-field" id="supplier-phone" placeholder="+351..." /></div>
+    <div class="form-row" style="margin-bottom:12px"><label class="label" for="supplier-nif">NIF (tax number)</label><input type="text" inputmode="numeric" class="input-field" id="supplier-nif" placeholder="9 digits — lets invoice QR codes find this supplier" maxlength="9" /></div>
     <div style="margin-bottom:12px">
       <label class="label">Categories Supplied</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="supplier-cat-checks">
@@ -2270,6 +2277,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <input type="hidden" id="inv-edit-id" />
     <input type="file" id="inv-file" accept="image/*,application/pdf" style="display:none" />
     <div id="inv-photo-box" class="inv-photo-box"></div>
+    <div id="inv-qr-note" class="inv-qr-note" style="display:none" aria-live="polite"></div>
     <div class="form-row"><label class="label" for="inv-supplier">Supplier *</label><select class="select-field" id="inv-supplier"></select></div>
     <div class="form-row" id="inv-new-supplier-row" style="display:none"><label class="label" for="inv-supplier-name">New supplier name *</label><input type="text" class="input-field" id="inv-supplier-name" placeholder="e.g. Bidfood" /></div>
     <div class="form-grid-2" style="margin-bottom:10px">
@@ -5674,6 +5682,7 @@ function openSupplierModal(editId){
     document.getElementById('supplier-name').value=s.name;
     document.getElementById('supplier-email').value=s.email||'';
     document.getElementById('supplier-phone').value=s.phone||'';
+    document.getElementById('supplier-nif').value=s.nif||'';
     document.getElementById('supplier-send-email').checked=!!s.sendEmail;
     document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ cb.checked=(s.categories||[]).indexOf(cb.value)!==-1; });
     var dr=document.getElementById('supplier-delete-row'); if(dr) dr.style.display=isAdmin?'block':'none';
@@ -5684,6 +5693,7 @@ function openSupplierModal(editId){
     document.getElementById('supplier-name').value='';
     document.getElementById('supplier-email').value='';
     document.getElementById('supplier-phone').value='';
+    document.getElementById('supplier-nif').value='';
     document.getElementById('supplier-send-email').checked=false;
     document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ cb.checked=false; });
     var dr2=document.getElementById('supplier-delete-row'); if(dr2) dr2.style.display='none';
@@ -5696,22 +5706,24 @@ function saveSupplierModal(){
   if(!name){toast('Supplier name required!','error');return;}
   var email=document.getElementById('supplier-email').value.trim();
   var phone=document.getElementById('supplier-phone').value.trim();
+  var nif=(document.getElementById('supplier-nif').value||'').replace(/[^0-9]/g,'');
+  if(nif&&nif.length!==9){toast('A NIF has 9 digits','error');return;}
   var sendEmail=document.getElementById('supplier-send-email').checked;
   var cats=[];
   document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ if(cb.checked) cats.push(cb.value); });
   var db=getDB(); var now=new Date().toISOString();
   if(editSupplierId){
     var idx=db.suppliers.findIndex(function(s){return s.id===editSupplierId;});
-    if(idx!==-1) db.suppliers[idx]=Object.assign({},db.suppliers[idx],{name:name,email:email,phone:phone,sendEmail:sendEmail,categories:cats});
+    if(idx!==-1) db.suppliers[idx]=Object.assign({},db.suppliers[idx],{name:name,email:email,phone:phone,nif:nif,sendEmail:sendEmail,categories:cats});
     saveDB(db); closeModal('modal-add-supplier'); renderSuppliers(); updateAllDropdowns(); toast('Updating...'); 
-    sbFetch('PATCH','suppliers',{name:name,email:email,phone:phone,send_email:sendEmail,categories:cats},'id=eq.'+editSupplierId)
+    sbFetch('PATCH','suppliers',{name:name,email:email,phone:phone,nif:nif,send_email:sendEmail,categories:cats},'id=eq.'+editSupplierId)
       .then(function(){toast('Supplier updated!');}).catch(function(){toast('Saved locally','error');});
     editSupplierId=null;
   } else {
     var newId=uid();
-    db.suppliers.push({id:newId,name:name,email:email,phone:phone,sendEmail:sendEmail,categories:cats,totalSpend:0,createdAt:now});
+    db.suppliers.push({id:newId,name:name,email:email,phone:phone,nif:nif,sendEmail:sendEmail,categories:cats,totalSpend:0,createdAt:now});
     saveDB(db); closeModal('modal-add-supplier'); renderSuppliers(); updateAllDropdowns(); toast('Adding...');
-    sbFetch('POST','suppliers',{id:newId,name:name,email:email,phone:phone,send_email:sendEmail,categories:cats,total_spend:0})
+    sbFetch('POST','suppliers',{id:newId,name:name,email:email,phone:phone,nif:nif,send_email:sendEmail,categories:cats,total_spend:0})
       .then(function(rows){
         if(rows&&rows[0]){var oi=db.suppliers.findIndex(function(s){return s.id===newId;}); if(oi!==-1) db.suppliers[oi].id=rows[0].id; saveDB(db); updateAllDropdowns();}
         toast('Supplier added!');
@@ -8081,7 +8093,7 @@ function accInvoicesHTML() {
       var over = invIsOverdue(i);
       return '<div class="inv-row" data-inv-open="' + esc(i.id) + '" role="button" tabindex="0">'
         + '<button class="inv-tick' + (i.paid ? ' on' : '') + '" data-inv-paid="' + esc(i.id) + '" aria-pressed="' + i.paid + '" title="' + (i.paid ? 'Paid' + (i.paidAt ? ' ' + invDateTxt(i.paidAt) : '') + ' — tap to undo' : 'Tap when paid') + '"><i class="fas ' + (i.paid ? 'fa-square-check' : 'fa-square') + '"></i></button>'
-        + '<div class="inv-main"><div class="inv-name">' + (i.number ? esc(i.number) : '<span style="color:var(--slate-500)">no number</span>') + (i.photoPath ? '<i class="fas fa-paperclip" style="color:var(--slate-400);font-size:12px"></i>' : '') + '</div>'
+        + '<div class="inv-main"><div class="inv-name">' + (i.number ? esc(i.number) : '<span style="color:var(--slate-500)">no number</span>') + (i.photoPath ? '<i class="fas fa-paperclip" style="color:var(--slate-400);font-size:12px"></i>' : '') + (i.source === 'qr' ? '<i class="fas fa-qrcode" style="color:var(--teal-600);font-size:12px" title="Read from the QR code"></i>' : '') + '</div>'
         + '<div class="inv-sub' + (over ? ' over' : '') + '">' + invDateTxt(i.date) + (i.dueDate ? ' · due ' + invDateTxt(i.dueDate) + (over ? ' (overdue)' : '') : '') + (i.paid && i.paidAt ? ' · paid ' + invDateTxt(i.paidAt) : '') + '</div></div>'
         + '<div class="inv-amt' + (i.paid ? '' : ' owed') + '"><b>' + accEur(i.total) + '</b>' + (i.net != null ? '<small>' + accEur(i.net) + ' + VAT ' + accEur(i.vat || 0) + '</small>' : '') + '</div></div>';
     }).join('') + '</div>';
@@ -8100,6 +8112,78 @@ function accInvoicesHTML() {
       + '<i class="fas fa-chevron-right" style="color:var(--slate-400)"></i></div>';
   }).join('') + '</div>';
   return h;
+}
+// ── QR code on Portuguese invoices (the AT code): supplier NIF, date, number, VAT and total ──
+var jsQRLoading = null, invQr = null;
+function loadJsQR() {
+  if (window.jsQR) return Promise.resolve(window.jsQR);
+  if (jsQRLoading) return jsQRLoading;
+  jsQRLoading = new Promise(function(resolve, reject){
+    var sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+    sc.onload = function(){ resolve(window.jsQR); }; sc.onerror = function(){ jsQRLoading = null; reject(new Error('jsQR')); };
+    document.head.appendChild(sc);
+  });
+  return jsQRLoading;
+}
+// Decode from the original photo: a moderate size first (fast), then bigger (a small QR in a tall photo)
+function invReadQr(file) {
+  if (!/^image/.test(file.type)) return Promise.resolve(null);
+  return loadJsQR().then(function(jsQR){
+    return new Promise(function(resolve){
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function(){
+        var W = img.naturalWidth, H = img.naturalHeight, big = Math.max(W, H), found = null, tried = [];
+        [1400, 2200, 3200].forEach(function(max){
+          if (found) return;
+          var k = Math.min(1, max / big); if (tried.indexOf(k) !== -1) return; tried.push(k);
+          var c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k);
+          var ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0, c.width, c.height);
+          try { var d = ctx.getImageData(0, 0, c.width, c.height); var r = jsQR(d.data, d.width, d.height, { inversionAttempts: 'dontInvert' }); if (r && r.data) found = r.data; } catch (e) {}
+        });
+        URL.revokeObjectURL(url); resolve(found);
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }).catch(function(){ return null; });
+}
+// A:NIF of the issuer*B:customer NIF*…*F:date*G:number*H:ATCUD*I2..I8:bases and VAT by rate*N:total VAT*O:total
+function invParseAtQr(text) {
+  if (!text || text.indexOf('A:') !== 0 || text.indexOf('*') === -1) return null;
+  var f = {}; text.split('*').forEach(function(p){ var i = p.indexOf(':'); if (i > 0) f[p.slice(0, i)] = p.slice(i + 1).trim(); });
+  if (!f.A || !/^[0-9]{9}$/.test(f.A) || f.O === undefined) return null;
+  var num = function(k){ var v = parseFloat(f[k]); return isNaN(v) ? 0 : v; };
+  var total = num('O'), vat = f.N !== undefined ? num('N') : (num('I4') + num('I6') + num('I8'));
+  var date = /^[0-9]{8}$/.test(f.F || '') ? f.F.slice(0, 4) + '-' + f.F.slice(4, 6) + '-' + f.F.slice(6, 8) : '';
+  return { nif: f.A, customerNif: f.B || '', date: date, number: f.G || '', atcud: f.H || '', docType: f.D || '', total: Math.round(total * 100) / 100, vat: Math.round(vat * 100) / 100, net: Math.round((total - vat) * 100) / 100 };
+}
+function invSupplierByNif(nif) {
+  if (!nif) return null;
+  var s = (getDB().suppliers || []).find(function(x){ return (x.nif || '') === nif; }); if (s) return s;
+  // a supplier that was used before with this NIF (named when the first invoice was saved)
+  var inv = invoices().find(function(i){ return i.supplierNif === nif && i.supplierId; });
+  return inv ? (getDB().suppliers || []).find(function(x){ return x.id === inv.supplierId; }) || null : null;
+}
+function invQrNote(cls, html) { var n = document.getElementById('inv-qr-note'); if (!n) return; n.className = 'inv-qr-note ' + cls; n.innerHTML = html; n.style.display = ''; }
+function invDuplicateOf(nif, number, supplierId, exceptId) {
+  if (!number) return null;
+  return invoices().find(function(i){ return i.id !== exceptId && normName(i.number) === normName(number) && ((nif && i.supplierNif === nif) || (supplierId && i.supplierId === supplierId)); }) || null;
+}
+// Fill the new-invoice form from the QR code; the person checks and saves
+function invApplyQr(q) {
+  invQr = q;
+  var sup = invSupplierByNif(q.nif), sel = document.getElementById('inv-supplier');
+  if (sup) { sel.value = sup.id; document.getElementById('inv-new-supplier-row').style.display = 'none'; }
+  else { sel.value = '__new__'; var row = document.getElementById('inv-new-supplier-row'); row.style.display = ''; var nm = document.getElementById('inv-supplier-name'); nm.value = ''; nm.placeholder = 'Name for NIF ' + q.nif + ' (asked once)'; }
+  document.getElementById('inv-number').value = q.number;
+  if (q.date) document.getElementById('inv-date').value = q.date;
+  document.getElementById('inv-total').value = accIn(q.total); document.getElementById('inv-vat').value = accIn(q.vat); document.getElementById('inv-net').value = accIn(q.net);
+  invCheckAmounts();
+  var dup = invDuplicateOf(q.nif, q.number, sup ? sup.id : '', '');
+  if (dup) { invQrNote('bad', '<i class="fas fa-triangle-exclamation"></i><span><b>Already saved:</b> ' + esc(dup.number) + ' from ' + esc(dup.supplierName) + ' on ' + invDateTxt(dup.date) + ' (' + accEur(dup.total) + ').</span>'); return; }
+  var what = q.docType === 'NC' ? ' <b>This is a credit note (NC)</b> — check the sign of the amounts.' : '';
+  invQrNote('ok', '<i class="fas fa-qrcode"></i><span><b>Read from the QR code.</b> ' + (sup ? esc(sup.name) : 'New supplier — type its name once') + ' · ' + esc(q.number || 'no number') + ' · ' + accEur(q.total) + '.' + what + ' Check and save.</span>');
+  if (!sup) setTimeout(function(){ var nm2 = document.getElementById('inv-supplier-name'); if (nm2) nm2.focus(); }, 50);
 }
 // photos: shrink on the phone before upload (a 12 MP photo becomes ~400 KB), PDFs go as they are
 function invCompress(file) {
@@ -8143,10 +8227,21 @@ var invPhotoFor = '';
 function invSetFile(file) {
   if (!file) return;
   if (file.size > 25 * 1024 * 1024) { toast('That file is too big (max 25 MB)', 'error'); return; }
+  var wasOpen = document.getElementById('modal-invoice').classList.contains('open');
+  var isNew = !wasOpen || !document.getElementById('inv-edit-id').value;
   invCompress(file).then(function(blob){
     invFile = blob; if (invFileUrl) URL.revokeObjectURL(invFileUrl); invFileUrl = blob.type === 'application/pdf' ? '' : URL.createObjectURL(blob);
-    if (!document.getElementById('modal-invoice').classList.contains('open')) openInvoiceModal(null, true);
-    else invRenderPhotoBox('');
+    if (!wasOpen) openInvoiceModal(null, true); else invRenderPhotoBox('');
+    if (!isNew) return;
+    if (!/^image/.test(file.type)) { invQrNote('none', '<i class="fas fa-file-pdf"></i><span>PDF attached. Type the figures (reading PDFs comes with the next step).</span>'); return; }
+    invQrNote('busy', '<i class="fas fa-spinner fa-spin"></i><span>Reading the QR code…</span>');
+    var mine = file;
+    invReadQr(mine).then(function(text){
+      if (!document.getElementById('modal-invoice').classList.contains('open') || invFile !== blob) return;   // moved on meanwhile
+      var q = invParseAtQr(text);
+      if (q) invApplyQr(q);
+      else invQrNote('none', '<i class="fas fa-circle-info"></i><span>' + (text ? 'The QR code is not an invoice code.' : 'No QR code could be read.') + ' Type the figures, or retake the photo closer with the QR code sharp and well lit.</span>');
+    });
   });
 }
 function invSupplierOptions(selectedId, selectedName) {
@@ -8175,6 +8270,8 @@ function openInvoiceModal(id, keepFile) {
   document.getElementById('inv-notes').value = i ? i.notes : '';
   document.getElementById('btn-delete-invoice').style.display = i ? '' : 'none';
   document.getElementById('inv-warn').style.display = 'none';
+  invQr = null; var qn = document.getElementById('inv-qr-note'); qn.style.display = 'none'; qn.innerHTML = '';
+  document.getElementById('inv-supplier-name').placeholder = 'e.g. Bidfood';
   invRenderPhotoBox(i ? i.photoPath : '');
   invCheckAmounts();
   openModal('modal-invoice');
@@ -8200,12 +8297,13 @@ function invEnsureSupplier() {
   var name = document.getElementById('inv-supplier-name').value.trim(); if (!name) return Promise.resolve(null);
   var db = getDB(), existing = (db.suppliers || []).find(function(x){ return accSame(x.name, name); });
   if (existing) return Promise.resolve({ id:existing.id, name:existing.name, nif:existing.nif || '' });
-  var row = { id:uid(), name:name, email:'', phone:'', send_email:false, categories:[], total_spend:0 };
+  var nif = invQr && !document.getElementById('inv-edit-id').value ? invQr.nif : '';
+  var row = { id:uid(), name:name, email:'', phone:'', nif:nif, send_email:false, categories:[], total_spend:0 };
   return sbFetch('POST', 'suppliers', row).then(function(rows){
     var id = rows && rows[0] ? rows[0].id : row.id;
-    db = getDB(); db.suppliers = (db.suppliers || []).concat([{ id:id, name:name, email:'', phone:'', nif:'', sendEmail:false, categories:[], totalSpend:0, createdAt:new Date().toISOString() }]); saveDB(db);
+    db = getDB(); db.suppliers = (db.suppliers || []).concat([{ id:id, name:name, email:'', phone:'', nif:nif, sendEmail:false, categories:[], totalSpend:0, createdAt:new Date().toISOString() }]); saveDB(db);
     if (typeof updateAllDropdowns === 'function') updateAllDropdowns();
-    return { id:id, name:name, nif:'' };
+    return { id:id, name:name, nif:nif };
   });
 }
 function saveInvoice() {
@@ -8219,16 +8317,21 @@ function saveInvoice() {
   var paid = document.getElementById('inv-paid').checked, paidAt = paid ? (document.getElementById('inv-paid-date').value || toDateStr(new Date())) : null;
   var btn = document.getElementById('btn-save-invoice'); invSaving = true; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (invFile ? 'Uploading…' : 'Saving…');
   var newId = id || uid(), path = old ? old.photoPath : '';
+  var qrNif = invQr && !old ? invQr.nif : '';
   invEnsureSupplier().then(function(sup){
     if (!sup) throw new Error('Choose the supplier');
+    var dup = invDuplicateOf(qrNif || sup.nif || (old ? old.supplierNif : ''), document.getElementById('inv-number').value.trim(), sup.id, id);
+    if (dup) throw new Error('Already saved: ' + dup.number + ' from ' + dup.supplierName + ' on ' + invDateTxt(dup.date));
+    // the QR's NIF is remembered on the supplier, so the next invoice from them is matched by itself
+    if (qrNif && !sup.nif) { sup.nif = qrNif; sbFetch('PATCH', 'suppliers', { nif: qrNif }, 'id=eq.' + encodeURIComponent(sup.id)).then(function(){ var d2 = getDB(); var s2 = (d2.suppliers || []).find(function(x){ return x.id === sup.id; }); if (s2) { s2.nif = qrNif; saveDB(d2); } }).catch(function(){}); }
     var up = Promise.resolve();
     if (invFile) { path = date.slice(0, 4) + '/' + date.slice(5, 7) + '/' + newId + (invFile.type === 'application/pdf' ? '.pdf' : '.jpg'); up = invUpload(path, invFile); }
     return up.then(function(){
-      var row = { supplier_id:sup.id, supplier_name:sup.name, supplier_nif:sup.nif || (old ? old.supplierNif : ''), number:document.getElementById('inv-number').value.trim(), date:date,
+      var row = { supplier_id:sup.id, supplier_name:sup.name, supplier_nif:qrNif || sup.nif || (old ? old.supplierNif : ''), number:document.getElementById('inv-number').value.trim(), date:date,
         due_date:document.getElementById('inv-due').value || null, net:net === null ? null : Math.round(net * 100) / 100, vat:vat === null ? null : Math.round(vat * 100) / 100, total:Math.round(tot * 100) / 100,
         paid:paid, paid_at:paidAt, notes:document.getElementById('inv-notes').value.trim(), photo_path:path, updated_at:new Date().toISOString() };
       if (old) return sbFetch('PATCH', 'invoices', row, 'id=eq.' + encodeURIComponent(id)).then(function(rows){ return rows && rows[0] ? rows[0] : Object.assign({ id:id, created_at:old.createdAt }, row); });
-      row.id = newId; row.source = 'manual'; row.created_by = currentUser ? currentUser.name : '';
+      row.id = newId; row.source = invQr ? 'qr' : 'manual'; row.created_by = currentUser ? currentUser.name : '';
       return sbFetch('POST', 'invoices', row).then(function(rows){ return rows && rows[0] ? rows[0] : Object.assign({ created_at:new Date().toISOString() }, row); });
     }).then(function(saved){
       if (old && invFile && old.photoPath && old.photoPath !== path) invRemoveFile(old.photoPath);
