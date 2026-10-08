@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
   send_email BOOLEAN DEFAULT false,
   categories JSONB DEFAULT '[]'::jsonb,
   nif TEXT DEFAULT '',
+  nib TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

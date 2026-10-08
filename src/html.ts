@@ -856,6 +856,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-pill.paid { background:var(--mint-50); color:var(--teal-700); border:1px solid var(--mint-200); }
     .inv-pill.open { background:var(--amber-50); color:var(--amber-700); border:1px solid var(--amber-200); }
     .inv-pill.over { background:var(--red-50); color:var(--red); border:1px solid #f1c2bb; }
+    .inv-nib { display:inline-flex; align-items:center; gap:6px; margin-top:4px; font-size:12px; font-weight:700; color:var(--slate-700); font-variant-numeric:tabular-nums; }
+    .inv-nib i.fa-building-columns { color:var(--slate-400); }
+    .inv-copy { border:var(--rule); background:var(--panel); color:var(--teal-700); border-radius:6px; width:26px; height:24px; cursor:pointer; font-size:12px; }
+    .inv-copy:hover { background:var(--mint-50); }
+    .inv-nib-box { margin:-4px 0 12px; }
     .inv-photo-box { margin-bottom:12px; }
     .inv-photo-box img { display:block; max-height:220px; max-width:100%; border-radius:10px; border:var(--rule); margin:0 auto 8px; }
     .inv-photo-actions { display:flex; gap:8px; flex-wrap:wrap; }
@@ -2148,6 +2153,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="form-row" style="margin-bottom:12px"><label class="label">Email</label><input type="email" class="input-field" id="supplier-email" placeholder="supplier@example.com" /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Phone</label><input type="text" class="input-field" id="supplier-phone" placeholder="+351..." /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label" for="supplier-nif">NIF (tax number)</label><input type="text" inputmode="numeric" class="input-field" id="supplier-nif" placeholder="9 digits — lets invoice QR codes find this supplier" maxlength="9" /></div>
+    <div class="form-row" style="margin-bottom:12px"><label class="label" for="supplier-nib">NIB / IBAN</label><input type="text" class="input-field" id="supplier-nib" placeholder="PT50 0000 0000 0000 0000 0000 0" autocomplete="off" /><p class="acc-note" id="supplier-nib-note" style="display:none;margin-top:4px">Needs the supplier NIB SQL in Supabase before it can be saved.</p></div>
     <div style="margin-bottom:12px">
       <label class="label">Categories Supplied</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="supplier-cat-checks">
@@ -3448,11 +3454,12 @@ function syncFromSupabase() {
     }).catch(function(){})   // absences table may not exist yet — silent fail
     ,
     sbFetch('GET', 'suppliers', null, 'order=name.asc').then(function(rows) {
+      if (rows && rows.length) sbCols.nib = ('nib' in rows[0]);
       if (rows) db.suppliers = rows.map(function(r){
         var cats=[];
         try { cats=Array.isArray(r.categories)?r.categories:(r.categories?JSON.parse(r.categories):[]); } catch(e){}
         return {
-          id: r.id, name: r.name, email: r.email||'', phone: r.phone||'', nif: r.nif||'',
+          id: r.id, name: r.name, email: r.email||'', phone: r.phone||'', nif: r.nif||'', nib: r.nib||'',
           totalSpend: parseFloat(r.total_spend)||0, sendEmail: !!r.send_email,
           categories: cats, createdAt: r.created_at
         };
@@ -5930,6 +5937,8 @@ function openSupplierModal(editId){
     document.getElementById('supplier-email').value=s.email||'';
     document.getElementById('supplier-phone').value=s.phone||'';
     document.getElementById('supplier-nif').value=s.nif||'';
+    document.getElementById('supplier-nib').value=nibPretty(s.nib||'');
+    document.getElementById('supplier-nib-note').style.display=sbCols.nib===false?'':'none';
     document.getElementById('supplier-send-email').checked=!!s.sendEmail;
     document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ cb.checked=(s.categories||[]).indexOf(cb.value)!==-1; });
     var dr=document.getElementById('supplier-delete-row'); if(dr) dr.style.display=isAdmin?'block':'none';
@@ -5941,6 +5950,8 @@ function openSupplierModal(editId){
     document.getElementById('supplier-email').value='';
     document.getElementById('supplier-phone').value='';
     document.getElementById('supplier-nif').value='';
+    document.getElementById('supplier-nib').value='';
+    document.getElementById('supplier-nib-note').style.display=sbCols.nib===false?'':'none';
     document.getElementById('supplier-send-email').checked=false;
     document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ cb.checked=false; });
     var dr2=document.getElementById('supplier-delete-row'); if(dr2) dr2.style.display='none';
@@ -5955,22 +5966,25 @@ function saveSupplierModal(){
   var phone=document.getElementById('supplier-phone').value.trim();
   var nif=(document.getElementById('supplier-nif').value||'').replace(/[^0-9]/g,'');
   if(nif&&nif.length!==9){toast('A NIF has 9 digits','error');return;}
+  var nib=nibClean(document.getElementById('supplier-nib').value);
+  if(nib&&!/^(PT50)?[0-9]{21}$/.test(nib)){toast('A NIB has 21 digits (or PT50 + 21 for the IBAN)','error');return;}
+  var nibRow=sbCols.nib?{nib:nib}:{};
   var sendEmail=document.getElementById('supplier-send-email').checked;
   var cats=[];
   document.querySelectorAll('.supplier-cat-cb').forEach(function(cb){ if(cb.checked) cats.push(cb.value); });
   var db=getDB(); var now=new Date().toISOString();
   if(editSupplierId){
     var idx=db.suppliers.findIndex(function(s){return s.id===editSupplierId;});
-    if(idx!==-1) db.suppliers[idx]=Object.assign({},db.suppliers[idx],{name:name,email:email,phone:phone,nif:nif,sendEmail:sendEmail,categories:cats});
+    if(idx!==-1) db.suppliers[idx]=Object.assign({},db.suppliers[idx],{name:name,email:email,phone:phone,nif:nif,nib:nib,sendEmail:sendEmail,categories:cats});
     saveDB(db); closeModal('modal-add-supplier'); renderSuppliers(); updateAllDropdowns(); toast('Updating...'); 
-    sbFetch('PATCH','suppliers',{name:name,email:email,phone:phone,nif:nif,send_email:sendEmail,categories:cats},'id=eq.'+editSupplierId)
+    sbFetch('PATCH','suppliers',Object.assign({name:name,email:email,phone:phone,nif:nif,send_email:sendEmail,categories:cats},nibRow),'id=eq.'+editSupplierId)
       .then(function(){toast('Supplier updated!');}).catch(function(){toast('Saved locally','error');});
     editSupplierId=null;
   } else {
     var newId=uid();
-    db.suppliers.push({id:newId,name:name,email:email,phone:phone,nif:nif,sendEmail:sendEmail,categories:cats,totalSpend:0,createdAt:now});
+    db.suppliers.push({id:newId,name:name,email:email,phone:phone,nif:nif,nib:nib,sendEmail:sendEmail,categories:cats,totalSpend:0,createdAt:now});
     saveDB(db); closeModal('modal-add-supplier'); renderSuppliers(); updateAllDropdowns(); toast('Adding...');
-    sbFetch('POST','suppliers',{id:newId,name:name,email:email,phone:phone,nif:nif,send_email:sendEmail,categories:cats,total_spend:0})
+    sbFetch('POST','suppliers',Object.assign({id:newId,name:name,email:email,phone:phone,nif:nif,send_email:sendEmail,categories:cats,total_spend:0},nibRow))
       .then(function(rows){
         if(rows&&rows[0]){var oi=db.suppliers.findIndex(function(s){return s.id===newId;}); if(oi!==-1) db.suppliers[oi].id=rows[0].id; saveDB(db); updateAllDropdowns();}
         toast('Supplier added!');
@@ -6987,7 +7001,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null, invoices:null, clock:null };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null, invoices:null, clock:null, nib:null };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -8324,6 +8338,16 @@ function invUpdateBadge() {
 function invDateTxt(d) { if (!d) return ''; var x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : x.toLocaleDateString('pt-PT'); }
 function invIsOverdue(i) { return !i.paid && i.dueDate && i.dueDate < toDateStr(new Date()); }
 function invSupplierKey(i) { return i.supplierId || ('name:' + normName(i.supplierName)); }
+function nibClean(v) { return String(v || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); }
+function nibPretty(v) { v = nibClean(v); return v ? v.replace(/(.{4})/g, '$1 ').trim() : ''; }
+function invSupplierRec(key, name) {
+  var sup = getDB().suppliers || [];
+  return sup.find(function(s){ return s.id === key; }) || sup.find(function(s){ return accSame(s.name, name); }) || null;
+}
+function invNibHtml(sup) {
+  if (!sup || !sup.nib) return '';
+  return '<span class="inv-nib" title="Bank account"><i class="fas fa-building-columns"></i> ' + esc(nibPretty(sup.nib)) + ' <button type="button" class="inv-copy" data-copy="' + esc(nibClean(sup.nib)) + '" aria-label="Copy NIB"><i class="fas fa-copy"></i></button></span>';
+}
 function invFiltered() {
   return invoices().filter(function(i){ return invFilter === 'review' ? !!i.review : invFilter === 'all' || (invFilter === 'paid' ? i.paid : !i.paid); });
 }
@@ -8362,7 +8386,8 @@ function accInvoicesHTML() {
     var any = all.filter(function(i){ return invSupplierKey(i) === invSupplier; });
     var name = any.length ? any[0].supplierName : '', sOwed = any.filter(function(i){ return !i.paid; }).reduce(function(s, i){ return s + i.total; }, 0), sTot = any.reduce(function(s, i){ return s + i.total; }, 0);
     h += '<div class="acc-toolbar"><button class="btn btn-secondary btn-sm inv-back" id="inv-back"><i class="fas fa-arrow-left"></i> Suppliers</button>'
-      + '<div class="acc-toolbar-title">' + esc(name) + ' <span>' + any.length + ' invoice' + (any.length === 1 ? '' : 's') + ' · ' + accEur(sTot) + (sOwed > 0 ? ' · <b style="color:var(--red)">' + accEur(sOwed) + ' to pay</b>' : '') + '</span></div></div>';
+      + '<div class="acc-toolbar-title">' + esc(name) + ' <span>' + any.length + ' invoice' + (any.length === 1 ? '' : 's') + ' · ' + accEur(sTot) + (sOwed > 0 ? ' · <b style="color:var(--red)">' + accEur(sOwed) + ' to pay</b>' : '') + '</span></div></div>'
+      + (function(){ var sr = invSupplierRec(invSupplier, name), nh = invNibHtml(sr); return nh ? '<div class="inv-nib-box">' + nh + '</div>' : (sr ? '<p class="acc-note" style="margin-top:-4px">No NIB on this supplier yet — add it in Shopping List → Stock → supplier.</p>' : ''); })();
     if (!mine.length) { h += '<div class="empty-state"><i class="fas fa-file-invoice"></i><p>No ' + (invFilter === 'paid' ? 'paid' : invFilter === 'open' ? 'unpaid' : '') + ' invoices for ' + esc(name) + '.</p></div>'; return h; }
     h += '<div class="acc-card" style="padding:0">' + mine.map(function(i){
       var over = invIsOverdue(i);
@@ -8394,7 +8419,7 @@ function accInvoicesHTML() {
   h += '<div class="acc-card" style="padding:0">' + gs.map(function(g){
     return '<div class="inv-row" data-inv-supplier="' + esc(g.key) + '" role="button" tabindex="0">'
       + '<div class="inv-main"><div class="inv-name">' + esc(g.name) + (g.over ? '<span class="inv-pill over">Overdue</span>' : '') + '</div>'
-      + '<div class="inv-sub">' + g.n + ' invoice' + (g.n === 1 ? '' : 's') + (g.last ? ' · last ' + invDateTxt(g.last) : '') + '</div></div>'
+      + '<div class="inv-sub">' + g.n + ' invoice' + (g.n === 1 ? '' : 's') + (g.last ? ' · last ' + invDateTxt(g.last) : '') + '</div>' + invNibHtml(invSupplierRec(g.key, g.name)) + '</div>'
       + '<div class="inv-amt' + (g.owed > 0 ? ' owed' : '') + '"><b>' + accEur(g.owed > 0 ? g.owed : g.total) + '</b><small>' + (g.owed > 0 ? 'to pay' + (g.total > g.owed ? ' of ' + accEur(g.total) : '') : 'all paid') + '</small></div>'
       + '<i class="fas fa-chevron-right" style="color:var(--slate-400)"></i></div>';
   }).join('') + '</div>';
@@ -10367,6 +10392,7 @@ document.addEventListener('click', function(e) {
   // Invoices
   if (t.closest('#btn-inv-photo') || t.closest('#btn-inv-change-photo')) { var fi = document.getElementById('inv-file'); if (fi) { fi.value = ''; fi.click(); } return; }
   if (t.closest('#btn-inv-add')) { openInvoiceModal(null); return; }
+  el = t.closest('[data-copy]'); if (el) { var cv = el.dataset.copy; (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(cv) : Promise.reject()).then(function(){ toast('Copied ' + nibPretty(cv), 'success'); }).catch(function(){ prompt('Copy the NIB:', nibPretty(cv)); }); return; }
   el = t.closest('[data-inv-filter]'); if (el) { invFilter = el.dataset.invFilter; renderAccounting(); return; }
   el = t.closest('[data-inv-paid]'); if (el) { var pi = invoices().find(function(x){ return x.id === el.dataset.invPaid; }); if (pi) invSetPaid(pi.id, !pi.paid); return; }
   el = t.closest('[data-inv-open]'); if (el) { openInvoiceModal(el.dataset.invOpen); return; }
