@@ -233,8 +233,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     #bnav-marker { position:absolute; left:0; top:0; width:44px; height:28px; border-radius:14px; background:var(--mint-300); transform:translate(-200px,0); transition:transform .2s cubic-bezier(.2,0,0,1); pointer-events:none; }
     #bnav-marker.settled { }
     @media (prefers-reduced-motion: reduce) { #bnav-marker { transition:none; } }
-    .bnav-item.admin-nav { color:var(--slate-500); }
-    .bnav-item.admin-nav.active { color:var(--slate-900); }
 
     /* ── MAIN CONTENT ── */
     #content-wrap { position:fixed; top:56px; left:0; right:0; bottom:64px; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 12px; }
@@ -713,6 +711,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .notif-more { width:100%; padding:10px 0 8px; background:none; border:none; font-size:12px; font-weight:700; color:var(--teal-700); cursor:pointer; }
     .bnav-count { position:absolute; top:0; left:calc(50% + 6px); min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--red); color:white; font-size:10px; font-weight:800; line-height:17px; text-align:center; letter-spacing:0; }
     .notif-dot-count { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--red); color:white; font-size:11px; font-weight:800; line-height:20px; text-align:center; }
+    .team-title { font-size:16px; font-weight:800; color:var(--slate-900); display:flex; align-items:center; gap:8px; }
+    .team-title i { color:var(--teal-600); }
+    .team-rota { margin-top:16px; }
+    .team-rota-add { display:flex; gap:8px; margin:12px 0 8px; }
+    .team-rota-add .input-field { flex:1; min-width:0; }
+    .team-link { font-size:12px; color:var(--slate-600); display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+    .team-link b { color:var(--slate-900); }
+    .team-link.none { color:var(--amber-700); }
     .dash-panel { background:var(--panel); border-radius:var(--radius); padding:16px 16px 8px; margin-bottom:12px; border:var(--rule); }
     .dash-panel h3 { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate-700); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
     .dash-panel h3 i { color:var(--teal-600); }
@@ -1067,19 +1073,18 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
   </div>
   <nav style="padding:14px 10px;flex:1;overflow-y:auto;">
-    <div class="section-label">Main</div>
-    <button class="drawer-item active" id="ditem-dashboard" data-nav="dashboard"><i class="fas fa-home"></i> Dashboard <span class="notif-dot-count" id="ditem-notif-count" style="display:none"></span></button>
-    <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Shopping List</button>
-    <button class="drawer-item" id="ditem-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i> Reservations</button>
-    <button class="drawer-item" id="ditem-calendar" data-nav="calendar"><i class="fas fa-calendar-week"></i> Calendar</button>
+    <div class="section-label">Floor</div>
+    <button class="drawer-item active" id="ditem-dashboard" data-nav="dashboard"><i class="fas fa-home"></i> Home <span class="notif-dot-count" id="ditem-notif-count" style="display:none"></span></button>
+    <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Stock</button>
+    <button class="drawer-item" id="ditem-calendar" data-nav="calendar"><i class="fas fa-calendar-days"></i> Calendar</button>
     <button class="drawer-item" id="ditem-tasks" data-nav="tasks"><i class="fas fa-list-check"></i> Tasks</button>
     <button class="drawer-item" id="ditem-shifts" data-nav="shifts"><i class="fas fa-clock"></i> Shifts<span class="nav-dot" id="ditem-shifts-dot" style="display:none"></span></button>
-    <div class="section-label" style="margin-top:12px">Admin</div>
+    <div class="section-label" id="drawer-office-label" style="margin-top:12px">Office</div>
     <button class="drawer-item" id="ditem-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i> Black Box <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
     <button class="drawer-item" id="ditem-foodcost" data-nav="foodcost"><i class="fas fa-utensils"></i> Food Cost <span class="admin-only-badge" style="background:rgba(176,123,89,.35);color:#f1dccd">CHEF</span></button>
     <button class="drawer-item" id="ditem-accounting" data-nav="accounting"><i class="fas fa-scale-balanced"></i> Accounting <span class="admin-only-badge">ADMIN</span></button>
-    <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Users <span class="admin-only-badge">ADMIN</span></button>
+    <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Team</button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
   </nav>
   <div id="drawer-footer">
@@ -1208,12 +1213,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <!-- ═══ RESERVATIONS ═══ -->
   <section id="section-reservations" class="page-section">
     <div class="section-header">
-      <div class="tab-row" style="margin-bottom:0">
+      <div class="tab-row" style="margin-bottom:0" role="tablist" aria-label="Calendar views">
+        <button class="tab-btn" data-nav="calendar"><i class="fas fa-calendar-days"></i> Month</button>
         <button class="tab-btn active" id="res-tab-calendar" data-res-tab="calendar"><i class="fas fa-calendar-week"></i> Week</button>
-        <button class="tab-btn" id="res-tab-list" data-res-tab="list"><i class="fas fa-list"></i> All</button>
-        <button class="tab-btn" data-nav="calendar"><i class="fas fa-calendar-days"></i> Calendar</button>
+        <button class="tab-btn" id="res-tab-list" data-res-tab="list"><i class="fas fa-list"></i> Reservations</button>
       </div>
-      <button class="btn btn-primary btn-sm" id="btn-add-reservation"><i class="fas fa-plus"></i> New</button>
+      <button class="btn btn-primary btn-sm" id="btn-add-reservation"><i class="fas fa-plus"></i> Reservation</button>
     </div>
     <div id="res-panel-calendar">
       <div class="card" style="padding:14px;margin-bottom:12px">
@@ -1246,14 +1251,24 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 
   <!-- ═══ CALENDAR: events, reservations, task deadlines and your shifts in one view ═══ -->
   <section id="section-calendar" class="page-section">
-    <div class="section-header calv-head">
+    <div class="section-header">
+      <div class="tab-row" style="margin-bottom:0" role="tablist" aria-label="Calendar views">
+        <button class="tab-btn active" aria-selected="true"><i class="fas fa-calendar-days"></i> Month</button>
+        <button class="tab-btn" data-cal-goto="calendar"><i class="fas fa-calendar-week"></i> Week</button>
+        <button class="tab-btn" data-cal-goto="list"><i class="fas fa-list"></i> Reservations</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" id="btn-add-event" style="display:none"><i class="fas fa-calendar-plus"></i> Event</button>
+        <button class="btn btn-primary btn-sm" id="calv-add-res"><i class="fas fa-plus"></i> Reservation</button>
+      </div>
+    </div>
+    <div class="section-header calv-head" style="margin-top:-4px">
       <div class="calv-nav">
         <button class="btn btn-secondary btn-sm btn-icon" id="calv-prev" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
         <span class="calv-month-label" id="calv-month-label"></span>
         <button class="btn btn-secondary btn-sm btn-icon" id="calv-next" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
         <button class="btn btn-secondary btn-sm" id="calv-today">Today</button>
       </div>
-      <button class="btn btn-primary btn-sm" id="btn-add-event" style="display:none"><i class="fas fa-calendar-plus"></i> Event</button>
     </div>
     <div class="calv-filters" id="calv-filters" role="group" aria-label="Show on the calendar"></div>
     <div class="calv-layout">
@@ -1311,7 +1326,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <button class="tab-btn" data-shifts-tab="tips"><i class="fas fa-hand-holding-dollar"></i> Tips</button>
       <button class="tab-btn" data-shifts-tab="hours"><i class="fas fa-clock"></i> Hours</button>
       <button class="tab-btn" data-shifts-tab="attendance"><i class="fas fa-user-check"></i> Attendance</button>
-      <button class="tab-btn" id="shifts-tab-team-btn" data-shifts-tab="team" style="display:none"><i class="fas fa-users"></i> Team</button>
       <button class="tab-btn" id="shifts-tab-clock-btn" data-shifts-tab="clock" style="display:none"><i class="fas fa-stopwatch"></i> Clock</button>
     </div>
 
@@ -1397,17 +1411,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div id="clock-content"></div>
     </div>
 
-    <!-- ── Tab: Team Members (shift_mgr + admin) ── -->
-    <div id="shifts-panel-team" style="display:none">
-      <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:18px;box-shadow:var(--shadow)">
-        <h3 style="font-size:15px;font-weight:700;color:var(--ocean-800);margin-bottom:14px;display:flex;align-items:center;gap:7px"><i class="fas fa-users" style="color:var(--ocean-500)"></i> Team Members</h3>
-        <div id="shifts-employee-list"></div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <input type="text" id="shifts-new-employee-name" class="input-field" placeholder="Employee name..." style="font-size:14px" />
-          <button class="btn btn-primary" id="btn-shifts-add-employee" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
-        </div>
-      </div>
-    </div>
+    <!-- (the rota names moved to Team) -->
+    <div id="shifts-panel-team" style="display:none"></div>
   </section>
 
   <!-- ═══ FINANCE ═══ -->
@@ -1822,10 +1827,19 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <!-- ═══ USERS ═══ -->
   <section id="section-users" class="page-section">
     <div class="section-header">
-      <h2 style="font-size:16px;font-weight:800;color:var(--ocean-900)"><i class="fas fa-users" style="color:var(--ocean-500)"></i> Users</h2>
-      <button class="btn btn-primary btn-sm" id="btn-add-user"><i class="fas fa-user-plus"></i> Add User</button>
+      <h2 class="team-title"><i class="fas fa-users"></i> Team</h2>
+      <button class="btn btn-primary btn-sm" id="btn-add-user"><i class="fas fa-user-plus"></i> Add person</button>
     </div>
     <div id="users-list"><div class="empty-state"><i class="fas fa-users"></i><p>No users yet.</p></div></div>
+    <div class="dash-panel team-rota" id="team-rota">
+      <h3><i class="fas fa-calendar-week"></i> Names on the shift schedule</h3>
+      <p class="acc-note" id="team-rota-note"></p>
+      <div id="shifts-employee-list"></div>
+      <div class="team-rota-add">
+        <input type="text" id="shifts-new-employee-name" class="input-field" placeholder="Name as it appears on the schedule" aria-label="New name on the schedule" />
+        <button class="btn btn-primary" id="btn-shifts-add-employee" aria-label="Add to the schedule"><i class="fas fa-plus"></i> Add</button>
+      </div>
+    </div>
   </section>
 
   <!-- ═══ SETTINGS ═══ -->
@@ -1998,12 +2012,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <nav id="bottom-nav">
   <span id="bnav-marker" aria-hidden="true"></span>
   <button class="bnav-item active" id="bnav-dashboard" data-nav="dashboard"><i class="fas fa-home"></i>Home<span class="bnav-count" id="bnav-notif-count" style="display:none"></span></button>
-  <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Shopping</button>
-  <button class="bnav-item" id="bnav-reservations" data-nav="reservations"><i class="fas fa-calendar-days"></i>Book</button>
+  <button class="bnav-item" id="bnav-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i>Stock</button>
+  <button class="bnav-item" id="bnav-calendar" data-nav="calendar"><i class="fas fa-calendar-days"></i>Calendar</button>
   <button class="bnav-item" id="bnav-tasks" data-nav="tasks"><i class="fas fa-list-check"></i>Tasks</button>
   <button class="bnav-item" id="bnav-shifts" data-nav="shifts"><i class="fas fa-clock"></i>Shifts<span class="nav-dot" id="bnav-shifts-dot" style="display:none"></span></button>
-  <button class="bnav-item admin-nav" id="bnav-blackbox" data-nav="blackbox"><i class="fas fa-cash-register"></i>Box</button>
-  <button class="bnav-item" id="bnav-finance" data-nav="finance" style="color:#6d4fc2"><i class="fas fa-euro-sign"></i>Finance</button>
 </nav>
 
 <!-- ═══════════ MODALS ═══════════ -->
@@ -4219,7 +4231,6 @@ function updateSessionUI() {
   }
   dshow('ditem-dashboard',    true);
   dshow('ditem-inventory',    true);
-  dshow('ditem-reservations', true);
   dshow('ditem-calendar',     true);
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
@@ -4227,8 +4238,10 @@ function updateSessionUI() {
   dshow('ditem-foodcost',     canFoodCost());
   dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
   dshow('ditem-blackbox',     isAdmin);
-  dshow('ditem-users',        isAdmin);
+  dshow('ditem-users',        isAdmin || canShiftEdit);   // Team: admins see logins too, shift managers the rota names
   dshow('ditem-settings',     isAdmin);
+  var officeLbl = document.getElementById('drawer-office-label');
+  if (officeLbl) officeLbl.style.display = (isFinance || isAdmin || canShiftEdit || canFoodCost()) ? '' : 'none';
 
   // ── Bottom nav visibility ──────────────────────────────────────
   function bshow(id, visible) {
@@ -4237,11 +4250,9 @@ function updateSessionUI() {
   }
   bshow('bnav-dashboard',    true);
   bshow('bnav-inventory',    true);
-  bshow('bnav-reservations', true);
+  bshow('bnav-calendar',     true);
   bshow('bnav-shifts',       true);
-  bshow('bnav-finance',      isFinance);
   bshow('bnav-tasks',        true);   // visible to all — filter inside renderTasks handles per-user
-  bshow('bnav-blackbox',     isAdmin);
 
   // ── Shift edit buttons (shift_mgr + admin only) ────────────────
   var addShiftBtn = document.getElementById('btn-add-shift');
@@ -4414,6 +4425,8 @@ function refreshSection(name) {
   } else if (name === 'foodcost') {
     if (canFoodCost()) fcLoad();
 
+  } else if (name === 'users' && !isAdmin) {
+    // shift managers only see the names on the schedule (already loaded with the shifts)
   } else if (name === 'users') {
     if (isSecure()) loadUsersSecure();
     // secure mode: the database no longer shows devices to the app, the server does (admins)
@@ -4463,6 +4476,8 @@ function moveBnavMarker() {
   var nav = document.getElementById('bottom-nav'), marker = document.getElementById('bnav-marker');
   if (!nav || !marker) return;
   var icon = nav.querySelector('.bnav-item.active i');
+  // pages only in the menu (Team, Finance…) have no button here: hide the marker
+  marker.style.opacity = icon ? '' : '0';
   if (!icon) return;
   var nr = nav.getBoundingClientRect(), ir = icon.getBoundingClientRect();
   if (!nr.width || !ir.width) return;
@@ -4473,7 +4488,8 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(function()
 function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
-  if ((name === 'blackbox' || name === 'settings' || name === 'users' || name === 'accounting') && !isAdmin) {
+  if (name === 'users' && !isAdmin && !(currentUser && hasRole('shift_mgr'))) { toast('Admin or shift manager access required.', 'error'); return; }
+  if ((name === 'blackbox' || name === 'settings' || name === 'accounting') && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
   if (name === 'foodcost' && !canFoodCost()) {
@@ -4489,14 +4505,14 @@ function showSection(name) {
   sec.classList.add('active');
 
   document.querySelectorAll('.bnav-item').forEach(function(b){ b.classList.remove('active'); });
-  // Calendar lives under Reservations, so the phone's Book button stays lit there
-  var bn = document.getElementById('bnav-' + (name === 'calendar' ? 'reservations' : name));
+  var navName = name === 'reservations' ? 'calendar' : name;   // reservations are a tab of Calendar
+  var bn = document.getElementById('bnav-' + navName);
   if (bn) bn.classList.add('active');
   document.querySelectorAll('.drawer-item').forEach(function(b){ b.classList.remove('active'); });
-  var di = document.getElementById('ditem-' + name);
+  var di = document.getElementById('ditem-' + navName);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Dashboard',inventory:'Shopping List',reservations:'Reservations',calendar:'Calendar',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Users',settings:'Settings'};
+  var titles = {dashboard:'Home',inventory:'Stock',reservations:'Calendar',calendar:'Calendar',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Team',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   moveBnavMarker();
   currentSection = name;
@@ -4529,6 +4545,10 @@ var ROLE_COLORS = {admin:'#b7791f', finance:'#6d4fc2', shift_mgr:'#2b8a4b', empl
 function renderUsers() {
   var el = document.getElementById('users-list');
   if (!el) return;
+  renderShiftsTeamTab();
+  // shift managers see the names on the schedule; logins, pay and contracts stay with admins
+  var addBtn = document.getElementById('btn-add-user'); if (addBtn) addBtn.style.display = isAdmin ? '' : 'none';
+  if (!isAdmin) { el.innerHTML = ''; return; }
   var db = getDB();
   var users = db.appUsers || [];
   if (users.length === 0) {
@@ -4567,6 +4587,8 @@ function renderUsers() {
           +(isSelf?'<span style="background:#fdf3e1;color:var(--amber-700);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
         +'</div>'
         +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+roleBadges+'</div>'
+        +(function(){ var rn = employeeForUser(u, db); return u.employee === '-' ? '<div class="team-link"><i class="fas fa-calendar-xmark"></i> Not on the shift schedule</div>'
+            : (rn ? '<div class="team-link"><i class="fas fa-calendar-week"></i> On the schedule as <b>' + esc(rn) + '</b></div>' : '<div class="team-link none"><i class="fas fa-link-slash"></i> No name on the schedule linked — edit to pick one</div>'); })()
         +(pushChip?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+pushChip+'</div>':'')
         +(contractInfo?'<div style="display:flex;gap:10px;flex-wrap:wrap">'+contractInfo+'</div>':'')
         +(u.notes?'<div style="font-size:12px;color:var(--ocean-500);margin-top:4px;font-style:italic">'+esc(u.notes)+'</div>':'')
@@ -4804,7 +4826,7 @@ function addEmployee() {
   }).catch(function(){ toast('Saved locally (sync later)','error'); });
 }
 function removeEmployee(name) {
-  if (!confirm('Remove '+name+' from the team?')) return;
+  if (!confirm('Remove '+name+' from the shift schedule? Their past shifts, hours and tips are kept.')) return;
   var db=getDB(); db.employees=db.employees.filter(function(e){return e!==name;});
   var fromWs=toDateStr(getWeekStart(0));
   var future=db.shifts.filter(function(s){return s.employee===name&&s.weekStart>=fromWs;});
@@ -6362,6 +6384,7 @@ function sendOrderEmail(orderId){
 function switchResTab(t){
   ['calendar','list'].forEach(function(x){
     document.getElementById('res-tab-'+x).classList.toggle('active',x===t);
+    document.getElementById('res-tab-'+x).setAttribute('aria-selected', x===t ? 'true' : 'false');
     document.getElementById('res-panel-'+x).style.display=x===t?'block':'none';
   });
 }
@@ -7174,8 +7197,7 @@ function renderShifts(){
     document.getElementById('notify-week-label').textContent = sentAt ? 'Notified ' + reqWhen(sentAt).split(', ')[0] : 'Notify team';
   }
   // Team tab only for shift_mgr / admin
-  var teamTabBtn = document.getElementById('shifts-tab-team-btn');
-  if (teamTabBtn) teamTabBtn.style.display = canShiftEdit ? '' : 'none';
+  if (currentShiftsTab === 'team') currentShiftsTab = 'gantt';   // the rota names live in Team now
   var clockTabBtn = document.getElementById('shifts-tab-clock-btn');
   if (clockTabBtn) clockTabBtn.style.display = isAdmin ? '' : 'none';
   if (currentShiftsTab === 'clock' && !isAdmin) currentShiftsTab = 'gantt';
@@ -7704,10 +7726,17 @@ function renderShiftsAttendanceTab() {
 function renderShiftsTeamTab() {
   var db = getDB();
   var el = document.getElementById('shifts-employee-list'); if (!el) return;
+  // who logs in as each name (one person, one record)
+  var loginOf = {};
+  (db.appUsers || []).forEach(function(u){ if (u.active === false || u.id === 'admin_seed') return; var rn = employeeForUser(u, db); if (rn) loginOf[rn] = u.name; });
+  var note = document.getElementById('team-rota-note');
+  if (note) { var unl = db.employees.filter(function(e){ return !loginOf[e]; }).length;
+    note.textContent = 'These are the names the shift schedule, hours and tips use. ' + (isAdmin ? (unl ? unl + ' of them have no login linked; link one by editing the person above.' : 'Every name is linked to a login.') : ''); }
   el.innerHTML = db.employees.length===0
-    ? '<div class="empty-state" style="padding:16px"><p>No employees yet.</p></div>'
+    ? '<div class="empty-state" style="padding:16px"><p>No names on the schedule yet.</p></div>'
     : db.employees.map(function(e){
-        return '<div class="emp-row"><div style="display:flex;align-items:center;gap:10px"><div class="emp-avatar">'+esc(e[0])+'</div><span style="font-size:14px;font-weight:600;color:var(--ocean-900)">'+esc(e)+'</span></div>'
+        return '<div class="emp-row"><div style="display:flex;align-items:center;gap:10px"><div class="emp-avatar">'+esc(e[0])+'</div><span style="font-size:14px;font-weight:600;color:var(--slate-900)">'+esc(e)+'</span>'
+          +(isAdmin ? (loginOf[e] ? '<span class="team-link" style="margin:0">· '+esc(loginOf[e])+'</span>' : '<span class="team-link none" style="margin:0">· no login</span>') : '')+'</div>'
           +'<button class="btn btn-danger btn-sm btn-icon" data-remove-emp="'+esc(e)+'"><i class="fas fa-trash"></i></button></div>';
       }).join('');
 }
@@ -10211,7 +10240,8 @@ document.addEventListener('click', function(e) {
   if (el) { switchResTab(el.dataset.resTab); return; }
   if (t.closest('#btn-prev-week')) { prevWeek(); return; }
   if (t.closest('#btn-next-week')) { nextWeek(); return; }
-  if (t.closest('#btn-add-reservation')) { openAddReservationModal(); return; }
+  if (t.closest('#btn-add-reservation') || t.closest('#calv-add-res')) { openAddReservationModal(); return; }
+  el = t.closest('[data-cal-goto]'); if (el) { showSection('reservations'); switchResTab(el.dataset.calGoto); return; }
   if (t.closest('#btn-add-event') || t.closest('#calv-day-add')) { openEventModal(null, calvSel); return; }
   el = t.closest('[data-calv-day]'); if (el) { calvSel = el.dataset.calvDay; var cm = new Date(calvSel + 'T12:00:00'); if (cm.getMonth() !== calvMonth.getMonth()) { calvGoTo(calvSel); } else renderCalView(); if (window.innerWidth < 1024) { var ag = document.querySelector('.calv-day'); if (ag) ag.scrollIntoView({ behavior:'smooth', block:'start' }); } return; }
   el = t.closest('[data-calv-filter]'); if (el) { calvOn[el.dataset.calvFilter] = !calvOn[el.dataset.calvFilter]; calvSaveFilters(); renderCalView(); return; }
