@@ -221,6 +221,55 @@ app.post('/api/users/save', async (c) => {
   } catch (e: any) { return c.json({ error: 'Saved, but the login was not updated: ' + e.message }, 500) }
   return c.json({ ok: true })
 })
+// ── Clock in / out ──────────────────────────────────────────────
+// The printed QR on the wall carries a code derived from the server's private key, so it
+// cannot be guessed, needs no extra secret, and a scan is proof of being there (trust-based log).
+async function clockCode(cfg: Cfg): Promise<string> {
+  if (!cfg.VAPID_PRIVATE) return ''
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('clock:' + cfg.VAPID_PRIVATE))
+  return Array.from(new Uint8Array(h)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+function lisbon(d: Date) {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Lisbon', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d)
+  const g = (t: string) => (p.find(x => x.type === t) || { value: '00' }).value
+  return { day: `${g('year')}-${g('month')}-${g('day')}`, hm: `${g('hour')}:${g('minute')}` }
+}
+app.get('/api/clock/code', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const code = await clockCode(cfg)
+  if (!code) return c.json({ error: 'VAPID_PRIVATE is not set, so no code can be made' }, 400)
+  return c.json({ code, url: new URL(c.req.url).origin + '/?clock=' + code })
+})
+app.post('/api/clock', async (c) => {
+  const cfg = getConfig(c.env)
+  const me = await staffFromToken(c, cfg)
+  if (!me) return c.json({ error: 'Not logged in' }, 401)
+  if (!cfg.SB_SERVICE_KEY) return c.json({ error: 'The SB_SERVICE_KEY secret is not set in Cloudflare yet' }, 400)
+  const body: any = await c.req.json().catch(() => ({}))
+  const code = String(body.code || '').trim().toLowerCase()
+  const want = body.kind === 'in' || body.kind === 'out' ? body.kind : 'auto'
+  const expected = await clockCode(cfg)
+  if (!expected || code !== expected) return c.json({ error: 'That is not the restaurant\u2019s clock-in code. Scan the QR on the wall.' }, 400)
+  const H = svcHeaders(cfg.SB_SERVICE_KEY)
+  const users: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(me.appUserId)}&select=name,employee`, { headers: H })).json().catch(() => [])
+  const u = Array.isArray(users) ? users[0] : null
+  const employee = (u && u.employee && u.employee !== '-') ? u.employee : (u && u.name) || me.username
+  const last: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/clock_events?user_id=eq.${encodeURIComponent(me.appUserId)}&order=at.desc&limit=1`, { headers: H })).json().catch(() => [])
+  const prev = Array.isArray(last) ? last[0] : null
+  const now = new Date(), loc = lisbon(now)
+  // still "in" from a check-in less than 20 h ago → this one is the check-out, on that check-in's day
+  const open = prev && prev.kind === 'in' && now.getTime() - new Date(prev.at).getTime() < 20 * 3600e3 ? prev : null
+  const kind = open ? 'out' : 'in'
+  if (want !== 'auto' && want !== kind) {
+    return c.json({ error: open ? `You are already checked in (since ${lisbon(new Date(open.at)).hm}). Scan again to check out.` : 'You are not checked in yet. Scan to check in.', state: { kind, since: open ? open.at : null } }, 409)
+  }
+  const ev = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), user_id: me.appUserId, employee, kind, at: now.toISOString(), day: open ? open.day : loc.day, note: '' }
+  const ins = await fetch(`${cfg.SB_URL}/rest/v1/clock_events`, { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: JSON.stringify(ev) })
+  if (!ins.ok) return c.json({ error: 'Not saved: ' + (await ins.text()).slice(0, 160) }, 500)
+  console.log(`[Clock] ${employee} ${kind} ${loc.day} ${loc.hm}`)
+  return c.json({ ok: true, event: ev, time: loc.hm, minutes: open ? Math.round((now.getTime() - new Date(open.at).getTime()) / 60000) : 0 })
+})
+
 // Impersonate (admins, for testing): a real session for another staff login, so the app and the
 // database behave exactly as they would for that person. No email is sent; the person stays logged in
 // on their own devices.
