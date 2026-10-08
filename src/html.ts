@@ -870,6 +870,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .acc-month.has { color:var(--slate-800); }
     .acc-month.has::after { content:''; position:absolute; bottom:5px; left:50%; width:4px; height:4px; margin-left:-2px; border-radius:50%; background:var(--teal-500); }
     .acc-month.active { background:var(--slate-800); color:#fff; border-color:var(--slate-800); }
+    .acc-month-year { margin-left:8px; min-width:60px; border-color:var(--teal-600); color:var(--teal-700); }
+    .acc-month-year.active { background:var(--teal-700); border-color:var(--teal-700); color:#fff; }
     .acc-month.active::after { background:var(--mint-300); }
     .acc-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
     .acc-toolbar-title { flex:1; min-width:180px; font-weight:800; font-size:15px; color:var(--slate-900); }
@@ -8457,17 +8459,46 @@ function renderAccounting() {
   document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
   var body = document.getElementById('acc-body');
   if (accTab === 'foodcost') accTab = 'summary';
+  if (accMonth === 0 && accTab !== 'wages') accMonth = (accYear === new Date().getFullYear()) ? new Date().getMonth() + 1 : 12;
   var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
   body.innerHTML = html;
   if (accTab === 'summary') { var ch = document.getElementById('acc-chart'); if (ch) drawAccChart(ch); }
 }
-function accMonthBar() {
+function accMonthBar(withYear) {
   var h = '<div class="acc-months" role="tablist" aria-label="Month">';
   for (var m = 1; m <= 12; m++) {
     var t = accMonthTotals(accYear, m);
     h += '<button class="acc-month' + (m === accMonth ? ' active' : '') + (t.any ? ' has' : '') + '" data-acc-month="' + m + '">' + MONTH_NAMES[m - 1] + '</button>';
   }
+  // accMonth 0 = the whole year (Wages)
+  if (withYear) h += '<button class="acc-month acc-month-year' + (accMonth === 0 ? ' active' : '') + '" data-acc-month="0">Year</button>';
   return h + '</div>';
+}
+// Wages for the whole year: one row per person, a column per month
+function accWagesYearHTML() {
+  var months = [], people = [], rev = 0;
+  for (var m = 1; m <= 12; m++) { var ws = accWages(accYear, m); months.push(ws); rev += accRevenue(accYear, m).total; ws.forEach(function(w){ if (!people.some(function(p){ return accSame(p, w.person); })) people.push(w.person); }); }
+  people.sort(function(a, b){ return a.localeCompare(b); });
+  var h = accMonthBar(true) + '<div class="acc-toolbar"><div class="acc-toolbar-title">Wages · ' + accYear + '</div></div>';
+  if (!people.length) return h + '<div class="empty-state"><i class="fas fa-user-group"></i><p>No wages in ' + accYear + ' yet. Pick a month above to add them.</p></div>';
+  h += '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th>Person</th>';
+  for (var m2 = 1; m2 <= 12; m2++) h += '<th>' + MONTH_NAMES[m2 - 1] + '</th>';
+  h += '<th>Year</th></tr></thead><tbody>';
+  var colTot = [0,0,0,0,0,0,0,0,0,0,0,0], partTot = {}; ACC_WAGE_PARTS.forEach(function(p){ partTot[p[0]] = 0; });
+  people.forEach(function(person){
+    var yt = 0; h += '<tr><th>' + esc(person) + '</th>';
+    months.forEach(function(ws, i){
+      var w = ws.find(function(x){ return accSame(x.person, person); }), v = w ? w.total : 0; yt += v; colTot[i] += v;
+      if (w) ACC_WAGE_PARTS.forEach(function(p){ partTot[p[0]] += w.parts[p[0]].v; });
+      h += '<td>' + (v ? accEur0(v) : '—') + '</td>';
+    });
+    h += '<td><b>' + accEur0(yt) + '</b></td></tr>';
+  });
+  var all = accSum(colTot);
+  h += '<tr class="strong"><th>Total</th>' + colTot.map(function(v){ return '<td>' + (v ? accEur0(v) : '—') + '</td>'; }).join('') + '<td>' + accEur0(all) + '</td></tr>';
+  h += '<tr class="pct"><th>% of revenue</th>' + colTot.map(function(v, i){ var r = accRevenue(accYear, i + 1).total; return '<td>' + (v && r ? accPct(v, r) : '—') + '</td>'; }).join('') + '<td>' + accPct(all, rev) + '</td></tr></tbody></table></div>';
+  h += '<p class="acc-note">' + accYear + ': ' + ACC_WAGE_PARTS.map(function(p){ return p[1] + ' <b>' + accEur0(partTot[p[0]]) + '</b>'; }).join(' · ') + ' — staff is ' + accPct(all, rev) + ' of the year’s revenue. Pick a month above to edit.</p>';
+  return h;
 }
 function accKpi(label, value, sub, cls) { return '<div class="acc-kpi"><div class="acc-kpi-label">' + label + '</div><div class="acc-kpi-num ' + (cls || '') + '">' + value + '</div><div class="acc-kpi-sub">' + (sub || '') + '</div></div>'; }
 function accIn(v) { return String(Math.round(v * 100) / 100).replace('.', ','); }   // amount shown in an input box
@@ -8558,8 +8589,9 @@ function accRevenueHTML() {
 }
 
 function accWagesHTML() {
+  if (accMonth === 0) return accWagesYearHTML();
   var ws = accWages(accYear, accMonth), rev = accRevenue(accYear, accMonth).total;
-  var h = accMonthBar() + '<div class="acc-toolbar"><div class="acc-toolbar-title">Wages · ' + accMonthLabel(accYear, accMonth) + '</div>'
+  var h = accMonthBar(true) + '<div class="acc-toolbar"><div class="acc-toolbar-title">Wages · ' + accMonthLabel(accYear, accMonth) + '</div>'
     + '<button class="btn btn-secondary btn-sm" id="acc-wage-copy"><i class="fas fa-copy"></i> Copy last month</button>'
     + '<button class="btn btn-primary btn-sm" id="acc-wage-add"><i class="fas fa-user-plus"></i> Add person</button></div>';
   if (!ws.length) return h + '<div class="empty-state"><i class="fas fa-user-group"></i><p>No wages in ' + accMonthLabel(accYear, accMonth) + ' yet. Copy last month or add people.</p></div>';
