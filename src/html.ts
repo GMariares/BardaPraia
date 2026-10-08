@@ -2291,7 +2291,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <input type="file" id="inv-file" accept="image/*,application/pdf" multiple style="display:none" />
     <div id="inv-photo-box" class="inv-photo-box"></div>
     <div id="inv-qr-note" class="inv-qr-note" style="display:none" aria-live="polite"></div>
-    <div class="form-row"><label class="label" for="inv-supplier">Supplier *</label><select class="select-field" id="inv-supplier"></select></div>
+    <div class="form-row"><label class="label" for="invc-supplier">Supplier *</label><select class="select-field" id="invc-supplier"></select></div>
     <div class="form-row" id="inv-new-supplier-row" style="display:none"><label class="label" for="inv-supplier-name">New supplier name *</label><input type="text" class="input-field" id="inv-supplier-name" placeholder="e.g. Bidfood" /></div>
     <div class="form-grid-2" style="margin-bottom:10px">
       <div style="min-width:0"><label class="label" for="inv-number">Invoice nº</label><input type="text" class="input-field" id="inv-number" placeholder="FT 2026/123" /></div>
@@ -8221,7 +8221,7 @@ function invDuplicateOf(nif, number, supplierId, exceptId) {
 // Fill the new-invoice form from the QR code; the person checks and saves
 function invApplyQr(q) {
   invQr = q;
-  var sup = invSupplierByNif(q.nif), sel = document.getElementById('inv-supplier');
+  var sup = invSupplierByNif(q.nif), sel = document.getElementById('invc-supplier');
   if (sup) { sel.value = sup.id; document.getElementById('inv-new-supplier-row').style.display = 'none'; }
   else { sel.value = '__new__'; var row = document.getElementById('inv-new-supplier-row'); row.style.display = ''; var nm = document.getElementById('inv-supplier-name'); nm.value = ''; nm.placeholder = 'Name for NIF ' + q.nif + ' (asked once)'; }
   document.getElementById('inv-number').value = q.number;
@@ -8339,12 +8339,12 @@ function openInvoiceModal(id, keepFile) {
   invPhotoFor = i ? i.id : '';
   document.getElementById('inv-edit-id').value = i ? i.id : '';
   document.getElementById('inv-modal-title').textContent = i ? 'Invoice' : 'New invoice';
-  document.getElementById('inv-supplier').innerHTML = invSupplierOptions(i ? i.supplierId : '', i ? i.supplierName : '');
+  document.getElementById('invc-supplier').innerHTML = invSupplierOptions(i ? i.supplierId : '', i ? i.supplierName : '');
   document.getElementById('inv-new-supplier-row').style.display = 'none'; document.getElementById('inv-supplier-name').value = '';
-  if (i && !document.getElementById('inv-supplier').value) {
+  if (i && !document.getElementById('invc-supplier').value) {
     var byNif = i.supplierNif ? invSupplierByNif(i.supplierNif) : null;   // the supplier may have been named since
-    if (byNif) document.getElementById('inv-supplier').value = byNif.id;
-    else { document.getElementById('inv-supplier').value = '__new__'; document.getElementById('inv-new-supplier-row').style.display = ''; document.getElementById('inv-supplier-name').value = i.supplierName; }
+    if (byNif) document.getElementById('invc-supplier').value = byNif.id;
+    else { document.getElementById('invc-supplier').value = '__new__'; document.getElementById('inv-new-supplier-row').style.display = ''; document.getElementById('inv-supplier-name').value = i.supplierName; }
   }
   document.getElementById('inv-number').value = i ? i.number : '';
   document.getElementById('inv-date').value = i ? i.date : toDateStr(new Date());
@@ -8363,7 +8363,7 @@ function openInvoiceModal(id, keepFile) {
   invRenderPhotoBox(i ? i.photoPath : '');
   invCheckAmounts();
   openModal('modal-invoice');
-  if (!i) setTimeout(function(){ var el = document.getElementById(invFile ? 'inv-supplier' : 'inv-supplier'); if (el) el.focus(); }, 50);
+  if (!i) setTimeout(function(){ var el = document.getElementById('invc-supplier'); if (el) el.focus(); }, 50);
 }
 // net + VAT = total: fill in whichever one is missing, warn when the three disagree
 function invAmt(id) { var v = document.getElementById(id).value.trim(); return v === '' ? null : accNum(v); }
@@ -8380,7 +8380,7 @@ function invCheckAmounts(fromId) {
   else w.style.display = 'none';
 }
 function invEnsureSupplier() {
-  var sel = document.getElementById('inv-supplier').value;
+  var sel = document.getElementById('invc-supplier').value;
   if (sel && sel !== '__new__') { var s = (getDB().suppliers || []).find(function(x){ return x.id === sel; }); return Promise.resolve(s ? { id:s.id, name:s.name, nif:s.nif || '' } : null); }
   var name = document.getElementById('inv-supplier-name').value.trim(); if (!name) return Promise.resolve(null);
   var db = getDB(), existing = (db.suppliers || []).find(function(x){ return accSame(x.name, name); });
@@ -8399,7 +8399,7 @@ function saveInvoice() {
   if (invSaving) return;
   var id = document.getElementById('inv-edit-id').value, old = id ? invoices().find(function(x){ return x.id === id; }) : null;
   var date = document.getElementById('inv-date').value, tot = invAmt('inv-total'), net = invAmt('inv-net'), vat = invAmt('inv-vat');
-  if (!document.getElementById('inv-supplier').value || (document.getElementById('inv-supplier').value === '__new__' && !document.getElementById('inv-supplier-name').value.trim())) { toast('Choose the supplier', 'error'); return; }
+  if (!document.getElementById('invc-supplier').value || (document.getElementById('invc-supplier').value === '__new__' && !document.getElementById('inv-supplier-name').value.trim())) { toast('Choose the supplier', 'error'); return; }
   if (!date) { toast('Pick the invoice date', 'error'); return; }
   if (tot === null || isNaN(tot) || tot < 0) { toast('Type the total with VAT', 'error'); return; }
   if ((net !== null && isNaN(net)) || (vat !== null && isNaN(vat))) { toast('Check the amounts', 'error'); return; }
@@ -10235,7 +10235,7 @@ document.addEventListener('change', function(e) {
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.id === 'ev-allday') evSyncTimes();
   if (t.id === 'inv-file' && t.files && t.files.length) { var modalOpen = document.getElementById('modal-invoice').classList.contains('open'); if (modalOpen || t.files.length === 1) invSetFile(t.files[0]); else invBatch(t.files); }
-  if (t.id === 'inv-supplier') document.getElementById('inv-new-supplier-row').style.display = t.value === '__new__' ? '' : 'none';
+  if (t.id === 'invc-supplier') document.getElementById('inv-new-supplier-row').style.display = t.value === '__new__' ? '' : 'none';
   if (t.id === 'inv-paid') { var ipd = document.getElementById('inv-paid-date'); ipd.style.display = t.checked ? '' : 'none'; if (t.checked && !ipd.value) ipd.value = toDateStr(new Date()); }
   if (t.id === 'ev-everyone') evRenderPeople();
   if (t.name === 'req-kind') { reqKindChanged(); }
