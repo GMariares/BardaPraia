@@ -120,8 +120,15 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     #topbar .role-chip.shift_mgr i { color:var(--green-200); }
     #topbar .role-chip.employee i { color:var(--blue-200); }
     #topbar .role-chip.chef i { color:#e6cdb9; }
-    #topbar-emp { font-size:13px; font-weight:600; color:white; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:6px 10px; outline:none; cursor:pointer; max-width:120px; }
-    #topbar-emp option { color:var(--slate-900); }
+    /* who is signed in: initial on the right of the beam, opens the menu (sign out lives there) */
+    #topbar-me { width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,.24); background:rgba(255,255,255,.12); color:white; font-weight:800; font-size:15px; display:none; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    #topbar-me:hover { background:rgba(255,255,255,.2); }
+    .drawer-logout { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:10px; min-height:40px; background:transparent; border:1px solid rgba(255,255,255,.25); color:white; border-radius:9px; padding:8px 12px; font-size:13px; font-weight:700; cursor:pointer; }
+    .drawer-logout:hover { background:rgba(255,255,255,.1); }
+    /* stock forms: whose name goes in the log (always the person signed in) */
+    .form-who { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-500); margin:0 0 14px; }
+    .form-who b { color:var(--slate-900); }
+    .modal:focus { outline:none; }
     #admin-login-btn { background:var(--gold-200); color:var(--slate-900); border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
     #admin-logout-btn { background:rgba(255,255,255,.12); color:white; border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
     #finance-login-btn { background:var(--purple-200); color:var(--slate-900); border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
@@ -759,6 +766,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       #drawer { transform:none; box-shadow:none; }
       #drawer-overlay { display:none; }
       #hamburger-btn { display:none; }
+      #topbar-me { display:none !important; }
       #topbar { left:var(--beam-w); padding-left:24px; }
       #content-wrap { left:var(--beam-w); bottom:0; padding:24px 32px 32px; }
       #content-wrap > .page-section { max-width:1200px; margin:0 auto; }
@@ -1058,8 +1066,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <div id="topbar-title">Bar da Praia</div>
   <div id="topbar-right">
     <div id="topbar-role-info"></div>
-    <select id="topbar-emp"><option value="">Staff</option></select>
-    <button id="btn-app-logout" style="background:#fbeae7;color:#b4402f;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;display:none"><i class="fas fa-sign-out-alt"></i> <span id="topbar-username"></span></button>
+    <button id="topbar-me" aria-label="Account and sign out"></button>
   </div>
 </header>
 
@@ -1094,8 +1101,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div id="drawer-user-name" style="color:white;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
         <div id="drawer-user-sub" style="color:rgba(255,255,255,.5);font-size:11px;margin-top:1px">Not signed in</div>
       </div>
-      <button id="drawer-logout-btn" style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;flex-shrink:0" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
     </div>
+    <button id="drawer-logout-btn" class="drawer-logout"><i class="fas fa-arrow-right-from-bracket"></i> Sign out</button>
     <button id="btn-enable-notif" style="margin-top:10px;width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
       <i class="fas fa-bell"></i> <span id="notif-btn-label">Enable Notifications</span> <i id="notif-status-dot" class="fas fa-circle" style="font-size:7px;margin-left:auto;color:rgba(255,255,255,.4)"></i>
     </button>
@@ -2211,7 +2218,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <div class="modal">
     <div class="modal-handle"></div>
     <h2><i class="fas fa-box" style="color:var(--ocean-400)"></i><span id="inv-modal-title">Add Item</span></h2>
-    <div class="form-row"><label class="label">Employee</label><select class="select-field" id="inv-employee"></select></div>
+    <p class="form-who"><i class="fas fa-user-check"></i><span>Saved as <b class="who-me"></b></span></p>
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Item Name *</label><input type="text" class="input-field" id="inv-item-name" placeholder="e.g. Water Bottle" /></div>
       <div><label class="label">Category</label>
@@ -2278,13 +2285,27 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </div>
 </div>
 
+<!-- A short question with one answer (replaces the browser's prompt box) -->
+<div class="modal-overlay modal-center on-top" id="modal-ask">
+  <div class="modal">
+    <h2><i class="fas fa-pen" id="ask-icon"></i><span id="ask-title"></span></h2>
+    <p class="acc-note" id="ask-msg" style="margin-bottom:10px"></p>
+    <input type="text" class="input-field" id="ask-input" list="ask-list" autocomplete="off" />
+    <datalist id="ask-list"></datalist>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-ask">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-ask-ok">OK</button>
+    </div>
+  </div>
+</div>
+
 <!-- Update Quantities -->
 <div class="modal-overlay" id="modal-update-qty">
   <div class="modal">
     <div class="modal-handle"></div>
     <h2><i class="fas fa-pen" style="color:var(--ocean-400)"></i> Update Stock</h2>
     <input type="hidden" id="update-qty-id" />
-    <div class="form-row"><label class="label">Employee</label><select class="select-field" id="update-qty-employee"></select></div>
+    <p class="form-who"><i class="fas fa-user-check"></i><span>Saved as <b class="who-me"></b></span></p>
     <div style="background:var(--ocean-50);border-radius:12px;padding:12px;margin-bottom:14px;font-weight:700;color:var(--ocean-900)" id="update-qty-name"></div>
     <div class="form-grid-2" style="margin-bottom:16px">
       <div><label class="label">Qty in Bar</label><input type="number" class="input-field" id="update-qty-bar" min="0" /></div>
@@ -2430,6 +2451,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <h2><i class="fas fa-calendar-check" style="color:var(--ocean-400)"></i> Reservation</h2>
     <div id="res-detail-content"></div>
     <div class="action-row" id="res-detail-actions"></div>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px" data-close-modal="modal-res-detail">Close</button>
   </div>
 </div>
 
@@ -3552,9 +3574,49 @@ function toast(msg, type) {
 // ================================================
 // MODAL
 // ================================================
-function openModal(id) { var el=document.getElementById(id); if(!el) return; el.classList.add('open'); document.body.style.overflow='hidden'; }
+// askText({ title, message, value, placeholder, ok, icon, inputmode, suggestions }, function(answer){ ... })
+// The callback only runs when the person presses OK (or Enter); Cancel, Escape or tapping outside do nothing.
+var askCb = null;
+function askText(o, cb) {
+  askCb = cb;
+  document.getElementById('ask-title').textContent = o.title || '';
+  var msg = document.getElementById('ask-msg'); msg.textContent = o.message || ''; msg.style.display = o.message ? '' : 'none';
+  document.getElementById('ask-icon').className = 'fas ' + (o.icon || 'fa-pen');
+  document.getElementById('btn-ask-ok').textContent = o.ok || 'OK';
+  var inp = document.getElementById('ask-input');
+  inp.value = o.value == null ? '' : String(o.value); inp.placeholder = o.placeholder || ''; inp.setAttribute('inputmode', o.inputmode || 'text');
+  document.getElementById('ask-list').innerHTML = (o.suggestions || []).map(function(x){ return '<option value="' + esc(x) + '"></option>'; }).join('');
+  openModal('modal-ask');
+  setTimeout(function(){ inp.focus(); inp.select(); }, 60);
+}
+function askOk() { var cb = askCb, v = document.getElementById('ask-input').value; askCb = null; closeModal('modal-ask'); if (cb) cb(v); }
+
+// Forms open as dialogs: announced as such, focus moves in and comes back, Escape closes the top one
+var modalStack = [], modalOpener = {};
+function openModal(id) {
+  var el=document.getElementById(id); if(!el) return;
+  var box = el.querySelector('.modal');
+  if (box && !box.getAttribute('role')) {
+    box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.tabIndex = -1;
+    var h = box.querySelector('h2') || box.querySelector('[id$="-name"]');
+    if (h) { if (!h.id) h.id = id + '-title'; box.setAttribute('aria-labelledby', h.id); }
+  }
+  if (!el.classList.contains('open')) modalOpener[id] = document.activeElement;
+  el.classList.add('open'); document.body.style.overflow='hidden';
+  modalStack = modalStack.filter(function(x){ return x !== id; }); modalStack.push(id);
+  if (box) setTimeout(function(){ if (el.classList.contains('open') && !box.contains(document.activeElement)) { try { box.focus({ preventScroll: true }); } catch(e){ box.focus(); } } }, 30);
+}
+function topModalId() {
+  modalStack = modalStack.filter(function(x){ var m = document.getElementById(x); return m && m.classList.contains('open'); });
+  var onTop = document.querySelector('.modal-overlay.open.on-top');
+  return onTop ? onTop.id : (modalStack[modalStack.length - 1] || null);
+}
 function closeModal(id) {
   var el=document.getElementById(id); if(!el) return; el.classList.remove('open'); document.body.style.overflow='';
+  modalStack = modalStack.filter(function(x){ return x !== id; });
+  var back = modalOpener[id]; delete modalOpener[id];
+  if (back && document.body.contains(back) && back.offsetParent !== null && typeof back.focus === 'function' && !/^(INPUT|TEXTAREA|SELECT)$/.test(back.tagName)) { try { back.focus({ preventScroll: true }); } catch(e){} }
+  if (document.querySelector('.modal-overlay.open')) document.body.style.overflow = 'hidden';
   if (id === 'modal-clock' && typeof clockStopCamera === 'function') clockStopCamera();
   if (id === 'modal-add-supplier') {
     el.classList.remove('on-top');
@@ -4190,13 +4252,11 @@ if ('serviceWorker' in navigator) {
 function updateSessionUI() {
   var canShiftEdit = isAdmin || hasRole('shift_mgr');
 
-  // Topbar logout button
-  var logoutBtn = document.getElementById('btn-app-logout');
-  var unameSpan = document.getElementById('topbar-username');
-  var roleInfo  = document.getElementById('topbar-role-info');
+  // Topbar: the signed-in person's initial (opens the menu, where Sign out is)
+  var meBtn    = document.getElementById('topbar-me');
+  var roleInfo = document.getElementById('topbar-role-info');
   if (currentUser) {
-    if (logoutBtn) logoutBtn.style.display = 'flex';
-    if (unameSpan) unameSpan.textContent = currentUser.name.split(' ')[0];
+    if (meBtn) { meBtn.style.display = 'flex'; meBtn.textContent = currentUser.name.charAt(0).toUpperCase(); meBtn.setAttribute('aria-label', 'Signed in as ' + currentUser.name + '. Open the menu to sign out'); meBtn.title = currentUser.name; }
     var badges = (currentUser.roles||[]).map(function(r){
       var labels = {admin:'<i class="fas fa-crown"></i> Admin',finance:'<i class="fas fa-euro-sign"></i> Finance',shift_mgr:'<i class="fas fa-calendar-days"></i> Shifts',employee:'<i class="fas fa-user"></i> Employee',chef:'<i class="fas fa-utensils"></i> Chef'};
       var cls    = {admin:'admin',finance:'finance',shift_mgr:'shift_mgr',employee:'employee',chef:'chef'};
@@ -4210,8 +4270,8 @@ function updateSessionUI() {
     if (dsub)  dsub.textContent  = (currentUser.roles||[]).map(function(r){ return r.charAt(0).toUpperCase()+r.slice(1).replace('_',' '); }).join(' · ');
     if (davt)  davt.textContent  = currentUser.name.charAt(0).toUpperCase();
   } else {
-    if (logoutBtn) logoutBtn.style.display = 'none';
-    if (roleInfo)  roleInfo.innerHTML = '';
+    if (meBtn)    meBtn.style.display = 'none';
+    if (roleInfo) roleInfo.innerHTML = '';
     var dname2 = document.getElementById('drawer-user-name');
     var dsub2  = document.getElementById('drawer-user-sub');
     var davt2  = document.getElementById('drawer-avatar');
@@ -4843,12 +4903,10 @@ function removeEmployee(name) {
 function updateAllDropdowns() {
   var emp = getEmployees();
   var opts = '<option value="">-- Select --</option>' + emp.map(function(e){return '<option value="'+esc(e)+'">'+esc(e)+'</option>';}).join('');
-  ['inv-employee','update-qty-employee','task-assigned','shift-employee'].forEach(function(id){
+  ['task-assigned','shift-employee'].forEach(function(id){
     var el=document.getElementById(id); if(!el) return;
     var cur=el.value; el.innerHTML=opts; el.value=cur;
   });
-  var gs=document.getElementById('topbar-emp');
-  if(gs){ var c=gs.value; gs.innerHTML='<option value="">Staff</option>'+emp.map(function(e){return '<option value="'+esc(e)+'">'+esc(e)+'</option>';}).join(''); gs.value=c; }
   // Populate supplier dropdown in inventory modal
   var supSel=document.getElementById('inv-supplier');
   if(supSel){
@@ -5844,7 +5902,6 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-unit').value=item.unit||'';
     document.getElementById('inv-qty-bar').value=item.qtyBar;
     document.getElementById('inv-qty-storage').value=item.qtyStorage;
-    document.getElementById('inv-employee').value=item.lastEmployee||'';
     var supEl=document.getElementById('inv-supplier'); if(supEl) supEl.value=item.supplierId||'';
   } else {
     editInventoryId=null;
@@ -5854,15 +5911,18 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-category').value='beverages';
     document.getElementById('inv-qty-bar').value='0';
     document.getElementById('inv-qty-storage').value='0';
-    document.getElementById('inv-employee').value='';
     var supEl2=document.getElementById('inv-supplier');
     if(supEl2) supEl2.value = invSupplierFilter || '';
   }
+  fillWhoMe();
   openModal('modal-add-inventory');
 }
+// The name stock changes are logged under: always the person signed in, never picked from a list
+function whoAmI() { return myEmployee() || (currentUser ? currentUser.name : ''); }
+function fillWhoMe() { document.querySelectorAll('.who-me').forEach(function(b){ b.textContent = whoAmI() || '—'; }); }
 function saveInventoryItem() {
   var name=document.getElementById('inv-item-name').value.trim(); if(!name){toast('Name required!','error');return;}
-  var db=getDB(); var emp=document.getElementById('inv-employee').value;
+  var db=getDB(); var emp=whoAmI();
   var qb=parseInt(document.getElementById('inv-qty-bar').value)||0;
   var qs=parseInt(document.getElementById('inv-qty-storage').value)||0;
   var cat=document.getElementById('inv-category').value;
@@ -5895,10 +5955,10 @@ function deleteInventoryItem(id){
   if(!confirm('Delete this item?')) return;
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;});
   db.inventory=db.inventory.filter(function(i){return i.id!==id;});
-  addInvLog(db,{action:'delete',item:item?item.name:'?',employee:'System'});
+  addInvLog(db,{action:'delete',item:item?item.name:'?',employee:whoAmI()});
   saveDB(db); renderInventory(); renderDashboard(); toast('Deleting...');
   sbFetch('DELETE','inventory',null,'id=eq.'+id).then(function(){
-    if(item) sbAddInvLog({action:'delete',item:item.name,employee:'System',qty_bar:0,qty_storage:0});
+    if(item) sbAddInvLog({action:'delete',item:item.name,employee:whoAmI(),qty_bar:0,qty_storage:0});
     toast('Deleted.');
   }).catch(function(){ toast('Deleted locally','error'); });
 }
@@ -5909,12 +5969,12 @@ function openUpdateQtyModal(id){
   document.getElementById('update-qty-name').textContent=item.name+(item.unit?' ('+item.unit+')':'');
   document.getElementById('update-qty-bar').value=item.qtyBar;
   document.getElementById('update-qty-storage').value=item.qtyStorage;
-  document.getElementById('update-qty-employee').value=item.lastEmployee||'';
+  fillWhoMe();
   openModal('modal-update-qty');
 }
 function saveQtyUpdate(){
   var id=document.getElementById('update-qty-id').value;
-  var emp=document.getElementById('update-qty-employee').value;
+  var emp=whoAmI();
   var qb=parseInt(document.getElementById('update-qty-bar').value)||0;
   var qs=parseInt(document.getElementById('update-qty-storage').value)||0;
   var now=new Date().toISOString();
@@ -8071,7 +8131,7 @@ function reqFresh(q) {
     return null;
   });
 }
-function reqAction(act, id) {
+function reqAction(act, id, rejectNote) {
   var q = (getDB().shiftRequests || []).find(function(r){ return r.id === id; }); if (!q || reqBusy) return;
   var who = currentUser ? currentUser.name : '', now = new Date().toISOString();
   var fail = function(){ reqBusy = false; toast('Not saved. Check the connection and try again.', 'error'); };
@@ -8079,7 +8139,10 @@ function reqAction(act, id) {
   if (act === 'cancel' && !confirm('Cancel this request?')) return;
   if (act === 'decline' && !confirm('Decline ' + q.requester + "'s request?")) return;
   var note = '';
-  if (act === 'reject') { note = prompt('Reason (optional, ' + q.requester + ' will see it)', ''); if (note === null) return; note = note.trim(); }
+  if (act === 'reject') {
+    if (rejectNote === undefined) { askText({ title: 'Reject the request', message: q.requester + ' will see the reason. You can leave it empty.', placeholder: 'Reason (optional)', ok: 'Reject', icon: 'fa-xmark' }, function(v){ reqAction('reject', id, String(v || '')); }); return; }
+    note = rejectNote.trim();
+  }
   reqBusy = true;
   reqFresh(q).then(function(fq){
     if (!fq) { reqBusy = false; return; }
@@ -9037,7 +9100,9 @@ function accCopyWages() {
 function accAddPerson() {
   var have = accWages(accYear, accMonth).map(function(w){ return w.person; });
   var sugg = (getDB().employees || []).filter(function(e){ return !have.some(function(h){ return accSame(h, e); }); });
-  var name = prompt('Name' + (sugg.length ? ' (e.g. ' + sugg.slice(0, 4).join(', ') + ')' : ''), sugg[0] || '');
+  askText({ title: 'Add a person', message: 'Type a name or pick one from the shift schedule.', value: '', placeholder: 'Name', ok: 'Add', icon: 'fa-user-plus', suggestions: sugg }, function(v){ accAddPersonNamed(have, v); });
+}
+function accAddPersonNamed(have, name) {
   if (!name || !name.trim()) return;
   name = name.trim();
   var known = (getDB().employees || []).find(function(e){ return accSame(e, name); }); if (known) name = known;
@@ -9047,8 +9112,10 @@ function accAddPerson() {
 function accEditRule(person, part) {
   var c = accCfg(), r = c.wageRules.find(function(x){ return accSame(x.person, person) && x.part === part; });
   var label = (ACC_WAGE_PARTS.find(function(p){ return p[0] === part; }) || [part, part])[1];
-  var ans = prompt(person + ': ' + label + ' as a % of each month’s revenue, from ' + accMonthLabel(accYear, accMonth) + ' on.\\nLeave empty to remove the rule.', r ? r.pct : '');
-  if (ans === null) return;
+  askText({ title: person + ': ' + label, message: 'A % of each month’s revenue, from ' + accMonthLabel(accYear, accMonth) + ' on. Leave it empty to remove the rule.', value: r ? r.pct : '', placeholder: 'e.g. 2,5', ok: 'Save', icon: 'fa-percent', inputmode: 'decimal' }, function(ans){ accSaveRule(person, part, label, r, ans); });
+}
+function accSaveRule(person, part, label, r, ans) {
+  var c = accCfg();
   c.wageRules = c.wageRules.filter(function(x){ return !(accSame(x.person, person) && x.part === part); });
   var pct = parseFloat(String(ans).replace(',', '.'));
   if (String(ans).trim() !== '' && !(pct > 0 && pct < 100)) { toast('Enter a percentage between 0 and 100', 'error'); return; }
@@ -9059,9 +9126,11 @@ function accEditRule(person, part) {
   else renderAccounting();
 }
 function accNewLine(kind) {
-  var what = kind === 'supplier' ? 'Supplier name' : kind === 'expense' ? 'Expense category' : 'Fixed cost (e.g. Internet)';
   if (kind === 'supplier') { supplierModalDone = function(sp){ if (sp) { renderAccounting(); openAccLedger('supplier', sp.name); } }; openSupplierModal(null); return; }
-  var name = prompt(what, ''); if (!name || !name.trim()) return; name = name.trim();
+  askText({ title: kind === 'expense' ? 'New expense category' : 'New fixed cost', placeholder: kind === 'expense' ? 'e.g. Cleaning' : 'e.g. Internet', ok: 'Add', icon: 'fa-plus' }, function(v){ accNewLineNamed(kind, v); });
+}
+function accNewLineNamed(kind, name) {
+  if (!name || !name.trim()) return; name = name.trim();
   var c = accCfg(), key = kind === 'fixed' ? 'fixedLines' : 'expenseCats';
   if (c[key].some(function(x){ return accSame(x, name); })) { toast(name + ' already exists', 'error'); return; }
   c[key].push(name); saveAccCfg(c); renderAccounting();
@@ -9069,6 +9138,23 @@ function accNewLine(kind) {
 }
 
 document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    var top = topModalId();
+    if (top) { e.preventDefault(); if (top === 'modal-clock' && document.getElementById('btn-clock-cancel')) document.getElementById('btn-clock-cancel').click(); else closeModal(top); return; }
+    var dr = document.getElementById('drawer'); if (dr && dr.classList.contains('open')) { closeDrawer(); var hb = document.getElementById('hamburger-btn'); if (hb) hb.focus(); return; }
+  }
+  if (e.key === 'Tab') {   // keep Tab inside the open form
+    var tid = topModalId(), tm = tid && document.querySelector('#' + tid + ' .modal');
+    if (tm) {
+      var f = Array.prototype.filter.call(tm.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'), function(x){ return !x.disabled && x.offsetParent !== null && x.type !== 'hidden'; });
+      if (f.length) {
+        var first = f[0], last = f[f.length - 1], a = document.activeElement;
+        if (e.shiftKey && (a === first || a === tm)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && (a === last || !tm.contains(a))) { e.preventDefault(); first.focus(); }
+      }
+    }
+  }
+  if (e.key === 'Enter' && e.target && e.target.id === 'ask-input') { e.preventDefault(); askOk(); }
   if (e.key === 'Enter' && e.target && (e.target.id === 'acc-led-amount' || e.target.id === 'acc-led-note')) { e.preventDefault(); addAccLedgerEntry(); }
   if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('fc-row')) { e.target.click(); }
 });
@@ -10110,7 +10196,8 @@ document.addEventListener('click', function(e) {
 
   // Login screen
   if (t.closest('#btn-do-login')) { doLogin(); return; }
-  if (t.closest('#btn-app-logout')) { appLogout(); return; }
+  if (t.closest('#topbar-me')) { openDrawer(); return; }
+  if (t.closest('#btn-ask-ok')) { askOk(); return; }
   if (t.closest('#drawer-logout-btn')) { appLogout(); return; }
 
   // Users
@@ -10470,9 +10557,11 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-fc-dish]'); if (el) { openFcDish(el.dataset.fcDish); return; }
   el = t.closest('[data-fc-ing]'); if (el) { openFcIng(el.dataset.fcIng); return; }
   if (t.closest('#fc-target')) {
-    var tg = prompt('Target food cost %', fcTarget()); if (tg === null) return;
-    var tv = accNum(tg); if (!(tv > 0 && tv < 100)) { toast('Enter a % between 1 and 99', 'error'); return; }
-    var cfg = accCfg(); cfg.foodCostTarget = tv; saveAccCfg(cfg); renderFoodCost(); return;
+    askText({ title: 'Target food cost', message: 'The food cost % you aim for on each dish.', value: fcTarget(), ok: 'Save', icon: 'fa-bullseye', inputmode: 'decimal' }, function(tg){
+      var tv = accNum(tg); if (!(tv > 0 && tv < 100)) { toast('Enter a % between 1 and 99', 'error'); return; }
+      var cfg = accCfg(); cfg.foodCostTarget = tv; saveAccCfg(cfg); renderFoodCost();
+    });
+    return;
   }
   if (t.closest('#fc-add-line')) { fcEdit.lines.push({ ing: '', qty: '', unit: 'g' }); renderFcLines(); var ls = document.querySelectorAll('[data-fc-line-item]'); if (ls.length) ls[ls.length - 1].focus(); return; }
   el = t.closest('[data-fc-line-del]'); if (el) { fcEdit.lines.splice(+el.dataset.fcLineDel, 1); if (!fcEdit.lines.length) fcEdit.lines.push({ ing: '', qty: '', unit: 'g' }); renderFcLines(); return; }
@@ -10587,7 +10676,6 @@ document.addEventListener('change', function(e) {
   }
   if (t.id === 'res-date' || t.id === 'res-time' || t.id === 'res-end') { refreshResTableGrid(); }
   if (t.id === 'req-colleague') { reqSwapHint(); }
-  if (t.id === 'topbar-emp') { document.getElementById('drawer-user-name').textContent=t.value||'Staff'; }
   if (t.id === 'fin-entry-date' && t.value) { loadFinEntryForDate(t.value); }
   if (t.id === 'fin-rec-day-picker') { finRecDayFilter=t.value||''; renderFinRecords(); }
   if (t.id === 'fin-range-from' || t.id === 'fin-range-to') { renderFinRecords(); }
