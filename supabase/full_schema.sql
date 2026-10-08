@@ -312,6 +312,25 @@ CREATE TABLE IF NOT EXISTS invoices (
 );
 CREATE INDEX IF NOT EXISTS invoices_supplier ON invoices (supplier_id, date DESC);
 
+-- Clock in / out log and sent shift reminders (policies in migrations/2026-10-08-p-clock.sql)
+CREATE TABLE IF NOT EXISTS clock_events (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  employee TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL CHECK (kind IN ('in','out')),
+  at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  day DATE NOT NULL,
+  note TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS clock_events_day ON clock_events (day, employee);
+CREATE TABLE IF NOT EXISTS clock_reminders (
+  shift_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  sent_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (shift_id, kind)
+);
+
 -- Notifications inbox (written by the server; per-person policies in migrations/2026-10-01-m-notifications-inbox.sql)
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -330,7 +349,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['settings','employees','suppliers','inventory','inv_logs','orders',
                            'reservations','tasks','shifts','bb_menu','bb_entries','fin_entries',
-                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items','notifications','cal_events','invoices']
+                           'app_users','push_subscriptions','absences','shift_requests','acc_entries','fc_ingredients','fc_recipes','shopping_items','notifications','cal_events','invoices','clock_events']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS allow_all ON %I', t);

@@ -677,6 +677,22 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     #imp-banner span { flex:1; min-width:0; }
     #imp-banner button { background:white; color:var(--amber-700); border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
     @media(min-width:1024px){ #imp-banner { top:-24px; margin:-24px -32px 16px; padding:10px 32px; } }
+    /* clock in / out */
+    .clock-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 0 10px; }
+    .clock-state { flex:1; min-width:160px; font-size:13px; color:var(--slate-500); }
+    .clock-state b { display:block; font-size:17px; color:var(--slate-900); margin-bottom:2px; }
+    .clock-cam { position:relative; width:100%; aspect-ratio:1 / 1; max-height:58vh; background:#111; border-radius:12px; overflow:hidden; }
+    .clock-cam video { width:100%; height:100%; object-fit:cover; display:block; }
+    .clock-frame { position:absolute; inset:14%; border:3px solid rgba(255,255,255,.85); border-radius:14px; pointer-events:none; }
+    .clock-filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+    .clock-filters .input-field { width:auto; min-width:0; flex:0 1 auto; }
+    .clock-flag { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--amber-700); background:var(--amber-50); border:1px solid var(--amber-200); border-radius:10px; padding:1px 7px; }
+    .clock-flag.in { color:var(--teal-700); background:var(--mint-50); border-color:var(--mint-200); }
+    #clock-qr-box img { display:block; width:280px; max-width:100%; image-rendering:pixelated; margin:0 auto 10px; max-width:100%; border:var(--rule); border-radius:12px; padding:10px; background:#fff; }
+    #print-root .clock-print { text-align:center; padding-top:16mm; }
+    #print-root .clock-print h1 { font-size:26pt; margin:0 0 4mm; }
+    #print-root .clock-print p { font-size:14pt; margin:3mm 0; }
+    #print-root .clock-print img { width:110mm; height:110mm; display:block; margin:6mm auto; }
     /* notifications inbox (Home) */
     #section-dashboard > #dash-notif-panel { grid-column:1 / -1; }
     .notif-head-actions { margin-left:auto; display:flex; gap:14px; }
@@ -994,6 +1010,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       body.print-week > *:not(#print-root) { display:none !important; }
       body.print-week { background:#fff !important; }
       body.print-week #print-root { display:block; }
+      body.print-clock > *:not(#print-root) { display:none !important; }
+      body.print-clock { background:#fff !important; }
+      body.print-clock #print-root { display:block; width:auto; }
       #print-root * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     }
   </style>
@@ -1086,6 +1105,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <h3><i class="fas fa-bell"></i> Notifications <span class="badge badge-orange" id="dash-notif-badge" style="display:none"></span>
         <span class="notif-head-actions"><button class="notif-link" id="btn-notif-read-all" style="display:none">Mark all read</button><button class="notif-link" id="btn-notif-clear" style="display:none">Clear read</button></span></h3>
       <div id="dash-notif-list"></div>
+    </div>
+    <div class="dash-panel" id="dash-clock-panel" style="display:none">
+      <h3><i class="fas fa-stopwatch"></i> Clock in / out</h3>
+      <div class="clock-row"><div class="clock-state" id="clock-state"></div><button class="btn btn-primary" id="btn-clock" data-kind="in"><i class="fas fa-qrcode"></i> Check in</button></div>
     </div>
     <div class="kpi-grid">
       <div class="kpi-card">
@@ -1283,6 +1306,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <button class="tab-btn" data-shifts-tab="hours"><i class="fas fa-clock"></i> Hours</button>
       <button class="tab-btn" data-shifts-tab="attendance"><i class="fas fa-user-check"></i> Attendance</button>
       <button class="tab-btn" id="shifts-tab-team-btn" data-shifts-tab="team" style="display:none"><i class="fas fa-users"></i> Team</button>
+      <button class="tab-btn" id="shifts-tab-clock-btn" data-shifts-tab="clock" style="display:none"><i class="fas fa-stopwatch"></i> Clock</button>
     </div>
 
     <!-- ── Tab: Schedule (Gantt) ── -->
@@ -1354,6 +1378,17 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <!-- ── Tab: Attendance ── -->
     <div id="shifts-panel-attendance" style="display:none">
       <div id="shifts-attendance-content"></div>
+    </div>
+
+    <!-- ── Tab: Clock (admins): hours actually clocked by scanning the QR on the wall ── -->
+    <div id="shifts-panel-clock" style="display:none">
+      <div class="clock-filters">
+        <input type="month" id="clock-month" class="input-field" aria-label="Month" />
+        <input type="date" id="clock-day" class="input-field" aria-label="Day" />
+        <button class="btn btn-secondary btn-sm" id="clock-clear-day">All days</button>
+        <button class="btn btn-secondary btn-sm" id="clock-csv" style="margin-left:auto"><i class="fas fa-download"></i> CSV</button>
+      </div>
+      <div id="clock-content"></div>
     </div>
 
     <!-- ── Tab: Team Members (shift_mgr + admin) ── -->
@@ -1815,6 +1850,13 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <label class="label" for="imp-user">Log in as</label>
       <select class="select-field" id="imp-user"></select>
       <button class="btn btn-primary" id="btn-imp-start" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-user-secret"></i> Impersonate</button>
+    </div>
+    <!-- Clock-in QR (admins) -->
+    <div class="settings-card" id="clock-qr-card" style="display:none">
+      <h3><i class="fas fa-qrcode" style="color:var(--teal-600)"></i> Clock-in QR code</h3>
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Print it and put it on the wall. Staff scan it from Home to check in when they arrive and check out when they leave. The log is in Shifts → Clock, separate from the rota.</p>
+      <div id="clock-qr-box"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="btn-clock-qr"><i class="fas fa-qrcode"></i> Show QR code</button><button class="btn btn-secondary" id="btn-clock-print" style="display:none"><i class="fas fa-print"></i> Print</button></div>
     </div>
     <!-- Notifications card — visible to ALL users -->
     <div class="settings-card" id="notif-settings-card">
@@ -2312,6 +2354,21 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <button class="btn btn-primary" id="btn-save-invoice" style="flex:1;justify-content:center"><i class="fas fa-save"></i> Save</button>
       <button class="btn btn-danger btn-icon" id="btn-delete-invoice" style="display:none" aria-label="Delete invoice"><i class="fas fa-trash"></i></button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-invoice">Cancel</button>
+    </div>
+  </div>
+</div>
+<!-- Clock in / out: scan the QR on the wall -->
+<div class="modal-overlay" id="modal-clock">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-qrcode" style="color:var(--teal-600)"></i><span id="clock-modal-title">Check in</span></h2>
+    <p class="acc-note" style="margin-bottom:10px">Point the camera at the QR code on the wall.</p>
+    <div class="clock-cam"><video id="clock-video" playsinline muted autoplay></video><div class="clock-frame"></div></div>
+    <div class="inv-qr-note busy" id="clock-status" style="display:none;margin-top:10px"></div>
+    <input type="file" id="clock-file" accept="image/*" capture="environment" style="display:none" />
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-secondary" id="btn-clock-photo" style="flex:1;justify-content:center"><i class="fas fa-camera"></i> Take a photo instead</button>
+      <button class="btn btn-secondary" id="btn-clock-cancel" style="flex:1;justify-content:center">Cancel</button>
     </div>
   </div>
 </div>
@@ -3477,7 +3534,7 @@ function toast(msg, type) {
 // MODAL
 // ================================================
 function openModal(id) { var el=document.getElementById(id); if(!el) return; el.classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal(id) { var el=document.getElementById(id); if(!el) return; el.classList.remove('open'); document.body.style.overflow=''; }
+function closeModal(id) { var el=document.getElementById(id); if(!el) return; el.classList.remove('open'); document.body.style.overflow=''; if (id === 'modal-clock' && typeof clockStopCamera === 'function') clockStopCamera(); }
 
 // ================================================
 // LOGIN / AUTH SYSTEM
@@ -3557,7 +3614,8 @@ function applyLogin(user, showWelcome) {
   if (pendingDeepLink) { var dl = pendingDeepLink; pendingDeepLink = ''; openDeepLink(dl); }
   ensurePushCurrent();
   updateNotifStatusUI();
-  notifLoad();
+  notifLoad(); clockLoadMe();
+  if (pendingClock) { var pc = pendingClock; pendingClock = ''; try { history.replaceState(null, '', '/'); } catch (e) {} clockSubmit(pc, 'auto'); }
   if (showWelcome) {
     toast('Welcome, ' + user.name + '!', 'gold');
     requestNotifPermission();
@@ -3569,6 +3627,7 @@ function appLogout() {
   if (authSession) { var tok = authSession.access_token; rawFetch(SB_URL + '/auth/v1/logout', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } }).catch(function(){}); saveAuthSession(null); }
   forgetAccounting(); forgetFoodCost();
   notifItems = []; notifShowAll = false; renderNotifPanel();
+  clockLast = null; clockStopCamera(); clockLoaded = ''; clockRows = [];
   currentUser = null;
   isAdmin = false;
   isFinance = false;
@@ -3602,17 +3661,18 @@ function checkForUpdate() {
     document.body.appendChild(bar);
   }).catch(function(){});
 }
-document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') { checkForUpdate(); notifLoad(); } });
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') { checkForUpdate(); notifLoad(); if (currentSection === 'dashboard') clockLoadMe(); } });
 window.addEventListener('focus', checkForUpdate);
 setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts|reservations|shopping|calendar)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations|shopping|calendar|clock)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
   if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
+  if (m[1] === 'clock') { showSection('dashboard'); var ck = /kind=(in|out)/.exec(url || ''); openClockScanner(ck ? ck[1] : 'auto'); return; }
   if (m[1] === 'calendar') { var cd = /date=(\\d{4}-\\d{2}-\\d{2})/.exec(url); showSection('calendar'); if (cd) calvGoTo(cd[1]); return; }
   if (m[1] === 'reservations') {
     var rd = /date=(\\d{4}-\\d{2}-\\d{2})/.exec(url);
@@ -3793,6 +3853,179 @@ function notifClearRead() {
   if (isImpersonating()) { toast('Their inbox is read-only while impersonating'); return; }
   notifItems = notifItems.filter(function(x){ return !x.read_at; }); notifShowAll = false; renderNotifPanel();
   sbFetch('DELETE', 'notifications', null, 'user_id=eq.' + encodeURIComponent(currentUser.id) + '&read_at=not.is.null').catch(function(){ toast('Not cleared. Check the connection.', 'error'); });
+}
+// ── Clock in / out: scan the printed QR on the wall (a trust-based log, separate from the rota) ──
+var clockLast = null, clockStream = null, clockTimer = null, clockKind = 'auto', clockBusy = false;
+var pendingClock = (/[?&]clock=([a-f0-9]{8,})/i.exec(location.search) || [])[1] || '';
+function clockFmt(iso) { var d = new Date(iso); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function clockHM(mins) { mins = Math.max(0, Math.round(mins || 0)); var h = Math.floor(mins / 60), m = mins % 60; return h ? h + 'h ' + String(m).padStart(2, '0') + 'm' : m + 'm'; }
+function clockOpen(ev) { return !!(ev && ev.kind === 'in' && Date.now() - new Date(ev.at).getTime() < 20 * 3600e3); }
+function clockLoadMe() {
+  var panel = document.getElementById('dash-clock-panel'); if (!panel) return;
+  if (!currentUser || !isSecure()) { panel.style.display = 'none'; return; }
+  sbFetch('GET', 'clock_events', null, 'user_id=eq.' + encodeURIComponent(currentUser.id) + '&order=at.desc&limit=1').then(function(rows){
+    sbCols.clock = true; clockLast = rows && rows[0] ? rows[0] : null; renderClockCard();
+  }).catch(function(){ sbCols.clock = false; renderClockCard(); });
+}
+function renderClockCard() {
+  var panel = document.getElementById('dash-clock-panel'), st = document.getElementById('clock-state'), btn = document.getElementById('btn-clock'); if (!panel) return;
+  if (!currentUser || sbCols.clock !== true) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  var today = toDateStr(new Date());
+  if (clockOpen(clockLast)) { st.innerHTML = '<b>Checked in at ' + clockFmt(clockLast.at) + '</b>' + clockHM((Date.now() - new Date(clockLast.at).getTime()) / 60000) + ' so far'; btn.innerHTML = '<i class="fas fa-qrcode"></i> Check out'; btn.dataset.kind = 'out'; btn.className = 'btn btn-secondary'; }
+  else if (clockLast && clockLast.kind === 'out' && String(clockLast.day) === today) { st.innerHTML = '<b>Checked out at ' + clockFmt(clockLast.at) + '</b>Scan again if you come back today'; btn.innerHTML = '<i class="fas fa-qrcode"></i> Check in'; btn.dataset.kind = 'in'; btn.className = 'btn btn-primary'; }
+  else { st.innerHTML = '<b>Not checked in</b>Scan the QR on the wall when you arrive'; btn.innerHTML = '<i class="fas fa-qrcode"></i> Check in'; btn.dataset.kind = 'in'; btn.className = 'btn btn-primary'; }
+}
+function clockCodeFrom(text) {
+  var m = /clock=([a-f0-9]{8,})/i.exec(String(text || '')); if (m) return m[1].toLowerCase();
+  var t = String(text || '').trim(); return /^[a-f0-9]{16}$/i.test(t) ? t.toLowerCase() : '';
+}
+function clockStatus(cls, html) { var s = document.getElementById('clock-status'); if (!s) return; s.className = 'inv-qr-note ' + cls; s.innerHTML = html; s.style.display = ''; }
+function clockStopCamera() {
+  if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+  if (clockStream) { clockStream.getTracks().forEach(function(t){ t.stop(); }); clockStream = null; }
+  var v = document.getElementById('clock-video'); if (v) v.srcObject = null;
+}
+function closeClockScanner() { clockStopCamera(); closeModal('modal-clock'); }
+function openClockScanner(kind) {
+  clockKind = kind === 'in' || kind === 'out' ? kind : 'auto';
+  document.getElementById('clock-modal-title').textContent = kind === 'out' ? 'Check out' : 'Check in';
+  var s = document.getElementById('clock-status'); s.style.display = 'none';
+  openModal('modal-clock');
+  var video = document.getElementById('clock-video');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { clockStatus('none', '<i class="fas fa-circle-info"></i><span>The camera cannot be used here. Take a photo of the QR instead.</span>'); return; }
+  loadJsQR().then(function(jsQR){
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(function(stream){
+      if (!document.getElementById('modal-clock').classList.contains('open')) { stream.getTracks().forEach(function(t){ t.stop(); }); return; }
+      clockStream = stream; video.srcObject = stream; video.play().catch(function(){});
+      var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+      clockTimer = setInterval(function(){
+        if (!video.videoWidth || clockBusy) return;
+        var k = Math.min(1, 900 / Math.max(video.videoWidth, video.videoHeight));
+        canvas.width = Math.round(video.videoWidth * k); canvas.height = Math.round(video.videoHeight * k);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+          var d = ctx.getImageData(0, 0, canvas.width, canvas.height), r = jsQR(d.data, d.width, d.height, { inversionAttempts: 'dontInvert' });
+          if (r && r.data) { var code = clockCodeFrom(r.data); if (code) { clockStopCamera(); clockSubmit(code, clockKind); } else clockStatus('none', '<i class="fas fa-circle-info"></i><span>That QR code is not the clock-in code.</span>'); }
+        } catch (e) {}
+      }, 300);
+    });
+  }).catch(function(){ clockStatus('none', '<i class="fas fa-circle-info"></i><span>The camera could not be opened. Allow camera access for bardapraia.org, or take a photo instead.</span>'); });
+}
+function clockSubmit(code, kind) {
+  if (clockBusy) return; clockBusy = true;
+  clockStatus('busy', '<i class="fas fa-spinner fa-spin"></i><span>Saving…</span>');
+  fetch('/api/clock', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ code: code, kind: kind || 'auto' }) })
+    .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+    .then(function(res){
+      clockBusy = false;
+      if (!res.ok) { clockStatus('bad', '<i class="fas fa-triangle-exclamation"></i><span>' + esc(res.j.error || 'Not saved') + '</span>'); toast(res.j.error || 'Not saved', 'error'); clockLoadMe(); return; }
+      clockLast = res.j.event; sbCols.clock = true; renderClockCard(); closeClockScanner();
+      toast(res.j.event.kind === 'in' ? 'Checked in at ' + res.j.time : 'Checked out at ' + res.j.time + ' · ' + clockHM(res.j.minutes) + ' today', 'success');
+    }).catch(function(){ clockBusy = false; clockStatus('bad', '<i class="fas fa-triangle-exclamation"></i><span>No connection. Try again.</span>'); });
+}
+function clockPhotoFile(file) {
+  if (!file) return;
+  clockStopCamera(); clockStatus('busy', '<i class="fas fa-spinner fa-spin"></i><span>Reading the photo…</span>');
+  invReadQr(file).then(function(text){ var code = clockCodeFrom(text); if (code) clockSubmit(code, clockKind); else clockStatus('none', '<i class="fas fa-circle-info"></i><span>No clock-in code in that photo. Try again, closer and sharp.</span>'); });
+}
+// Shifts → Clock (admins): hours actually clocked, per person and per day
+var clockMonth = '', clockDayF = '', clockPerson = null, clockRows = [], clockLoaded = '';
+function clockSessions(rows) {
+  var byKey = {}, out = [], today = toDateStr(new Date());
+  rows.forEach(function(e){ var k = e.employee + '|' + e.day; (byKey[k] = byKey[k] || []).push(e); });
+  Object.keys(byKey).forEach(function(k){
+    var evs = byKey[k].slice().sort(function(a, b){ return String(a.at).localeCompare(String(b.at)); }), open = null;
+    var push = function(i, o, flag){ out.push({ employee: (i || o).employee, day: (i || o).day, in: i, out: o, minutes: i && o ? Math.round((new Date(o.at) - new Date(i.at)) / 60000) : 0, flag: flag || '' }); };
+    evs.forEach(function(e){
+      if (e.kind === 'in') { if (open) push(open, null, 'No check-out'); open = e; }
+      else if (open) { push(open, e, ''); open = null; }
+      else push(null, e, 'Check-out without check-in');
+    });
+    if (open) { if (String(open.day) === today) { out.push({ employee: open.employee, day: open.day, in: open, out: null, minutes: Math.round((Date.now() - new Date(open.at)) / 60000), flag: 'Still in' }); } else push(open, null, 'No check-out'); }
+  });
+  return out.sort(function(a, b){ return String(a.day).localeCompare(String(b.day)) || String((a.in || a.out).at).localeCompare(String((b.in || b.out).at)); });
+}
+function renderClockTab() {
+  var el = document.getElementById('clock-content'); if (!el) return;
+  if (!isAdmin) { el.innerHTML = ''; return; }
+  if (!clockMonth) clockMonth = toDateStr(new Date()).slice(0, 7);
+  var mEl = document.getElementById('clock-month'); if (mEl && mEl.value !== clockMonth) mEl.value = clockMonth;
+  var dEl = document.getElementById('clock-day'); if (dEl && dEl.value !== clockDayF) dEl.value = clockDayF;
+  if (clockLoaded === clockMonth) renderClockList(); else el.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>';
+  var want = clockMonth;
+  sbFetchAll('clock_events', 'day=gte.' + want + '-01&day=lte.' + want + '-31&order=at.asc').then(function(rows){
+    if (clockMonth !== want) return; clockRows = rows || []; clockLoaded = want; renderClockList();
+  }).catch(function(){ if (clockMonth === want && clockLoaded !== want) el.innerHTML = '<div class="req-banner"><i class="fas fa-circle-info"></i> The clock switches on once the clock SQL has run in Supabase.</div>'; });
+}
+function clockDayTxt(d) { var x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : x.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }); }
+function renderClockList() {
+  var el = document.getElementById('clock-content'); if (!el) return;
+  var ses = clockSessions(clockRows).filter(function(x){ return !clockDayF || String(x.day) === clockDayF; });
+  var label = clockDayF ? clockDayTxt(clockDayF) : new Date(clockMonth + '-01T12:00:00').toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+  var flagHtml = function(f){ return f ? '<span class="clock-flag' + (f === 'Still in' ? ' in' : '') + '">' + esc(f) + '</span>' : ''; };
+  if (clockPerson) {
+    var mine = ses.filter(function(x){ return accSame(x.employee, clockPerson); }), tot = mine.reduce(function(s, x){ return s + x.minutes; }, 0);
+    var h = '<div class="acc-toolbar"><button class="btn btn-secondary btn-sm" id="clock-back"><i class="fas fa-arrow-left"></i> Everyone</button><div class="acc-toolbar-title">' + esc(clockPerson) + ' · ' + esc(label) + ' <span>' + clockHM(tot) + '</span></div></div>';
+    if (!mine.length) return el.innerHTML = h + '<div class="empty-state"><i class="fas fa-stopwatch"></i><p>Nothing clocked.</p></div>';
+    h += '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th></th><th></th></tr></thead><tbody>';
+    mine.forEach(function(x){
+      h += '<tr><th>' + esc(clockDayTxt(String(x.day))) + '</th><td>' + (x.in ? clockFmt(x.in.at) : '—') + '</td><td>' + (x.out ? clockFmt(x.out.at) : '—') + '</td><td><b>' + (x.minutes ? clockHM(x.minutes) : '—') + '</b></td><td style="text-align:left">' + flagHtml(x.flag) + '</td>'
+        + '<td><button class="acc-icon" data-clock-del="' + esc((x.in ? x.in.id : '') + '|' + (x.out ? x.out.id : '')) + '" title="Delete this entry" aria-label="Delete"><i class="fas fa-trash"></i></button></td></tr>';
+    });
+    h += '<tr class="strong"><th>Total</th><td></td><td></td><td>' + clockHM(tot) + '</td><td></td><td></td></tr></tbody></table></div>';
+    el.innerHTML = h; return;
+  }
+  var people = {};
+  ses.forEach(function(x){ var k = normName(x.employee), p = people[k] = people[k] || { name: x.employee, days: {}, minutes: 0, flags: 0, stillIn: false }; p.days[x.day] = true; p.minutes += x.minutes; if (x.flag === 'Still in') p.stillIn = true; else if (x.flag) p.flags++; });
+  var list = Object.keys(people).map(function(k){ return people[k]; }).sort(function(a, b){ return a.name.localeCompare(b.name); });
+  var h = '<div class="acc-toolbar"><div class="acc-toolbar-title">Clocked · ' + esc(label) + ' <span>' + clockHM(list.reduce(function(s, p){ return s + p.minutes; }, 0)) + '</span></div></div>';
+  if (!list.length) return el.innerHTML = h + '<div class="empty-state"><i class="fas fa-stopwatch"></i><p>Nothing clocked ' + (clockDayF ? 'that day' : 'this month') + '. Staff check in from Home by scanning the QR on the wall.</p></div>';
+  h += '<div class="acc-card" style="padding:0">' + list.map(function(p){
+    var nd = Object.keys(p.days).length;
+    return '<button class="acc-line" data-clock-person="' + esc(p.name) + '"><span class="acc-line-name">' + esc(p.name) + (p.stillIn ? ' <span class="clock-flag in">In now</span>' : '') + '<small>' + nd + (nd === 1 ? ' day' : ' days') + (p.flags ? ' · ' + p.flags + ' to check' : '') + '</small></span><span class="acc-line-amt">' + clockHM(p.minutes) + '</span><i class="fas fa-chevron-right"></i></button>';
+  }).join('') + '</div>';
+  h += '<p class="acc-note">Hours between a check-in and the next check-out, from the QR scans. Entries marked "No check-out" count as 0 — tap the person to see them.</p>';
+  el.innerHTML = h;
+}
+function clockDownloadCsv() {
+  var ses = clockSessions(clockRows).filter(function(x){ return (!clockDayF || String(x.day) === clockDayF) && (!clockPerson || accSame(x.employee, clockPerson)); });
+  var q = function(v){ return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+  var lines = [['Employee','Date','Check in','Check out','Hours','Note'].map(q).join(';')].concat(ses.map(function(x){
+    return [x.employee, x.day, x.in ? clockFmt(x.in.at) : '', x.out ? clockFmt(x.out.at) : '', (x.minutes / 60).toFixed(2).replace('.', ','), x.flag].map(q).join(';');
+  }));
+  var blob = new Blob(['\\ufeff' + lines.join('\\r\\n')], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'clock-' + (clockDayF || clockMonth) + (clockPerson ? '-' + normName(clockPerson) : '') + '.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function clockDeleteSession(ids) {
+  var list = String(ids || '').split('|').filter(Boolean); if (!list.length) return;
+  if (!confirm('Delete this clock entry?')) return;
+  sbFetch('DELETE', 'clock_events', null, 'id=in.(' + list.map(encodeURIComponent).join(',') + ')').then(function(){ clockRows = clockRows.filter(function(e){ return list.indexOf(e.id) === -1; }); renderClockList(); toast('Entry deleted'); })
+    .catch(function(){ toast('Not deleted. Check the connection.', 'error'); });
+}
+// Settings → the printable QR
+var qrLibLoading = null;
+function loadQRCodeLib() {
+  if (window.qrcode) return Promise.resolve(window.qrcode);
+  if (qrLibLoading) return qrLibLoading;
+  qrLibLoading = new Promise(function(resolve, reject){ var sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@2/dist/qrcode.js'; sc.onload = function(){ resolve(window.qrcode); }; sc.onerror = function(){ qrLibLoading = null; reject(new Error('qrcode')); }; document.head.appendChild(sc); });
+  return qrLibLoading;
+}
+function showClockQr() {
+  var box = document.getElementById('clock-qr-box'); box.innerHTML = '<p class="acc-note">Loading…</p>';
+  Promise.all([fetch('/api/clock/code').then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'Failed'); return j; }); }), loadQRCodeLib()]).then(function(res){
+    var qr = res[1](0, 'M'); qr.addData(res[0].url); qr.make();
+    box.innerHTML = '<img id="clock-qr-img" src="' + qr.createDataURL(8, 4) + '" alt="Clock-in QR code" /><p class="acc-note" style="text-align:center;overflow-wrap:anywhere">' + esc(res[0].url) + '</p>';
+    document.getElementById('btn-clock-print').style.display = '';
+  }).catch(function(e){ box.innerHTML = '<p class="acc-note" style="color:var(--red)">' + esc(e && e.message ? e.message : 'Could not make the code') + '</p>'; });
+}
+function printClockQr() {
+  var cv = document.getElementById('clock-qr-img'); if (!cv) return;
+  var root = document.getElementById('print-root');
+  root.innerHTML = '<div class="clock-print"><h1>Bar da Praia</h1><p><b>Check in</b> when you arrive · <b>Check out</b> when you leave</p><img src="' + cv.src + '" alt="Clock-in QR code" /><p>Open the app → Home → Check in → point the camera here</p></div>';
+  document.body.classList.add('print-clock');
+  var done = function(){ document.body.classList.remove('print-clock'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done); window.print();
 }
 function onPushArrived(tag) {
   if (tag !== 'bardapraia-test') notifLoad();
@@ -4050,7 +4283,7 @@ function refreshSection(name) {
   }
 
   if (name === 'dashboard') {
-    notifLoad();
+    notifLoad(); clockLoadMe();
     fetches = [
       sbFetch('GET','reservations',null,'order=date.asc,time.asc'),
       sbFetch('GET','tasks',null,'order=created_at.desc'),
@@ -4768,6 +5001,7 @@ function renderSettings() {
   var secCard = document.getElementById('secure-login-card');
   if (secCard) { secCard.style.display = isAdmin ? '' : 'none'; if (isAdmin) { renderSecureCard(); loadAuthStatus().then(renderSecureCard); } }
   renderImpCard();
+  var qrCard = document.getElementById('clock-qr-card'); if (qrCard) qrCard.style.display = isAdmin ? '' : 'none';
   if (!isAdmin) {
     settingsLocked.style.display = 'flex';
     settingsContent.style.display = 'none';
@@ -6753,7 +6987,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null, invoices:null };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null, invoices:null, clock:null };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -6837,7 +7071,7 @@ var currentShiftsTab = 'gantt';
 // so refreshing here again would loop forever while the Shifts section is open
 function switchShiftsTab(tab, refresh) {
   currentShiftsTab = tab;
-  ['gantt','week','requests','tips','hours','attendance','team'].forEach(function(t) {
+  ['gantt','week','requests','tips','hours','attendance','team','clock'].forEach(function(t) {
     var panel = document.getElementById('shifts-panel-'+t);
     if (panel) panel.style.display = (t === tab) ? '' : 'none';
   });
@@ -6848,6 +7082,7 @@ function switchShiftsTab(tab, refresh) {
   if (tab === 'requests')   renderShiftsRequestsTab();
   if (tab === 'tips')       renderShiftsTipsTab();
   if (tab === 'hours')      renderShiftsHoursTab();
+  if (tab === 'clock')      renderClockTab();
   if (tab === 'attendance') renderShiftsAttendanceTab();
   if (tab === 'team')       renderShiftsTeamTab();
   if (refresh !== false) refreshSection('shifts');
@@ -6913,6 +7148,9 @@ function renderShifts(){
   // Team tab only for shift_mgr / admin
   var teamTabBtn = document.getElementById('shifts-tab-team-btn');
   if (teamTabBtn) teamTabBtn.style.display = canShiftEdit ? '' : 'none';
+  var clockTabBtn = document.getElementById('shifts-tab-clock-btn');
+  if (clockTabBtn) clockTabBtn.style.display = isAdmin ? '' : 'none';
+  if (currentShiftsTab === 'clock' && !isAdmin) currentShiftsTab = 'gantt';
 
   updateRequestBadges();
   // Redraw the active tab (no server refresh: that is what called us)
@@ -9832,6 +10070,16 @@ document.addEventListener('click', function(e) {
 
   // Inv actions
   if (t.closest('#btn-imp-start')) { startImpersonate(); return; }
+  el = t.closest('#btn-clock'); if (el) { openClockScanner(el.dataset.kind); return; }
+  if (t.closest('#btn-clock-cancel')) { closeClockScanner(); return; }
+  if (t.closest('#btn-clock-photo')) { var cf = document.getElementById('clock-file'); if (cf) { cf.value = ''; cf.click(); } return; }
+  if (t.closest('#btn-clock-qr')) { showClockQr(); return; }
+  if (t.closest('#btn-clock-print')) { printClockQr(); return; }
+  el = t.closest('[data-clock-person]'); if (el) { clockPerson = el.dataset.clockPerson; renderClockList(); return; }
+  if (t.closest('#clock-back')) { clockPerson = null; renderClockList(); return; }
+  if (t.closest('#clock-clear-day')) { clockDayF = ''; renderClockTab(); return; }
+  if (t.closest('#clock-csv')) { clockDownloadCsv(); return; }
+  el = t.closest('[data-clock-del]'); if (el) { clockDeleteSession(el.dataset.clockDel); return; }
   if (t.closest('#btn-imp-exit')) { exitImpersonate(); return; }
   el = t.closest('[data-notif-id]'); if (el) { notifOpen(el.dataset.notifId); return; }
   if (t.closest('#btn-notif-read-all')) { notifReadAll(); return; }
@@ -10234,6 +10482,9 @@ document.addEventListener('change', function(e) {
   var t = e.target;
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.id === 'ev-allday') evSyncTimes();
+  if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
+  if (t.id === 'clock-month' && t.value) { clockMonth = t.value; clockDayF = clockDayF && clockDayF.slice(0, 7) === t.value ? clockDayF : ''; renderClockTab(); }
+  if (t.id === 'clock-day') { clockDayF = t.value || ''; if (clockDayF && clockDayF.slice(0, 7) !== clockMonth) clockMonth = clockDayF.slice(0, 7); renderClockTab(); }
   if (t.id === 'inv-file' && t.files && t.files.length) { var modalOpen = document.getElementById('modal-invoice').classList.contains('open'); if (modalOpen || t.files.length === 1) invSetFile(t.files[0]); else invBatch(t.files); }
   if (t.id === 'invc-supplier') document.getElementById('inv-new-supplier-row').style.display = t.value === '__new__' ? '' : 'none';
   if (t.id === 'inv-paid') { var ipd = document.getElementById('inv-paid-date'); ipd.style.display = t.checked ? '' : 'none'; if (t.checked && !ipd.value) ipd.value = toDateStr(new Date()); }
