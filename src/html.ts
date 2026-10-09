@@ -368,10 +368,47 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-stat { background:var(--slate-50); border-radius:6px; padding:5px 2px; text-align:center; }
     .inv-stat-val { font-size:14px; font-weight:800; color:var(--slate-900); }
     .inv-stat-label { font-size:9px; font-weight:700; color:var(--slate-500); margin-top:1px; text-transform:uppercase; letter-spacing:.06em; }
-    .inv-actions { display:flex; gap:4px; }
+    .inv-actions { display:flex; gap:4px; margin-top:auto; }
     .inv-actions .btn-icon { flex:1; }
     .inv-order-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:var(--teal-600); color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer; transition:background .15s; flex-shrink:0; }
     .inv-order-btn:hover { background:var(--teal-700); }
+    /* Stock: search and filters first, then the items */
+    .inv-toolbar { display:flex; gap:8px; margin-bottom:10px; }
+    .inv-toolbar .search-bar { flex:1; min-width:0; margin-bottom:0; }
+    .inv-sup-pick { width:auto; max-width:44%; min-height:46px; flex-shrink:0; }
+    .inv-sup-pick.on { border-color:var(--teal-500); background:var(--mint-50); color:var(--teal-700); font-weight:700; }
+    .inv-slicers { display:flex; gap:7px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-bottom:12px; padding-bottom:2px; }
+    .inv-slicers::-webkit-scrollbar { display:none; }
+    .inv-slicers .inv-slicer { flex-shrink:0; }
+    @media(min-width:1024px){ .inv-slicers { flex-wrap:wrap; } }
+    .inv-sup-info { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; border:var(--rule); border-radius:var(--radius); background:var(--panel); margin-bottom:12px; font-size:13px; color:var(--slate-600); }
+    .inv-sup-info > span { flex:1; min-width:150px; }
+    .inv-sup-info b { color:var(--slate-900); }
+    .inv-card-head { display:flex; align-items:flex-start; gap:6px; }
+    .inv-edit-link { margin:-6px -4px 0 0; padding:6px 8px; min-height:34px; background:none; border:none; border-radius:8px; color:var(--teal-700); font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0; }
+    .inv-edit-link:hover { background:var(--mint-50); }
+    .inv-count-btn { flex:1; justify-content:center; min-height:36px; }
+    /* Home: your shift today */
+    .myshift-now { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+    .myshift-time { font-size:22px; font-weight:800; color:var(--slate-900); letter-spacing:-.01em; }
+    .myshift-where { font-size:13px; font-weight:600; color:var(--slate-600); }
+    .myshift-off { font-size:15px; font-weight:700; color:var(--slate-900); }
+    .myshift-next { margin-top:6px; font-size:13px; color:var(--slate-500); }
+    .myshift-next b { color:var(--slate-700); }
+    #dash-today-panel .clock-row { margin-top:12px; padding-top:12px; border-top:var(--rule); }
+    /* Shifts: my week */
+    .mw-head { font-size:13px; color:var(--slate-500); margin-bottom:10px; }
+    .mw-head b { color:var(--slate-900); }
+    .mw-row { display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:10px 14px; margin-bottom:6px; background:var(--panel); border:var(--rule); border-radius:var(--radius); text-align:left; font:inherit; color:inherit; cursor:pointer; }
+    .mw-row:disabled { cursor:default; opacity:1; }
+    .mw-row.today { border-color:var(--teal-500); box-shadow:0 0 0 2px var(--mint-100); }
+    .mw-day { width:92px; flex-shrink:0; font-size:13px; font-weight:700; color:var(--slate-700); }
+    .mw-row.today .mw-day { color:var(--teal-700); }
+    .mw-body { flex:1; min-width:0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:14px; color:var(--slate-600); }
+    .mw-body b { color:var(--slate-900); font-size:15px; }
+    .mw-off { color:var(--slate-400); }
+    .mw-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .mw-row > .fa-chevron-right { color:var(--slate-300); font-size:12px; }
     .inv-card-del { position:absolute; top:6px; right:6px; background:none; border:none; color:var(--slate-300); font-size:11px; cursor:pointer; padding:4px 5px; line-height:1; transition:color .15s; }
     .inv-card-del:hover { color:var(--red); }
 
@@ -1119,39 +1156,28 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <!-- ═══ DASHBOARD ═══ -->
   <section id="section-dashboard" class="page-section active">
     <div class="dash-date" id="dash-date"><b id="dash-date-day"></b><span id="dash-date-full"></span></div>
+    <div class="dash-panel" id="dash-today-panel" style="display:none">
+      <h3><i class="fas fa-user-clock"></i> Your shift <span class="notif-head-actions"><button class="notif-link" data-my-week>My week</button></span></h3>
+      <div id="myshift-body"></div>
+      <div id="dash-clock-panel" style="display:none">
+        <div class="clock-row"><div class="clock-state" id="clock-state"></div><button class="btn btn-primary" id="btn-clock" data-kind="in"><i class="fas fa-qrcode"></i> Check in</button></div>
+      </div>
+    </div>
     <div class="dash-panel" id="dash-notif-panel" style="display:none">
       <h3><i class="fas fa-bell"></i> Notifications <span class="badge badge-orange" id="dash-notif-badge" style="display:none"></span>
         <span class="notif-head-actions"><button class="notif-link" id="btn-notif-read-all" style="display:none">Mark all read</button><button class="notif-link" id="btn-notif-clear" style="display:none">Clear read</button></span></h3>
       <div id="dash-notif-list"></div>
-    </div>
-    <div class="dash-panel" id="dash-clock-panel" style="display:none">
-      <h3><i class="fas fa-stopwatch"></i> Clock in / out</h3>
-      <div class="clock-row"><div class="clock-state" id="clock-state"></div><button class="btn btn-primary" id="btn-clock" data-kind="in"><i class="fas fa-qrcode"></i> Check in</button></div>
-    </div>
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-chair"></i></div><span class="badge badge-gray">Today</span></div>
-        <div class="kpi-num" id="dash-res-count">0</div>
-        <div class="kpi-label">Reservations Today</div>
-        <div class="kpi-sub"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-list-check"></i></div><span class="badge badge-gray" id="dash-task-badge">Open</span></div>
-        <div class="kpi-num" id="dash-task-count">0</div>
-        <div class="kpi-label">Open Tasks</div>
-        <div class="kpi-sub"></div>
-      </div>
     </div>
     <div class="dash-panel" id="dash-orders-panel" style="display:none">
       <h3><i class="fas fa-truck" style="color:#b7791f"></i> Pending Orders <span class="badge badge-orange" id="dash-orders-badge"></span></h3>
       <div id="dash-pending-orders"></div>
     </div>
     <div class="dash-panel" id="dash-tasks-card">
-      <h3><i class="fas fa-clipboard-list" style="color:var(--ocean-500)"></i> Open Tasks <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
+      <h3><i class="fas fa-clipboard-list" style="color:var(--ocean-500)"></i> <span id="dash-tasks-title">Open tasks</span> <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
       <div id="dash-tasks-panel"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#2b8a4b;font-size:22px"></i><p>All done!</p></div></div>
     </div>
     <div class="dash-panel" id="dash-res-panel">
-      <h3><i class="fas fa-calendar-day" style="color:var(--ocean-500)"></i> Today's Reservations</h3>
+      <h3><i class="fas fa-calendar-day" style="color:var(--ocean-500)"></i> Reservations today <span class="badge badge-gray" id="dash-res-badge" style="display:none"></span></h3>
       <div id="dash-today-res"><div class="empty-state" style="padding:14px"><i class="fas fa-calendar-xmark"></i><p>No reservations today. Add one from Reservations.</p></div></div>
     </div>
   </section>
@@ -1171,8 +1197,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       </div>
     </div>
     <div id="inv-panel-stock">
-      <!-- Category filter chips -->
-      <div id="inv-cat-slicers" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+      <div class="inv-toolbar">
+        <div class="search-bar"><i class="fas fa-search"></i><input type="search" placeholder="Search items" id="inv-search" aria-label="Search items" /></div>
+        <select class="select-field inv-sup-pick" id="inv-sup-pick" aria-label="Supplier"><option value="">All suppliers</option></select>
+      </div>
+      <div id="inv-cat-slicers" class="inv-slicers">
         <button class="inv-slicer active" data-inv-cat="">All</button>
         <button class="inv-slicer" data-inv-cat="beverages"><i class="fas fa-martini-glass-citrus"></i> Bar</button>
         <button class="inv-slicer" data-inv-cat="food"><i class="fas fa-utensils"></i> Cozinha</button>
@@ -1180,26 +1209,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="inv-slicer" data-inv-cat="equipment"><i class="fas fa-screwdriver-wrench"></i> Economato</button>
         <button class="inv-slicer" data-inv-cat="other"><i class="fas fa-box"></i> Other</button>
       </div>
-      <!-- Supplier cards section -->
-      <div id="inv-supplier-section" style="margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-size:13px;font-weight:700;color:var(--ocean-700);display:flex;align-items:center;gap:6px"><i class="fas fa-truck" style="color:var(--ocean-400)"></i> Suppliers</div>
-          <button class="btn btn-secondary btn-sm" id="btn-add-supplier"><i class="fas fa-plus"></i> Add Supplier</button>
-        </div>
-        <div id="supplier-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div>
-      </div>
-      <!-- Items panel (shown when a supplier is selected, or all items) -->
+      <div id="inv-sup-info" class="inv-sup-info" style="display:none"></div>
       <div id="inv-items-section">
-        <div id="inv-items-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <button class="btn btn-secondary btn-sm" id="btn-back-to-suppliers" style="display:none" data-supplier-filter=""><i class="fas fa-arrow-left"></i></button>
-            <span style="font-size:13px;font-weight:700;color:var(--ocean-700)" id="inv-items-title">All Items</span>
-          </div>
-          <div class="search-bar" style="margin-bottom:0;flex:1;max-width:220px;margin-left:10px">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search items..." id="inv-search" />
-          </div>
-        </div>
         <div id="inventory-list"><div class="empty-state"><i class="fas fa-box-open"></i><p>No items yet. Tap Add to start!</p></div></div>
       </div>
     </div>
@@ -1230,9 +1241,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div id="res-panel-calendar">
       <div class="card" style="padding:14px;margin-bottom:12px">
         <div class="cal-nav">
-          <button class="btn btn-secondary btn-sm" id="btn-prev-week"><i class="fas fa-chevron-left"></i></button>
+          <button class="btn btn-secondary btn-sm" id="btn-prev-week" aria-label="Previous week"><i class="fas fa-chevron-left"></i></button>
           <span class="cal-week-label" id="calendar-week-label"></span>
-          <button class="btn btn-secondary btn-sm" id="btn-next-week"><i class="fas fa-chevron-right"></i></button>
+          <button class="btn btn-secondary btn-sm" id="btn-next-week" aria-label="Next week"><i class="fas fa-chevron-right"></i></button>
         </div>
         <div class="cal-grid" id="calendar-grid"></div>
       </div>
@@ -1318,8 +1329,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div style="font-size:12px;color:var(--ocean-400)" id="shifts-week-label"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-secondary btn-sm" id="btn-shifts-prev-week"><i class="fas fa-chevron-left"></i></button>
-        <button class="btn btn-secondary btn-sm" id="btn-shifts-next-week"><i class="fas fa-chevron-right"></i></button>
+        <button class="btn btn-secondary btn-sm" id="btn-shifts-prev-week" aria-label="Previous week"><i class="fas fa-chevron-left"></i></button>
+        <button class="btn btn-secondary btn-sm" id="btn-shifts-next-week" aria-label="Next week"><i class="fas fa-chevron-right"></i></button>
         <button class="btn btn-gold btn-sm" id="btn-add-shift" style="display:none"><i class="fas fa-plus"></i> Add</button>
         <button class="btn btn-secondary btn-sm" id="btn-repeat-week" style="display:none" title="Copy shifts from one week to another"><i class="fas fa-copy"></i> Repeat</button>
         <button class="btn btn-secondary btn-sm" id="btn-notify-week" style="display:none" title="Tell the team this week's shifts are ready"><i class="fas fa-bullhorn"></i> <span id="notify-week-label">Notify team</span></button>
@@ -1327,6 +1338,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
     <!-- Shifts tabs -->
     <div class="tab-row" style="margin-bottom:12px" id="shifts-tab-row">
+      <button class="tab-btn" id="shifts-tab-mine-btn" data-shifts-tab="mine" style="display:none"><i class="fas fa-user"></i> My week</button>
       <button class="tab-btn active" data-shifts-tab="gantt"><i class="fas fa-calendar-week"></i> Schedule</button>
       <button class="tab-btn" data-shifts-tab="week"><i class="fas fa-table-cells"></i> Week</button>
       <button class="tab-btn" data-shifts-tab="requests"><i class="fas fa-arrow-right-arrow-left"></i> Requests <span class="tab-count" id="req-tab-count" style="display:none"></span></button>
@@ -1335,6 +1347,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <button class="tab-btn" data-shifts-tab="attendance"><i class="fas fa-user-check"></i> Attendance</button>
       <button class="tab-btn" id="shifts-tab-clock-btn" data-shifts-tab="clock" style="display:none"><i class="fas fa-stopwatch"></i> Clock</button>
     </div>
+
+    <!-- ── Tab: My week (the signed-in person's own shifts) ── -->
+    <div id="shifts-panel-mine" style="display:none"><div id="my-week-list"></div></div>
 
     <!-- ── Tab: Schedule (Gantt) ── -->
     <div id="shifts-panel-gantt">
@@ -1994,7 +2009,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div class="table-num-grid" id="table-num-grid"></div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <input type="text" id="new-table-num" class="input-field" placeholder="Table name/number e.g. T1, VIP, Bar..." style="font-size:14px" />
-          <button class="btn btn-primary" id="btn-add-table-num" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
+          <button class="btn btn-primary" id="btn-add-table-num" aria-label="Add table" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
         </div>
       </div>
       <!-- Supabase -->
@@ -2241,6 +2256,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-inventory"><i class="fas fa-save"></i> Save</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-inventory">Cancel</button>
     </div>
+    <button class="btn btn-danger" style="width:100%;justify-content:center;margin-top:12px;display:none" id="btn-delete-inventory"><i class="fas fa-trash"></i> Delete this item</button>
   </div>
 </div>
 
@@ -3689,6 +3705,7 @@ function legacyLogin(uname, pw) {
 function forgetAccounting() { var db = getDB(); if (db.accEntries || db.accConfig) { delete db.accEntries; delete db.accConfig; saveDB(db); } }
 function forgetFoodCost() { var db = getDB(); if (db.fcRecipes || db.fcIngredients) { delete db.fcRecipes; delete db.fcIngredients; delete db.fcTarget; saveDB(db); } }
 function applyLogin(user, showWelcome) {
+  if (!currentUser || currentUser.id !== user.id) { currentShiftsTab = 'gantt'; shiftsTabChosen = false; homeShifts = null; homeShiftsFor = ''; }
   currentUser = user;
   isAdmin   = hasRole('admin');
   isFinance = hasRole('finance') || hasRole('admin');
@@ -3720,6 +3737,7 @@ function appLogout() {
   notifItems = []; notifShowAll = false; renderNotifPanel();
   clockLast = null; clockStopCamera(); clockLoaded = ''; clockRows = [];
   currentUser = null;
+  currentShiftsTab = 'gantt'; shiftsTabChosen = false; homeShifts = null; homeShiftsFor = '';
   isAdmin = false;
   isFinance = false;
   try { localStorage.removeItem(SESSION_KEY); } catch(e){}
@@ -3953,12 +3971,53 @@ function clockHM(mins) { mins = Math.max(0, Math.round(mins || 0)); var h = Math
 function clockOpen(ev) { return !!(ev && ev.kind === 'in' && Date.now() - new Date(ev.at).getTime() < 20 * 3600e3); }
 function clockLoadMe() {
   var panel = document.getElementById('dash-clock-panel'); if (!panel) return;
-  if (!currentUser || !isSecure()) { panel.style.display = 'none'; return; }
+  if (!currentUser || !isSecure()) { panel.style.display = 'none'; syncTodayPanel(); return; }
   sbFetch('GET', 'clock_events', null, 'user_id=eq.' + encodeURIComponent(currentUser.id) + '&order=at.desc&limit=1').then(function(rows){
     sbCols.clock = true; clockLast = rows && rows[0] ? rows[0] : null; renderClockCard();
   }).catch(function(){ sbCols.clock = false; renderClockCard(); });
 }
-function renderClockCard() {
+function renderClockCard() { renderClockCardInner(); syncTodayPanel(); }
+// Home's "Your shift" card holds today's shift and the check-in button; it hides when it has neither
+function syncTodayPanel() {
+  var p = document.getElementById('dash-today-panel'); if (!p) return;
+  var a = document.getElementById('myshift-body'), b = document.getElementById('dash-clock-panel');
+  p.style.display = (a && a.style.display !== 'none' && a.innerHTML) || (b && b.style.display !== 'none') ? '' : 'none';
+}
+var homeShifts = null, homeShiftsFor = '';
+function loadMyShifts() {
+  var emp = myEmployee();
+  if (!currentUser || !emp) { renderMyShift(); return; }
+  var from = toDateStr(getWeekStart(0)), to = toDateStr(getWeekStart(1));
+  sbFetch('GET', 'shifts', null, 'employee=eq.' + encodeURIComponent(emp) + '&week_start=gte.' + from + '&week_start=lte.' + to).then(function(rows){
+    if (!Array.isArray(rows)) return;
+    homeShifts = rows.map(function(x){ return { id:x.id, employee:x.employee, day:x.day, weekStart:x.week_start, start:x.start_time ? x.start_time.slice(0,5) : '', end:x.end_time ? x.end_time.slice(0,5) : '', zone:x.zone || '', section:x.section || '', dayOff:!!x.day_off }; });
+    homeShiftsFor = emp; renderMyShift();
+  }).catch(function(){});
+}
+function renderMyShift() {
+  var body = document.getElementById('myshift-body'); if (!body) return;
+  var emp = currentUser ? myEmployee() : '';
+  if (!emp) { body.innerHTML = ''; body.style.display = 'none'; syncTodayPanel(); return; }
+  body.style.display = '';
+  var list = (homeShifts && homeShiftsFor === emp) ? homeShifts : (getDB().shifts || []).filter(function(x){ return x.employee === emp; });
+  var today = toDateStr(new Date());
+  var dated = list.map(function(x){ return { s:x, d:shiftDateStr(x) }; }).filter(function(x){ return x.d && x.d >= today; })
+    .sort(function(a, b){ return (a.d + (a.s.start || '')).localeCompare(b.d + (b.s.start || '')); });
+  var where = function(x){ return [x.zone, x.section].filter(Boolean).join(' · '); };
+  var span = function(x){ return x.start + (x.end ? '–' + x.end : ''); };
+  var now = dated.filter(function(x){ return x.d === today; }), work = now.filter(function(x){ return !x.s.dayOff && x.s.start; });
+  var h = '';
+  if (work.length) h = work.map(function(x){ return '<div class="myshift-now"><span class="myshift-time">' + esc(span(x.s)) + '</span><span class="myshift-where">' + esc(where(x.s) || 'Today') + '</span></div>'; }).join('');
+  else h = '<div class="myshift-off">' + (now.length ? 'You’re off today' : 'No shift today') + '</div>';
+  var next = dated.find(function(x){ return x.d > today && !x.s.dayOff && x.s.start; });
+  // managers who are not on the rota these two weeks don't need an empty card
+  if (!dated.length && (isAdmin || hasRole('shift_mgr'))) { body.innerHTML = ''; body.style.display = 'none'; syncTodayPanel(); return; }
+  if (next) { var nd = new Date(next.d + 'T12:00:00'); h += '<div class="myshift-next">Next: <b>' + esc(nd.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })) + ', ' + esc(span(next.s)) + '</b>' + (where(next.s) ? ' · ' + esc(where(next.s)) : '') + '</div>'; }
+  else if (!work.length) h += '<div class="myshift-next">Nothing on the schedule for the next two weeks yet.</div>';
+  body.innerHTML = h;
+  syncTodayPanel();
+}
+function renderClockCardInner() {
   var panel = document.getElementById('dash-clock-panel'), st = document.getElementById('clock-state'), btn = document.getElementById('btn-clock'); if (!panel) return;
   if (!currentUser || sbCols.clock !== true) { panel.style.display = 'none'; return; }
   panel.style.display = '';
@@ -4371,7 +4430,7 @@ function refreshSection(name) {
   }
 
   if (name === 'dashboard') {
-    notifLoad(); clockLoadMe();
+    notifLoad(); clockLoadMe(); loadMyShifts();
     fetches = [
       sbFetch('GET','reservations',null,'order=date.asc,time.asc'),
       sbFetch('GET','tasks',null,'order=created_at.desc'),
@@ -4654,8 +4713,8 @@ function renderUsers() {
         +(u.notes?'<div style="font-size:12px;color:var(--ocean-500);margin-top:4px;font-style:italic">'+esc(u.notes)+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0">'
-        +'<button class="btn btn-sm" style="background:var(--ocean-50);color:var(--ocean-700);border:1px solid var(--ocean-200)" data-edit-user="'+esc(u.id)+'"><i class="fas fa-pen"></i></button>'
-        +(isSelf?'':'<button class="btn btn-sm" style="background:#fbeae7;color:#b4402f;border:1px solid #f0b8ae" data-delete-user="'+esc(u.id)+'"><i class="fas fa-trash"></i></button>')
+        +'<button class="btn btn-sm" style="background:var(--ocean-50);color:var(--ocean-700);border:1px solid var(--ocean-200)" data-edit-user="'+esc(u.id)+'" aria-label="Edit '+esc(u.name)+'"><i class="fas fa-pen"></i></button>'
+        +(isSelf?'':'<button class="btn btn-sm" style="background:#fbeae7;color:#b4402f;border:1px solid #f0b8ae" data-delete-user="'+esc(u.id)+'" aria-label="Delete '+esc(u.name)+'"><i class="fas fa-trash"></i></button>')
       +'</div>'
     +'</div>';
   }).join('');
@@ -5915,6 +5974,7 @@ function openAddInventoryModal(editId) {
     if(supEl2) supEl2.value = invSupplierFilter || '';
   }
   fillWhoMe();
+  var delBtn=document.getElementById('btn-delete-inventory'); if(delBtn) delBtn.style.display=(editId&&isAdmin)?'':'none';
   openModal('modal-add-inventory');
 }
 // The name stock changes are logged under: always the person signed in, never picked from a list
@@ -5952,7 +6012,8 @@ function saveInventoryItem() {
 function addInvLog(db,entry){db.invLogs.unshift(Object.assign({},entry,{timestamp:new Date().toISOString(),id:uid()})); if(db.invLogs.length>300) db.invLogs=db.invLogs.slice(0,300);}
 function sbAddInvLog(entry){ sbFetch('POST','inv_logs',Object.assign({timestamp:new Date().toISOString()},entry)).catch(function(){}); }
 function deleteInventoryItem(id){
-  if(!confirm('Delete this item?')) return;
+  var it0=getDB().inventory.find(function(i){return i.id===id;});
+  if(!confirm('Delete '+(it0?it0.name:'this item')+' from stock? Its log stays.')) return false;
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;});
   db.inventory=db.inventory.filter(function(i){return i.id!==id;});
   addInvLog(db,{action:'delete',item:item?item.name:'?',employee:whoAmI()});
@@ -5961,6 +6022,7 @@ function deleteInventoryItem(id){
     if(item) sbAddInvLog({action:'delete',item:item.name,employee:whoAmI(),qty_bar:0,qty_storage:0});
     toast('Deleted.');
   }).catch(function(){ toast('Deleted locally','error'); });
+  return true;
 }
 function openUpdateQtyModal(id){
   updateAllDropdowns();
@@ -5990,33 +6052,25 @@ function saveQtyUpdate(){
 // SUPPLIERS
 // ================================================
 function renderSuppliers(){
-  var db=getDB(); var el=document.getElementById('supplier-cards'); if(!el) return;
-  var suppliers=db.suppliers||[];
-  // Filter by category if invCatFilter is set
-  var filtered=invCatFilter?suppliers.filter(function(s){return s.categories&&s.categories.indexOf(invCatFilter)!==-1;}):suppliers;
-  if(filtered.length===0){
-    el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--ocean-400);font-size:13px"><i class="fas fa-truck" style="font-size:24px;margin-bottom:8px;display:block"></i>No suppliers yet.<br><small>Tap + Add Supplier to create one.</small></div>';
-    return;
-  }
-  el.innerHTML=filtered.map(function(s){
-    var itemCount=(db.inventory||[]).filter(function(i){return i.supplierId===s.id;}).length;
-    var isActive=invSupplierFilter===s.id;
-    var cats=(s.categories||[]).map(function(c){return catIconMap[c]||'<i class="fas fa-box"></i>';}).join('');
-    return '<div class="supplier-card'+(isActive?' supplier-card-active':'')+'" data-supplier-filter="'+esc(s.id)+'">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-        +'<div style="font-weight:700;font-size:13px;color:var(--ocean-900);flex:1;line-height:1.3">'+esc(s.name)+'</div>'
-        +'<div style="display:flex;gap:4px;margin-left:4px">'
-          +(isAdmin?'<button class="inv-card-del" data-edit-supplier="'+esc(s.id)+'" title="Edit" style="position:static;transform:none;background:var(--ocean-100);color:var(--ocean-600)"><i class="fas fa-pen" style="font-size:10px"></i></button>':'')
-        +'</div>'
-      +'</div>'
-      +(cats?'<div style="font-size:14px;margin-bottom:5px">'+cats+'</div>':'')
-      +'<div style="font-size:11px;color:var(--ocean-400);display:flex;justify-content:space-between;align-items:center">'
-        +'<span><i class="fas fa-box" style="margin-right:3px"></i>'+itemCount+' items</span>'
-        +(s.sendEmail?'<span style="color:#2a9683"><i class="fas fa-envelope"></i></span>':'')
-      +'</div>'
-      +(s.phone?'<div style="font-size:10px;color:var(--ocean-400);margin-top:3px">'+esc(s.phone)+'</div>':'')
-    +'</div>';
-  }).join('');
+  var db=getDB(); var sel=document.getElementById('inv-sup-pick'); if(!sel) return;
+  var sups=(db.suppliers||[]).slice().sort(function(a,b){ return String(a.name).localeCompare(String(b.name)); });
+  // with a category picked, list the suppliers of that category (and keep the one already chosen)
+  var shown=invCatFilter?sups.filter(function(s){ return (s.categories&&s.categories.indexOf(invCatFilter)!==-1) || s.id===invSupplierFilter; }):sups;
+  sel.innerHTML='<option value="">All suppliers</option>'+shown.map(function(s){
+    var n=(db.inventory||[]).filter(function(i){return i.supplierId===s.id;}).length;
+    return '<option value="'+esc(s.id)+'">'+esc(s.name)+' ('+n+')</option>';
+  }).join('')+'<option value="__new">+ New supplier…</option>';
+  sel.value=invSupplierFilter||'';
+  sel.classList.toggle('on', !!invSupplierFilter);
+  var info=document.getElementById('inv-sup-info'); if(!info) return;
+  var sp=invSupplierFilter?sups.find(function(s){return s.id===invSupplierFilter;}):null;
+  if(!sp){ info.style.display='none'; info.innerHTML=''; return; }
+  info.style.display='';
+  info.innerHTML='<i class="fas fa-truck" style="color:var(--slate-400)"></i><span><b>'+esc(sp.name)+'</b>'
+    +(sp.phone?' · <a href="tel:'+esc(String(sp.phone).replace(/\s+/g,''))+'">'+esc(sp.phone)+'</a>':'')
+    +(sp.sendEmail?' · orders by email':'')+'</span>'
+    +(isAdmin?'<button class="btn btn-secondary btn-sm" data-edit-supplier="'+esc(sp.id)+'"><i class="fas fa-pen"></i> Edit supplier</button>':'')
+    +'<button class="btn btn-secondary btn-sm" data-supplier-filter=""><i class="fas fa-xmark"></i> All suppliers</button>';
 }
 
 var supplierModalDone = null;   // called with the saved supplier (or null when closed) by whoever opened the form
@@ -6152,6 +6206,8 @@ function confirmQuickOrder(){
   updateOrdersBadge();
   renderInventory(); // update cart highlight on card
 }
+// lower case without accents, so "agua" finds "água"
+function foldTxt(x){ return String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 function renderInventory(){
   var db=getDB(); var items=db.inventory.slice();
   // Apply custom sort order when no filter active
@@ -6159,7 +6215,7 @@ function renderInventory(){
     var order=db.invSortOrder;
     items.sort(function(a,b){ var ai=order.indexOf(a.id),bi=order.indexOf(b.id); return (ai===-1?9999:ai)-(bi===-1?9999:bi); });
   }
-  if(invSearchVal) items=items.filter(function(i){return i.name.toLowerCase().indexOf(invSearchVal.toLowerCase())!==-1;});
+  if(invSearchVal){ var q=foldTxt(invSearchVal).trim(); items=items.filter(function(i){return foldTxt(i.name).indexOf(q)!==-1;}); }
   if(invCatFilter) items=items.filter(function(i){return i.category===invCatFilter;});
   if(invSupplierFilter) items=items.filter(function(i){return i.supplierId===invSupplierFilter;});
   var el=document.getElementById('inventory-list'); if(!el) return;
@@ -6168,14 +6224,14 @@ function renderInventory(){
     var total=item.qtyBar+item.qtyStorage;
     var isPending=pendingOrderItems.some(function(p){return p.id===item.id;});
     return '<div class="inv-card'+(isPending?' inv-ordered':'')+'" data-inv-id="'+esc(item.id)+'">'
-      +(isAdmin?'<button class="inv-card-del" data-delete-inv="'+esc(item.id)+'" title="Delete"><i class="fas fa-times"></i></button>':'')
-      +'<div style="display:flex;align-items:center;gap:4px;'+(isAdmin?'padding-right:14px':'')+'">'
+      +'<div class="inv-card-head">'
         +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'<i class="fas fa-box"></i>')+'</div>'
         +'<div style="flex:1;min-width:0">'
           +'<div class="inv-name">'+esc(item.name)+'</div>'
           +(item.unit?'<div style="font-size:9px;color:var(--ocean-400);margin-top:1px">'+esc(item.unit)+'</div>':'')
           +(function(){ var db2=getDB(); var sup=item.supplierId&&db2.suppliers?(db2.suppliers.find(function(s){return s.id===item.supplierId;})||null):null; return sup?'<div style="font-size:9px;color:var(--ocean-500);margin-top:1px;font-weight:600">'+esc(sup.name)+'</div>':''; })()
         +'</div>'
+        +(isAdmin?'<button class="inv-edit-link" data-edit-inv="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">Edit</button>':'')
       +'</div>'
       +'<div class="inv-stats">'
         +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyBar+'</div><div class="inv-stat-label">Bar</div></div>'
@@ -6183,9 +6239,8 @@ function renderInventory(){
         +'<div class="inv-stat"><div class="inv-stat-val" style="color:var(--ocean-600)">'+total+'</div><div class="inv-stat-label">Total</div></div>'
       +'</div>'
       +'<div class="inv-actions">'
-        +'<button class="btn btn-secondary btn-sm btn-icon" style="flex:1;justify-content:center" data-update-qty="'+esc(item.id)+'"><i class="fas fa-pen"></i></button>'
-        +(isAdmin?'<button class="btn btn-secondary btn-sm btn-icon" style="flex:1;justify-content:center" data-edit-inv="'+esc(item.id)+'"><i class="fas fa-edit"></i></button>':'')
-        +'<button class="inv-order-btn" data-quick-order="'+esc(item.id)+'" title="Add to order"><i class="fas fa-cart-plus"></i></button>'
+        +'<button class="btn btn-secondary btn-sm inv-count-btn" data-update-qty="'+esc(item.id)+'" aria-label="Update the count of '+esc(item.name)+'"><i class="fas fa-pen"></i> Update</button>'
+        +'<button class="inv-order-btn" data-quick-order="'+esc(item.id)+'" title="Add to order" aria-label="Add '+esc(item.name)+' to the order"><i class="fas fa-cart-plus"></i></button>'
       +'</div>'
     +'</div>';
   }).join('');
@@ -6268,7 +6323,7 @@ function renderOrderHistory(){
             +'<span style="flex:1;font-size:13px;color:var(--ocean-800)">'+esc(pi.name)+'</span>'
             +'<input type="number" min="1" value="'+pi.orderQty+'" class="input-field" id="order-qty-'+esc(pi.id)+'" style="width:64px;text-align:center;font-size:13px;padding:4px 6px"/>'
             +'<span style="font-size:12px;color:var(--ocean-400);min-width:28px">'+esc(pi.unit||'')+'</span>'
-            +'<button style="background:none;border:none;color:var(--ocean-300);font-size:13px;cursor:pointer;padding:2px 4px" data-remove-pending="'+esc(pi.id)+'" title="Remove"><i class="fas fa-times"></i></button>'
+            +'<button style="background:none;border:none;color:var(--ocean-300);font-size:13px;cursor:pointer;padding:2px 4px"  aria-label="Remove from the cart" data-remove-pending="'+esc(pi.id)+'" title="Remove"><i class="fas fa-times"></i></button>'
           +'</div>';
         }).join('')
         +'</div>'
@@ -6755,8 +6810,8 @@ function openResDetail(id){
   actEl.appendChild(mkBtn('btn btn-sm','<i class="fas fa-check"></i> Confirmed',function(){setResStatus(id,'confirmed');}));
   actEl.appendChild(mkBtn('btn btn-danger btn-sm','<i class="fas fa-user-xmark"></i> No Show',function(){setResStatus(id,'no-show');}));
   actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-clock"></i> Pending',function(){setResStatus(id,'pending');}));
-  actEl.appendChild(mkBtn('btn btn-secondary btn-sm btn-icon','<i class="fas fa-pen"></i>',function(){closeModal('modal-res-detail');openEditReservation(id);}));
-  actEl.appendChild(mkBtn('btn btn-danger btn-sm btn-icon','<i class="fas fa-trash"></i>',function(){deleteReservation(id);}));
+  actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-pen"></i> Edit',function(){closeModal('modal-res-detail');openEditReservation(id);}));
+  actEl.appendChild(mkBtn('btn btn-danger btn-sm','<i class="fas fa-trash"></i> Delete',function(){deleteReservation(id);}));
   actEl.children[0].style.cssText='background:#2b8a4b;color:white;flex:1;justify-content:center';
   actEl.children[1].style.cssText='flex:1;justify-content:center';
   actEl.children[2].style.cssText='flex:1;justify-content:center';
@@ -7054,9 +7109,9 @@ function renderTasks(){
       +'</div></div>'
       +'<div class="task-actions">'
         +(t.status!=='done'?'<button class="btn btn-sm" style="background:#e3f4e8;color:#2b8a4b;border:1.5px solid #a9dcb9;flex:1;justify-content:center" data-task-done="'+esc(t.id)+'"><i class="fas fa-check"></i> Done</button>':'')
-        +(t.status==='pending'?'<button class="btn btn-sm" style="background:#e6f0f9;color:#2f6fa8;border:1.5px solid #b5d0e8" data-task-progress="'+esc(t.id)+'"><i class="fas fa-play"></i></button>':'')
-        +(canEdit?'<button class="btn btn-secondary btn-sm" data-edit-task="'+esc(t.id)+'"><i class="fas fa-pen"></i></button>':'')
-        +(canEdit?'<button class="btn btn-danger btn-sm btn-icon" data-delete-task="'+esc(t.id)+'"><i class="fas fa-trash"></i></button>':'')
+        +(t.status==='pending'?'<button class="btn btn-sm" style="background:#e6f0f9;color:#2f6fa8;border:1.5px solid #b5d0e8" data-task-progress="'+esc(t.id)+'" aria-label="Start this task" title="Start"><i class="fas fa-play"></i></button>':'')
+        +(canEdit?'<button class="btn btn-secondary btn-sm" data-edit-task="'+esc(t.id)+'" aria-label="Edit this task" title="Edit"><i class="fas fa-pen"></i></button>':'')
+        +(canEdit?'<button class="btn btn-danger btn-sm btn-icon" data-delete-task="'+esc(t.id)+'" aria-label="Delete this task" title="Delete"><i class="fas fa-trash"></i></button>':'')
       +'</div>'
     +'</div>';
   }).join('');
@@ -7152,7 +7207,7 @@ function renderAreasEditor() {
       + '<div class="area-sections">' + a.sections.map(function(sec, j){
           return '<span class="sec-chip">'+esc(sec)+'<button data-sec-del="'+i+'|'+j+'" aria-label="Remove '+esc(sec)+'">&times;</button></span>';
         }).join('')
-      + '<span class="sec-add"><input type="text" class="input-field" data-sec-input="'+i+'" placeholder="Add section" /><button class="btn btn-sm btn-secondary" data-sec-add="'+i+'"><i class="fas fa-plus"></i></button></span>'
+      + '<span class="sec-add"><input type="text" class="input-field" data-sec-input="'+i+'" placeholder="Add section" /><button class="btn btn-sm btn-secondary" data-sec-add="'+i+'" aria-label="Add a section"><i class="fas fa-plus"></i></button></span>'
       + '</div></div>';
   }).join('');
 }
@@ -7177,18 +7232,20 @@ function ganttShiftColor(shift, db) {
   return GANTT_COLORS[idx % GANTT_COLORS.length];
 }
 
-var currentShiftsTab = 'gantt';
+var currentShiftsTab = 'gantt', shiftsTabChosen = false;   // staff land on My week until they pick another tab
 // refresh=false when called from renderShifts(): the refresh itself ends in renderShifts(),
 // so refreshing here again would loop forever while the Shifts section is open
 function switchShiftsTab(tab, refresh) {
   currentShiftsTab = tab;
-  ['gantt','week','requests','tips','hours','attendance','team','clock'].forEach(function(t) {
+  if (refresh !== false) shiftsTabChosen = true;
+  ['mine','gantt','week','requests','tips','hours','attendance','team','clock'].forEach(function(t) {
     var panel = document.getElementById('shifts-panel-'+t);
     if (panel) panel.style.display = (t === tab) ? '' : 'none';
   });
   document.querySelectorAll('[data-shifts-tab]').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.shiftsTab === tab);
   });
+  if (tab === 'mine')       renderMyWeekTab();
   if (tab === 'week')       renderShiftsWeekTab();
   if (tab === 'requests')   renderShiftsRequestsTab();
   if (tab === 'tips')       renderShiftsTipsTab();
@@ -7199,6 +7256,29 @@ function switchShiftsTab(tab, refresh) {
   if (refresh !== false) refreshSection('shifts');
 }
 
+// My week: one row per day for the person signed in; tap a shift for details or to request a change
+function renderMyWeekTab() {
+  var el = document.getElementById('my-week-list'); if (!el) return;
+  var emp = myEmployee();
+  if (!emp) { el.innerHTML = '<div class="empty-state"><i class="fas fa-link-slash"></i><p>Your login is not linked to a name on the shift schedule yet. Ask a manager to link it in Team.</p></div>'; return; }
+  var db = getDB(), ws = getWeekStart(shiftsWeekOffset), wsStr = toDateStr(ws), absIdx = absenceIndex(db), today = toDateStr(new Date()), total = 0;
+  var mine = (db.shifts || []).filter(function(x){ return x.employee === emp && x.weekStart === wsStr; });
+  var rows = DAYS.map(function(day, i){
+    var d = new Date(ws); d.setDate(d.getDate() + i); var ds = toDateStr(d);
+    var sh = mine.find(function(x){ return x.day === day; }), working = sh && !sh.dayOff && sh.start, body;
+    if (!sh) body = '<span class="mw-off">Not scheduled</span>';
+    else if (!working) body = '<span class="mw-off">Day off</span>';
+    else {
+      total += shiftScheduledHours(sh);
+      var area = [sh.zone, sh.section].filter(Boolean).join(' · '), req = openRequestFor(emp, sh.weekStart, sh.day);
+      body = '<b>' + esc(sh.start + (sh.end ? '–' + sh.end : '')) + '</b>' + (area ? '<span style="display:inline-flex;align-items:center;gap:6px"><span class="mw-dot" style="background:' + areaColor(sh.zone) + '"></span>' + esc(area) + '</span>' : '')
+        + (absIdx[emp + '|' + ds] ? '<span class="badge badge-red">Absent</span>' : '') + (req ? '<span class="badge badge-yellow">Change ' + esc(reqStatusLabel(req)) + '</span>' : '');
+    }
+    return '<button class="mw-row' + (ds === today ? ' today' : '') + '"' + (working ? ' data-action-shift="' + esc(sh.id) + '" data-action-shift-date="' + ds + '" data-action-shift-ws="' + wsStr + '"' : ' disabled')
+      + '><span class="mw-day">' + esc(d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })) + '</span><span class="mw-body">' + body + '</span>' + (working ? '<i class="fas fa-chevron-right"></i>' : '') + '</button>';
+  });
+  el.innerHTML = '<div class="mw-head"><b>' + esc(emp) + '</b> · ' + (total ? (Math.round(total * 10) / 10).toString().replace('.', ',') + ' h scheduled this week' : 'no shifts this week') + '</div>' + rows.join('');
+}
 // One shift's bar (plus overtime extension) inside a timeline track
 function shiftBarHTML(s, dateStr, wsStr, db) {
   var startMins = timeToMins(s.start), endMins = timeToMins(s.end);
@@ -7261,6 +7341,10 @@ function renderShifts(){
   var clockTabBtn = document.getElementById('shifts-tab-clock-btn');
   if (clockTabBtn) clockTabBtn.style.display = isAdmin ? '' : 'none';
   if (currentShiftsTab === 'clock' && !isAdmin) currentShiftsTab = 'gantt';
+  var meEmp = myEmployee(), mineBtn = document.getElementById('shifts-tab-mine-btn');
+  if (mineBtn) mineBtn.style.display = meEmp ? '' : 'none';
+  if (!meEmp && currentShiftsTab === 'mine') currentShiftsTab = 'gantt';
+  if (!shiftsTabChosen && meEmp && !canShiftEdit) currentShiftsTab = 'mine';
 
   updateRequestBadges();
   // Redraw the active tab (no server refresh: that is what called us)
@@ -7391,8 +7475,8 @@ function renderShifts(){
       var absentBtns = absentListEmps.map(function(e) {
         var absObj = (db.absences||[]).find(function(a){ return a.date===dateStr && a.employee===e; });
         var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#e3f4e8;color:var(--green-700);border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:var(--red-50);color:var(--red-700);border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
-        var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-rotate"></i></button>' : '';
-        var removeBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-remove-absent="'+(absObj?esc(absObj.id):'')+'"><i class="fas fa-times"></i></button>' : '';
+        var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'" aria-label="Switch justified / unjustified"><i class="fas fa-rotate"></i></button>' : '';
+        var removeBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-remove-absent="'+(absObj?esc(absObj.id):'')+'" aria-label="Remove the absence"><i class="fas fa-times"></i></button>' : '';
         return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--red-50);border:1px solid #f0b8ae;border-radius:6px;padding:3px 8px;font-size:12px;color:#b4402f;font-weight:600">'
           +esc(e)+' '+justLabel+toggleBtn+removeBtn+'</span>';
       }).join(' ');
@@ -7797,7 +7881,7 @@ function renderShiftsTeamTab() {
     : db.employees.map(function(e){
         return '<div class="emp-row"><div style="display:flex;align-items:center;gap:10px"><div class="emp-avatar">'+esc(e[0])+'</div><span style="font-size:14px;font-weight:600;color:var(--slate-900)">'+esc(e)+'</span>'
           +(isAdmin ? (loginOf[e] ? '<span class="team-link" style="margin:0">· '+esc(loginOf[e])+'</span>' : '<span class="team-link none" style="margin:0">· no login</span>') : '')+'</div>'
-          +'<button class="btn btn-danger btn-sm btn-icon" data-remove-emp="'+esc(e)+'"><i class="fas fa-trash"></i></button></div>';
+          +'<button class="btn btn-danger btn-sm btn-icon" data-remove-emp="'+esc(e)+'" aria-label="Remove '+esc(e)+' from the schedule"><i class="fas fa-trash"></i></button></div>';
       }).join('');
 }
 
@@ -10070,7 +10154,9 @@ function renderDashboard(){
   var db=getDB();
   var today=toDateStr(new Date());
   var todayRes=db.reservations.filter(function(r){return r.date===today;}).sort(function(a,b){return a.time.localeCompare(b.time);});
-  document.getElementById('dash-res-count').textContent=todayRes.length;
+  var resBadge=document.getElementById('dash-res-badge'); if(resBadge){ resBadge.textContent=todayRes.length; resBadge.style.display=todayRes.length?'':'none'; }
+  var tTitle=document.getElementById('dash-tasks-title'); if(tTitle) tTitle.textContent=isAdmin?'Open tasks':'My tasks';
+  renderMyShift();
   var todayEl=document.getElementById('dash-today-res');
   if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-calendar-xmark" style="font-size:22px"></i><p>No reservations today. Add one from Reservations.</p></div>';}
   else todayEl.innerHTML=todayRes.slice(0,5).map(function(r){
@@ -10091,9 +10177,6 @@ function renderDashboard(){
     if(!b.deadline) return -1;
     return a.deadline.localeCompare(b.deadline);
   });
-  document.getElementById('dash-task-count').textContent=openTasks.length;
-  document.getElementById('dash-task-badge').className='badge '+(openTasks.length>0?'badge-gray':'badge-green');
-  document.getElementById('dash-task-badge').textContent=openTasks.length>0?'Open':'All Done';
   // Render open tasks panel on dashboard
   var tasksPanelEl=document.getElementById('dash-tasks-panel');
   var tasksBadgeEl=document.getElementById('dash-tasks-panel-badge');
@@ -10302,6 +10385,8 @@ document.addEventListener('click', function(e) {
 
   // Supplier actions
   if (t.closest('#btn-add-supplier')) { openSupplierModal(null); return; }
+  if (t.closest('#btn-delete-inventory')) { if (editInventoryId && deleteInventoryItem(editInventoryId)) { editInventoryId = null; closeModal('modal-add-inventory'); } return; }
+  if (t.closest('[data-my-week]')) { currentShiftsTab = 'mine'; shiftsTabChosen = true; showSection('shifts'); return; }
   if (t.closest('#btn-save-supplier')) { saveSupplierModal(); return; }
   if (t.closest('#btn-confirm-set-amount')) { confirmSetAmount(); return; }
   el = t.closest('[data-edit-supplier]');
@@ -10610,6 +10695,10 @@ document.addEventListener('click', function(e) {
 document.addEventListener('input', function(e) {
   var t = e.target;
   if (t.id === 'inv-search') { invSearchVal=t.value; renderInventory(); }
+  if (t.id === 'inv-sup-pick') {
+    if (t.value === '__new') { t.value = invSupplierFilter || ''; supplierModalDone = function(sp){ if (sp) filterBySupplier(sp.id); }; openSupplierModal(null); }
+    else filterBySupplier(t.value);
+  }
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
   if (t.id === 'bb-records-search') { bbRecordsSearch=t.value; renderBbItemRecords(); }
