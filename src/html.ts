@@ -283,7 +283,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .btn-gold:hover { background:var(--slate-800); }
     .btn-sm { padding:7px 12px; min-height:34px; font-size:12px; border-radius:7px; }
     @media (pointer:coarse) {
-      input:not(#section-finance input):not(#section-blackbox input), select:not(#section-finance select):not(#section-blackbox select), textarea { font-size:16px !important; }
+      input:not(#section-finance input):not(#section-blackbox input), select:not(#section-finance select):not(#section-blackbox select), textarea:not(#section-finance textarea):not(#section-blackbox textarea) { font-size:16px !important; }
     }
     .btn-mini { padding:3px 8px; min-height:28px; font-size:11px; border-radius:6px; gap:4px; }
     .btn-icon { width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; justify-content:center; }
