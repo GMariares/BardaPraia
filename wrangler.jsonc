@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "compatibility_date": "2026-03-29",
   "compatibility_flags": ["nodejs_compat"],
-  // Static files in public/ (sw.js, static/style.css) are served directly by Cloudflare;
+  // Static files in public/ (sw.js, brand images, fonts) are served directly by Cloudflare;
   // every other request (/, /api/*) goes to the Hono worker.
   "assets": {
     "directory": "./public"
