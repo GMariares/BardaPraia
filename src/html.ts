@@ -285,7 +285,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     @media (pointer:coarse) {
       input:not(#section-finance input):not(#section-blackbox input), select:not(#section-finance select):not(#section-blackbox select), textarea:not(#section-finance textarea):not(#section-blackbox textarea) { font-size:16px !important; }
     }
-    .btn-mini { padding:3px 8px; min-height:28px; font-size:11px; border-radius:6px; gap:4px; }
+    .btn-mini { padding:4px 9px; min-height:32px; min-width:32px; font-size:11px; border-radius:6px; gap:4px; }
     .btn-icon { width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; justify-content:center; }
 
     /* ── INPUTS ── */
@@ -431,7 +431,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .calv-nav { display:flex; align-items:center; gap:8px; }
     .calv-month-label { font-size:17px; font-weight:800; color:var(--slate-900); min-width:150px; text-align:center; }
     .calv-filters { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-    .calv-filter { display:inline-flex; align-items:center; gap:6px; padding:6px 11px; border-radius:16px; border:var(--rule); background:var(--panel); font-size:12px; font-weight:700; color:var(--slate-500); cursor:pointer; }
+    .calv-filter { display:inline-flex; align-items:center; gap:6px; padding:6px 11px; min-height:36px; border-radius:16px; border:var(--rule); background:var(--panel); font-size:12px; font-weight:700; color:var(--slate-500); cursor:pointer; }
     .calv-filter i.sw { width:9px; height:9px; border-radius:50%; display:inline-block; opacity:.35; }
     .calv-filter.on { color:var(--slate-900); border-color:var(--slate-400); }
     .calv-filter.on i.sw { opacity:1; }
@@ -463,9 +463,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .calv-item { display:flex; align-items:flex-start; gap:10px; width:100%; padding:10px; margin-bottom:6px; border:var(--rule); border-radius:10px; background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
     .calv-item:hover { background:var(--slate-50); }
     .calv-item.done .calv-item-title { text-decoration:line-through; color:var(--slate-500); }
-    .calv-time { width:62px; flex-shrink:0; font-size:12px; font-weight:800; color:var(--slate-700); padding-top:1px; }
+    .calv-time { width:86px; white-space:nowrap; flex-shrink:0; font-size:12px; font-weight:800; color:var(--slate-700); padding-top:1px; }
     .calv-item-main { flex:1; min-width:0; }
-    .calv-item-type { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .calv-item-type { font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
     .calv-item-title { font-size:14px; font-weight:700; color:var(--slate-900); }
     .calv-item-sub { font-size:12px; color:var(--slate-500); margin-top:2px; overflow-wrap:anywhere; }
     .ev-list { margin-bottom:12px; }
@@ -508,7 +508,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .res-list-item:active { background:var(--slate-50); }
     .res-date-box { width:46px; height:46px; background:var(--slate-50); border:1px solid var(--slate-100); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
     .res-date-box .rdb-d { font-size:12px; font-weight:800; color:var(--slate-800); }
-    .res-date-box .rdb-t { font-size:10px; font-weight:600; color:var(--slate-500); }
+    .res-date-box .rdb-t { font-size:11px; font-weight:600; color:var(--slate-500); }
 
     /* ── TABLE MULTI-SELECT ── */
     .table-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
@@ -559,7 +559,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .gantt-row.sec-first { margin-top:2px; }
     .gantt-offs { position:relative; z-index:2; padding:6px 10px; background:var(--slate-50); border:1px dashed var(--slate-200); border-radius:8px; margin-top:6px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
     .gantt-offs-label { font-size:10px; font-weight:800; color:var(--slate-600); text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
-    .gantt-off-chip { display:inline-flex; align-items:center; gap:5px; background:var(--panel); border:1px solid var(--slate-200); border-radius:6px; padding:4px 9px; min-height:30px; font-size:12px; color:var(--slate-700); font-weight:600; cursor:pointer; }
+    .gantt-off-chip { display:inline-flex; align-items:center; gap:5px; background:var(--panel); border:1px solid var(--slate-200); border-radius:6px; padding:4px 9px; min-height:32px; font-size:12px; color:var(--slate-700); font-weight:600; cursor:pointer; }
     .gantt-off-chip i { color:var(--slate-400); font-size:11px; }
     .area-block { border:var(--rule); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
     .area-head { display:flex; align-items:center; gap:8px; }
@@ -567,7 +567,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .area-name { font-weight:800; font-size:14px; color:var(--slate-900); flex:1; }
     .area-sections { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center; }
     .sec-chip { display:inline-flex; align-items:center; gap:4px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:16px; padding:3px 4px 3px 10px; font-size:13px; font-weight:600; color:var(--slate-800); }
-    .sec-chip button { border:none; background:none; color:var(--slate-400); width:24px; height:24px; border-radius:12px; cursor:pointer; font-size:14px; line-height:1; }
+    .sec-chip button { border:none; background:none; color:var(--slate-500); width:32px; height:32px; margin:-4px -2px -4px 0; border-radius:16px; cursor:pointer; font-size:14px; line-height:1; }
     .sec-chip button:hover { background:var(--red-50); color:var(--red); }
     .sec-add { display:inline-flex; gap:4px; }
     .sec-add input { width:130px; min-height:34px; padding:6px 10px; font-size:14px; }
@@ -617,7 +617,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .hours-num small { font-size:12px; font-weight:700; color:var(--slate-500); margin-left:1px; }
     .hours-row.is-zero .hours-num { color:var(--slate-300); }
     .adjust-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
-    .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; }
+    .gantt-empty { font-size:12px; color:var(--slate-400); padding:6px 0 4px; position:relative; z-index:1; display:inline-block; background:var(--panel); padding-right:8px; }
     .gantt-now-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:10; pointer-events:none; }
     .gantt-now-dot { position:absolute; top:-4px; left:-4px; width:10px; height:10px; border-radius:50%; background:var(--red); }
     .shift-empty { font-size:13px; color:var(--slate-400); }
@@ -661,7 +661,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     /* ── TABLE NUMBER CONFIG ── */
     .table-num-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
     .table-num-chip { position:relative; width:52px; height:52px; border-radius:10px; background:var(--panel); border:var(--rule); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--slate-700); }
-    .table-num-chip .del-chip { position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:var(--red); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; border:2px solid var(--panel); }
+    .table-num-chip .del-chip { position:absolute; top:-12px; right:-12px; width:32px; height:32px; padding:0; background:var(--red); background-clip:content-box; border:7px solid transparent; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1; cursor:pointer; }
 
     /* ── MODAL (sheet) ── */
     .modal-overlay.on-top { z-index:600; }
@@ -748,6 +748,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .notif-more { width:100%; padding:10px 0 8px; background:none; border:none; font-size:12px; font-weight:700; color:var(--teal-700); cursor:pointer; }
     .bnav-count { position:absolute; top:0; left:calc(50% + 6px); min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--red); color:white; font-size:10px; font-weight:800; line-height:17px; text-align:center; letter-spacing:0; }
     .notif-dot-count { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--red); color:white; font-size:11px; font-weight:800; line-height:20px; text-align:center; }
+    .user-card { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; display:flex; align-items:flex-start; gap:12px; }
     .team-title { font-size:16px; font-weight:800; color:var(--slate-900); display:flex; align-items:center; gap:8px; }
     .team-title i { color:var(--teal-600); }
     .team-rota { margin-top:16px; }
@@ -769,8 +770,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .log-icon { width:32px; height:32px; background:var(--slate-50); border:1px solid var(--slate-100); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--slate-700); }
     .order-item { background:var(--panel); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; border:var(--rule); }
     .order-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:var(--rule); border-radius:10px; margin-bottom:8px; background:var(--panel); }
-    .empty-state { text-align:center; padding:32px 20px; color:var(--slate-500); background-image:repeating-linear-gradient(to bottom, transparent 0 27px, var(--slate-100) 27px 28px); border-radius:8px; }
+    .empty-state { text-align:center; padding:32px 20px; color:var(--slate-500); background-color:var(--panel); background-image:repeating-linear-gradient(to bottom, transparent 0 27px, var(--slate-100) 27px 28px); border-radius:8px; }
     .empty-state i { font-size:26px; margin-bottom:10px; display:block; color:var(--slate-300); background:var(--panel); width:56px; height:44px; line-height:44px; margin-left:auto; margin-right:auto; border-radius:8px; }
+    .empty-state.compact { display:flex; align-items:center; gap:10px; text-align:left; padding:6px 2px; background:none; }
+    .empty-state.compact i { width:auto; height:auto; line-height:1; margin:0; font-size:16px; background:none; }
+    .empty-state.compact p { padding:0; max-width:none; background:none; font-size:13px; }
     .empty-state p { font-size:14px; font-weight:600; background:var(--panel); display:inline-block; padding:0 8px; text-wrap:balance; max-width:32ch; }
     .settings-group { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--slate-500); margin:22px 2px 10px; }
     .settings-group:first-child { margin-top:16px; }
@@ -809,9 +813,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       .kpi-grid { grid-template-columns:repeat(4,1fr); gap:12px; }
       #section-dashboard.active { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
       #section-dashboard > .dash-date { grid-column:1 / -1; margin-bottom:0; }
-      #section-dashboard > .kpi-grid { grid-column:1; grid-row:2; grid-template-columns:1fr 1fr; margin-bottom:0; }
       #section-dashboard > .dash-panel { margin-bottom:0; }
-      #dash-res-panel { grid-column:2; grid-row:2; }
+      #dash-res-panel { grid-column:1 / -1; }
+      #section-dashboard.has-today #dash-today-panel { grid-column:1; grid-row:2; }
+      #section-dashboard.has-today #dash-res-panel { grid-column:2; grid-row:2; }
       #dash-tasks-card, #dash-orders-panel { grid-column:1 / -1; }
       .fin-summary-grid, .bb-summary-grid { gap:12px; }
     }
@@ -1022,7 +1027,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .push-summary b { color:var(--slate-900); }
     /* ── Shift change requests ── */
     .tab-count.tab-count-quiet { background:var(--slate-200); color:var(--slate-700); }
-    .tab-count { min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:10.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
+    .tab-count { min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
     .nav-dot { position:absolute; top:4px; right:calc(50% - 18px); width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--panel); }
     .drawer-item .nav-dot { position:static; display:inline-block; margin-left:auto; box-shadow:none; }
     .req-section-title { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.09em; color:var(--slate-500); margin:16px 0 8px; }
@@ -1172,11 +1177,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
     <div class="dash-panel" id="dash-tasks-card">
       <h3><i class="fas fa-clipboard-list" style="color:var(--teal-500)"></i> <span id="dash-tasks-title">Open tasks</span> <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
-      <div id="dash-tasks-panel"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#2b8a4b;font-size:22px"></i><p>All done!</p></div></div>
+      <div id="dash-tasks-panel"><div class="empty-state compact"><i class="fas fa-check-circle" style="color:var(--green)"></i><p>All done</p></div></div>
     </div>
     <div class="dash-panel" id="dash-res-panel">
       <h3><i class="fas fa-calendar-day" style="color:var(--teal-500)"></i> Reservations today <span class="badge badge-gray" id="dash-res-badge" style="display:none"></span></h3>
-      <div id="dash-today-res"><div class="empty-state" style="padding:14px"><i class="fas fa-calendar-xmark"></i><p>No reservations today. Add one from Reservations.</p></div></div>
+      <div id="dash-today-res"><div class="empty-state compact"><i class="fas fa-calendar-xmark"></i><p>No reservations today</p></div></div>
     </div>
   </section>
 
@@ -3933,7 +3938,7 @@ function renderNotifPanel() {
   var badge = document.getElementById('dash-notif-badge'); if (badge) { badge.textContent = n + ' new'; badge.style.display = n ? '' : 'none'; }
   var ra = document.getElementById('btn-notif-read-all'); if (ra) ra.style.display = n ? '' : 'none';
   var cl = document.getElementById('btn-notif-clear'); if (cl) cl.style.display = notifItems.some(function(x){ return x.read_at; }) ? '' : 'none';
-  if (!notifItems.length) { list.innerHTML = '<div class="empty-state" style="padding:12px"><i class="fas fa-bell-slash" style="font-size:22px"></i><p>No notifications. Anything sent to you shows up here, even when you were away.</p></div>'; return; }
+  if (!notifItems.length) { list.innerHTML = '<div class="empty-state compact"><i class="fas fa-bell-slash"></i><p>Nothing new. Anything sent to you lands here, even while you’re away.</p></div>'; return; }
   // unread first, then the most recent read ones
   var ordered = notifItems.filter(function(x){ return !x.read_at; }).concat(notifItems.filter(function(x){ return x.read_at; }));
   var LIMIT = Math.max(5, n), shown = notifShowAll ? ordered : ordered.slice(0, LIMIT);
@@ -3983,7 +3988,9 @@ function renderClockCard() { renderClockCardInner(); syncTodayPanel(); }
 function syncTodayPanel() {
   var p = document.getElementById('dash-today-panel'); if (!p) return;
   var a = document.getElementById('myshift-body'), b = document.getElementById('dash-clock-panel');
-  p.style.display = (a && a.style.display !== 'none' && a.innerHTML) || (b && b.style.display !== 'none') ? '' : 'none';
+  var on = !!((a && a.style.display !== 'none' && a.innerHTML) || (b && b.style.display !== 'none'));
+  p.style.display = on ? '' : 'none';
+  var sec = document.getElementById('section-dashboard'); if (sec) sec.classList.toggle('has-today', on);
 }
 var homeShifts = null, homeShiftsFor = '';
 function loadMyShifts() {
@@ -4692,10 +4699,10 @@ function renderUsers() {
     }).join('');
     var isSelf = currentUser && currentUser.id === u.id;
     var contractInfo = '';
-    if (u.contractStart) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-calendar-alt"></i> From '+esc(u.contractStart)+(u.contractEnd?' → '+esc(u.contractEnd):'')+'</span> ';
+    if (u.contractStart) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-calendar-alt"></i> '+esc(fmtDay(u.contractStart, true))+(u.contractEnd?' to '+esc(fmtDay(u.contractEnd, true)):' onwards')+'</span> ';
     if (u.hours) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-clock"></i> '+esc(u.hours)+'h/wk</span> ';
-    if (u.amount) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-euro-sign"></i> '+esc(u.amount)+'</span>';
-    return '<div style="background:white;border:1.5px solid var(--slate-100);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">'
+    if (u.amount) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-wallet"></i> '+esc(isNaN(parseFloat(u.amount))?u.amount:fmtMoney(parseFloat(u.amount)))+'</span>';
+    return '<div class="user-card">'
       +'<div style="width:40px;height:40px;background:var(--teal-500);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
         +esc(u.name.charAt(0).toUpperCase())
       +'</div>'
@@ -7494,7 +7501,7 @@ function renderShifts(){
       +'<div class="gantt-day-header">'
         +'<div>'
           +'<div class="gantt-day-name">'+day+(isToday?' <span class="badge badge-blue" style="font-size:10px;vertical-align:middle">Today</span>':'')+'</div>'
-          +'<div class="gantt-day-date">'+dateStr+'</div>'
+          +'<div class="gantt-day-date">'+esc(fmtDay(dateStr, true))+'</div>'
         +'</div>'
         +(canShiftEdit?'<button class="btn btn-secondary btn-sm" data-add-shift-day="'+esc(day)+'"><i class="fas fa-plus"></i> Add</button>':'')
       +'</div>'
@@ -8400,8 +8407,9 @@ function accNum(raw) {
 function accSum(arr, f) { return arr.reduce(function(a, x){ return a + (f ? (x[f] || 0) : x); }, 0); }
 function accRows(y, kind, m) { return (getDB().accEntries || []).filter(function(e){ return e.year === y && (!kind || e.kind === kind) && (!m || e.month === m); }); }
 function accSame(a, b) { return normName(a) === normName(b); }
-function accEur(v) { var n = Math.round((v || 0) * 100) / 100; return (n < 0 ? '−€' : '€') + Math.abs(n).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function accEur0(v) { return (v < 0 ? '−€' : '€') + Math.round(Math.abs(v || 0)).toLocaleString('pt-PT'); }
+function groupK(intStr) { return intStr.replace(/\\B(?=(\\d{3})+(?!\\d))/g, '\\u00a0'); }
+function accEur(v) { var n = Math.round((v || 0) * 100) / 100, p = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '−€' : '€') + groupK(p[0]) + ',' + p[1]; }
+function accEur0(v) { return (v < 0 ? '−€' : '€') + groupK(String(Math.round(Math.abs(v || 0)))); }
 function accMonthLabel(y, m) { return MONTH_NAMES[m - 1] + ' ' + y; }
 function accPrevMonth(y, m) { return m === 1 ? [y - 1, 12] : [y, m - 1]; }
 
@@ -10162,7 +10170,7 @@ function renderDashboard(){
   var tTitle=document.getElementById('dash-tasks-title'); if(tTitle) tTitle.textContent=isAdmin?'Open tasks':'My tasks';
   renderMyShift();
   var todayEl=document.getElementById('dash-today-res');
-  if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-calendar-xmark" style="font-size:22px"></i><p>No reservations today. Add one from Reservations.</p></div>';}
+  if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state compact"><i class="fas fa-calendar-xmark"></i><p>No reservations today</p></div>';}
   else todayEl.innerHTML=todayRes.slice(0,5).map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--slate-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--slate-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--slate-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--slate-500)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
@@ -10187,7 +10195,7 @@ function renderDashboard(){
   if(tasksBadgeEl){ tasksBadgeEl.textContent=openTasks.length; tasksBadgeEl.style.display=openTasks.length>0?'inline':'none'; }
   if(tasksPanelEl){
     if(openTasks.length===0){
-      tasksPanelEl.innerHTML='<div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#2b8a4b;font-size:22px"></i><p>All done!</p></div>';
+      tasksPanelEl.innerHTML='<div class="empty-state compact"><i class="fas fa-check-circle" style="color:var(--green)"></i><p>All done</p></div>';
     } else {
       var now2=new Date();
       tasksPanelEl.innerHTML=openTasks.slice(0,6).map(function(t){
