@@ -46,14 +46,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       --shadow-overlay: 0 12px 32px rgba(34,54,63,.18);
       --font: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
       --beam-w: 248px;
-      /* legacy aliases (inline styles in the page script) */
-      --ocean-50: var(--slate-50); --ocean-100: var(--slate-100); --ocean-200: var(--slate-200);
-      --ocean-300: var(--slate-300); --ocean-400: var(--slate-500); --ocean-500: var(--teal-500);
-      --ocean-600: var(--teal-600); --ocean-700: var(--slate-700); --ocean-800: var(--slate-800);
-      --ocean-900: var(--slate-900);
-      --grad: var(--slate-700);
-      --grad-btn: var(--teal-600);
-      --gold-light: var(--gold-50);
+      --clay: #8a5a3c; --clay-50: #f6ede6; --clay-200: #e6cdb9;   /* the kitchen: chef role */
     }
     html, body { height: 100%; overflow: hidden; }
     body { font-family: var(--font); font-size: 15px; line-height: 1.4; background: var(--canvas); color: var(--slate-900); -webkit-tap-highlight-color: transparent; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1, "ss01" 0; -webkit-font-smoothing: antialiased; }
@@ -92,7 +85,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .role-chip.finance   { background:var(--purple-50); color:var(--purple); border-color:var(--purple-200); }
     .role-chip.shift_mgr { background:var(--green-50);  color:var(--green);  border-color:var(--green-200); }
     .role-chip.employee  { background:var(--blue-50);   color:var(--blue);   border-color:var(--blue-200); }
-    .role-chip.chef      { background:#f6ede6;          color:#8a5a3c;       border-color:#e6cdb9; }
+    .role-chip.chef      { background:var(--clay-50);   color:var(--clay);   border-color:var(--clay-200); }
 
     /* ── USER CARDS ── */
     .user-card { background:var(--panel); border-radius:var(--radius); padding:14px 16px; border:var(--rule); margin-bottom:8px; display:flex; align-items:center; gap:14px; }
@@ -119,7 +112,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     #topbar .role-chip.finance i { color:var(--purple-200); }
     #topbar .role-chip.shift_mgr i { color:var(--green-200); }
     #topbar .role-chip.employee i { color:var(--blue-200); }
-    #topbar .role-chip.chef i { color:#e6cdb9; }
+    #topbar .role-chip.chef i { color:var(--clay-200); }
     /* who is signed in: initial on the right of the beam, opens the menu (sign out lives there) */
     #topbar-me { width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,.24); background:rgba(255,255,255,.12); color:white; font-weight:800; font-size:15px; display:none; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
     #topbar-me:hover { background:rgba(255,255,255,.2); }
@@ -289,6 +282,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .btn-gold { background:var(--slate-700); color:white; }
     .btn-gold:hover { background:var(--slate-800); }
     .btn-sm { padding:7px 12px; min-height:34px; font-size:12px; border-radius:7px; }
+    @media (pointer:coarse) {
+      input:not(#section-finance input):not(#section-blackbox input), select:not(#section-finance select):not(#section-blackbox select), textarea { font-size:16px !important; }
+    }
+    .btn-mini { padding:3px 8px; min-height:28px; font-size:11px; border-radius:6px; gap:4px; }
     .btn-icon { width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; justify-content:center; }
 
     /* ── INPUTS ── */
@@ -452,7 +449,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .calv-dots { display:flex; flex-wrap:wrap; justify-content:center; gap:3px; }
     .calv-dots i { width:7px; height:7px; border-radius:50%; display:inline-block; }
     .calv-chips { display:none; width:100%; flex-direction:column; gap:2px; }
-    .calv-chip { display:block; font-size:11px; line-height:1.3; text-align:left; padding:1px 5px; border-radius:4px; background:var(--slate-100); color:var(--slate-900); border-left:3px solid var(--slate-400); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .calv-chip { display:block; font-size:11px; line-height:1.3; text-align:left; padding:1px 5px; border-radius:4px; background:var(--slate-100); color:var(--slate-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .calv-more { font-size:10px; font-weight:700; color:var(--slate-500); text-align:left; padding-left:5px; }
     @media(min-width:760px){
       .calv-cell { min-height:96px; align-items:stretch; text-align:left; padding:5px; }
@@ -463,7 +460,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .calv-day { padding:14px; }
     .calv-day-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
     .calv-day-head h3 { font-size:15px; font-weight:800; color:var(--slate-900); margin:0; }
-    .calv-item { display:flex; align-items:flex-start; gap:10px; width:100%; padding:10px; margin-bottom:6px; border:var(--rule); border-left:4px solid var(--slate-400); border-radius:10px; background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
+    .calv-item { display:flex; align-items:flex-start; gap:10px; width:100%; padding:10px; margin-bottom:6px; border:var(--rule); border-radius:10px; background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
     .calv-item:hover { background:var(--slate-50); }
     .calv-item.done .calv-item-title { text-decoration:line-through; color:var(--slate-500); }
     .calv-time { width:62px; flex-shrink:0; font-size:12px; font-weight:800; color:var(--slate-700); padding-top:1px; }
@@ -472,11 +469,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .calv-item-title { font-size:14px; font-weight:700; color:var(--slate-900); }
     .calv-item-sub { font-size:12px; color:var(--slate-500); margin-top:2px; overflow-wrap:anywhere; }
     .ev-list { margin-bottom:12px; }
-    .ev-item { display:flex; align-items:flex-start; gap:12px; width:100%; padding:10px 12px; margin-bottom:8px; border:var(--rule); border-left:4px solid var(--amber-700); border-radius:var(--radius); background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
-    .ev-item.k-meeting { border-left-color:var(--teal-600); }
-    .ev-item.k-hours { border-left-color:var(--amber-700); }
-    .ev-item.k-event { border-left-color:#6d4fc2; }
-    .ev-item.k-other { border-left-color:var(--slate-400); }
+    .ev-item { display:flex; align-items:flex-start; gap:12px; width:100%; padding:10px 12px; margin-bottom:8px; border:var(--rule); border-radius:var(--radius); background:var(--panel); text-align:left; cursor:pointer; font:inherit; color:inherit; }
+    .ev-item.k-meeting .ev-ic { background:var(--mint-100); color:var(--teal-700); }
+    .ev-item.k-hours .ev-ic { background:var(--amber-50); color:var(--amber-700); }
+    .ev-item.k-event .ev-ic { background:var(--purple-50); color:var(--purple); }
+    .ev-item.k-other .ev-ic { background:var(--slate-100); color:var(--slate-700); }
+    .cal-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; vertical-align:1px; flex-shrink:0; }
     .ev-ic { width:32px; height:32px; border-radius:8px; background:var(--slate-100); color:var(--slate-700); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .ev-main { flex:1; min-width:0; }
     .ev-when { font-size:12px; font-weight:800; color:var(--slate-700); }
@@ -535,11 +533,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .task-desc { font-size:13px; color:var(--slate-600); margin-bottom:6px; }
     .task-meta { font-size:12px; font-weight:600; color:var(--slate-500); display:flex; gap:12px; flex-wrap:wrap; }
     .task-actions { display:flex; gap:7px; margin-top:12px; flex-wrap:wrap; }
-    .task-count-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
-    .task-count-card { background:var(--panel); border-radius:var(--radius); padding:12px; border:var(--rule); display:flex; align-items:center; gap:10px; }
-    .tc-icon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:14px; }
-    .tc-num { font-size:22px; font-weight:800; color:var(--slate-900); line-height:1; }
-    .tc-label { font-size:11px; font-weight:600; color:var(--slate-500); margin-top:2px; }
 
     /* ── SHIFTS TIMELINE ── */
     .gantt-wrap { background:var(--panel); border-radius:var(--radius); border:var(--rule); overflow:hidden; margin-bottom:10px; }
@@ -779,6 +772,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .empty-state { text-align:center; padding:32px 20px; color:var(--slate-500); background-image:repeating-linear-gradient(to bottom, transparent 0 27px, var(--slate-100) 27px 28px); border-radius:8px; }
     .empty-state i { font-size:26px; margin-bottom:10px; display:block; color:var(--slate-300); background:var(--panel); width:56px; height:44px; line-height:44px; margin-left:auto; margin-right:auto; border-radius:8px; }
     .empty-state p { font-size:14px; font-weight:600; background:var(--panel); display:inline-block; padding:0 8px; text-wrap:balance; max-width:32ch; }
+    .settings-group { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--slate-500); margin:22px 2px 10px; }
+    .settings-group:first-child { margin-top:16px; }
     .locked-overlay { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 20px; color:var(--slate-500); text-align:center; }
     .locked-overlay i { font-size:40px; margin-bottom:14px; color:var(--slate-700); }
     .locked-overlay h3 { font-size:18px; font-weight:800; color:var(--slate-900); margin-bottom:8px; }
@@ -818,7 +813,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       #section-dashboard > .dash-panel { margin-bottom:0; }
       #dash-res-panel { grid-column:2; grid-row:2; }
       #dash-tasks-card, #dash-orders-panel { grid-column:1 / -1; }
-      .task-count-row, .fin-summary-grid, .bb-summary-grid { gap:12px; }
+      .fin-summary-grid, .bb-summary-grid { gap:12px; }
     }
     @media (max-width:1023px) {
       .modal { padding-bottom:max(24px,env(safe-area-inset-bottom,24px)); }
@@ -891,6 +886,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
     .inv-owed { margin-left:auto; font-size:13px; color:var(--slate-500); }
     .inv-owed b { color:var(--red); font-size:15px; }
+    .inv-owed.none b { color:var(--slate-700); }
     .inv-row { display:flex; align-items:center; gap:10px; width:100%; min-height:56px; padding:9px 12px; border-bottom:1px solid var(--slate-100); cursor:pointer; }
     .inv-row:last-child { border-bottom:none; }
     .inv-row:hover { background:var(--slate-50); }
@@ -1021,9 +1017,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .push-chip { display:inline-flex; align-items:center; gap:5px; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700; }
     .push-chip.is-on { background:#e3f4e8; color:var(--green-700, #1f6b3a); }
     .push-chip.is-off { background:var(--slate-50); color:var(--slate-500); border:1px dashed var(--slate-200); }
-    .push-summary { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:10px 14px; margin-bottom:12px; font-size:13px; color:var(--slate-700); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .push-summary { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:10px 14px; margin-bottom:12px; font-size:13px; line-height:1.5; color:var(--slate-700); display:block; }
+    .push-summary > i { margin-right:6px; }
     .push-summary b { color:var(--slate-900); }
     /* ── Shift change requests ── */
+    .tab-count.tab-count-quiet { background:var(--slate-200); color:var(--slate-700); }
     .tab-count { min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:10.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
     .nav-dot { position:absolute; top:4px; right:calc(50% - 18px); width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--panel); }
     .drawer-item .nav-dot { position:static; display:inline-block; margin-left:auto; box-shadow:none; }
@@ -1092,7 +1090,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" />
     </div>
     <div id="login-error"></div>
-    <div id="login-sync-status" style="text-align:center;font-size:0.85rem;color:var(--ocean-300);margin-bottom:8px;min-height:18px;"></div>
+    <div id="login-sync-status" style="text-align:center;font-size:0.85rem;color:var(--slate-300);margin-bottom:8px;min-height:18px;"></div>
     <button class="btn-login" id="btn-do-login"><i class="fas fa-sign-in-alt"></i> Sign In</button>
   </div>
 </div>
@@ -1173,11 +1171,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div id="dash-pending-orders"></div>
     </div>
     <div class="dash-panel" id="dash-tasks-card">
-      <h3><i class="fas fa-clipboard-list" style="color:var(--ocean-500)"></i> <span id="dash-tasks-title">Open tasks</span> <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
+      <h3><i class="fas fa-clipboard-list" style="color:var(--teal-500)"></i> <span id="dash-tasks-title">Open tasks</span> <span class="badge badge-yellow" id="dash-tasks-panel-badge" style="display:none"></span></h3>
       <div id="dash-tasks-panel"><div class="empty-state" style="padding:14px"><i class="fas fa-check-circle" style="color:#2b8a4b;font-size:22px"></i><p>All done!</p></div></div>
     </div>
     <div class="dash-panel" id="dash-res-panel">
-      <h3><i class="fas fa-calendar-day" style="color:var(--ocean-500)"></i> Reservations today <span class="badge badge-gray" id="dash-res-badge" style="display:none"></span></h3>
+      <h3><i class="fas fa-calendar-day" style="color:var(--teal-500)"></i> Reservations today <span class="badge badge-gray" id="dash-res-badge" style="display:none"></span></h3>
       <div id="dash-today-res"><div class="empty-state" style="padding:14px"><i class="fas fa-calendar-xmark"></i><p>No reservations today. Add one from Reservations.</p></div></div>
     </div>
   </section>
@@ -1248,8 +1246,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div class="cal-grid" id="calendar-grid"></div>
       </div>
       <div class="card" style="padding:14px">
-        <div style="font-weight:700;font-size:15px;color:var(--ocean-800);margin-bottom:12px;display:flex;align-items:center;gap:8px">
-          <i class="fas fa-calendar-day" style="color:var(--ocean-400)"></i>
+        <div style="font-weight:700;font-size:15px;color:var(--slate-800);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <i class="fas fa-calendar-day" style="color:var(--slate-500)"></i>
           <span id="res-day-label">Select a day</span>
         </div>
         <div id="res-day-list"><div class="empty-state"><i class="fas fa-hand-pointer"></i><p>Tap a day to see reservations</p></div></div>
@@ -1259,7 +1257,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div class="search-bar">
         <i class="fas fa-search"></i>
         <input type="text" placeholder="Search name, table..." id="res-search" />
-        <input type="date" id="res-date-filter" style="border:none;outline:none;font-size:13px;color:var(--ocean-600);background:transparent;cursor:pointer" />
+        <input type="date" id="res-date-filter" style="border:none;outline:none;font-size:13px;color:var(--teal-600);background:transparent;cursor:pointer" />
       </div>
       <div class="card" style="overflow:hidden">
         <div id="res-all-list"><div class="empty-state"><i class="fas fa-calendar-xmark"></i><p>No reservations yet.</p></div></div>
@@ -1306,17 +1304,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="section-header">
       <div class="tab-row" id="task-filter-btns" style="margin-bottom:0">
         <button class="tab-btn active" data-task-filter="open">Open</button>
-        <button class="tab-btn" data-task-filter="pending">Pending</button>
-        <button class="tab-btn" data-task-filter="in-progress">Active</button>
-        <button class="tab-btn" data-task-filter="done">Done</button>
+        <button class="tab-btn" data-task-filter="pending">Pending <span class="tab-count" id="task-count-pending"></span></button>
+        <button class="tab-btn" data-task-filter="in-progress">In progress <span class="tab-count" id="task-count-progress"></span></button>
+        <button class="tab-btn" data-task-filter="done">Done <span class="tab-count tab-count-quiet" id="task-count-done"></span></button>
         <button class="tab-btn" data-task-filter="all">All</button>
       </div>
       <button class="btn btn-primary btn-sm" id="btn-add-task"><i class="fas fa-plus"></i> New</button>
-    </div>
-    <div class="task-count-row">
-      <div class="task-count-card"><div class="tc-icon" style="background:#fdf3e1">⏳</div><div><div class="tc-num" id="task-count-pending">0</div><div class="tc-label">Pending</div></div></div>
-      <div class="task-count-card"><div class="tc-icon" style="background:#e6f0f9;color:#2f6fa8"><i class="fas fa-rotate"></i></div><div><div class="tc-num" id="task-count-progress">0</div><div class="tc-label">Active</div></div></div>
-      <div class="task-count-card"><div class="tc-icon" style="background:#e3f4e8;color:#2b8a4b"><i class="fas fa-check"></i></div><div><div class="tc-num" id="task-count-done">0</div><div class="tc-label">Done</div></div></div>
     </div>
     <div id="task-list"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No tasks yet!</p></div></div>
   </section>
@@ -1325,13 +1318,13 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <section id="section-shifts" class="page-section">
     <div class="section-header" style="margin-bottom:10px">
       <div>
-        <div style="font-weight:700;font-size:17px;color:var(--ocean-900)">Employee Shifts</div>
-        <div style="font-size:12px;color:var(--ocean-400)" id="shifts-week-label"></div>
+        <div style="font-weight:700;font-size:17px;color:var(--slate-900)">Employee Shifts</div>
+        <div style="font-size:12px;color:var(--slate-500)" id="shifts-week-label"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-secondary btn-sm" id="btn-shifts-prev-week" aria-label="Previous week"><i class="fas fa-chevron-left"></i></button>
         <button class="btn btn-secondary btn-sm" id="btn-shifts-next-week" aria-label="Next week"><i class="fas fa-chevron-right"></i></button>
-        <button class="btn btn-gold btn-sm" id="btn-add-shift" style="display:none"><i class="fas fa-plus"></i> Add</button>
+        <button class="btn btn-primary btn-sm" id="btn-add-shift" style="display:none"><i class="fas fa-plus"></i> Add</button>
         <button class="btn btn-secondary btn-sm" id="btn-repeat-week" style="display:none" title="Copy shifts from one week to another"><i class="fas fa-copy"></i> Repeat</button>
         <button class="btn btn-secondary btn-sm" id="btn-notify-week" style="display:none" title="Tell the team this week's shifts are ready"><i class="fas fa-bullhorn"></i> <span id="notify-week-label">Notify team</span></button>
       </div>
@@ -1353,8 +1346,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 
     <!-- ── Tab: Schedule (Gantt) ── -->
     <div id="shifts-panel-gantt">
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);margin-bottom:12px;font-size:11px;color:var(--ocean-400);flex-wrap:wrap">
-        <i class="fas fa-circle-info" style="color:var(--ocean-300)"></i>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border-radius:var(--radius);border:1px solid var(--slate-100);margin-bottom:12px;font-size:11px;color:var(--slate-500);flex-wrap:wrap">
+        <i class="fas fa-circle-info" style="color:var(--slate-300)"></i>
         Timeline: 07:00 – 24:00 &nbsp;·&nbsp;
         <span id="gantt-legend-areas" style="display:inline-flex;flex-wrap:wrap;gap:8px"></span>
         <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--red);display:inline-block"></span> Absent</span>
@@ -1378,8 +1371,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 
     <!-- ── Tab: Tips ── -->
     <div id="shifts-panel-tips" style="display:none">
-      <div class="shifts-tips-card" style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-        <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <div class="shifts-tips-card" style="background:white;border-radius:var(--radius);border:1px solid var(--slate-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+        <div style="font-weight:700;font-size:14px;color:var(--slate-800);margin-bottom:10px;display:flex;align-items:center;gap:8px">
           <i class="fas fa-hand-holding-dollar" style="color:#b7791f"></i> Weekly Tips Distribution
         </div>
         <div id="tips-locked-notice" style="display:none;background:#fdf3e1;border:1px solid var(--amber-200);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber-700);display:flex;align-items:center;gap:8px">
@@ -1391,10 +1384,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         </div>
         <div id="tips-input-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
           <div style="flex:1;min-width:120px">
-            <label style="font-size:11px;font-weight:600;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Total Tips (€)</label>
+            <label style="font-size:11px;font-weight:600;color:var(--teal-600);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Total Tips (€)</label>
             <input type="text" id="shifts-tips-input" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700" />
           </div>
-          <button class="btn btn-gold btn-sm" id="btn-generate-tips" style="height:42px;white-space:nowrap"><i class="fas fa-calculator"></i> Generate</button>
+          <button class="btn btn-primary btn-sm" id="btn-generate-tips" style="height:42px;white-space:nowrap"><i class="fas fa-calculator"></i> Generate</button>
         </div>
         <div id="shifts-tips-result" style="margin-top:10px"></div>
       </div>
@@ -1441,7 +1434,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <!-- ═══ FOOD COST (admins + chefs) ═══ -->
   <section id="section-foodcost" class="page-section">
     <div id="fc-locked" class="locked-overlay" style="display:none">
-      <i class="fas fa-utensils" style="color:#8a5a3c"></i>
+      <i class="fas fa-utensils" style="color:var(--clay)"></i>
       <h3>Chefs and admins only</h3>
       <p>Food Cost can be opened by users with the Chef role or by an administrator.</p>
     </div>
@@ -1451,7 +1444,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <!-- ═══ ACCOUNTING ═══ -->
   <section id="section-accounting" class="page-section">
     <div id="acc-locked" class="locked-overlay" style="display:none">
-      <i class="fas fa-scale-balanced" style="color:#6d4fc2"></i>
+      <i class="fas fa-scale-balanced" style="color:var(--gold)"></i>
       <h3>Admin only</h3>
       <p>Accounting can only be opened by an administrator.</p>
     </div>
@@ -1523,7 +1516,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 
         <!-- Revenue -->
         <div class="fin-card">
-          <h3><i class="fas fa-money-bill-wave" style="color:var(--ocean-500)"></i> Revenue</h3>
+          <h3><i class="fas fa-money-bill-wave" style="color:var(--teal-500)"></i> Revenue</h3>
           <div class="fin-input-row">
             <label>T 51</label>
             <input type="text" id="fin-t51" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
@@ -1533,7 +1526,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
             <input type="text" id="fin-multibanco" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-derived">
-            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> Total of Day (Invoiced + T51)</span>
+            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--slate-500)"></i> Total of Day (Invoiced + T51)</span>
             <span class="fin-derived-val" id="fin-total-day-calc">€0.00</span>
           </div>
         </div>
@@ -1550,7 +1543,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
             <input type="text" id="fin-gen-expenses" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-derived">
-            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--ocean-400)"></i> € Entregar (Day − MB − Gen.Exp)</span>
+            <span class="fin-derived-label"><i class="fas fa-calculator" style="color:var(--slate-500)"></i> € Entregar (Day − MB − Gen.Exp)</span>
             <span class="fin-derived-val" id="fin-entregar-calc">€0.00</span>
           </div>
           <input type="hidden" id="fin-entregar" value="0" />
@@ -1568,7 +1561,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
             <input type="text" id="fin-coins" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" />
           </div>
           <div class="fin-derived" style="margin-top:6px">
-            <span class="fin-derived-label"><i class="fas fa-sigma" style="color:var(--ocean-400)"></i> Total Cash (Notes + Coins)</span>
+            <span class="fin-derived-label"><i class="fas fa-sigma" style="color:var(--slate-500)"></i> Total Cash (Notes + Coins)</span>
             <span class="fin-derived-val" id="fin-cash-total-calc">€0.00</span>
           </div>
           <!-- Balance indicator -->
@@ -1615,125 +1608,125 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div id="fin-panel-records" style="display:none">
 
         <!-- Section 1: Total of Day -->
-        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-receipt" style="color:#6d4fc2"></i> Total of the Day</div>
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--slate-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--slate-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-receipt" style="color:#6d4fc2"></i> Total of the Day</div>
           <div class="fin-chart" id="fin-chart-day" data-line="day"></div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card" style="position:relative">
               <div class="fin-summary-num" id="fin-stat-day-month">€0</div>
               <div class="fin-summary-label">This Month</div>
-              <div id="fin-stat-day-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-day-month-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
               <div id="fin-stat-day-month-budget" style="font-size:11px;margin-top:4px"></div>
               <div id="fin-stat-day-month-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-day-year">€0</div>
               <div class="fin-summary-label">Year to Date</div>
-              <div id="fin-stat-day-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-day-year-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
               <div id="fin-stat-day-year-budget" style="font-size:11px;margin-top:4px"></div>
               <div id="fin-stat-day-year-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-day-range">€0</div>
               <div class="fin-summary-label">Custom Range</div>
-              <div id="fin-stat-day-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-day-range-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
               <div id="fin-stat-day-range-budget" style="font-size:11px;margin-top:4px"></div>
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
             <input type="date" id="fin-range-from" class="input-field" style="flex:1;min-width:120px;font-size:12px;padding:6px 8px" />
-            <span style="font-size:12px;color:var(--ocean-400)">to</span>
+            <span style="font-size:12px;color:var(--slate-500)">to</span>
             <input type="date" id="fin-range-to" class="input-field" style="flex:1;min-width:120px;font-size:12px;padding:6px 8px" />
             <button class="btn btn-secondary btn-sm" id="btn-fin-recalc"><i class="fas fa-calculator"></i> Calc</button>
           </div>
         </div>
 
         <!-- Section 2: T51 -->
-        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-cash-register" style="color:#2a9683"></i> T 51</div>
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--slate-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--slate-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-cash-register" style="color:#2a9683"></i> T 51</div>
           <div class="fin-chart" id="fin-chart-t51" data-line="t51"></div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-month">€0</div>
               <div class="fin-summary-label">This Month</div>
-              <div id="fin-stat-t51-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-t51-month-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
               <div id="fin-stat-t51-month-budget" style="font-size:11px;margin-top:4px"></div>
               <div id="fin-stat-t51-month-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-year">€0</div>
               <div class="fin-summary-label">Year to Date</div>
-              <div id="fin-stat-t51-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-t51-year-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
               <div id="fin-stat-t51-year-budget" style="font-size:11px;margin-top:4px"></div>
               <div id="fin-stat-t51-year-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-t51-range">€0</div>
               <div class="fin-summary-label">Custom Range</div>
-              <div id="fin-stat-t51-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-t51-range-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
             </div>
           </div>
         </div>
 
         <!-- Section 3: Surf -->
-        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-water" style="color:#2a9683"></i> Surf</div>
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--slate-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--slate-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-water" style="color:#2a9683"></i> Surf</div>
           <div class="fin-chart" id="fin-chart-surf" data-line="surf"></div>
           <div class="fin-summary-grid">
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-month">€0</div>
               <div class="fin-summary-label">This Month</div>
-              <div id="fin-stat-surf-month-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-surf-month-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
               <div id="fin-stat-surf-month-budget" style="font-size:11px;margin-top:4px"></div>
               <div id="fin-stat-surf-month-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-year">€0</div>
               <div class="fin-summary-label">Year to Date</div>
-              <div id="fin-stat-surf-year-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-surf-year-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
               <div id="fin-stat-surf-year-budget" style="font-size:11px;margin-top:4px"></div>
               <div id="fin-stat-surf-year-ly" class="fin-ly-line"></div>
             </div>
             <div class="fin-summary-card">
               <div class="fin-summary-num" id="fin-stat-surf-range">€0</div>
               <div class="fin-summary-label">Custom Range</div>
-              <div id="fin-stat-surf-range-avg" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-surf-range-avg" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
             </div>
           </div>
         </div>
 
         <!-- Section 4: Cash Over / Under Log -->
-        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
-          <div style="font-weight:700;font-size:13px;color:var(--ocean-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-scale-unbalanced" style="color:#b4402f"></i> Cash Over / Under Log</div>
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--slate-100);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:13px;color:var(--slate-700);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fas fa-scale-unbalanced" style="color:#b4402f"></i> Cash Over / Under Log</div>
           <div class="fin-summary-grid" style="margin-bottom:10px">
             <div class="fin-summary-card" style="border:1px solid var(--red-200)">
               <div class="fin-summary-num" id="fin-stat-short-month" style="color:#b4402f">€0</div>
               <div class="fin-summary-label">Short This Month</div>
-              <div id="fin-stat-short-month-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-short-month-cnt" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
             </div>
             <div class="fin-summary-card" style="border:1px solid var(--red-200)">
               <div class="fin-summary-num" id="fin-stat-short-year" style="color:#b4402f">€0</div>
               <div class="fin-summary-label">Short This Year</div>
-              <div id="fin-stat-short-year-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-short-year-cnt" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
             </div>
             <div class="fin-summary-card" style="border:1px solid #a9dcb9">
               <div class="fin-summary-num" id="fin-stat-over-month" style="color:#2b8a4b">€0</div>
               <div class="fin-summary-label">Over This Month</div>
-              <div id="fin-stat-over-month-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-over-month-cnt" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
             </div>
             <div class="fin-summary-card" style="border:1px solid #a9dcb9">
               <div class="fin-summary-num" id="fin-stat-over-year" style="color:#2b8a4b">€0</div>
               <div class="fin-summary-label">Over This Year</div>
-              <div id="fin-stat-over-year-cnt" style="font-size:11px;color:var(--ocean-400);margin-top:2px"></div>
+              <div id="fin-stat-over-year-cnt" style="font-size:11px;color:var(--slate-500);margin-top:2px"></div>
             </div>
           </div>
           <div id="fin-diff-log-list"></div>
         </div>
 
         <!-- Day picker + records list -->
-        <div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
-          <i class="fas fa-calendar-day" style="color:var(--ocean-400)"></i>
-          <label style="font-size:12px;font-weight:600;color:var(--ocean-600);white-space:nowrap">Jump to date:</label>
+        <div style="background:white;border-radius:var(--radius);border:1px solid var(--slate-100);padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+          <i class="fas fa-calendar-day" style="color:var(--slate-500)"></i>
+          <label style="font-size:12px;font-weight:600;color:var(--teal-600);white-space:nowrap">Jump to date:</label>
           <input type="date" id="fin-rec-day-picker" class="input-field" style="flex:1;font-size:12px;padding:6px 8px" />
           <button class="btn btn-secondary btn-sm" id="btn-fin-clear-day"><i class="fas fa-times"></i></button>
         </div>
@@ -1777,7 +1770,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         </div>
         <div id="bb-menu-selector" style="margin-bottom:14px"></div>
         <div class="divider"></div>
-        <div style="font-weight:700;font-size:14px;color:var(--ocean-800);margin-bottom:10px">Selected Items</div>
+        <div style="font-weight:700;font-size:14px;color:var(--slate-800);margin-bottom:10px">Selected Items</div>
         <div id="bb-selected-list"><div class="empty-state" style="padding:16px"><p>No items selected yet.</p></div></div>
       </div>
       <!-- Records -->
@@ -1785,11 +1778,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <!-- Date range filter -->
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
-            <label style="font-size:11px;color:var(--ocean-500);white-space:nowrap">From</label>
+            <label style="font-size:11px;color:var(--teal-500);white-space:nowrap">From</label>
             <input type="date" id="bb-records-from" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
-            <label style="font-size:11px;color:var(--ocean-500);white-space:nowrap">To</label>
+            <label style="font-size:11px;color:var(--teal-500);white-space:nowrap">To</label>
             <input type="date" id="bb-records-to" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
           </div>
           <button class="btn btn-secondary btn-sm" id="btn-bb-records-clear-range" style="white-space:nowrap"><i class="fas fa-xmark"></i> Clear</button>
@@ -1810,7 +1803,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           </div>
         </div>
         <!-- Daily entries list -->
-        <div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:8px"><i class="fas fa-calendar-days" style="color:var(--ocean-500)"></i> Daily Records</div>
+        <div style="font-weight:700;font-size:13px;color:var(--slate-800);margin-bottom:8px"><i class="fas fa-calendar-days" style="color:var(--teal-500)"></i> Daily Records</div>
         <div id="bb-records-list"></div>
       </div>
       <!-- Item Records -->
@@ -1818,11 +1811,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <!-- Date range filter -->
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
-            <label style="font-size:11px;color:var(--ocean-500);white-space:nowrap">From</label>
+            <label style="font-size:11px;color:var(--teal-500);white-space:nowrap">From</label>
             <input type="date" id="bb-items-from" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
-            <label style="font-size:11px;color:var(--ocean-500);white-space:nowrap">To</label>
+            <label style="font-size:11px;color:var(--teal-500);white-space:nowrap">To</label>
             <input type="date" id="bb-items-to" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
           </div>
           <button class="btn btn-secondary btn-sm" id="btn-bb-items-clear-range" style="white-space:nowrap"><i class="fas fa-xmark"></i> Clear</button>
@@ -1838,7 +1831,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <!-- Menu Items Management -->
       <div id="bb-panel-menu" style="display:none">
         <div class="section-header">
-          <div style="font-size:14px;color:var(--ocean-500)">Manage items for sale</div>
+          <div style="font-size:14px;color:var(--teal-500)">Manage items for sale</div>
           <button class="btn btn-primary btn-sm" id="btn-add-bb-item"><i class="fas fa-plus"></i> Add Item</button>
         </div>
         <div id="bb-menu-manage-list"></div>
@@ -1872,38 +1865,16 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <i class="fas fa-triangle-exclamation" style="color:#b7791f"></i> Database migration required
       </div>
       <p style="font-size:12px;color:var(--amber-700);margin-bottom:10px">Some columns or tables are missing in your Supabase database. This prevents Finance data and Settings (Finance PIN, Fundo de Caixa) from syncing across devices. Run the script below <strong>once</strong> in your Supabase SQL Editor to fix this.</p>
-      <a href="https://supabase.com/dashboard/project/eurcdnyhwqofnddhxrpf/sql/new" target="_blank" class="btn btn-gold btn-sm" style="width:100%;justify-content:center;margin-bottom:10px"><i class="fas fa-external-link-alt"></i> Open Supabase SQL Editor</a>
+      <a href="https://supabase.com/dashboard/project/eurcdnyhwqofnddhxrpf/sql/new" target="_blank" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;margin-bottom:10px"><i class="fas fa-external-link-alt"></i> Open Supabase SQL Editor</a>
       <div style="position:relative">
         <pre id="sb-migration-sql" style="background:var(--slate-800);color:var(--slate-200);font-size:11px;border-radius:8px;padding:12px;overflow-x:auto;white-space:pre;margin:0;line-height:1.6"></pre>
         <button id="btn-copy-sql" class="btn btn-sm" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.1);color:var(--slate-200);border:1px solid rgba(255,255,255,.2);font-size:11px"><i class="fas fa-copy"></i> Copy</button>
       </div>
     </div>
-    <!-- Secure login (admins) -->
-    <div class="settings-card" id="secure-login-card" style="display:none">
-      <h3><i class="fas fa-shield-halved" style="color:var(--teal-600)"></i> Secure login</h3>
-      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Moves every login to Supabase's secure sign-in, keeping each person's password. After that, the database itself checks who may see what.</p>
-      <div id="secure-login-body"></div>
-      <div id="secure-migrate-result" aria-live="polite"></div>
-    </div>
-    <!-- Impersonate (admins, for testing) -->
-    <div class="settings-card" id="imp-card" style="display:none">
-      <h3><i class="fas fa-user-secret" style="color:var(--teal-600)"></i> Impersonate</h3>
-      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">See the app exactly as someone else does, to test what they can see and do. Anything you change while impersonating is real and saved as them. Their own devices stay logged in, and nothing is sent to them.</p>
-      <label class="label" for="imp-user">Log in as</label>
-      <select class="select-field" id="imp-user"></select>
-      <button class="btn btn-primary" id="btn-imp-start" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-user-secret"></i> Impersonate</button>
-    </div>
-    <!-- Clock-in QR (admins) -->
-    <div class="settings-card" id="clock-qr-card" style="display:none">
-      <h3><i class="fas fa-qrcode" style="color:var(--teal-600)"></i> Clock-in QR code</h3>
-      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Print it and put it on the wall. Staff scan it from Home to check in when they arrive and check out when they leave. The log is in Shifts → Clock, separate from the rota.</p>
-      <div id="clock-qr-box"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="btn-clock-qr"><i class="fas fa-qrcode"></i> Show QR code</button><button class="btn btn-secondary" id="btn-clock-print" style="display:none"><i class="fas fa-print"></i> Print</button></div>
-    </div>
     <!-- Notifications card — visible to ALL users -->
     <div class="settings-card" id="notif-settings-card">
-      <h3><i class="fas fa-bell" style="color:var(--ocean-500)"></i> Push Notifications</h3>
-      <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Alerts for tasks assigned to you and for shift change requests.</p>
+      <h3><i class="fas fa-bell" style="color:var(--teal-500)"></i> Push Notifications</h3>
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:12px">Alerts for tasks assigned to you and for shift change requests.</p>
       <div id="notif-status-row" style="font-size:13px;color:#5f7079;margin-bottom:12px;display:flex;align-items:center;gap:8px">
         <i class="fas fa-circle" id="notif-card-dot" style="font-size:8px;color:#8a9aa2"></i>
         <span id="notif-status-text">Checking...</span>
@@ -1921,9 +1892,20 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <i class="fas fa-lock"></i>
       <h3>Admin Only</h3>
       <p>Settings can only be changed by an administrator.</p>
-      <button class="btn btn-gold" id="settings-login-prompt-btn"><i class="fas fa-key"></i> Admin Login</button>
+      <button class="btn btn-primary" id="settings-login-prompt-btn"><i class="fas fa-key"></i> Admin Login</button>
     </div>
     <div id="settings-content" style="display:none">
+      <div class="settings-group">The restaurant</div>
+      <!-- Tables -->
+      <div class="settings-card">
+        <h3><i class="fas fa-chair" style="color:var(--teal-500)"></i> Table Configuration</h3>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:12px">Add custom table numbers/names for your restaurant.</p>
+        <div class="table-num-grid" id="table-num-grid"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input type="text" id="new-table-num" class="input-field" placeholder="Table name/number e.g. T1, VIP, Bar..." style="font-size:14px" />
+          <button class="btn btn-primary" id="btn-add-table-num" aria-label="Add table" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
       <!-- Areas & sections -->
       <div class="settings-card" id="areas-card">
         <h3><i class="fas fa-layer-group"></i> Areas &amp; sections</h3>
@@ -1934,40 +1916,20 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           <button class="btn btn-secondary" id="btn-add-area" style="flex-shrink:0"><i class="fas fa-plus"></i> Area</button>
         </div>
       </div>
-      <!-- Change PIN -->
-      <div class="settings-card">
-        <h3><i class="fas fa-key" style="color:#b7791f"></i> Admin PIN</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Change the 4-digit admin PIN.</p>
-        <div class="form-grid-2" style="margin-bottom:12px">
-          <div><label class="label">New PIN</label><input type="password" id="new-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
-          <div><label class="label">Confirm PIN</label><input type="password" id="confirm-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
-        </div>
-        <button class="btn btn-gold" id="btn-change-pin"><i class="fas fa-save"></i> Update PIN</button>
-      </div>
       <!-- Fundo de Caixa -->
       <div class="settings-card">
-        <h3><i class="fas fa-vault" style="color:#2b8a4b"></i> Fundo de Caixa</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Set the base cash fund amount used in Finance calculations.</p>
+        <h3><i class="fas fa-vault" style="color:var(--teal-600)"></i> Fundo de Caixa</h3>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:12px">Set the base cash fund amount used in Finance calculations.</p>
         <div class="fin-input-row" style="margin-bottom:12px">
           <label>Fundo de Caixa (€)</label>
           <input type="text" id="settings-fundo" class="input-field" placeholder="0.00" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" style="text-align:right;font-weight:700;font-size:16px" />
         </div>
         <button class="btn btn-primary" id="btn-save-fundo"><i class="fas fa-save"></i> Save</button>
       </div>
-      <!-- Finance PIN -->
-      <div class="settings-card">
-        <h3><i class="fas fa-euro-sign" style="color:#6d4fc2"></i> Finance PIN</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Change the 4-digit Finance tab PIN.</p>
-        <div class="form-grid-2" style="margin-bottom:12px">
-          <div><label class="label">New Finance PIN</label><input type="password" id="new-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
-          <div><label class="label">Confirm PIN</label><input type="password" id="confirm-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
-        </div>
-        <button class="btn" style="background:#6d4fc2;color:white;display:flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700" id="btn-change-finance-pin"><i class="fas fa-save"></i> Update Finance PIN</button>
-      </div>
       <!-- Finance Budgets -->
       <div class="settings-card">
-        <h3><i class="fas fa-chart-line" style="color:#2b8a4b"></i> Finance Budgets</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:10px">Set a monthly budget for each metric, and last year's figures to compare against. The year total is calculated automatically.</p>
+        <h3><i class="fas fa-chart-line" style="color:var(--teal-600)"></i> Finance Budgets</h3>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Set a monthly budget for each metric, and last year's figures to compare against. The year total is calculated automatically.</p>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
           <div class="fc-switch" role="tablist" aria-label="Budget or last year">
             <button class="active" data-bud-mode="budget" id="bud-mode-budget">Budget</button>
@@ -1979,8 +1941,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div style="overflow-x:auto;margin-bottom:14px" id="budget-table-wrap">
           <table style="width:100%;border-collapse:collapse;font-size:12px">
             <thead>
-              <tr style="background:var(--ocean-50)">
-                <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:60px">Month</th>
+              <tr style="background:var(--slate-50)">
+                <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--slate-700);min-width:60px">Month</th>
                 <th style="padding:6px 4px;font-weight:700;color:#6d4fc2;text-align:right;min-width:80px">Total Day</th>
                 <th style="padding:6px 4px;font-weight:700;color:#2a9683;text-align:right;min-width:80px">T 51</th>
                 <th style="padding:6px 4px;font-weight:700;color:#2a9683;text-align:right;min-width:80px">Surf</th>
@@ -1990,8 +1952,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
               <!-- rendered by renderSettings() -->
             </tbody>
             <tfoot>
-              <tr style="background:var(--ocean-50);border-top:2px solid var(--ocean-200)">
-                <td style="padding:6px 8px;font-weight:800;color:var(--ocean-800);font-size:12px">Year Total</td>
+              <tr style="background:var(--slate-50);border-top:2px solid var(--slate-200)">
+                <td style="padding:6px 8px;font-weight:800;color:var(--slate-800);font-size:12px">Year Total</td>
                 <td id="budget-year-day"  style="padding:6px 4px;font-weight:800;color:#6d4fc2;text-align:right;font-size:12px">€0</td>
                 <td id="budget-year-t51"  style="padding:6px 4px;font-weight:800;color:#2a9683;text-align:right;font-size:12px">€0</td>
                 <td id="budget-year-surf" style="padding:6px 4px;font-weight:800;color:#2a9683;text-align:right;font-size:12px">€0</td>
@@ -2001,23 +1963,56 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         </div>
         <button class="btn btn-primary" id="btn-save-budgets"><i class="fas fa-save"></i> Save budgets and last year</button>
       </div>
-      <!-- Team Members moved to Shifts → Team tab -->
-      <!-- Tables -->
+      <div class="settings-group">People &amp; access</div>
+    <!-- Clock-in QR (admins) -->
+    <div class="settings-card" id="clock-qr-card" style="display:none">
+      <h3><i class="fas fa-qrcode" style="color:var(--teal-600)"></i> Clock-in QR code</h3>
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Print it and put it on the wall. Staff scan it from Home to check in when they arrive and check out when they leave. The log is in Shifts → Clock, separate from the rota.</p>
+      <div id="clock-qr-box"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="btn-clock-qr"><i class="fas fa-qrcode"></i> Show QR code</button><button class="btn btn-secondary" id="btn-clock-print" style="display:none"><i class="fas fa-print"></i> Print</button></div>
+    </div>
+      <!-- Change PIN -->
       <div class="settings-card">
-        <h3><i class="fas fa-chair" style="color:var(--ocean-500)"></i> Table Configuration</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Add custom table numbers/names for your restaurant.</p>
-        <div class="table-num-grid" id="table-num-grid"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input type="text" id="new-table-num" class="input-field" placeholder="Table name/number e.g. T1, VIP, Bar..." style="font-size:14px" />
-          <button class="btn btn-primary" id="btn-add-table-num" aria-label="Add table" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
+        <h3><i class="fas fa-key" style="color:var(--gold)"></i> Admin PIN</h3>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:12px">Change the 4-digit admin PIN.</p>
+        <div class="form-grid-2" style="margin-bottom:12px">
+          <div><label class="label">New PIN</label><input type="password" id="new-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
+          <div><label class="label">Confirm PIN</label><input type="password" id="confirm-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
         </div>
+        <button class="btn btn-primary" id="btn-change-pin"><i class="fas fa-save"></i> Update PIN</button>
       </div>
+      <!-- Finance PIN -->
+      <div class="settings-card">
+        <h3><i class="fas fa-euro-sign" style="color:var(--purple)"></i> Finance PIN</h3>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:12px">Change the 4-digit Finance tab PIN.</p>
+        <div class="form-grid-2" style="margin-bottom:12px">
+          <div><label class="label">New Finance PIN</label><input type="password" id="new-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
+          <div><label class="label">Confirm PIN</label><input type="password" id="confirm-finance-pin" class="input-field" maxlength="4" placeholder="4 digits" inputmode="numeric" /></div>
+        </div>
+        <button class="btn" style="background:#6d4fc2;color:white;display:flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700" id="btn-change-finance-pin"><i class="fas fa-save"></i> Update Finance PIN</button>
+      </div>
+    <!-- Impersonate (admins, for testing) -->
+    <div class="settings-card" id="imp-card" style="display:none">
+      <h3><i class="fas fa-user-secret" style="color:var(--teal-600)"></i> Impersonate</h3>
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">See the app exactly as someone else does, to test what they can see and do. Anything you change while impersonating is real and saved as them. Their own devices stay logged in, and nothing is sent to them.</p>
+      <label class="label" for="imp-user">Log in as</label>
+      <select class="select-field" id="imp-user"></select>
+      <button class="btn btn-primary" id="btn-imp-start" style="width:100%;justify-content:center;margin-top:10px"><i class="fas fa-user-secret"></i> Impersonate</button>
+    </div>
+      <div class="settings-group">System</div>
+    <!-- Secure login (admins) -->
+    <div class="settings-card" id="secure-login-card" style="display:none">
+      <h3><i class="fas fa-shield-halved" style="color:var(--teal-600)"></i> Secure login</h3>
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:10px">Moves every login to Supabase's secure sign-in, keeping each person's password. After that, the database itself checks who may see what.</p>
+      <div id="secure-login-body"></div>
+      <div id="secure-migrate-result" aria-live="polite"></div>
+    </div>
       <!-- Supabase -->
       <div class="settings-card">
-        <h3><i class="fas fa-database" style="color:var(--ocean-500)"></i> Supabase Connection</h3>
-        <p style="font-size:13px;color:var(--ocean-400);margin-bottom:12px">Cloud database — all data syncs across devices in real time.</p>
-        <div class="form-row"><label class="label">Project URL</label><input type="text" id="sb-url" class="input-field" readonly style="background:var(--ocean-50);color:var(--ocean-600);font-size:13px" /></div>
-        <div class="form-row"><label class="label">Anon Key</label><input type="text" id="sb-key" class="input-field" readonly style="background:var(--ocean-50);color:var(--ocean-600);font-size:13px" /></div>
+        <h3><i class="fas fa-database" style="color:var(--teal-500)"></i> Supabase Connection</h3>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:12px">Cloud database — all data syncs across devices in real time.</p>
+        <div class="form-row"><label class="label">Project URL</label><input type="text" id="sb-url" class="input-field" readonly style="background:var(--slate-50);color:var(--teal-600);font-size:13px" /></div>
+        <div class="form-row"><label class="label">Anon Key</label><input type="text" id="sb-key" class="input-field" readonly style="background:var(--slate-50);color:var(--teal-600);font-size:13px" /></div>
         <button class="btn btn-primary" style="width:100%;justify-content:center" id="btn-save-supabase"><i class="fas fa-rotate"></i> Re-sync from Supabase</button>
         <div class="sb-status" id="sb-status-box" style="background:#fdf3e1">
           <span class="pulse-dot yellow"></span>
@@ -2047,7 +2042,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <div class="modal">
     <div class="modal-handle"></div>
     <h2 style="justify-content:center"><i class="fas fa-shield-halved" style="color:#b7791f"></i> Admin Login</h2>
-    <p style="text-align:center;font-size:13px;color:var(--ocean-400);margin-bottom:20px">Enter your 4-digit PIN</p>
+    <p style="text-align:center;font-size:13px;color:var(--slate-500);margin-bottom:20px">Enter your 4-digit PIN</p>
     <div class="pin-display" id="pin-display">
       <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
       <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
@@ -2075,7 +2070,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <div class="modal">
     <div class="modal-handle"></div>
     <h2 style="justify-content:center"><i class="fas fa-euro-sign" style="color:#6d4fc2"></i> Finance Login</h2>
-    <p style="text-align:center;font-size:13px;color:var(--ocean-400);margin-bottom:20px">Enter your 4-digit Finance PIN</p>
+    <p style="text-align:center;font-size:13px;color:var(--slate-500);margin-bottom:20px">Enter your 4-digit Finance PIN</p>
     <div class="pin-display" id="fin-pin-display">
       <div class="pin-dot" id="fpd0"></div><div class="pin-dot" id="fpd1"></div>
       <div class="pin-dot" id="fpd2"></div><div class="pin-dot" id="fpd3"></div>
@@ -2102,9 +2097,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-add-user">
   <div class="modal" style="max-height:90vh;overflow-y:auto">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-user-circle" style="color:var(--ocean-500)"></i><span id="user-modal-title">Add User</span></h2>
+    <h2><i class="fas fa-user-circle" style="color:var(--teal-500)"></i><span id="user-modal-title">Add User</span></h2>
 
-    <div style="background:var(--ocean-50);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11px;font-weight:700;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.06em">Account</div>
+    <div style="background:var(--slate-50);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11px;font-weight:700;color:var(--teal-600);text-transform:uppercase;letter-spacing:.06em">Account</div>
     <div class="form-grid-2" style="margin-bottom:12px">
       <div><label class="label">Name *</label><input type="text" class="input-field" id="user-name" placeholder="Full name" /></div>
       <div><label class="label">Username *</label><input type="text" class="input-field" id="user-username" placeholder="login name" autocapitalize="none" /></div>
@@ -2119,26 +2114,26 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div><label class="label">Confirm Password</label><input type="password" class="input-field" id="user-password2" placeholder="Repeat" /></div>
     </div>
 
-    <div style="background:var(--ocean-50);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.06em">Roles *</div>
+    <div style="background:var(--slate-50);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--teal-600);text-transform:uppercase;letter-spacing:.06em">Roles *</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" id="user-roles-wrap">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-admin">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--slate-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-admin">
         <input type="checkbox" value="admin" class="user-role-cb" style="accent-color:#a6741e" /> <i class="fas fa-crown" style="color:#a6741e"></i> Admin
       </label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-finance">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--slate-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-finance">
         <input type="checkbox" value="finance" class="user-role-cb" style="accent-color:#6d4fc2" /> <i class="fas fa-euro-sign" style="color:#6d4fc2"></i> Finance
       </label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-shift_mgr">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--slate-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-shift_mgr">
         <input type="checkbox" value="shift_mgr" class="user-role-cb" style="accent-color:#2b8a4b" /> <i class="fas fa-calendar-days" style="color:#2b8a4b"></i> Shift Manager
       </label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-employee">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--slate-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-employee">
         <input type="checkbox" value="employee" class="user-role-cb" style="accent-color:#2f6fa8" /> <i class="fas fa-user" style="color:#2f6fa8"></i> Employee
       </label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--ocean-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-chef">
-        <input type="checkbox" value="chef" class="user-role-cb" style="accent-color:#8a5a3c" /> <i class="fas fa-utensils" style="color:#8a5a3c"></i> Chef
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1.5px solid var(--slate-200);font-size:13px;font-weight:600;transition:all .15s" id="role-lbl-chef">
+        <input type="checkbox" value="chef" class="user-role-cb" style="accent-color:var(--clay)" /> <i class="fas fa-utensils" style="color:var(--clay)"></i> Chef
       </label>
     </div>
 
-    <div style="background:var(--ocean-50);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--ocean-600);text-transform:uppercase;letter-spacing:.06em">Contract</div>
+    <div style="background:var(--slate-50);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--teal-600);text-transform:uppercase;letter-spacing:.06em">Contract</div>
     <div class="form-grid-2" style="margin-bottom:12px">
       <div><label class="label">Contract Start</label><input type="date" class="input-field" id="user-contract-start" /></div>
       <div><label class="label">Contract End</label><input type="date" class="input-field" id="user-contract-end" /></div>
@@ -2161,8 +2156,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       </div>
       <div style="display:flex;flex-direction:column;justify-content:flex-end">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 0">
-          <input type="checkbox" id="user-active" checked style="width:16px;height:16px;accent-color:var(--ocean-500)" />
-          <span style="font-size:13px;font-weight:600;color:var(--ocean-700)">Active Account</span>
+          <input type="checkbox" id="user-active" checked style="width:16px;height:16px;accent-color:var(--teal-500)" />
+          <span style="font-size:13px;font-weight:600;color:var(--slate-700)">Active Account</span>
         </label>
       </div>
     </div>
@@ -2199,9 +2194,9 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" class="supplier-cat-cb" value="other"> <i class="fas fa-box"></i> Other</label>
       </div>
     </div>
-    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px;background:var(--ocean-50);border-radius:10px;padding:12px">
-      <input type="checkbox" id="supplier-send-email" style="width:18px;height:18px;accent-color:var(--ocean-500)" />
-      <div><div style="font-size:13px;font-weight:700;color:var(--ocean-800)"><i class="fas fa-envelope"></i> Send orders by email</div><div style="font-size:11px;color:var(--ocean-400)">When enabled, orders to this supplier can be sent by email</div></div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px;background:var(--slate-50);border-radius:10px;padding:12px">
+      <input type="checkbox" id="supplier-send-email" style="width:18px;height:18px;accent-color:var(--teal-500)" />
+      <div><div style="font-size:13px;font-weight:700;color:var(--slate-800)"><i class="fas fa-envelope"></i> Send orders by email</div><div style="font-size:11px;color:var(--slate-500)">When enabled, orders to this supplier can be sent by email</div></div>
     </label>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-supplier"><i class="fas fa-save"></i> Save</button>
@@ -2217,7 +2212,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-shop-item">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-bag-shopping" style="color:var(--ocean-400)"></i><span id="shop-modal-title">Add to Shopping List</span></h2>
+    <h2><i class="fas fa-bag-shopping" style="color:var(--slate-500)"></i><span id="shop-modal-title">Add to Shopping List</span></h2>
     <input type="hidden" id="shop-edit-id" />
     <div class="form-row"><label class="label" for="shop-name">Item *</label><input type="text" class="input-field" id="shop-name" placeholder="e.g. Ice cream scoop" /></div>
     <div class="form-row"><label class="label" for="shop-link">Link (if there is one)</label><input type="url" inputmode="url" class="input-field" id="shop-link" placeholder="https://…" /></div>
@@ -2232,7 +2227,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-add-inventory">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-box" style="color:var(--ocean-400)"></i><span id="inv-modal-title">Add Item</span></h2>
+    <h2><i class="fas fa-box" style="color:var(--slate-500)"></i><span id="inv-modal-title">Add Item</span></h2>
     <p class="form-who"><i class="fas fa-user-check"></i><span>Saved as <b class="who-me"></b></span></p>
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Item Name *</label><input type="text" class="input-field" id="inv-item-name" placeholder="e.g. Water Bottle" /></div>
@@ -2266,11 +2261,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="modal-handle"></div>
     <h2><i class="fas fa-cart-plus" style="color:#2a9683"></i> Add to Order</h2>
     <input type="hidden" id="quick-order-id" />
-    <div style="background:var(--ocean-50);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+    <div style="background:var(--slate-50);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
       <div style="font-size:28px" id="quick-order-icon"></div>
       <div>
-        <div style="font-weight:700;font-size:16px;color:var(--ocean-900)" id="quick-order-name"></div>
-        <div style="font-size:12px;color:var(--ocean-400);margin-top:2px" id="quick-order-stock"></div>
+        <div style="font-weight:700;font-size:16px;color:var(--slate-900)" id="quick-order-name"></div>
+        <div style="font-size:12px;color:var(--slate-500);margin-top:2px" id="quick-order-stock"></div>
       </div>
     </div>
     <div class="form-row" style="margin-bottom:18px">
@@ -2319,10 +2314,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-update-qty">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-pen" style="color:var(--ocean-400)"></i> Update Stock</h2>
+    <h2><i class="fas fa-pen" style="color:var(--slate-500)"></i> Update Stock</h2>
     <input type="hidden" id="update-qty-id" />
     <p class="form-who"><i class="fas fa-user-check"></i><span>Saved as <b class="who-me"></b></span></p>
-    <div style="background:var(--ocean-50);border-radius:12px;padding:12px;margin-bottom:14px;font-weight:700;color:var(--ocean-900)" id="update-qty-name"></div>
+    <div style="background:var(--slate-50);border-radius:12px;padding:12px;margin-bottom:14px;font-weight:700;color:var(--slate-900)" id="update-qty-name"></div>
     <div class="form-grid-2" style="margin-bottom:16px">
       <div><label class="label">Qty in Bar</label><input type="number" class="input-field" id="update-qty-bar" min="0" /></div>
       <div><label class="label">Qty in Storage</label><input type="number" class="input-field" id="update-qty-storage" min="0" /></div>
@@ -2338,8 +2333,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-order">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-cart-shopping" style="color:var(--ocean-400)"></i> Place Order</h2>
-    <p style="font-size:13px;color:var(--ocean-400);margin-bottom:14px">Review your order. Adjust quantities if needed. Order goes on <strong>Standby</strong> until admin approves.</p>
+    <h2><i class="fas fa-cart-shopping" style="color:var(--slate-500)"></i> Place Order</h2>
+    <p style="font-size:13px;color:var(--slate-500);margin-bottom:14px">Review your order. Adjust quantities if needed. Order goes on <strong>Standby</strong> until admin approves.</p>
     <div id="order-items-list" style="max-height:45vh;overflow-y:auto;margin-bottom:16px"></div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-confirm-order"><i class="fas fa-paper-plane"></i> Submit Order</button>
@@ -2352,7 +2347,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-add-reservation">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-calendar-plus" style="color:var(--ocean-400)"></i><span id="res-modal-title">New Reservation</span></h2>
+    <h2><i class="fas fa-calendar-plus" style="color:var(--slate-500)"></i><span id="res-modal-title">New Reservation</span></h2>
     <input type="hidden" id="res-edit-id" />
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Guest Name *</label><input type="text" class="input-field" id="res-guest-name" placeholder="Full name" /></div>
@@ -2431,7 +2426,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-event">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-calendar-plus" style="color:var(--ocean-400)"></i><span id="ev-modal-title">New event</span></h2>
+    <h2><i class="fas fa-calendar-plus" style="color:var(--slate-500)"></i><span id="ev-modal-title">New event</span></h2>
     <input type="hidden" id="ev-edit-id" />
     <div class="form-row"><label class="label" for="ev-kind">Type</label>
       <select class="select-field" id="ev-kind">
@@ -2464,7 +2459,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-res-detail">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-calendar-check" style="color:var(--ocean-400)"></i> Reservation</h2>
+    <h2><i class="fas fa-calendar-check" style="color:var(--slate-500)"></i> Reservation</h2>
     <div id="res-detail-content"></div>
     <div class="action-row" id="res-detail-actions"></div>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px" data-close-modal="modal-res-detail">Close</button>
@@ -2475,7 +2470,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-add-task">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-clipboard-list" style="color:var(--ocean-400)"></i><span id="task-modal-title">New Task</span></h2>
+    <h2><i class="fas fa-clipboard-list" style="color:var(--slate-500)"></i><span id="task-modal-title">New Task</span></h2>
     <input type="hidden" id="task-edit-id" />
     <div class="form-row"><label class="label">Title *</label><input type="text" class="input-field" id="task-title" placeholder="e.g. Fix espresso machine" /></div>
     <div class="form-row"><label class="label">Description</label><textarea class="input-field" id="task-description" placeholder="More details..." style="height:72px;resize:none"></textarea></div>
@@ -2501,7 +2496,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Assigned To</label>
-        <div id="task-assigned-list" style="background:#f2f5f6;border:1.5px solid var(--ocean-200);border-radius:var(--radius);padding:8px;max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+        <div id="task-assigned-list" style="background:#f2f5f6;border:1.5px solid var(--slate-200);border-radius:var(--radius);padding:8px;max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
       </div>
       <div><label class="label">Deadline</label><input type="date" class="input-field" id="task-deadline" /></div>
     </div>
@@ -2534,14 +2529,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <div class="modal" style="padding-bottom:8px">
     <div class="modal-handle"></div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <div style="width:38px;height:38px;border-radius:50%;background:var(--ocean-100);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--ocean-600)" id="shift-action-avatar">?</div>
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--slate-100);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--teal-600)" id="shift-action-avatar">?</div>
       <div>
-        <div style="font-weight:800;font-size:15px;color:var(--ocean-900)" id="shift-action-name">—</div>
-        <div style="font-size:12px;color:var(--ocean-400)" id="shift-action-info">—</div>
+        <div style="font-weight:800;font-size:15px;color:var(--slate-900)" id="shift-action-name">—</div>
+        <div style="font-size:12px;color:var(--slate-500)" id="shift-action-info">—</div>
       </div>
     </div>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px" id="shift-action-edit">
-      <i class="fas fa-pen" style="color:var(--ocean-500)"></i> Edit Shift
+      <i class="fas fa-pen" style="color:var(--teal-500)"></i> Edit Shift
     </button>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-late">
@@ -2753,31 +2748,31 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 <div class="modal-overlay" id="modal-add-shift">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2><i class="fas fa-clock" style="color:var(--ocean-400)"></i><span id="shift-modal-title">Add Shift</span></h2>
+    <h2><i class="fas fa-clock" style="color:var(--slate-500)"></i><span id="shift-modal-title">Add Shift</span></h2>
     <input type="hidden" id="shift-edit-id" />
     <div class="form-row" style="margin-bottom:14px"><label class="label">Employee *</label><select class="select-field" id="shift-employee"></select></div>
     <!-- Per-day schedule table -->
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
-      <div style="font-size:11px;font-weight:700;color:var(--ocean-500);text-transform:uppercase;letter-spacing:.5px">Schedule <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--slate-400)">· only days with times are saved</span></div>
+      <div style="font-size:11px;font-weight:700;color:var(--teal-500);text-transform:uppercase;letter-spacing:.5px">Schedule <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--slate-400)">· only days with times are saved</span></div>
       <button type="button" class="btn btn-sm btn-secondary" id="btn-shift-same-times" title="Copy the first day that has times to every other working day"><i class="fas fa-clone"></i> Same times every day</button>
     </div>
     <div style="overflow-x:auto;margin-bottom:14px">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:var(--ocean-50)">
-          <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:72px">Day</th>
-          <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">Start</th>
-          <th style="padding:6px 4px;font-weight:700;color:var(--ocean-700)">End</th>
-          <th style="padding:6px 4px;font-weight:700;color:var(--ocean-500);min-width:130px">Area · Section</th>
+        <thead><tr style="background:var(--slate-50)">
+          <th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--slate-700);min-width:72px">Day</th>
+          <th style="padding:6px 4px;font-weight:700;color:var(--slate-700)">Start</th>
+          <th style="padding:6px 4px;font-weight:700;color:var(--slate-700)">End</th>
+          <th style="padding:6px 4px;font-weight:700;color:var(--teal-500);min-width:130px">Area · Section</th>
           <th style="padding:6px 4px;font-weight:700;color:#b4402f;white-space:nowrap">Day Off</th>
         </tr></thead>
         <tbody id="shift-days-body">
-          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--ocean-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
         </tbody>
       </table>
     </div>
@@ -3570,7 +3565,14 @@ var selectedTables = [];
 // ================================================
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function toDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
-function fmtDate(iso) { if (!iso) return ''; var d = new Date(iso); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+// The house formats (Finance and Black Box keep their own): dates "Fri 9 Oct" (+ year when not this year), money "€1234,56"
+var MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], WD3 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function fmtDay(v, noWeekday) {
+  if (!v) return ''; var str = String(v), d = /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(str + 'T12:00:00') : new Date(str); if (isNaN(d)) return str;
+  return (noWeekday ? '' : WD3[d.getDay()] + ' ') + d.getDate() + ' ' + MON3[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '');
+}
+function fmtDate(iso) { if (!iso) return ''; var d = new Date(iso); if (isNaN(d)) return String(iso); return fmtDay(iso, true) + ', ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+function fmtMoney(v) { return accEur(v); }
 function fmtDateShort(iso) { if (!iso) return ''; var d = new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}); }
 function getMonday(d) { var dd = new Date(d); var day = dd.getDay(); var diff = day===0?-6:1-day; dd.setDate(dd.getDate()+diff); dd.setHours(0,0,0,0); return dd; }
 function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -3581,7 +3583,7 @@ var toastTimer;
 function toast(msg, type) {
   var el = document.getElementById('toast');
   el.textContent = msg;
-  el.style.background = type==='error' ? '#b4402f' : type==='gold' ? '#b7791f' : 'var(--ocean-900)';
+  el.style.background = type==='error' ? '#b4402f' : type==='gold' ? '#b7791f' : 'var(--slate-900)';
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2800);
@@ -4659,7 +4661,6 @@ function showSection(name) {
 // USERS MANAGEMENT
 // ================================================
 var ROLE_LABELS = {admin:'<i class="fas fa-crown"></i> Admin', finance:'<i class="fas fa-euro-sign"></i> Finance', shift_mgr:'<i class="fas fa-calendar-days"></i> Shift Mgr', employee:'<i class="fas fa-user"></i> Employee', chef:'<i class="fas fa-utensils"></i> Chef'};
-var ROLE_COLORS = {admin:'#b7791f', finance:'#6d4fc2', shift_mgr:'#2b8a4b', employee:'#2a9683', chef:'#8a5a3c'};
 
 function renderUsers() {
   var el = document.getElementById('users-list');
@@ -4687,21 +4688,21 @@ function renderUsers() {
           .map(function(l){ return '<span class="push-chip is-on"><i class="fas fa-bell"></i> ' + esc(l) + '</span>'; }).join(' ')
       : '<span class="push-chip is-off"><i class="fas fa-bell-slash"></i> No notifications</span>');
     var roleBadges = (u.roles||[]).map(function(r) {
-      return '<span style="background:'+( ROLE_COLORS[r]||'#5f7079')+'22;color:'+(ROLE_COLORS[r]||'#5f7079')+';border:1px solid '+(ROLE_COLORS[r]||'#5f7079')+'44;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">'+(ROLE_LABELS[r]||r)+'</span>';
+      return '<span class="role-chip '+esc(r)+'">'+(ROLE_LABELS[r]||esc(r))+'</span>';
     }).join('');
     var isSelf = currentUser && currentUser.id === u.id;
     var contractInfo = '';
-    if (u.contractStart) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-calendar-alt"></i> From '+esc(u.contractStart)+(u.contractEnd?' → '+esc(u.contractEnd):'')+'</span> ';
-    if (u.hours) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-clock"></i> '+esc(u.hours)+'h/wk</span> ';
-    if (u.amount) contractInfo += '<span style="font-size:11px;color:var(--ocean-400)"><i class="fas fa-euro-sign"></i> '+esc(u.amount)+'</span>';
-    return '<div style="background:white;border:1.5px solid var(--ocean-100);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">'
-      +'<div style="width:40px;height:40px;background:var(--ocean-500);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
+    if (u.contractStart) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-calendar-alt"></i> From '+esc(u.contractStart)+(u.contractEnd?' → '+esc(u.contractEnd):'')+'</span> ';
+    if (u.hours) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-clock"></i> '+esc(u.hours)+'h/wk</span> ';
+    if (u.amount) contractInfo += '<span style="font-size:11px;color:var(--slate-500)"><i class="fas fa-euro-sign"></i> '+esc(u.amount)+'</span>';
+    return '<div style="background:white;border:1.5px solid var(--slate-100);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">'
+      +'<div style="width:40px;height:40px;background:var(--teal-500);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0">'
         +esc(u.name.charAt(0).toUpperCase())
       +'</div>'
       +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
-          +'<span style="font-weight:800;font-size:14px;color:var(--ocean-900)">'+esc(u.name)+'</span>'
-          +'<span style="font-size:12px;color:var(--ocean-400)">@'+esc(u.username)+'</span>'
+          +'<span style="font-weight:800;font-size:14px;color:var(--slate-900)">'+esc(u.name)+'</span>'
+          +'<span style="font-size:12px;color:var(--slate-500)">@'+esc(u.username)+'</span>'
           +(u.active===false?'<span style="background:#fbeae7;color:#b4402f;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Inactive</span>':'<span style="background:#e3f4e8;color:#2b8a4b;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">Active</span>')
           +(isSelf?'<span style="background:#fdf3e1;color:var(--amber-700);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
         +'</div>'
@@ -4710,11 +4711,11 @@ function renderUsers() {
             : (rn ? '<div class="team-link"><i class="fas fa-calendar-week"></i> On the schedule as <b>' + esc(rn) + '</b></div>' : '<div class="team-link none"><i class="fas fa-link-slash"></i> No name on the schedule linked — edit to pick one</div>'); })()
         +(pushChip?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+pushChip+'</div>':'')
         +(contractInfo?'<div style="display:flex;gap:10px;flex-wrap:wrap">'+contractInfo+'</div>':'')
-        +(u.notes?'<div style="font-size:12px;color:var(--ocean-500);margin-top:4px;font-style:italic">'+esc(u.notes)+'</div>':'')
+        +(u.notes?'<div style="font-size:12px;color:var(--teal-500);margin-top:4px;font-style:italic">'+esc(u.notes)+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0">'
-        +'<button class="btn btn-sm" style="background:var(--ocean-50);color:var(--ocean-700);border:1px solid var(--ocean-200)" data-edit-user="'+esc(u.id)+'" aria-label="Edit '+esc(u.name)+'"><i class="fas fa-pen"></i></button>'
-        +(isSelf?'':'<button class="btn btn-sm" style="background:#fbeae7;color:#b4402f;border:1px solid #f0b8ae" data-delete-user="'+esc(u.id)+'" aria-label="Delete '+esc(u.name)+'"><i class="fas fa-trash"></i></button>')
+        +'<button class="btn btn-secondary btn-sm btn-icon" data-edit-user="'+esc(u.id)+'" aria-label="Edit '+esc(u.name)+'"><i class="fas fa-pen"></i></button>'
+        +(isSelf?'':'<button class="btn btn-danger btn-sm btn-icon" data-delete-user="'+esc(u.id)+'" aria-label="Delete '+esc(u.name)+'"><i class="fas fa-trash"></i></button>')
       +'</div>'
     +'</div>';
   }).join('');
@@ -5061,7 +5062,7 @@ function renderLastYearTable(db) {
   var fl = document.getElementById('bud-fill-label'); if (fl) fl.textContent = 'Fill Total Day and T 51 from ' + LY + ' sales';
   var wrap = document.getElementById('ly-table-wrap'); if (!wrap) return;
   var ly = ((db.budgets || {}).lastYear || {})[String(LY)] || {};
-  var iStyle = 'width:100%;border:1px solid var(--ocean-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
+  var iStyle = 'width:100%;border:1px solid var(--slate-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
   var tot = { day:0, t51:0, surf:0 };
   var rows = MONTH_KEYS.map(function(m, i){
     var cells = ['day','t51','surf'].map(function(k){
@@ -5070,10 +5071,10 @@ function renderLastYearTable(db) {
       tot[k] += typed || fromCloses || 0;
       return '<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="ly-' + k + '-' + m + '" value="' + (typed || '') + '" placeholder="' + (fromCloses ? Math.round(fromCloses) + ' (closes)' : '0') + '" style="' + iStyle + 'color:var(--gold)" aria-label="' + MONTH_NAMES[i] + ' ' + LY + ' ' + k + '" /></td>';
     }).join('');
-    return '<tr style="border-bottom:1px solid var(--ocean-50)"><td style="padding:5px 8px;font-weight:700;color:var(--ocean-700)">' + MONTH_NAMES[i] + '</td>' + cells + '</tr>';
+    return '<tr style="border-bottom:1px solid var(--slate-50)"><td style="padding:5px 8px;font-weight:700;color:var(--slate-700)">' + MONTH_NAMES[i] + '</td>' + cells + '</tr>';
   }).join('');
   wrap.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--gold-50)">'
-    + '<th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--ocean-700);min-width:60px">' + LY + '</th>'
+    + '<th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--slate-700);min-width:60px">' + LY + '</th>'
     + '<th style="padding:6px 4px;font-weight:700;color:var(--gold);text-align:right;min-width:80px">Total Day</th>'
     + '<th style="padding:6px 4px;font-weight:700;color:var(--gold);text-align:right;min-width:80px">T 51</th>'
     + '<th style="padding:6px 4px;font-weight:700;color:var(--gold);text-align:right;min-width:80px">Surf</th></tr></thead><tbody>' + rows + '</tbody>'
@@ -5187,9 +5188,9 @@ function renderSettings() {
     tbody.innerHTML = MONTH_KEYS.map(function(m,i){
       var d=b.day[m]||0, t=b.t51[m]||0, s=b.surf[m]||0;
       yearDay+=d; yearT51+=t; yearSurf+=s;
-      var iStyle='width:100%;border:1px solid var(--ocean-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
-      return '<tr style="border-bottom:1px solid var(--ocean-50)">'
-        +'<td style="padding:5px 8px;font-weight:700;color:var(--ocean-700)">'+MONTH_NAMES[i]+'</td>'
+      var iStyle='width:100%;border:1px solid var(--slate-100);border-radius:6px;padding:4px 6px;font-size:12px;text-align:right;background:white;outline:none;';
+      return '<tr style="border-bottom:1px solid var(--slate-50)">'
+        +'<td style="padding:5px 8px;font-weight:700;color:var(--slate-700)">'+MONTH_NAMES[i]+'</td>'
         +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-day-'+m+'" value="'+(d||'')+'" placeholder="0" style="'+iStyle+'color:#6d4fc2" /></td>'
         +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-t51-'+m+'" value="'+(t||'')+'" placeholder="0" style="'+iStyle+'color:#2a9683" /></td>'
         +'<td style="padding:3px 4px"><input type="text" inputmode="decimal" id="bud-surf-'+m+'" value="'+(s||'')+'" placeholder="0" style="'+iStyle+'color:#2a9683" /></td>'
@@ -5723,7 +5724,7 @@ function renderFinRecords() {
   if (diffLogEl) {
     var diffEntries = allEntries.filter(function(e){ return Math.abs(e.cashDiff||0) >= 0.005; });
     if (!diffEntries.length) {
-      diffLogEl.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:13px;color:var(--ocean-300)"><i class="fas fa-check-circle" style="margin-right:6px;color:#2b8a4b"></i>No discrepancies recorded</div>';
+      diffLogEl.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:13px;color:var(--slate-300)"><i class="fas fa-check-circle" style="margin-right:6px;color:#2b8a4b"></i>No discrepancies recorded</div>';
     } else {
       diffLogEl.innerHTML = diffEntries.map(function(e){
         var cd = e.cashDiff || 0;
@@ -5733,7 +5734,7 @@ function renderFinRecords() {
         var icon  = isShort ? 'fa-triangle-exclamation' : 'fa-arrow-trend-up';
         var label = isShort ? 'Short' : 'Over';
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:'+bg+';gap:10px">'
-          +'<span style="font-size:12px;font-weight:600;color:var(--ocean-700)">'+fmtDateShort(e.date)+'</span>'
+          +'<span style="font-size:12px;font-weight:600;color:var(--slate-700)">'+fmtDateShort(e.date)+'</span>'
           +'<span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:'+color+'">'
             +'<i class="fas '+icon+'"></i>'+label+' '+fmtEur(Math.abs(cd))
           +'</span>'
@@ -5772,8 +5773,8 @@ function renderFinRecords() {
         +'<span class="fin-record-total">'+fmtEur(total)+'</span>'
       +'</div>'
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-file-invoice" style="color:#2b8a4b"></i> Total Facturado</span><span class="fin-row-val">'+fmtEur(e.invoiced||0)+'</span></div>'
-      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-cash-register" style="color:var(--ocean-400)"></i> T 51</span><span class="fin-row-val">'+fmtEur(e.t51||0)+'</span></div>'
-      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-credit-card" style="color:var(--ocean-400)"></i> MultiBanco</span><span class="fin-row-val">'+fmtEur(e.multibanco||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-cash-register" style="color:var(--slate-500)"></i> T 51</span><span class="fin-row-val">'+fmtEur(e.t51||0)+'</span></div>'
+      +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-credit-card" style="color:var(--slate-500)"></i> MultiBanco</span><span class="fin-row-val">'+fmtEur(e.multibanco||0)+'</span></div>'
       +(e.genExpenses ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-receipt" style="color:#b4402f"></i> Despesas</span><span class="fin-row-val">'+fmtEur(e.genExpenses||0)+'</span></div>' : '')
       +(e.surf ? '<div class="fin-row"><span class="fin-row-label"><i class="fas fa-water" style="color:#2a9683"></i> Surf</span><span class="fin-row-val">'+fmtEur(e.surf||0)+'</span></div>' : '')
       +'<div class="fin-row"><span class="fin-row-label"><i class="fas fa-hand-holding-dollar" style="color:#b7791f"></i> Tips</span><span class="fin-row-val">'+fmtEur(e.tips||0)+'</span></div>'
@@ -5848,7 +5849,7 @@ function renderShopList() {
   h += '<div class="shop-toolbar"><div class="fc-switch" role="tablist">'
     + '<button class="' + (shopFilter !== 'bought' ? 'active' : '') + '" data-shop-filter="open">To buy <span>' + open.length + '</span></button>'
     + '<button class="' + (shopFilter === 'bought' ? 'active' : '') + '" data-shop-filter="bought">Bought <span>' + bought.length + '</span></button></div>'
-    + (toBuy.length ? '<div class="shop-sum">Approved, still to buy: <b>' + toBuy.length + '</b>' + (toBuySum > 0 ? ' · <b>' + fmtEur(toBuySum) + '</b>' : '') + '</div>' : '')
+    + (toBuy.length ? '<div class="shop-sum">Approved, still to buy: <b>' + toBuy.length + '</b>' + (toBuySum > 0 ? ' · <b>' + fmtMoney(toBuySum) + '</b>' : '') + '</div>' : '')
     + '</div>';
   if (!list.length) {
     h += '<div class="empty-state"><i class="fas fa-bag-shopping"></i><p>' + (shopFilter === 'bought' ? 'Nothing bought yet.' : 'Nothing on the list. Tap Add for anything outside the stock that needs buying.') + '</p></div>';
@@ -5856,7 +5857,7 @@ function renderShopList() {
   }
   h += list.map(function(i){
     var link = shopSafeLink(i.link), meta = [];
-    if (i.price != null && !isNaN(i.price)) meta.push('<span class="shop-price">' + fmtEur(i.price) + '</span>');
+    if (i.price != null && !isNaN(i.price)) meta.push('<span class="shop-price">' + fmtMoney(i.price) + '</span>');
     if (i.requestedBy) meta.push('added by ' + esc(i.requestedBy) + (i.createdAt ? ' · ' + shopDay(i.createdAt) : ''));
     if (i.bought) meta.push('bought' + (i.boughtBy ? ' by ' + esc(i.boughtBy) : '') + (i.boughtAt ? ' · ' + shopDay(i.boughtAt) : ''));
     else if (i.approved) meta.push('approved' + (i.approvedBy ? ' by ' + esc(i.approvedBy) : ''));
@@ -5918,7 +5919,7 @@ function saveShopItem() {
     db.shopItems.unshift(shopFromRow(rows && rows[0] ? rows[0] : Object.assign({ created_at:new Date().toISOString() }, row)));
     saveDB(db); closeModal('modal-shop-item'); shopFilter = 'open'; renderShopList(); updateShopBadge();
     toast(isAdmin ? 'Added to the shopping list' : 'Added. An admin will approve it.', 'success');
-    if (!isAdmin) sendPush(adminUserIds(), 'Shopping list: ' + name, (row.requested_by ? row.requested_by + ' added it' : 'New item') + (price != null ? ' · ' + fmtEur(price) : '') + '. Needs approval.', '/?open=shopping');
+    if (!isAdmin) sendPush(adminUserIds(), 'Shopping list: ' + name, (row.requested_by ? row.requested_by + ' added it' : 'New item') + (price != null ? ' · ' + fmtMoney(price) : '') + '. Needs approval.', '/?open=shopping');
   }).catch(function(){ toast('Not saved. Check the connection.', 'error'); });
 }
 function setShopFlag(id, flag) {
@@ -5939,7 +5940,7 @@ function setShopFlag(id, flag) {
     var wasApproved = i.approved;
     Object.assign(i, rows && rows[0] ? shopFromRow(rows[0]) : shopFromRow(Object.assign({}, { id:i.id, name:i.name, link:i.link, price:i.price, notes:i.notes, requested_by:i.requestedBy, requested_by_id:i.requestedById, approved:i.approved, approved_by:i.approvedBy, approved_at:i.approvedAt, bought:i.bought, bought_by:i.boughtBy, bought_at:i.boughtAt, created_at:i.createdAt }, patch)));
     saveDB(db); renderShopList(); updateShopBadge();
-    if (flag === 'approved' && i.approved && !wasApproved && i.requestedById) sendPush([i.requestedById], 'Approved: ' + i.name, 'You can buy it' + (i.price != null ? ' (' + fmtEur(i.price) + ')' : '') + '.', '/?open=shopping');
+    if (flag === 'approved' && i.approved && !wasApproved && i.requestedById) sendPush([i.requestedById], 'Approved: ' + i.name, 'You can buy it' + (i.price != null ? ' (' + fmtMoney(i.price) + ')' : '') + '.', '/?open=shopping');
   }).catch(function(){ toast('Not saved. Check the connection.', 'error'); });
 }
 function deleteShopItem(id) {
@@ -6228,15 +6229,15 @@ function renderInventory(){
         +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'<i class="fas fa-box"></i>')+'</div>'
         +'<div style="flex:1;min-width:0">'
           +'<div class="inv-name">'+esc(item.name)+'</div>'
-          +(item.unit?'<div style="font-size:9px;color:var(--ocean-400);margin-top:1px">'+esc(item.unit)+'</div>':'')
-          +(function(){ var db2=getDB(); var sup=item.supplierId&&db2.suppliers?(db2.suppliers.find(function(s){return s.id===item.supplierId;})||null):null; return sup?'<div style="font-size:9px;color:var(--ocean-500);margin-top:1px;font-weight:600">'+esc(sup.name)+'</div>':''; })()
+          +(item.unit?'<div style="font-size:11px;color:var(--slate-500);margin-top:1px">'+esc(item.unit)+'</div>':'')
+          +(function(){ var db2=getDB(); var sup=item.supplierId&&db2.suppliers?(db2.suppliers.find(function(s){return s.id===item.supplierId;})||null):null; return sup?'<div style="font-size:11px;color:var(--teal-500);margin-top:1px;font-weight:600">'+esc(sup.name)+'</div>':''; })()
         +'</div>'
         +(isAdmin?'<button class="inv-edit-link" data-edit-inv="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">Edit</button>':'')
       +'</div>'
       +'<div class="inv-stats">'
         +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyBar+'</div><div class="inv-stat-label">Bar</div></div>'
         +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyStorage+'</div><div class="inv-stat-label">Storage</div></div>'
-        +'<div class="inv-stat"><div class="inv-stat-val" style="color:var(--ocean-600)">'+total+'</div><div class="inv-stat-label">Total</div></div>'
+        +'<div class="inv-stat"><div class="inv-stat-val" style="color:var(--teal-600)">'+total+'</div><div class="inv-stat-label">Total</div></div>'
       +'</div>'
       +'<div class="inv-actions">'
         +'<button class="btn btn-secondary btn-sm inv-count-btn" data-update-qty="'+esc(item.id)+'" aria-label="Update the count of '+esc(item.name)+'"><i class="fas fa-pen"></i> Update</button>'
@@ -6256,7 +6257,7 @@ function renderInvLog(){
   if(logs.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No log entries.</p></div>';return;}
   var icons={add:'<i class="fas fa-plus" style="color:#2b8a4b"></i>',update:'<i class="fas fa-pen" style="color:#2f6fa8"></i>',delete:'<i class="fas fa-trash" style="color:#b4402f"></i>'};
   el.innerHTML=logs.map(function(l){
-    return '<div class="log-item"><div class="log-icon">'+(icons[l.action]||'<i class="fas fa-note-sticky"></i>')+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ocean-900)">'+esc(l.item)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(l.action)+' · '+esc(l.employee||'System')+'</div></div><div style="font-size:11px;color:var(--ocean-400)">'+fmtDate(l.timestamp)+'</div></div>';
+    return '<div class="log-item"><div class="log-icon">'+(icons[l.action]||'<i class="fas fa-note-sticky"></i>')+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--slate-900)">'+esc(l.item)+'</div><div style="font-size:11px;color:var(--slate-500)">'+esc(l.action)+' · '+esc(l.employee||'System')+'</div></div><div style="font-size:11px;color:var(--slate-500)">'+fmtDate(l.timestamp)+'</div></div>';
   }).join('');
 }
 function updateOrdersBadge(){
@@ -6296,7 +6297,7 @@ function renderOrderHistory(){
   var hasDrafts=Object.keys(draftGroups).length>0;
   var hasSaved=db.orders.length>0;
   if(!hasDrafts && !hasSaved){
-    el.innerHTML='<div class="empty-state"><i class="fas fa-truck"></i><p>No orders yet.<br><small style="color:var(--ocean-400)">Use the cart button on items to start an order.</small></p></div>';
+    el.innerHTML='<div class="empty-state"><i class="fas fa-truck"></i><p>No orders yet.<br><small style="color:var(--slate-500)">Use the cart button on items to start an order.</small></p></div>';
     return;
   }
 
@@ -6304,26 +6305,26 @@ function renderOrderHistory(){
 
   // ── DRAFT SECTION ──
   if(hasDrafts){
-    html+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ocean-400);margin-bottom:10px;text-transform:uppercase">Draft Orders</div>';
+    html+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--slate-500);margin-bottom:10px;text-transform:uppercase">Draft Orders</div>';
     Object.keys(draftGroups).forEach(function(sid){
       var sup=sid!=='_none'?db.suppliers.find(function(s){return s.id===sid;})||null:null;
       var supName=sup?sup.name:'No Supplier';
       var items=draftGroups[sid];
-      html+='<div style="border:2px dashed var(--ocean-200);border-radius:12px;padding:14px;margin-bottom:14px;background:#fdf3e1">'
+      html+='<div style="border:2px dashed var(--slate-200);border-radius:12px;padding:14px;margin-bottom:14px;background:#fdf3e1">'
         // Supplier header
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
           +'<i class="fas fa-truck" style="color:#b7791f"></i>'
-          +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">'+esc(supName)+'</span>'
+          +'<span style="font-weight:700;font-size:14px;color:var(--slate-800);flex:1">'+esc(supName)+'</span>'
           +'<span style="font-size:11px;background:#fdf3e1;color:var(--amber-700);padding:2px 8px;border-radius:8px;font-weight:700">Draft</span>'
         +'</div>'
         // Items list with editable qty + remove
         +'<div style="margin-bottom:12px">'
         +items.map(function(pi){
-          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--ocean-100)">'
-            +'<span style="flex:1;font-size:13px;color:var(--ocean-800)">'+esc(pi.name)+'</span>'
+          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--slate-100)">'
+            +'<span style="flex:1;font-size:13px;color:var(--slate-800)">'+esc(pi.name)+'</span>'
             +'<input type="number" min="1" value="'+pi.orderQty+'" class="input-field" id="order-qty-'+esc(pi.id)+'" style="width:64px;text-align:center;font-size:13px;padding:4px 6px"/>'
-            +'<span style="font-size:12px;color:var(--ocean-400);min-width:28px">'+esc(pi.unit||'')+'</span>'
-            +'<button style="background:none;border:none;color:var(--ocean-300);font-size:13px;cursor:pointer;padding:2px 4px"  aria-label="Remove from the cart" data-remove-pending="'+esc(pi.id)+'" title="Remove"><i class="fas fa-times"></i></button>'
+            +'<span style="font-size:12px;color:var(--slate-500);min-width:28px">'+esc(pi.unit||'')+'</span>'
+            +'<button style="background:none;border:none;color:var(--slate-300);font-size:13px;cursor:pointer;padding:2px 4px"  aria-label="Remove from the cart" data-remove-pending="'+esc(pi.id)+'" title="Remove"><i class="fas fa-times"></i></button>'
           +'</div>';
         }).join('')
         +'</div>'
@@ -6335,7 +6336,7 @@ function renderOrderHistory(){
 
   // ── SAVED ORDERS SECTION ──
   if(hasSaved){
-    if(hasDrafts) html+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ocean-400);margin:16px 0 10px;text-transform:uppercase">Previous Orders</div>';
+    if(hasDrafts) html+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--slate-500);margin:16px 0 10px;text-transform:uppercase">Previous Orders</div>';
     var allSavedSupIds=Object.keys(savedGroups);
     allSavedSupIds.forEach(function(sid){
       var sup=db.suppliers.find(function(s){return s.id===sid;})||{name:'Unknown Supplier',email:'',sendEmail:false,totalSpend:0};
@@ -6344,12 +6345,12 @@ function renderOrderHistory(){
       var supGroupId='sup-orders-'+sid;
       // Collapsible supplier header
       html+='<div style="margin-bottom:10px">'
-        +'<div data-toggle-sup="'+esc(sid)+'" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ocean-50);border-radius:10px;cursor:pointer;user-select:none">'
-          +'<i class="fas fa-truck" style="color:var(--ocean-400);flex-shrink:0"></i>'
-          +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">'+esc(sup.name)+'</span>'
-          +(standbyCount>0?'<span style="background:#b7791f;color:white;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px">'+standbyCount+' pending</span>':'')
-          +(sup.totalSpend>0?'<span style="font-size:11px;color:var(--ocean-500);margin-left:4px">\u20ac'+sup.totalSpend.toFixed(2)+'</span>':'')
-          +'<i class="fas fa-chevron-down sup-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s;margin-left:4px"></i>'
+        +'<div data-toggle-sup="'+esc(sid)+'" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--slate-50);border-radius:10px;cursor:pointer;user-select:none">'
+          +'<i class="fas fa-truck" style="color:var(--slate-500);flex-shrink:0"></i>'
+          +'<span style="font-weight:700;font-size:14px;color:var(--slate-800);flex:1">'+esc(sup.name)+'</span>'
+          +(standbyCount>0?'<span style="background:var(--amber);color:white;font-size:11px;font-weight:800;padding:1px 7px;border-radius:10px">'+standbyCount+' pending</span>':'')
+          +(sup.totalSpend>0?'<span style="font-size:11px;color:var(--teal-500);margin-left:4px">'+fmtMoney(sup.totalSpend)+'</span>':'')
+          +'<i class="fas fa-chevron-down sup-chevron" style="color:var(--slate-300);font-size:12px;transition:transform .2s;margin-left:4px"></i>'
         +'</div>'
         // Orders list — collapsed by default
         +'<div id="'+supGroupId+'" style="display:none;padding:8px 4px 4px">';
@@ -6360,10 +6361,10 @@ function renderOrderHistory(){
     if(noSupOrders.length>0){
       var noSupId='sup-orders-_none';
       html+='<div style="margin-bottom:10px">'
-        +'<div data-toggle-sup="_none" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ocean-50);border-radius:10px;cursor:pointer;user-select:none">'
-          +'<i class="fas fa-truck" style="color:var(--ocean-400);flex-shrink:0"></i>'
-          +'<span style="font-weight:700;font-size:14px;color:var(--ocean-800);flex:1">Other Orders</span>'
-          +'<i class="fas fa-chevron-down sup-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s"></i>'
+        +'<div data-toggle-sup="_none" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--slate-50);border-radius:10px;cursor:pointer;user-select:none">'
+          +'<i class="fas fa-truck" style="color:var(--slate-500);flex-shrink:0"></i>'
+          +'<span style="font-weight:700;font-size:14px;color:var(--slate-800);flex:1">Other Orders</span>'
+          +'<i class="fas fa-chevron-down sup-chevron" style="color:var(--slate-300);font-size:12px;transition:transform .2s"></i>'
         +'</div>'
         +'<div id="'+noSupId+'" style="display:none;padding:8px 4px 4px">';
       noSupOrders.forEach(function(o){ html+=renderOrderCard(o,db,null); });
@@ -6383,26 +6384,26 @@ function renderOrderCard(o,db,sup){
   var header='<div class="order-card-header" data-toggle-order="'+esc(o.id)+'" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">'
     +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-        +'<span style="font-weight:700;color:var(--ocean-800);font-size:13px">Order #'+shortId+'</span>'
-        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'" style="font-size:10px">'+(isStandby?'<i class="fas fa-hourglass-half"></i> Standby':'<i class="fas fa-check"></i> Approved')+'</span>'
+        +'<span style="font-weight:700;color:var(--slate-800);font-size:13px">Order #'+shortId+'</span>'
+        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'" style="font-size:11px">'+(isStandby?'<i class="fas fa-hourglass-half"></i> Standby':'<i class="fas fa-check"></i> Approved')+'</span>'
       +'</div>'
-      +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'+fmtDate(o.date)+' · '+itemCount+' item'+(itemCount!==1?'s':'')+(o.amount>0?' · <span style="color:#2b8a4b;font-weight:600">\u20ac'+o.amount.toFixed(2)+'</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--slate-500);margin-top:2px">'+fmtDate(o.date)+' · '+itemCount+' item'+(itemCount!==1?'s':'')+(o.amount>0?' · <span style="color:var(--green);font-weight:600">'+fmtMoney(o.amount)+'</span>':'')+'</div>'
     +'</div>'
-    +'<i class="fas fa-chevron-down order-chevron" style="color:var(--ocean-300);font-size:12px;transition:transform .2s;flex-shrink:0"></i>'
+    +'<i class="fas fa-chevron-down order-chevron" style="color:var(--slate-300);font-size:12px;transition:transform .2s;flex-shrink:0"></i>'
   +'</div>';
   // Detail — hidden by default
-  var detail='<div id="'+detailId+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--ocean-100)">'
+  var detail='<div id="'+detailId+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--slate-100)">'
     +'<div style="margin-bottom:10px">'
     +o.items.map(function(i){
-      return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid var(--ocean-50)">'
-        +'<span style="color:var(--ocean-700)">'+esc(i.name)+'</span>'
-        +'<span style="font-weight:700;color:var(--ocean-900)">'+i.orderQty+' '+esc(i.unit||'')+'</span>'
+      return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid var(--slate-50)">'
+        +'<span style="color:var(--slate-700)">'+esc(i.name)+'</span>'
+        +'<span style="font-weight:700;color:var(--slate-900)">'+i.orderQty+' '+esc(i.unit||'')+'</span>'
       +'</div>';
     }).join('')
     +'</div>'
     // Action buttons inside the detail panel
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +(isStandby&&isAdmin?'<button class="btn btn-sm btn-gold" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
+      +(isStandby&&isAdmin?'<button class="btn btn-sm btn-primary" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
       +(isStandby&&!isAdmin?'<span style="font-size:11px;color:var(--amber-700);font-style:italic;align-self:center">Awaiting admin approval</span>':'')
       +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'"><i class="fas fa-envelope"></i> Email</button>':'')
       +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'"><i class="fas fa-euro-sign"></i> Amount</button>':'')
@@ -6627,7 +6628,7 @@ function renderCalView() {
     html += '<button class="calv-cell' + (out ? ' out' : '') + (ds === today ? ' today' : '') + (ds === calvSel ? ' sel' : '') + '" data-calv-day="' + ds + '" aria-label="' + esc(d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })) + (items.length ? ', ' + items.length + ' item' + (items.length === 1 ? '' : 's') : '') + '">'
       + '<span class="calv-num">' + d.getDate() + '</span>'
       + (colors.length ? '<span class="calv-dots">' + colors.slice(0, 4).map(function(c){ return '<i style="background:' + c + '"></i>'; }).join('') + '</span>' : '')
-      + (items.length ? '<span class="calv-chips">' + items.slice(0, 3).map(function(it){ return '<span class="calv-chip" style="border-left-color:' + it.color + '">' + esc(it.chip) + '</span>'; }).join('')
+      + (items.length ? '<span class="calv-chips">' + items.slice(0, 3).map(function(it){ return '<span class="calv-chip"><i class="cal-dot" style="background:' + it.color + '"></i>' + esc(it.chip) + '</span>'; }).join('')
         + (items.length > 3 ? '<span class="calv-more">+' + (items.length - 3) + ' more</span>' : '') + '</span>' : '')
       + '</button>';
   }
@@ -6642,9 +6643,9 @@ function renderCalAgenda() {
   var note = sbCols.events === false ? '<div class="req-banner" style="margin-bottom:10px"><i class="fas fa-circle-info"></i> Events switch on once the calendar SQL has run in Supabase.</div>' : '';
   if (!items.length) { el.innerHTML = note + '<div class="empty-state" style="padding:16px"><i class="fas fa-calendar"></i><p>Nothing on this day.</p></div>'; return; }
   el.innerHTML = note + items.map(function(it){
-    return '<button class="calv-item' + (it.done ? ' done' : '') + '" style="border-left-color:' + it.color + '" ' + it.attr + '>'
+    return '<button class="calv-item' + (it.done ? ' done' : '') + '" ' + it.attr + '>'
       + '<span class="calv-time">' + esc(it.time) + '</span>'
-      + '<span class="calv-item-main"><span class="calv-item-type" style="display:block;color:' + it.color + '">' + esc(it.type) + '</span>'
+      + '<span class="calv-item-main"><span class="calv-item-type" style="display:block;color:' + it.color + '"><i class="cal-dot" style="background:' + it.color + '"></i>' + esc(it.type) + '</span>'
       + '<span class="calv-item-title" style="display:block">' + esc(it.title) + '</span>'
       + (it.sub ? '<span class="calv-item-sub" style="display:block">' + esc(it.sub) + '</span>' : '') + '</span></button>';
   }).join('');
@@ -6798,7 +6799,7 @@ function openResDetail(id){
   document.getElementById('res-detail-content').innerHTML='<div class="detail-grid">'
     +'<div class="detail-cell"><div class="detail-cell-label">Guest</div><div class="detail-cell-val">'+esc(r.guestName)+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Status</div><div class="detail-cell-val"><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div></div>'
-    +'<div class="detail-cell"><div class="detail-cell-label">Date</div><div class="detail-cell-val">'+esc(r.date)+'</div></div>'
+    +'<div class="detail-cell"><div class="detail-cell-label">Date</div><div class="detail-cell-val">'+esc(fmtDay(r.date))+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Time</div><div class="detail-cell-val">'+esc(r.time+(r.endTime?' – '+r.endTime:''))+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Guests</div><div class="detail-cell-val">'+r.guests+' people</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Tables</div><div class="detail-cell-val">'+esc(tables)+'</div></div>'
@@ -6807,12 +6808,12 @@ function openResDetail(id){
     +'</div>';
   var actEl=document.getElementById('res-detail-actions'); actEl.innerHTML='';
   function mkBtn(cls,html,cb){var b=document.createElement('button');b.className=cls;b.innerHTML=html;b.addEventListener('click',cb);return b;}
-  actEl.appendChild(mkBtn('btn btn-sm','<i class="fas fa-check"></i> Confirmed',function(){setResStatus(id,'confirmed');}));
+  actEl.appendChild(mkBtn('btn btn-primary btn-sm','<i class="fas fa-check"></i> Confirmed',function(){setResStatus(id,'confirmed');}));
   actEl.appendChild(mkBtn('btn btn-danger btn-sm','<i class="fas fa-user-xmark"></i> No Show',function(){setResStatus(id,'no-show');}));
   actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-clock"></i> Pending',function(){setResStatus(id,'pending');}));
   actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-pen"></i> Edit',function(){closeModal('modal-res-detail');openEditReservation(id);}));
   actEl.appendChild(mkBtn('btn btn-danger btn-sm','<i class="fas fa-trash"></i> Delete',function(){deleteReservation(id);}));
-  actEl.children[0].style.cssText='background:#2b8a4b;color:white;flex:1;justify-content:center';
+  actEl.children[0].style.cssText='flex:1;justify-content:center';
   actEl.children[1].style.cssText='flex:1;justify-content:center';
   actEl.children[2].style.cssText='flex:1;justify-content:center';
   openModal('modal-res-detail');
@@ -6904,9 +6905,9 @@ function renderAllReservations(){
   el.innerHTML=res.map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
     return '<div class="res-list-item" data-open-res-detail="'+esc(r.id)+'">'
-      +'<div class="res-date-box"><div class="rdb-d">'+esc(r.date.slice(5))+'</div><div class="rdb-t">'+esc(r.time)+'</div>'+(r.endTime?'<div class="rdb-t" style="opacity:.7">–'+esc(r.endTime)+'</div>':'')+'</div>'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(r.guestName)+'</div>'
-      +'<div style="font-size:12px;color:var(--ocean-400);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px"><span><i class="fas fa-users" style="margin-right:3px"></i>'+r.guests+'</span><span><i class="fas fa-chair" style="margin-right:3px"></i>'+esc(tables)+'</span></div></div>'
+      +'<div class="res-date-box"><div class="rdb-d">'+esc(fmtDay(r.date, true))+'</div><div class="rdb-t">'+esc(r.time)+'</div>'+(r.endTime?'<div class="rdb-t" style="opacity:.7">–'+esc(r.endTime)+'</div>':'')+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(r.guestName)+'</div>'
+      +'<div style="font-size:12px;color:var(--slate-500);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px"><span><i class="fas fa-users" style="margin-right:3px"></i>'+r.guests+'</span><span><i class="fas fa-chair" style="margin-right:3px"></i>'+esc(tables)+'</span></div></div>'
       +'<span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span>'
     +'</div>';
   }).join('');
@@ -6940,15 +6941,15 @@ function renderTaskAssigneePicker(selectedIds){
   var el=document.getElementById('task-assigned-list'); if(!el) return;
   var users=db.appUsers.filter(function(u){return u.active;});
   if(!users.length){
-    el.innerHTML='<div style="font-size:12px;color:var(--ocean-400)">No users found</div>';
+    el.innerHTML='<div style="font-size:12px;color:var(--slate-500)">No users found</div>';
     return;
   }
   el.innerHTML=users.map(function(u){
     var checked=selectedIds.indexOf(u.id)!==-1;
     return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 4px;border-radius:6px;'+(checked?'background:#e6f0f9':'')+'\">'
-      +'<input type="checkbox" class="task-assignee-cb" value="'+esc(u.id)+'" '+(checked?'checked':'')+' style="width:15px;height:15px;accent-color:var(--ocean-500)">'
-      +'<span style="font-size:13px;font-weight:600;color:var(--ocean-800)">'+esc(u.name)+'</span>'
-      +'<span style="font-size:11px;color:var(--ocean-400)">'+esc('@'+u.username)+'</span>'
+      +'<input type="checkbox" class="task-assignee-cb" value="'+esc(u.id)+'" '+(checked?'checked':'')+' style="width:15px;height:15px;accent-color:var(--teal-500)">'
+      +'<span style="font-size:13px;font-weight:600;color:var(--slate-800)">'+esc(u.name)+'</span>'
+      +'<span style="font-size:11px;color:var(--slate-500)">'+esc('@'+u.username)+'</span>'
     +'</label>';
   }).join('');
 }
@@ -7062,6 +7063,7 @@ function deleteTask(id){
   sbFetch('DELETE','tasks',null,'id=eq.'+id).then(function(){ toast('Deleted.'); }).catch(function(){ toast('Deleted locally','error'); });
 }
 
+var TASK_STATUS_LABEL = { pending:'Pending', 'in-progress':'In progress', done:'Done' };
 function renderTasks(){
   var db=getDB();
   // Filter tasks visible to current user:
@@ -7075,9 +7077,11 @@ function renderTasks(){
       return ids.indexOf(currentUser.id)!==-1;
     });
   }
-  document.getElementById('task-count-pending').textContent=allTasks.filter(function(t){return t.status==='pending';}).length;
-  document.getElementById('task-count-progress').textContent=allTasks.filter(function(t){return t.status==='in-progress';}).length;
-  document.getElementById('task-count-done').textContent=allTasks.filter(function(t){return t.status==='done';}).length;
+  // counts sit in the tab labels; an empty count hides
+  [['task-count-pending','pending'],['task-count-progress','in-progress'],['task-count-done','done']].forEach(function(c){
+    var n=allTasks.filter(function(t){return t.status===c[1];}).length, el=document.getElementById(c[0]); if(!el) return;
+    el.textContent=n||''; el.style.display=n?'':'none';
+  });
   var tasks=allTasks.slice().sort(function(a,b){
     if(!a.deadline && !b.deadline) return 0;
     if(!a.deadline) return 1;
@@ -7100,16 +7104,16 @@ function renderTasks(){
     return '<div class="task-item'+(t.status==='done'?' done':'')+'">'
       +'<div class="task-top"><div class="task-icon">'+(taskCatIcons[t.category]||'<i class="fas fa-thumbtack"></i>')+'</div>'
       +'<div class="task-body"><div class="task-title'+(t.status==='done'?' done-text':'')+'">'+esc(t.title)+'</div>'
-      +'<div class="task-badges"><span class="badge '+(priColors[t.priority]||'badge-gray')+'">'+esc(t.priority||'medium')+'</span><span class="badge '+(t.status==='done'?'badge-green':t.status==='in-progress'?'badge-blue':'badge-yellow')+'">'+esc(t.status)+'</span>'+(isOverdue?'<span class="badge badge-red">Overdue</span>':'')+recurBadge+'</div>'
+      +'<div class="task-badges"><span class="badge '+(priColors[t.priority]||'badge-gray')+'">'+esc(t.priority||'medium')+'</span><span class="badge '+(t.status==='done'?'badge-green':t.status==='in-progress'?'badge-blue':'badge-yellow')+'">'+esc(TASK_STATUS_LABEL[t.status]||t.status)+'</span>'+(isOverdue?'<span class="badge badge-red">Overdue</span>':'')+recurBadge+'</div>'
       +(t.description?'<div class="task-desc">'+esc(t.description)+'</div>':'')
       +'<div class="task-meta" style="gap:5px;flex-wrap:wrap">'
-        +(assignedBadges||'<span style="font-size:11px;color:var(--ocean-300)">Unassigned</span>')
-        +(t.deadline?'<span style="margin-left:4px"><i class="fas fa-calendar-check" style="margin-right:3px"></i>'+esc(t.deadline)+'</span>':'')
+        +(assignedBadges||'<span style="font-size:11px;color:var(--slate-300)">Unassigned</span>')
+        +(t.deadline?'<span style="margin-left:4px"><i class="fas fa-calendar-check" style="margin-right:3px"></i>'+esc(fmtDay(t.deadline))+'</span>':'')
       +'</div>'
       +'</div></div>'
       +'<div class="task-actions">'
-        +(t.status!=='done'?'<button class="btn btn-sm" style="background:#e3f4e8;color:#2b8a4b;border:1.5px solid #a9dcb9;flex:1;justify-content:center" data-task-done="'+esc(t.id)+'"><i class="fas fa-check"></i> Done</button>':'')
-        +(t.status==='pending'?'<button class="btn btn-sm" style="background:#e6f0f9;color:#2f6fa8;border:1.5px solid #b5d0e8" data-task-progress="'+esc(t.id)+'" aria-label="Start this task" title="Start"><i class="fas fa-play"></i></button>':'')
+        +(t.status!=='done'?'<button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" data-task-done="'+esc(t.id)+'"><i class="fas fa-check"></i> Done</button>':'')
+        +(t.status==='pending'?'<button class="btn btn-secondary btn-sm" data-task-progress="'+esc(t.id)+'" aria-label="Start this task"><i class="fas fa-play"></i> Start</button>':'')
         +(canEdit?'<button class="btn btn-secondary btn-sm" data-edit-task="'+esc(t.id)+'" aria-label="Edit this task" title="Edit"><i class="fas fa-pen"></i></button>':'')
         +(canEdit?'<button class="btn btn-danger btn-sm btn-icon" data-delete-task="'+esc(t.id)+'" aria-label="Delete this task" title="Delete"><i class="fas fa-trash"></i></button>':'')
       +'</div>'
@@ -7460,12 +7464,12 @@ function renderShifts(){
     if (unallocated.length > 0) {
       var unallocBtns = unallocated.map(function(e) {
         var absBtns = canShiftEdit
-          ? ' <button class="btn btn-sm" style="background:var(--red-50);color:#b4402f;border:1px solid #f0b8ae;font-size:10px;padding:2px 6px" data-mark-absent="'+esc(e)+'" data-absent-date="'+esc(dateStr)+'" data-absent-ws="'+esc(wsStr)+'" title="Mark absent"><i class="fas fa-user-slash"></i></button>'
+          ? ' <button class="btn btn-danger btn-mini" data-mark-absent="'+esc(e)+'" data-absent-date="'+esc(dateStr)+'" data-absent-ws="'+esc(wsStr)+'" title="Mark absent"><i class="fas fa-user-slash"></i></button>'
           : '';
         return '<span style="display:inline-flex;align-items:center;gap:4px;background:#f2f5f6;border:1px solid #d5dde1;border-radius:6px;padding:3px 8px;font-size:12px;color:#4a6572;font-weight:600">'+esc(e)+absBtns+'</span>';
       }).join(' ');
       unallocatedHTML = '<div style="padding:6px 10px;background:#fdf3e1;border:1px dashed var(--amber-200);border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
-        +'<span style="font-size:10px;font-weight:800;color:var(--amber-700);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
+        +'<span style="font-size:11px;font-weight:800;color:var(--amber-700);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-circle-question" style="margin-right:3px"></i>Not allocated:</span>'
         +unallocBtns+'</div>';
     }
     // Absent employees section: only people with no shift bar that day (the bar already shows the others)
@@ -7474,14 +7478,14 @@ function renderShifts(){
     if (absentListEmps.length > 0) {
       var absentBtns = absentListEmps.map(function(e) {
         var absObj = (db.absences||[]).find(function(a){ return a.date===dateStr && a.employee===e; });
-        var justLabel = absObj && absObj.justified ? '<span style="font-size:9px;background:#e3f4e8;color:var(--green-700);border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:var(--red-50);color:var(--red-700);border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
-        var toggleBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'" aria-label="Switch justified / unjustified"><i class="fas fa-rotate"></i></button>' : '';
-        var removeBtn = canShiftEdit ? ' <button class="btn btn-sm" style="font-size:10px;padding:2px 5px;background:#f2f5f6;border:1px solid #b7c3c9" data-remove-absent="'+(absObj?esc(absObj.id):'')+'" aria-label="Remove the absence"><i class="fas fa-times"></i></button>' : '';
+        var justLabel = absObj && absObj.justified ? '<span style="font-size:11px;background:var(--green-50);color:var(--green-700);border-radius:4px;padding:1px 5px;font-weight:700">Justified</span>' : '<span style="font-size:9px;background:var(--red-50);color:var(--red-700);border-radius:4px;padding:1px 5px;font-weight:700">Unjustified</span>';
+        var toggleBtn = canShiftEdit ? ' <button class="btn btn-secondary btn-mini" data-toggle-justified="'+(absObj?esc(absObj.id):'')+'" aria-label="Switch justified / unjustified"><i class="fas fa-rotate"></i></button>' : '';
+        var removeBtn = canShiftEdit ? ' <button class="btn btn-secondary btn-mini" data-remove-absent="'+(absObj?esc(absObj.id):'')+'" aria-label="Remove the absence"><i class="fas fa-times"></i></button>' : '';
         return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--red-50);border:1px solid #f0b8ae;border-radius:6px;padding:3px 8px;font-size:12px;color:#b4402f;font-weight:600">'
           +esc(e)+' '+justLabel+toggleBtn+removeBtn+'</span>';
       }).join(' ');
       absentHTML = '<div style="padding:6px 10px;background:var(--red-50);border:1px dashed var(--red-400);border-radius:8px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px">'
-        +'<span style="font-size:10px;font-weight:800;color:var(--red-700);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-user-slash" style="margin-right:3px"></i>Absent:</span>'
+        +'<span style="font-size:11px;font-weight:800;color:var(--red-700);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap"><i class="fas fa-user-slash" style="margin-right:3px"></i>Absent:</span>'
         +absentBtns+'</div>';
     }
 
@@ -7628,16 +7632,16 @@ function tipSplitHTML(split, heading) {
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--slate-100)">'
       +'<div><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(e)+'</div>'
       +'<div style="font-size:12px;color:var(--slate-500)">'+split.hours[e].toFixed(1)+' h · '+Math.round(split.hours[e]/split.totalHours*100)+'%'+note+'</div></div>'
-      +'<div style="font-weight:800;font-size:16px;color:var(--slate-900)">'+fmtEur(split.shares[e])+'</div></div>';
+      +'<div style="font-weight:800;font-size:16px;color:var(--slate-900)">'+fmtMoney(split.shares[e])+'</div></div>';
   }).join('');
   rows += absentOnly.map(function(e){
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--slate-100)">'
       +'<div><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(e)+'</div><div style="font-size:12px;color:var(--red)">absent all scheduled days</div></div>'
-      +'<div style="font-weight:800;font-size:16px;color:var(--slate-400)">'+fmtEur(0)+'</div></div>';
+      +'<div style="font-weight:800;font-size:16px;color:var(--slate-400)">'+fmtMoney(0)+'</div></div>';
   }).join('');
   return '<div style="border:var(--rule);border-radius:10px;padding:10px 14px 4px;margin-bottom:14px;background:var(--panel)">'
     +'<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-500);margin-bottom:4px">'+heading+'</div>'
-    +'<div style="font-size:13px;color:var(--slate-700);font-weight:600;margin-bottom:4px">Total '+fmtEur(split.total)+' · '+split.totalHours.toFixed(1)+' h worked</div>'
+    +'<div style="font-size:13px;color:var(--slate-700);font-weight:600;margin-bottom:4px">Total '+fmtMoney(split.total)+' · '+split.totalHours.toFixed(1)+' h worked</div>'
     +rows+'</div>';
 }
 
@@ -7709,8 +7713,8 @@ function renderShiftsTipsTab() {
     var left = (db.employees||[]).indexOf(e) === -1 ? ' <span class="badge badge-gray">left</span>' : '';
     return '<tr style="border-bottom:1px solid var(--slate-100)">'
       +'<td style="padding:9px 10px;font-weight:700;color:var(--slate-900);font-size:13px">'+esc(e)+left+'</td>'
-      +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(mTip>0?fmtEur(mTip):'—')+'</td>'
-      +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(yTip>0?fmtEur(yTip):'—')+'</td></tr>';
+      +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(mTip>0?fmtMoney(mTip):'—')+'</td>'
+      +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(yTip>0?fmtMoney(yTip):'—')+'</td></tr>';
   }).join('');
   var periodHTML = people.length === 0 ? '' : '<div style="background:var(--panel);border-radius:10px;border:var(--rule);overflow:hidden">'
     +'<div style="padding:10px 12px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-700);border-bottom:var(--rule)"><i class="fas fa-chart-bar" style="color:var(--teal-600)"></i> Tips by employee</div>'
@@ -7721,8 +7725,8 @@ function renderShiftsTipsTab() {
     +'</tr></thead><tbody>'+periodRows+'</tbody>'
     +'<tfoot><tr style="border-top:var(--rule);background:var(--slate-50)">'
       +'<td style="padding:8px 10px;font-weight:800;font-size:12px;color:var(--slate-700)">TOTAL</td>'
-      +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(mTotal>0?fmtEur(mTotal):'—')+'</td>'
-      +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(yTotal>0?fmtEur(yTotal):'—')+'</td>'
+      +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(mTotal>0?fmtMoney(mTotal):'—')+'</td>'
+      +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(yTotal>0?fmtMoney(yTotal):'—')+'</td>'
     +'</tr></tfoot></table></div>';
 
   el.innerHTML = weekHTML + periodHTML;
@@ -7844,25 +7848,25 @@ function renderShiftsAttendanceTab() {
       : (weekAbsJ>0?'<span style="color:#b7791f;font-weight:700;font-size:12px">'+weekAbsJ+'J </span>':'')
        +(weekAbsU>0?'<span style="color:#b4402f;font-weight:700;font-size:12px">'+weekAbsU+'U</span>':'');
 
-    return '<tr style="border-bottom:1px solid var(--ocean-50)">'
-      +'<td style="padding:8px 10px;font-weight:700;color:var(--ocean-900);font-size:13px">'+esc(e)+'</td>'
+    return '<tr style="border-bottom:1px solid var(--slate-50)">'
+      +'<td style="padding:8px 10px;font-weight:700;color:var(--slate-900);font-size:13px">'+esc(e)+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+weekAbsStr+'</td>'
-      +'<td style="padding:8px 6px;text-align:center;font-weight:800;color:#b4402f;font-size:13px">'+eAbsAll.length+'</td>'
+      +'<td style="padding:8px 6px;text-align:center;font-weight:800;font-size:13px;color:'+(eAbsAll.length?'var(--red)':'var(--slate-400)')+'">'+eAbsAll.length+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctMonth)+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctYear)+'</td>'
       +'<td style="padding:8px 6px;text-align:center">'+pctBadge(pctAll)+'</td>'
       +'</tr>';
   }).join('');
 
-  el.innerHTML = '<div style="background:white;border-radius:var(--radius);border:1px solid var(--ocean-100);overflow:hidden;box-shadow:var(--shadow)">'
+  el.innerHTML = '<div style="background:white;border-radius:var(--radius);border:1px solid var(--slate-100);overflow:hidden;box-shadow:var(--shadow)">'
     +'<table style="width:100%;border-collapse:collapse">'
-    +'<thead><tr style="background:var(--ocean-50)">'
-    +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--ocean-600)">Employee</th>'
-    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--ocean-600)">This Week</th>'
-    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#b4402f">Absences</th>'
+    +'<thead><tr style="background:var(--slate-50)">'
+    +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--teal-600)">Employee</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--teal-600)">This Week</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--slate-600)">Absences</th>'
     +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#b7791f">'+monthLabel+'</th>'
     +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:#b7791f">'+curYear+'</th>'
-    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--ocean-500)">All-time</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--teal-500)">All-time</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
@@ -8525,7 +8529,7 @@ function invUpdateBadge() {
   var n = invoices().filter(function(i){ return !i.paid; }).length;
   b.textContent = n; b.style.display = n ? '' : 'none';
 }
-function invDateTxt(d) { if (!d) return ''; var x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : x.toLocaleDateString('pt-PT'); }
+function invDateTxt(d) { return fmtDay(d); }
 function invIsOverdue(i) { return !i.paid && i.dueDate && i.dueDate < toDateStr(new Date()); }
 function invSupplierKey(i) { return i.supplierId || ('name:' + normName(i.supplierName)); }
 function nibClean(v) { return String(v || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); }
@@ -8569,7 +8573,7 @@ function accInvoicesHTML() {
     + '<button class="' + (invFilter === 'paid' ? 'active' : '') + '" data-inv-filter="paid">Paid <span>' + (all.length - open.length) + '</span></button>'
     + '<button class="' + (invFilter === 'all' ? 'active' : '') + '" data-inv-filter="all">All <span>' + all.length + '</span></button>'
     + (review.length ? '<button class="' + (invFilter === 'review' ? 'active' : '') + '" data-inv-filter="review" style="color:var(--amber-700)">Attention <span>' + review.length + '</span></button>' : '') + '</div>'
-    + '<div class="inv-owed">Still to pay: <b>' + accEur(owed) + '</b></div></div>';
+    + '<div class="inv-owed' + (owed > 0 ? '' : ' none') + '">Still to pay: <b>' + accEur(owed) + '</b></div></div>';
   var list = invFiltered();
   if (invSupplier) {
     var mine = list.filter(function(i){ return !i.review && invSupplierKey(i) === invSupplier; }).sort(function(a, b){ return String(b.date).localeCompare(String(a.date)); });
@@ -9899,9 +9903,9 @@ function renderBbSelectedList(){
     var item=db.bbMenu.find(function(i){return i.id===id;}); if(!item) return '';
     var qty=bbSelectedItems[id];
     var subtotal=item.price*qty;
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--ocean-50);border-radius:10px;margin-bottom:6px">'
-      +'<div><div style="font-weight:700;font-size:14px">'+esc(item.name)+'</div><div style="font-size:12px;color:var(--ocean-400)">'+fmtEur(item.price)+' x '+qty+'</div></div>'
-      +'<div style="font-weight:800;color:var(--ocean-700)">'+fmtEur(subtotal)+'</div>'
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--slate-50);border-radius:10px;margin-bottom:6px">'
+      +'<div><div style="font-weight:700;font-size:14px">'+esc(item.name)+'</div><div style="font-size:12px;color:var(--slate-500)">'+fmtEur(item.price)+' x '+qty+'</div></div>'
+      +'<div style="font-weight:800;color:var(--slate-700)">'+fmtEur(subtotal)+'</div>'
     +'</div>';
   }).join('');
 }
@@ -10015,14 +10019,14 @@ function renderBbRecords(){
   el.innerHTML=sorted.map(function(entry){
     return '<div class="bb-daily-record">'
       +'<div class="bb-daily-record-header">'
-        +'<div style="font-weight:700;font-size:15px;color:var(--ocean-900)">'+fmtDateShort(entry.date)+(entry.date===today?' <span class="badge badge-gray">Today</span>':'')+'</div>'
+        +'<div style="font-weight:700;font-size:15px;color:var(--slate-900)">'+fmtDateShort(entry.date)+(entry.date===today?' <span class="badge badge-gray">Today</span>':'')+'</div>'
         +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<div style="font-weight:800;font-size:16px;color:var(--ocean-700)">'+fmtEur(entry.total)+'</div>'
+          +'<div style="font-weight:800;font-size:16px;color:var(--slate-700)">'+fmtEur(entry.total)+'</div>'
           +'<button class="btn btn-secondary btn-sm btn-icon" data-edit-bb-entry="'+esc(entry.date)+'" title="Edit entry"><i class="fas fa-pen"></i></button>'
         +'</div>'
       +'</div>'
       +'<div>'+entry.items.map(function(i){
-        return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;color:var(--ocean-700)"><span>'+esc(i.name)+' x'+i.qty+'</span><span style="font-weight:600">'+fmtEur(i.subtotal)+'</span></div>';
+        return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;color:var(--slate-700)"><span>'+esc(i.name)+' x'+i.qty+'</span><span style="font-weight:600">'+fmtEur(i.subtotal)+'</span></div>';
       }).join('')+'</div>'
     +'</div>';
   }).join('');
@@ -10061,12 +10065,12 @@ function renderBbItemRecords(){
     sumEl.innerHTML='<div class="empty-state" style="padding:14px"><i class="fas fa-chart-bar"></i><p>'+(searchLow?'No items match your search.':'No data yet.')+'</p></div>';
   } else {
     sumEl.innerHTML=itemListFiltered.map(function(i){
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--ocean-50);border-radius:10px;margin-bottom:6px">'
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--slate-50);border-radius:10px;margin-bottom:6px">'
         +'<div style="flex:1;min-width:0">'
-          +'<div style="font-weight:700;font-size:14px;color:var(--ocean-900)">'+esc(i.name)+'</div>'
-          +'<div style="font-size:12px;color:var(--ocean-400)">Sold '+i.timesSold+' time'+(i.timesSold!==1?'s':'')+'</div>'
+          +'<div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(i.name)+'</div>'
+          +'<div style="font-size:12px;color:var(--slate-500)">Sold '+i.timesSold+' time'+(i.timesSold!==1?'s':'')+'</div>'
         +'</div>'
-        +'<div style="font-weight:800;font-size:16px;color:var(--ocean-700);margin-left:10px">'+fmtEur(i.revenue)+'</div>'
+        +'<div style="font-weight:800;font-size:16px;color:var(--slate-700);margin-left:10px">'+fmtEur(i.revenue)+'</div>'
       +'</div>';
     }).join('');
   }
@@ -10161,7 +10165,7 @@ function renderDashboard(){
   if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state" style="padding:12px"><i class="fas fa-calendar-xmark" style="font-size:22px"></i><p>No reservations today. Add one from Reservations.</p></div>';}
   else todayEl.innerHTML=todayRes.slice(0,5).map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
-    return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--ocean-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ocean-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ocean-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--ocean-400)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
+    return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--slate-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--slate-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--slate-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--slate-500)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
   }).join('');
   // Tasks: apply the same user-scoping as the Tasks screen
   var allDashTasks=db.tasks;
@@ -10189,9 +10193,9 @@ function renderDashboard(){
       tasksPanelEl.innerHTML=openTasks.slice(0,6).map(function(t){
         var isOverdue=t.deadline&&new Date(t.deadline)<now2;
         var priColor=t.priority==='high'?'badge-red':t.priority==='low'?'badge-gray':'badge-yellow';
-        return '<div class="today-res-item" data-nav="tasks" style="cursor:pointer;gap:10px">'          +'<div style="width:34px;height:34px;background:var(--ocean-100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(taskCatIcons[t.category]||'<i class="fas fa-thumbtack"></i>')+'</div>'          +'<div style="flex:1;min-width:0">'            +'<div style="font-size:13px;font-weight:700;color:var(--ocean-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'            +'<div style="font-size:11px;color:var(--ocean-400);margin-top:2px">'              +(t.deadline?'<i class="fas fa-calendar-check" style="margin-right:3px'+(isOverdue?';color:#b4402f':'')+'"></i><span style="'+(isOverdue?'color:#b4402f;font-weight:700':'')+'">'+esc(t.deadline)+'</span>':'<span style="color:var(--ocean-300)">No deadline</span>')            +'</div>'          +'</div>'          +'<span class="badge '+priColor+'" style="flex-shrink:0;align-self:center">'+esc(t.priority||'medium')+'</span>'        +'</div>';
+        return '<div class="today-res-item" data-nav="tasks" style="cursor:pointer;gap:10px">'          +'<div style="width:34px;height:34px;background:var(--slate-100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(taskCatIcons[t.category]||'<i class="fas fa-thumbtack"></i>')+'</div>'          +'<div style="flex:1;min-width:0">'            +'<div style="font-size:13px;font-weight:700;color:var(--slate-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'            +'<div style="font-size:11px;color:var(--slate-500);margin-top:2px">'              +(t.deadline?'<i class="fas fa-calendar-check" style="margin-right:3px'+(isOverdue?';color:#b4402f':'')+'"></i><span style="'+(isOverdue?'color:#b4402f;font-weight:700':'')+'">'+esc(fmtDay(t.deadline))+'</span>':'<span style="color:var(--slate-300)">No deadline</span>')            +'</div>'          +'</div>'          +'<span class="badge '+priColor+'" style="flex-shrink:0;align-self:center">'+esc(t.priority||'medium')+'</span>'        +'</div>';
       }).join('')
-      +(openTasks.length>6?'<div style="text-align:center;padding:8px;font-size:12px;color:var(--ocean-400);cursor:pointer" data-nav="tasks">+' +(openTasks.length-6)+' more tasks →</div>':'');
+      +(openTasks.length>6?'<div style="text-align:center;padding:8px;font-size:12px;color:var(--slate-500);cursor:pointer" data-nav="tasks">+' +(openTasks.length-6)+' more tasks →</div>':'');
     }
   }
 
@@ -10207,10 +10211,10 @@ function renderDashboard(){
       pendingEl.innerHTML=standbyOrders.slice().reverse().map(function(o){
         return '<div class="order-standby" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
           +'<div style="flex:1">'
-            +'<div style="font-weight:700;font-size:13px;color:var(--ocean-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:var(--amber-700)">· '+fmtDate(o.date)+'</span></div>'
-            +'<div>'+o.items.map(function(i){return '<span style="font-size:12px;color:var(--ocean-700);margin-right:8px">'+esc(i.name)+' ('+i.orderQty+(i.unit?' '+esc(i.unit):'')+')  </span>';}).join('')+'</div>'
+            +'<div style="font-weight:700;font-size:13px;color:var(--slate-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:var(--amber-700)">· '+fmtDate(o.date)+'</span></div>'
+            +'<div>'+o.items.map(function(i){return '<span style="font-size:12px;color:var(--slate-700);margin-right:8px">'+esc(i.name)+' ('+i.orderQty+(i.unit?' '+esc(i.unit):'')+')  </span>';}).join('')+'</div>'
           +'</div>'
-          +(isAdmin?'<button class="btn btn-sm btn-gold" style="flex-shrink:0" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'<span class="badge badge-orange" style="flex-shrink:0;align-self:center">⏳ Standby</span>')
+          +(isAdmin?'<button class="btn btn-sm btn-primary" style="flex-shrink:0" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'<span class="badge badge-orange" style="flex-shrink:0;align-self:center">⏳ Standby</span>')
         +'</div>';
       }).join('');
     }

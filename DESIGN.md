@@ -31,6 +31,9 @@ colors:
   purple: "#6d4fc2"
   purple-50: "#efeafb"
   purple-200: "#cfc2f0"
+  clay: "#8a5a3c"
+  clay-50: "#f6ede6"
+  clay-200: "#e6cdb9"
   green: "#2b8a4b"
   green-50: "#e3f4e8"
   green-200: "#a9dcb9"
@@ -248,6 +251,7 @@ A slate-and-white room with a mint sign: two neutrals, one slate ramp for struct
 - **Pine** (pine) with **rattan** tints (rattan-50 fill, rattan-200 border): the "orange" stamp and the Kitchen zone bar on the shifts timeline. Rattan itself is declared for the venue and reserved; it has no resting use in the current build.
 - **Admin gold** (gold / gold-50 / gold-200): the admin role stamp, the admin unlock button on the beam (gold-200 fill), the admin-only badges in the sidebar, the Foccaceria zone bar.
 - **Finance purple** (purple / purple-50 / purple-200): the finance role stamp, the finance unlock button, the Finance total-box label, finance record totals, the Finance input focus ring.
+- **Kitchen clay** (clay / clay-50 / clay-200): the chef role stamp and the chef icon (Food Cost badge, role checkbox).
 - **Shifts green** (green / green-50 / green-200): the shift-manager stamp, done and confirmed states, ordered inventory cards, the Bar zone bar (teal-500 in the script's zone map). Green-700 is the deep ink for text set directly on green-50 fills.
 - **Employee blue** (blue / blue-50 / blue-200): the employee stamp, in-progress states, the Service zone bar.
 - **Danger terracotta** (red / red-50 / red-200): overdue and no-show stamps, delete buttons, the timeline "now" line, error toasts, the login error line. Red-700 is the deep ink for text on red-50 fills; red-400 is the softer sync-error text and dashed "missing" border.
