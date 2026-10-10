@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   unit TEXT DEFAULT '',
   qty_bar INTEGER NOT NULL DEFAULT 0,
   qty_storage INTEGER NOT NULL DEFAULT 0,
-  minimum INTEGER NOT NULL DEFAULT 10,
+  minimum INTEGER NOT NULL DEFAULT 0,   -- "Running low at" (0 = not watched)
   last_employee TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()

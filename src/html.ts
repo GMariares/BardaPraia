@@ -352,9 +352,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     @media(min-width:1180px){ #inventory-list { grid-template-columns:repeat(5,1fr); gap:12px; } }
     .inv-card { background:var(--panel); border-radius:var(--radius); padding:12px 10px 10px; border:var(--rule); display:flex; flex-direction:column; gap:8px; position:relative; transition:background .2s,border-color .2s; }
     .inv-card.inv-ordered { background:var(--green-50); border-color:var(--green-200); }
-    .supplier-card { background:var(--panel); border-radius:var(--radius); padding:12px 12px; border:var(--rule); cursor:pointer; transition:border-color .15s, background .15s; position:relative; }
-    .supplier-card:active { transform:scale(.98); }
-    .supplier-card-active { border-color:var(--teal-500); background:var(--mint-50); box-shadow:0 0 0 2px var(--mint-100); }
+    .inv-card .inv-low { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--amber-700); }
     .log-sup-filter { background:var(--panel); border:var(--rule); color:var(--slate-600); padding:6px 12px; min-height:32px; border-radius:16px; font-size:12px; font-weight:700; cursor:pointer; transition:background .15s, color .15s; }
     .log-sup-filter.active { background:var(--slate-700); border-color:var(--slate-700); color:white; }
     .inv-card.inv-ordered .inv-stat { background:var(--panel); }
@@ -369,15 +367,53 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-actions .btn-icon { flex:1; }
     .inv-order-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:var(--teal-600); color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer; transition:background .15s; flex-shrink:0; }
     .inv-order-btn:hover { background:var(--teal-700); }
+    /* Stock: land on the categories; inside one, All items or By supplier */
+    .inv-home { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media(min-width:760px){ .inv-home { grid-template-columns:repeat(3,1fr); gap:12px; } }
+    .inv-cat-card { display:flex; flex-direction:column; align-items:flex-start; gap:4px; min-height:132px; padding:14px; text-align:left; font:inherit; color:inherit; background:var(--panel); border:var(--rule); border-radius:var(--radius); cursor:pointer; transition:border-color .15s, background .15s, transform .1s; }
+    .inv-cat-card:hover { border-color:var(--slate-300); }
+    .inv-cat-card:active { transform:scale(.98); }
+    .inv-cat-card .icc-icon { width:40px; height:40px; border-radius:10px; background:var(--mint-100); color:var(--teal-700); display:flex; align-items:center; justify-content:center; font-size:17px; margin-bottom:6px; }
+    .inv-cat-card .icc-name { font-size:17px; font-weight:800; color:var(--slate-900); letter-spacing:-.01em; }
+    .inv-cat-card .icc-count { font-size:13px; color:var(--slate-500); }
+    .inv-cat-card .icc-count b { color:var(--slate-900); font-weight:800; }
+    .inv-cat-card .icc-flags { display:flex; flex-wrap:wrap; gap:4px; margin-top:auto; padding-top:6px; }
+    .icc-flag { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:6px; border:1px solid; }
+    .icc-flag.low { background:var(--amber-50); color:var(--amber-700); border-color:var(--amber-200); }
+    .icc-flag.cart { background:var(--mint-50); color:var(--teal-700); border-color:var(--mint-200); }
+    .inv-cat-card.empty { background:var(--slate-50); }
+    .inv-cat-card.empty .icc-icon { background:var(--slate-100); color:var(--slate-400); }
+    .inv-cat-card.is-low .icc-icon { background:var(--amber-50); color:var(--amber-700); }
+    .inv-cat-card.is-low.has { border-color:var(--amber-200); background:var(--amber-50); }
+    .inv-cat-card.is-low.has .icc-icon { background:var(--panel); }
+    .inv-top { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .inv-back { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:0; border-radius:var(--radius-sm); border:var(--rule); background:var(--panel); color:var(--slate-700); cursor:pointer; font-size:15px; }
+    .inv-back:hover { background:var(--slate-50); }
+    .inv-where { flex:1; min-width:0; }
+    .inv-where h3 { font-size:19px; font-weight:800; color:var(--slate-900); letter-spacing:-.01em; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .inv-where h3 small { font-size:13px; font-weight:600; color:var(--slate-500); margin-left:6px; letter-spacing:0; }
+    .inv-modebar { margin-bottom:12px; }
+    .inv-sup-chips { display:flex; gap:7px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-bottom:12px; padding-bottom:2px; }
+    .inv-sup-chips::-webkit-scrollbar { display:none; }
+    @media(min-width:1024px){ .inv-sup-chips { flex-wrap:wrap; } }
+    .inv-sup-chips .inv-slicer { flex-shrink:0; }
+    .inv-slicer .n { font-weight:600; opacity:.7; margin-left:2px; }
+    .inv-pick-hint { grid-column:1/-1; }
+    /* Reorder: drag the handle, or use the arrows */
+    .ro-head { display:flex; align-items:center; gap:10px 16px; flex-wrap:wrap; margin-bottom:10px; font-size:13px; color:var(--slate-600); }
+    .ro-head span { flex:1 1 260px; }
+    .ro-head .ro-btns { display:flex; gap:8px; margin-left:auto; }
+    .ro-list { grid-column:1/-1; display:flex; flex-direction:column; gap:6px; }
+    .ro-row { display:flex; align-items:center; gap:8px; min-height:52px; padding:6px 8px 6px 4px; background:var(--panel); border:var(--rule); border-radius:var(--radius-sm); }
+    .ro-row.dragging { border-color:var(--teal-500); box-shadow:var(--shadow-overlay); position:relative; z-index:2; }
+    .ro-grip { width:40px; height:40px; flex-shrink:0; border:none; background:none; color:var(--slate-400); cursor:grab; touch-action:none; border-radius:8px; font-size:16px; }
+    .ro-grip:active { cursor:grabbing; color:var(--teal-700); }
+    .ro-pos { width:26px; flex-shrink:0; font-size:12px; font-weight:800; color:var(--slate-400); text-align:right; }
+    .ro-name { flex:1; min-width:0; font-size:14px; font-weight:700; color:var(--slate-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ro-name small { display:block; font-size:11px; font-weight:600; color:var(--slate-500); }
+    .ro-arrow { width:40px; height:40px; flex-shrink:0; border:var(--rule); background:var(--panel); border-radius:8px; color:var(--slate-600); cursor:pointer; }
+    .ro-arrow:disabled { opacity:.35; cursor:default; }
     /* Stock: search and filters first, then the items */
-    .inv-toolbar { display:flex; gap:8px; margin-bottom:10px; }
-    .inv-toolbar .search-bar { flex:1; min-width:0; margin-bottom:0; }
-    .inv-sup-pick { width:auto; max-width:44%; min-height:46px; flex-shrink:0; }
-    .inv-sup-pick.on { border-color:var(--teal-500); background:var(--mint-50); color:var(--teal-700); font-weight:700; }
-    .inv-slicers { display:flex; gap:7px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-bottom:12px; padding-bottom:2px; }
-    .inv-slicers::-webkit-scrollbar { display:none; }
-    .inv-slicers .inv-slicer { flex-shrink:0; }
-    @media(min-width:1024px){ .inv-slicers { flex-wrap:wrap; } }
     .inv-sup-info { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; border:var(--rule); border-radius:var(--radius); background:var(--panel); margin-bottom:12px; font-size:13px; color:var(--slate-600); }
     .inv-sup-info > span { flex:1; min-width:150px; }
     .inv-sup-info b { color:var(--slate-900); }
@@ -1200,21 +1236,23 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       </div>
     </div>
     <div id="inv-panel-stock">
-      <div class="inv-toolbar">
-        <div class="search-bar"><i class="fas fa-search"></i><input type="search" placeholder="Search items" id="inv-search" aria-label="Search items" /></div>
-        <select class="select-field inv-sup-pick" id="inv-sup-pick" aria-label="Supplier"><option value="">All suppliers</option></select>
+      <div class="inv-top" id="inv-top" style="display:none">
+        <button class="inv-back" id="inv-back" aria-label="Back to all categories"><i class="fas fa-arrow-left"></i></button>
+        <div class="inv-where"><h3 id="inv-where"></h3></div>
+        <button class="btn btn-secondary btn-sm" id="btn-inv-reorder" style="display:none"><i class="fas fa-arrow-down-up-across-line"></i> Reorder</button>
       </div>
-      <div id="inv-cat-slicers" class="inv-slicers">
-        <button class="inv-slicer active" data-inv-cat="">All</button>
-        <button class="inv-slicer" data-inv-cat="beverages"><i class="fas fa-martini-glass-citrus"></i> Bar</button>
-        <button class="inv-slicer" data-inv-cat="food"><i class="fas fa-utensils"></i> Cozinha</button>
-        <button class="inv-slicer" data-inv-cat="supplies"><i class="fas fa-broom"></i> Limpeza</button>
-        <button class="inv-slicer" data-inv-cat="equipment"><i class="fas fa-screwdriver-wrench"></i> Economato</button>
-        <button class="inv-slicer" data-inv-cat="other"><i class="fas fa-box"></i> Other</button>
+      <div class="search-bar" id="inv-search-bar"><i class="fas fa-search"></i><input type="search" placeholder="Search all items" id="inv-search" aria-label="Search items" autocomplete="off" /></div>
+      <div id="inv-home" class="inv-home"></div>
+      <div id="inv-modebar" class="inv-modebar" style="display:none">
+        <div class="fc-switch" role="tablist" aria-label="Show items">
+          <button role="tab" data-inv-mode="items">All items</button>
+          <button role="tab" data-inv-mode="supplier">By supplier</button>
+        </div>
       </div>
+      <div id="inv-sup-chips" class="inv-sup-chips" style="display:none"></div>
       <div id="inv-sup-info" class="inv-sup-info" style="display:none"></div>
       <div id="inv-items-section">
-        <div id="inventory-list"><div class="empty-state"><i class="fas fa-box-open"></i><p>No items yet. Tap Add to start!</p></div></div>
+        <div id="inventory-list"></div>
       </div>
     </div>
     <div id="inv-panel-log" style="display:none">
@@ -2251,6 +2289,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div><label class="label">In Bar</label><input type="number" class="input-field" id="inv-qty-bar" min="0" value="0" /></div>
       <div><label class="label">In Storage</label><input type="number" class="input-field" id="inv-qty-storage" min="0" value="0" /></div>
     </div>
+    <div class="form-row"><label class="label" for="inv-minimum">Running low at</label><input type="number" class="input-field" id="inv-minimum" min="0" inputmode="numeric" placeholder="Leave empty to not watch it" /><p class="acc-note" style="margin-top:6px">When bar + storage drop to this number or below, the item shows under Running low.</p></div>
     <div class="form-row" style="margin-bottom:14px"><label class="label">Supplier</label><select class="select-field" id="inv-supplier"></select></div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-inventory"><i class="fas fa-save"></i> Save</button>
@@ -3541,7 +3580,10 @@ var selectedCalendarDay = null;
 var currentTaskFilter = 'open';
 var invSearchVal = '';
 var invCatFilter = '';
-var invSupplierFilter = ''; // supplier id filter for inventory view
+var invSupplierFilter = ''; // supplier id filter inside a category ('__none' = items with no supplier)
+var invView = 'home';        // 'home' (the category cards) | 'cat' (one category) | 'low' (running low, all categories)
+var invMode = (function(){ try { return localStorage.getItem('bp_inv_mode') === 'supplier' ? 'supplier' : 'items'; } catch(e){ return 'items'; } })();
+var invReorderIds = null;    // working copy while reordering a category
 var invLogSupplierFilter = ''; // supplier id filter for log view
 var editSupplierId = null; // id of supplier being edited
 var resSearchVal = '';
@@ -3613,6 +3655,33 @@ function askText(o, cb) {
   setTimeout(function(){ inp.focus(); inp.select(); }, 60);
 }
 function askOk() { var cb = askCb, v = document.getElementById('ask-input').value; askCb = null; closeModal('modal-ask'); if (cb) cb(v); }
+
+// Stock reorder: drag a row by its handle
+(function(){
+  var drag = null;
+  document.addEventListener('pointerdown', function(e){
+    var g = e.target.closest && e.target.closest('[data-ro-grip]'); if (!g || !invReorderIds) return;
+    var row = g.closest('.ro-row'); if (!row) return;
+    e.preventDefault(); drag = { row: row, id: row.dataset.roId }; row.classList.add('dragging');
+    try { g.setPointerCapture(e.pointerId); } catch(x){}
+  });
+  document.addEventListener('pointermove', function(e){
+    if (!drag) return; e.preventDefault();
+    var list = drag.row.parentNode, rows = Array.prototype.filter.call(list.querySelectorAll('.ro-row'), function(r){ return r !== drag.row; });
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i].getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { if (drag.row.nextSibling !== rows[i]) list.insertBefore(drag.row, rows[i]); break; }
+      if (i === rows.length - 1 && e.clientY >= r.top + r.height / 2 && rows[i].nextSibling !== drag.row) list.insertBefore(drag.row, rows[i].nextSibling);
+    }
+    var cw = document.getElementById('content-wrap'); if (cw) { var b = cw.getBoundingClientRect(); if (e.clientY < b.top + 60) cw.scrollTop -= 10; else if (e.clientY > b.bottom - 60) cw.scrollTop += 10; }
+  }, { passive: false });
+  function end(){
+    if (!drag) return; var list = drag.row.parentNode; drag.row.classList.remove('dragging');
+    invReorderIds = Array.prototype.map.call(list.querySelectorAll('.ro-row'), function(r){ return r.dataset.roId; });
+    drag = null; renderInventory();
+  }
+  document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+})();
 
 // Forms open as dialogs: announced as such, focus moves in and comes back, Escape closes the top one
 var modalStack = [], modalOpener = {};
@@ -4616,6 +4685,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(function()
 function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
+  if (name === 'inventory' && currentSection !== 'inventory') { invView = 'home'; invCatFilter = ''; invSupplierFilter = ''; invReorderIds = null; invSearchVal = ''; var isf = document.getElementById('inv-search'); if (isf) isf.value = ''; }
   if (name === 'users' && !isAdmin && !(currentUser && hasRole('shift_mgr'))) { toast('Admin or shift manager access required.', 'error'); return; }
   if ((name === 'blackbox' || name === 'settings' || name === 'accounting') && !isAdmin) {
     toast('Admin access required.', 'error'); return;
@@ -5796,7 +5866,35 @@ function renderFinRecords() {
 // ================================================
 // INVENTORY
 // ================================================
-var catIconMap={beverages:'<i class="fas fa-martini-glass-citrus"></i>',food:'<i class="fas fa-utensils"></i>',supplies:'<i class="fas fa-broom"></i>',equipment:'<i class="fas fa-screwdriver-wrench"></i>',other:'<i class="fas fa-box"></i>'};
+var INV_CATS=[
+  {key:'beverages', label:'Bar',       icon:'fa-martini-glass-citrus'},
+  {key:'food',      label:'Cozinha',   icon:'fa-utensils'},
+  {key:'supplies',  label:'Limpeza',   icon:'fa-broom'},
+  {key:'equipment', label:'Economato', icon:'fa-box-archive'},
+  {key:'other',     label:'Other',     icon:'fa-box'}
+];
+var catIconMap={}; INV_CATS.forEach(function(c){ catIconMap[c.key]='<i class="fas '+c.icon+'"></i>'; });
+// Older items were saved with free-text categories ("Drinks", "Comida", "Consumíveis"…): read them as one of the five
+function invCatKey(raw){
+  var k=foldTxt(raw).trim();
+  if(k==='beverages'||k==='drinks'||k==='bebidas'||k==='bar') return 'beverages';
+  if(k==='food'||k==='comida'||k==='cozinha') return 'food';
+  if(k==='supplies'||k==='limpeza') return 'supplies';
+  if(k==='equipment'||k==='economato'||k==='consumiveis') return 'equipment';
+  return 'other';
+}
+function invCatLabel(k){ var c=INV_CATS.find(function(x){return x.key===k;}); return c?c.label:'Other'; }
+// "Running low at": 0 means not watched
+function invIsLow(i){ var m=+i.minimum||0; return m>0 && ((+i.qtyBar||0)+(+i.qtyStorage||0))<=m; }
+// One saved order for all items; each category shows its items in that order
+function invOrdered(items){
+  var order=getDB().invSortOrder||[], pos={}; order.forEach(function(id,i){ pos[id]=i; });
+  return items.slice().sort(function(a,b){
+    var pa=pos[a.id], pb=pos[b.id];
+    if(pa===undefined&&pb===undefined) return String(a.name).localeCompare(String(b.name));
+    if(pa===undefined) return 1; if(pb===undefined) return -1; return pa-pb;
+  });
+}
 var catLabelMap={beverages:'Bar',food:'Cozinha',supplies:'Limpeza',equipment:'Economato',other:'Other'};
 var currentInvTab = 'stock';
 function switchInvTab(t) {
@@ -5965,7 +6063,8 @@ function openAddInventoryModal(editId) {
     editInventoryId=editId;
     document.getElementById('inv-modal-title').textContent='Edit Item';
     document.getElementById('inv-item-name').value=item.name;
-    document.getElementById('inv-category').value=item.category||'other';
+    document.getElementById('inv-category').value=invCatKey(item.category);
+    document.getElementById('inv-minimum').value=(+item.minimum||0)>0?item.minimum:'';
     document.getElementById('inv-unit').value=item.unit||'';
     document.getElementById('inv-qty-bar').value=item.qtyBar;
     document.getElementById('inv-qty-storage').value=item.qtyStorage;
@@ -5975,11 +6074,12 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-modal-title').textContent='Add Item';
     document.getElementById('inv-item-name').value='';
     document.getElementById('inv-unit').value='';
-    document.getElementById('inv-category').value='beverages';
+    document.getElementById('inv-category').value=invCatFilter||'beverages';
+    document.getElementById('inv-minimum').value='';
     document.getElementById('inv-qty-bar').value='0';
     document.getElementById('inv-qty-storage').value='0';
     var supEl2=document.getElementById('inv-supplier');
-    if(supEl2) supEl2.value = invSupplierFilter || '';
+    if(supEl2) supEl2.value = (invSupplierFilter && invSupplierFilter!=='__none') ? invSupplierFilter : '';
   }
   fillWhoMe();
   var delBtn=document.getElementById('btn-delete-inventory'); if(delBtn) delBtn.style.display=(editId&&isAdmin)?'':'none';
@@ -5995,22 +6095,23 @@ function saveInventoryItem() {
   var qs=parseInt(document.getElementById('inv-qty-storage').value)||0;
   var cat=document.getElementById('inv-category').value;
   var unit=document.getElementById('inv-unit').value.trim();
+  var minimum=Math.max(0, parseInt(document.getElementById('inv-minimum').value)||0);
   var supId=(document.getElementById('inv-supplier')||{}).value||'';
   var now=new Date().toISOString();
   var eid=editInventoryId;
   if(eid){
     var idx=db.inventory.findIndex(function(i){return i.id===eid;});
-    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,supplierId:supId,updatedAt:now}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
+    if(idx!==-1){var old=db.inventory[idx]; db.inventory[idx]=Object.assign({},old,{name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:minimum,lastEmployee:emp,supplierId:supId,updatedAt:now}); addInvLog(db,{action:'update',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});}
     saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Updating...'); editInventoryId=null;
-    sbFetch('PATCH','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp,supplier_id:supId||null,updated_at:now},'id=eq.'+eid)
+    sbFetch('PATCH','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,minimum:minimum,last_employee:emp,supplier_id:supId||null,updated_at:now},'id=eq.'+eid)
       .then(function(){ sbAddInvLog({action:'update',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Updated!'); })
       .catch(function(){ toast('Saved locally','error'); });
   } else {
     var newId=uid();
-    db.inventory.push({id:newId,name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,lastEmployee:emp,supplierId:supId,createdAt:now,updatedAt:now});
+    db.inventory.push({id:newId,name:name,category:cat,unit:unit,qtyBar:qb,qtyStorage:qs,minimum:minimum,lastEmployee:emp,supplierId:supId,createdAt:now,updatedAt:now});
     addInvLog(db,{action:'add',item:name,employee:emp,qtyBar:qb,qtyStorage:qs});
     saveDB(db); closeModal('modal-add-inventory'); renderInventory(); renderDashboard(); toast('Adding...'); editInventoryId=null;
-    sbFetch('POST','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,last_employee:emp,supplier_id:supId||null})
+    sbFetch('POST','inventory',{name:name,category:cat,unit:unit,qty_bar:qb,qty_storage:qs,minimum:minimum,last_employee:emp,supplier_id:supId||null})
       .then(function(rows){
         if(rows&&rows[0]){var oid=db.inventory.findIndex(function(i){return i.id===newId;}); if(oid!==-1) db.inventory[oid].id=rows[0].id; saveDB(db);}
         sbAddInvLog({action:'add',item:name,employee:emp,qty_bar:qb,qty_storage:qs}); toast('Item added!');
@@ -6059,27 +6160,28 @@ function saveQtyUpdate(){
 // ================================================
 // SUPPLIERS
 // ================================================
-function renderSuppliers(){
-  var db=getDB(); var sel=document.getElementById('inv-sup-pick'); if(!sel) return;
-  var sups=(db.suppliers||[]).slice().sort(function(a,b){ return String(a.name).localeCompare(String(b.name)); });
-  // with a category picked, list the suppliers of that category (and keep the one already chosen)
-  var shown=invCatFilter?sups.filter(function(s){ return (s.categories&&s.categories.indexOf(invCatFilter)!==-1) || s.id===invSupplierFilter; }):sups;
-  sel.innerHTML='<option value="">All suppliers</option>'+shown.map(function(s){
-    var n=(db.inventory||[]).filter(function(i){return i.supplierId===s.id;}).length;
-    return '<option value="'+esc(s.id)+'">'+esc(s.name)+' ('+n+')</option>';
-  }).join('')+'<option value="__new">+ New supplier…</option>';
-  sel.value=invSupplierFilter||'';
-  sel.classList.toggle('on', !!invSupplierFilter);
-  var info=document.getElementById('inv-sup-info'); if(!info) return;
-  var sp=invSupplierFilter?sups.find(function(s){return s.id===invSupplierFilter;}):null;
+// Inside a category, By supplier: a chip per supplier that has items there (and the one already picked)
+function renderInvSupplierChips(on, catItems){
+  var box=document.getElementById('inv-sup-chips'), info=document.getElementById('inv-sup-info');
+  if(!box||!info) return;
+  if(!on){ box.style.display='none'; box.innerHTML=''; info.style.display='none'; info.innerHTML=''; return; }
+  var db=getDB(), count={}, none=0;
+  catItems.forEach(function(i){ if(i.supplierId) count[i.supplierId]=(count[i.supplierId]||0)+1; else none++; });
+  var sups=(db.suppliers||[]).filter(function(s){ return count[s.id] || s.id===invSupplierFilter; }).sort(function(a,b){ return String(a.name).localeCompare(String(b.name)); });
+  box.style.display='';
+  box.innerHTML=sups.map(function(s){ return '<button class="inv-slicer'+(invSupplierFilter===s.id?' active':'')+'" data-supplier-filter="'+esc(s.id)+'">'+esc(s.name)+'<span class="n">'+(count[s.id]||0)+'</span></button>'; }).join('')
+    +(none?'<button class="inv-slicer'+(invSupplierFilter==='__none'?' active':'')+'" data-supplier-filter="__none">No supplier<span class="n">'+none+'</span></button>':'')
+    +'<button class="inv-slicer" id="btn-add-supplier"><i class="fas fa-plus"></i> New supplier</button>';
+  var sp=invSupplierFilter&&invSupplierFilter!=='__none'?(db.suppliers||[]).find(function(s){ return s.id===invSupplierFilter; }):null;
   if(!sp){ info.style.display='none'; info.innerHTML=''; return; }
   info.style.display='';
   info.innerHTML='<i class="fas fa-truck" style="color:var(--slate-400)"></i><span><b>'+esc(sp.name)+'</b>'
     +(sp.phone?' · <a href="tel:'+esc(String(sp.phone).replace(/\s+/g,''))+'">'+esc(sp.phone)+'</a>':'')
     +(sp.sendEmail?' · orders by email':'')+'</span>'
-    +(isAdmin?'<button class="btn btn-secondary btn-sm" data-edit-supplier="'+esc(sp.id)+'"><i class="fas fa-pen"></i> Edit supplier</button>':'')
-    +'<button class="btn btn-secondary btn-sm" data-supplier-filter=""><i class="fas fa-xmark"></i> All suppliers</button>';
+    +(isAdmin?'<button class="btn btn-secondary btn-sm" data-edit-supplier="'+esc(sp.id)+'"><i class="fas fa-pen"></i> Edit supplier</button>':'');
 }
+// kept for the callers that refresh after a supplier changes
+function renderSuppliers(){ if(currentSection==='inventory' && currentInvTab==='stock') renderInventory(); }
 
 var supplierModalDone = null;   // called with the saved supplier (or null when closed) by whoever opened the form
 function openSupplierModal(editId, preset){
@@ -6161,22 +6263,12 @@ function deleteSupplier(id){
   sbFetch('DELETE','suppliers',null,'id=eq.'+id).then(function(){toast('Supplier deleted.');}).catch(function(){toast('Deleted locally','error');});
 }
 
-function showAllItems(){
-  invSupplierFilter='';
-  var backBtn=document.getElementById('btn-back-to-suppliers'); if(backBtn) backBtn.style.display='none';
-  var titleEl=document.getElementById('inv-items-title'); if(titleEl) titleEl.textContent='All Items';
-  renderInventory();
-  renderSuppliers();
-}
+function showAllItems(){ invSupplierFilter=''; renderInventory(); }
 
 function filterBySupplier(supplierId){
   if(!supplierId){ showAllItems(); return; }
-  invSupplierFilter=supplierId;
-  var db=getDB(); var s=db.suppliers.find(function(x){return x.id===supplierId;});
-  var backBtn=document.getElementById('btn-back-to-suppliers'); if(backBtn) backBtn.style.display='flex';
-  var titleEl=document.getElementById('inv-items-title'); if(titleEl) titleEl.textContent=s?esc(s.name):'Supplier Items';
+  invSupplierFilter=supplierId; if(invView==='cat' && invMode!=='supplier'){ invMode='supplier'; try { localStorage.setItem('bp_inv_mode','supplier'); } catch(e){} }
   renderInventory();
-  renderSuppliers(); // re-render to show active state
 }
 
 function renderInvLogSupplierFilter(){
@@ -6216,26 +6308,103 @@ function confirmQuickOrder(){
 }
 // lower case without accents, so "agua" finds "água"
 function foldTxt(x){ return String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function invOpen(view, cat){
+  invView=view; invCatFilter=view==='cat'?cat:''; invSupplierFilter=''; invReorderIds=null; invSearchVal='';
+  var si=document.getElementById('inv-search'); if(si) si.value='';
+  renderInventory();
+  var cw=document.getElementById('content-wrap'); if(cw) cw.scrollTop=0;
+}
+function invSetMode(m){ invMode=m; invSupplierFilter=''; try { localStorage.setItem('bp_inv_mode', m); } catch(e){} renderInventory(); }
+function renderInvHome(db){
+  var el=document.getElementById('inv-home'); if(!el) return;
+  var inCart={}; pendingOrderItems.forEach(function(p){ inCart[p.id]=true; });
+  var anyMin=db.inventory.some(function(i){ return (+i.minimum||0)>0; });
+  var cards=INV_CATS.map(function(c){
+    var its=db.inventory.filter(function(i){ return invCatKey(i.category)===c.key; });
+    var low=its.filter(invIsLow).length, cart=its.filter(function(i){ return inCart[i.id]; }).length;
+    return '<button class="inv-cat-card'+(its.length?'':' empty')+'" data-inv-open="'+c.key+'">'
+      +'<span class="icc-icon"><i class="fas '+c.icon+'"></i></span>'
+      +'<span class="icc-name">'+esc(c.label)+'</span>'
+      +'<span class="icc-count">'+(its.length?'<b>'+its.length+'</b> item'+(its.length===1?'':'s'):'No items yet')+'</span>'
+      +((low||cart)?'<span class="icc-flags">'+(low?'<span class="icc-flag low">'+low+' low</span>':'')+(cart?'<span class="icc-flag cart">'+cart+' in cart</span>':'')+'</span>':'')
+    +'</button>';
+  });
+  var lowAll=db.inventory.filter(invIsLow).length;
+  cards.push('<button class="inv-cat-card is-low'+(lowAll?' has':'')+'" data-inv-open="__low">'
+    +'<span class="icc-icon"><i class="fas fa-triangle-exclamation"></i></span>'
+    +'<span class="icc-name">Running low</span>'
+    +'<span class="icc-count">'+(lowAll?'<b>'+lowAll+'</b> item'+(lowAll===1?'':'s')+' to reorder':(anyMin?'Nothing running low':'Set “Running low at” on items to use this'))+'</span>'
+  +'</button>');
+  el.innerHTML=cards.join('');
+}
+function renderInvReorder(el, items){
+  if(!invReorderIds) invReorderIds=items.map(function(i){ return i.id; });
+  var byId={}; items.forEach(function(i){ byId[i.id]=i; });
+  invReorderIds=invReorderIds.filter(function(id){ return byId[id]; });
+  var db=getDB(), n=invReorderIds.length;
+  el.innerHTML='<div class="ro-list"><div class="ro-head"><span>Drag the handle, or use the arrows. This is the order everyone sees in '+esc(invCatLabel(invCatFilter))+'; match it to the shelves.</span>'
+    +'<div class="ro-btns"><button class="btn btn-secondary btn-sm" id="btn-ro-cancel">Cancel</button><button class="btn btn-primary btn-sm" id="btn-ro-save"><i class="fas fa-check"></i> Save order</button></div></div>'
+    +invReorderIds.map(function(id, k){
+      var it=byId[id], sup=it.supplierId&&(db.suppliers||[]).find(function(s){ return s.id===it.supplierId; });
+      return '<div class="ro-row" data-ro-id="'+esc(id)+'">'
+        +'<button class="ro-grip" data-ro-grip aria-label="Drag '+esc(it.name)+'"><i class="fas fa-grip-vertical"></i></button>'
+        +'<span class="ro-pos">'+(k+1)+'</span>'
+        +'<span class="ro-name">'+esc(it.name)+(it.unit||sup?'<small>'+esc([it.unit, sup?sup.name:''].filter(Boolean).join(' · '))+'</small>':'')+'</span>'
+        +'<button class="ro-arrow" data-ro-move="-1" aria-label="Move '+esc(it.name)+' up"'+(k===0?' disabled':'')+'><i class="fas fa-arrow-up"></i></button>'
+        +'<button class="ro-arrow" data-ro-move="1" aria-label="Move '+esc(it.name)+' down"'+(k===n-1?' disabled':'')+'><i class="fas fa-arrow-down"></i></button>'
+      +'</div>';
+    }).join('')+'</div>';
+}
+// Put the category's new sequence into the slots its items held in the one saved order, then save it
+function invSaveOrder(){
+  var db=getDB(), ids=invReorderIds||[]; if(!ids.length){ invReorderIds=null; renderInventory(); return; }
+  var full=invOrdered(db.inventory).map(function(i){ return i.id; }), inCat={}; ids.forEach(function(id){ inCat[id]=true; });
+  var k=0; for(var i=0;i<full.length;i++){ if(inCat[full[i]]) full[i]=ids[k++]; }
+  db.invSortOrder=full; saveDB(db); invReorderIds=null; renderInventory(); toast('Saving the order…');
+  sbFetch('PATCH','settings',{inv_sort_order:full},'id=eq.config').then(function(){ toast('Order saved', 'success'); }).catch(function(){ toast('Saved on this device only. Check the connection and try again.', 'error'); });
+}
 function renderInventory(){
-  var db=getDB(); var items=db.inventory.slice();
-  // Apply custom sort order when no filter active
-  if(!invSearchVal && !invCatFilter && db.invSortOrder && db.invSortOrder.length){
-    var order=db.invSortOrder;
-    items.sort(function(a,b){ var ai=order.indexOf(a.id),bi=order.indexOf(b.id); return (ai===-1?9999:ai)-(bi===-1?9999:bi); });
+  var db=getDB(); var el=document.getElementById('inventory-list'); if(!el) return;
+  if(invView==='cat' && !invCatFilter) invView='home';
+  var home=invView==='home', searching=!!invSearchVal.trim();
+  var show=function(id, on){ var x=document.getElementById(id); if(x) x.style.display=on?'':'none'; };
+  // header: back + where we are
+  show('inv-top', !home);
+  var where=document.getElementById('inv-where');
+  if(where && !home){
+    var nIn=invView==='low'?db.inventory.filter(invIsLow).length:db.inventory.filter(function(i){ return invCatKey(i.category)===invCatFilter; }).length;
+    where.innerHTML=esc(invView==='low'?'Running low':invCatLabel(invCatFilter))+'<small>'+nIn+' item'+(nIn===1?'':'s')+'</small>';
   }
-  if(invSearchVal){ var q=foldTxt(invSearchVal).trim(); items=items.filter(function(i){return foldTxt(i.name).indexOf(q)!==-1;}); }
-  if(invCatFilter) items=items.filter(function(i){return i.category===invCatFilter;});
-  if(invSupplierFilter) items=items.filter(function(i){return i.supplierId===invSupplierFilter;});
-  var el=document.getElementById('inventory-list'); if(!el) return;
-  if(items.length===0){el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>No items found.</p></div>';return;}
+  var reordering=!!invReorderIds && invView==='cat';
+  show('btn-inv-reorder', isAdmin && invView==='cat' && invMode==='items' && !searching && !reordering);
+  show('inv-search-bar', !reordering);
+  var si=document.getElementById('inv-search'); if(si) si.placeholder=home?'Search all items':invView==='low'?'Search running low':'Search in '+invCatLabel(invCatFilter);
+  // landing: the category cards (hidden while searching everything)
+  show('inv-home', home && !searching); if(home && !searching) renderInvHome(db);
+  // inside a category: All items | By supplier
+  show('inv-modebar', invView==='cat' && !reordering);
+  document.querySelectorAll('[data-inv-mode]').forEach(function(b){ var on=b.dataset.invMode===invMode; b.classList.toggle('active', on); b.setAttribute('aria-selected', on?'true':'false'); });
+  var bySup=invView==='cat' && invMode==='supplier' && !reordering;
+  var catItems=invView==='cat'?db.inventory.filter(function(i){ return invCatKey(i.category)===invCatFilter; }):[];
+  renderInvSupplierChips(bySup, catItems);
+  if(home && !searching){ el.innerHTML=''; return; }
+  var items=invView==='low'?db.inventory.filter(invIsLow):invView==='cat'?catItems:db.inventory.slice();
+  items=invOrdered(items);
+  if(invView==='low') items.sort(function(a,b){ return INV_CATS.findIndex(function(c){return c.key===invCatKey(a.category);})-INV_CATS.findIndex(function(c){return c.key===invCatKey(b.category);}); });
+  if(reordering){ renderInvReorder(el, items); return; }
+  if(bySup && !invSupplierFilter){ el.innerHTML='<div class="empty-state inv-pick-hint"><i class="fas fa-truck"></i><p>Pick a supplier to see its '+esc(invCatLabel(invCatFilter))+' items.</p></div>'; return; }
+  if(searching){ var q=foldTxt(invSearchVal).trim(); items=items.filter(function(i){return foldTxt(i.name).indexOf(q)!==-1;}); }
+  if(bySup) items=items.filter(function(i){ return invSupplierFilter==='__none' ? !i.supplierId : i.supplierId===invSupplierFilter; });
+  if(items.length===0){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>'+(searching?'Nothing matches “'+esc(invSearchVal.trim())+'”.':invView==='low'?'Nothing is running low.':'No items here yet. Tap Add to start.')+'</p></div>'; return; }
   el.innerHTML=items.map(function(item){
     var total=item.qtyBar+item.qtyStorage;
     var isPending=pendingOrderItems.some(function(p){return p.id===item.id;});
     return '<div class="inv-card'+(isPending?' inv-ordered':'')+'" data-inv-id="'+esc(item.id)+'">'
       +'<div class="inv-card-head">'
-        +'<div class="inv-cat-icon">'+(catIconMap[item.category]||'<i class="fas fa-box"></i>')+'</div>'
+        +'<div class="inv-cat-icon">'+(catIconMap[invCatKey(item.category)]||'<i class="fas fa-box"></i>')+'</div>'
         +'<div style="flex:1;min-width:0">'
           +'<div class="inv-name">'+esc(item.name)+'</div>'
+          +(invIsLow(item)?'<div class="inv-low"><i class="fas fa-triangle-exclamation"></i> Low</div>':'')
           +(item.unit?'<div style="font-size:11px;color:var(--slate-500);margin-top:1px">'+esc(item.unit)+'</div>':'')
           +(function(){ var db2=getDB(); var sup=item.supplierId&&db2.suppliers?(db2.suppliers.find(function(s){return s.id===item.supplierId;})||null):null; return sup?'<div style="font-size:11px;color:var(--teal-500);margin-top:1px;font-weight:600">'+esc(sup.name)+'</div>':''; })()
         +'</div>'
@@ -10312,12 +10481,21 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-inv-tab]');
   if (el) { switchInvTab(el.dataset.invTab); return; }
 
-  // Inv category slicers
-  el = t.closest('[data-inv-cat]');
-  if (el) {
-    invCatFilter = el.dataset.invCat;
-    document.querySelectorAll('.inv-slicer').forEach(function(btn){ btn.classList.toggle('active', btn.dataset.invCat === invCatFilter); });
-    renderInventory();
+  // Stock: category cards, back, All items | By supplier, reorder
+  el = t.closest('[data-inv-open]'); if (el) { var io = el.dataset.invOpen; if (io === '__low') invOpen('low'); else invOpen('cat', io); return; }
+  if (t.closest('#inv-back')) { invOpen('home'); return; }
+  el = t.closest('[data-inv-mode]'); if (el) { invSetMode(el.dataset.invMode); return; }
+  if (t.closest('#btn-inv-reorder')) { invReorderIds = invOrdered(getDB().inventory.filter(function(i){ return invCatKey(i.category) === invCatFilter; })).map(function(i){ return i.id; }); renderInventory(); return; }
+  if (t.closest('#btn-ro-cancel')) { invReorderIds = null; renderInventory(); return; }
+  if (t.closest('#btn-ro-save')) { invSaveOrder(); return; }
+  el = t.closest('[data-ro-move]');
+  if (el && invReorderIds) {
+    var rid = el.closest('[data-ro-id]').dataset.roId, ri = invReorderIds.indexOf(rid), rj = ri + (+el.dataset.roMove);
+    if (ri >= 0 && rj >= 0 && rj < invReorderIds.length) {
+      invReorderIds.splice(ri, 1); invReorderIds.splice(rj, 0, rid); renderInventory();
+      var again = document.querySelector('[data-ro-id="' + rid + '"] [data-ro-move="' + el.dataset.roMove + '"]');
+      if (again && !again.disabled) again.focus(); else { var other = document.querySelector('[data-ro-id="' + rid + '"] .ro-arrow:not([disabled])'); if (other) other.focus(); }
+    }
     return;
   }
 
@@ -10396,7 +10574,7 @@ document.addEventListener('click', function(e) {
   if (el) { approveOrder(el.dataset.confirmOrder); return; }
 
   // Supplier actions
-  if (t.closest('#btn-add-supplier')) { openSupplierModal(null); return; }
+  if (t.closest('#btn-add-supplier')) { supplierModalDone = function(sp){ if (sp) filterBySupplier(sp.id); }; openSupplierModal(null); return; }
   if (t.closest('#btn-delete-inventory')) { if (editInventoryId && deleteInventoryItem(editInventoryId)) { editInventoryId = null; closeModal('modal-add-inventory'); } return; }
   if (t.closest('[data-my-week]')) { currentShiftsTab = 'mine'; shiftsTabChosen = true; showSection('shifts'); return; }
   if (t.closest('#btn-save-supplier')) { saveSupplierModal(); return; }
@@ -10707,10 +10885,6 @@ document.addEventListener('click', function(e) {
 document.addEventListener('input', function(e) {
   var t = e.target;
   if (t.id === 'inv-search') { invSearchVal=t.value; renderInventory(); }
-  if (t.id === 'inv-sup-pick') {
-    if (t.value === '__new') { t.value = invSupplierFilter || ''; supplierModalDone = function(sp){ if (sp) filterBySupplier(sp.id); }; openSupplierModal(null); }
-    else filterBySupplier(t.value);
-  }
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
   if (t.id === 'bb-records-search') { bbRecordsSearch=t.value; renderBbItemRecords(); }
