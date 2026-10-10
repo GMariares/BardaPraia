@@ -346,10 +346,30 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-slicer { display:inline-flex; align-items:center; gap:6px; padding:8px 13px; min-height:36px; border-radius:18px; border:var(--rule); background:var(--panel); color:var(--slate-600); font-size:12px; font-weight:700; cursor:pointer; transition:background .15s, color .15s, border-color .15s; white-space:nowrap; }
     .inv-slicer:active { transform:scale(.97); }
     .inv-slicer.active { background:var(--slate-700); color:white; border-color:var(--slate-700); }
-    #inventory-list { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
-    @media(min-width:480px){ #inventory-list { grid-template-columns:repeat(3,1fr); } }
-    @media(min-width:760px){ #inventory-list { grid-template-columns:repeat(4,1fr); gap:10px; } }
-    @media(min-width:1180px){ #inventory-list { grid-template-columns:repeat(5,1fr); gap:12px; } }
+    #inventory-list { display:grid; grid-template-columns:1fr; gap:8px; }
+    @media(min-width:700px){ #inventory-list { grid-template-columns:repeat(2,1fr); gap:10px; } }
+    @media(min-width:1280px){ #inventory-list { grid-template-columns:repeat(3,1fr); gap:12px; } }
+    /* Counting in place: Bar and Storage steppers on every item */
+    .inv-card-head .inv-head-acts { display:flex; align-items:center; gap:4px; flex-shrink:0; }
+    .inv-meta { font-size:11px; color:var(--slate-500); margin-top:1px; }
+    .inv-meta b { color:var(--teal-700); font-weight:600; }
+    .inv-qty { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end; }
+    .qty-lbl { display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--slate-500); margin:0 0 4px 2px; }
+    .stepper { display:flex; align-items:stretch; height:44px; border:var(--rule); border-radius:var(--radius-sm); background:var(--panel); overflow:hidden; }
+    .stepper:focus-within { border-color:var(--teal-500); box-shadow:0 0 0 3px var(--mint-100); }
+    .stepper button { width:40px; flex-shrink:0; border:none; background:var(--slate-50); color:var(--slate-700); font-size:14px; cursor:pointer; }
+    .stepper button:hover { background:var(--slate-100); }
+    .stepper button:active { background:var(--mint-100); color:var(--teal-700); }
+    .stepper button:disabled { color:var(--slate-300); cursor:default; background:var(--slate-50); }
+    .stepper input { flex:1; min-width:0; width:100%; border:none; outline:none; text-align:center; font:inherit; font-size:16px; font-weight:800; color:var(--slate-900); background:transparent; font-variant-numeric:tabular-nums; }
+    .qty-total { min-width:52px; text-align:center; padding-bottom:10px; }
+    .qty-total b { font-size:18px; font-weight:800; color:var(--teal-700); font-variant-numeric:tabular-nums; }
+    .qty-status { position:absolute; right:12px; bottom:2px; font-size:11px; font-weight:600; color:var(--slate-400); pointer-events:none; }
+    .qty-status:empty { display:none; }
+    .inv-card .inv-qty { margin-bottom:6px; }
+    .qty-status.ok { color:var(--green); }
+    .qty-status.bad { color:var(--red); }
+    .inv-card.inv-ordered .stepper button { background:var(--panel); }
     .inv-card { background:var(--panel); border-radius:var(--radius); padding:12px 10px 10px; border:var(--rule); display:flex; flex-direction:column; gap:8px; position:relative; transition:background .2s,border-color .2s; }
     .inv-card.inv-ordered { background:var(--green-50); border-color:var(--green-200); }
     .inv-card .inv-low { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--amber-700); }
@@ -2286,10 +2306,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
     <div class="form-row"><label class="label">Unit (optional)</label><input type="text" class="input-field" id="inv-unit" placeholder="bottles, kg, boxes..." /></div>
     <div class="form-grid-2" style="margin-bottom:14px">
-      <div><label class="label">In Bar</label><input type="number" class="input-field" id="inv-qty-bar" min="0" value="0" /></div>
-      <div><label class="label">In Storage</label><input type="number" class="input-field" id="inv-qty-storage" min="0" value="0" /></div>
+      <div><label class="label">In Bar</label><input type="text" inputmode="decimal" class="input-field" id="inv-qty-bar" autocomplete="off" /></div>
+      <div><label class="label">In Storage</label><input type="text" inputmode="decimal" class="input-field" id="inv-qty-storage" autocomplete="off" /></div>
     </div>
-    <div class="form-row"><label class="label" for="inv-minimum">Running low at</label><input type="number" class="input-field" id="inv-minimum" min="0" inputmode="numeric" placeholder="Leave empty to not watch it" /><p class="acc-note" style="margin-top:6px">When bar + storage drop to this number or below, the item shows under Running low.</p></div>
+    <div class="form-row"><label class="label" for="inv-minimum">Running low at</label> <input type="text" class="input-field" id="inv-minimum" inputmode="decimal" autocomplete="off" placeholder="Leave empty to not watch it" /><p class="acc-note" style="margin-top:6px">When bar + storage drop to this number or below, the item shows under Running low.</p></div>
     <div class="form-row" style="margin-bottom:14px"><label class="label">Supplier</label><select class="select-field" id="inv-supplier"></select></div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-inventory"><i class="fas fa-save"></i> Save</button>
@@ -2363,8 +2383,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <p class="form-who"><i class="fas fa-user-check"></i><span>Saved as <b class="who-me"></b></span></p>
     <div style="background:var(--slate-50);border-radius:12px;padding:12px;margin-bottom:14px;font-weight:700;color:var(--slate-900)" id="update-qty-name"></div>
     <div class="form-grid-2" style="margin-bottom:16px">
-      <div><label class="label">Qty in Bar</label><input type="number" class="input-field" id="update-qty-bar" min="0" /></div>
-      <div><label class="label">Qty in Storage</label><input type="number" class="input-field" id="update-qty-storage" min="0" /></div>
+      <div><label class="label">Qty in Bar</label><input type="text" inputmode="decimal" class="input-field" id="update-qty-bar" autocomplete="off" /></div>
+      <div><label class="label">Qty in Storage</label><input type="text" inputmode="decimal" class="input-field" id="update-qty-storage" autocomplete="off" /></div>
     </div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-save-qty-update"><i class="fas fa-save"></i> Update</button>
@@ -6064,10 +6084,10 @@ function openAddInventoryModal(editId) {
     document.getElementById('inv-modal-title').textContent='Edit Item';
     document.getElementById('inv-item-name').value=item.name;
     document.getElementById('inv-category').value=invCatKey(item.category);
-    document.getElementById('inv-minimum').value=(+item.minimum||0)>0?item.minimum:'';
+    document.getElementById('inv-minimum').value=(+item.minimum||0)>0?fmtQty(item.minimum):'';
     document.getElementById('inv-unit').value=item.unit||'';
-    document.getElementById('inv-qty-bar').value=item.qtyBar;
-    document.getElementById('inv-qty-storage').value=item.qtyStorage;
+    document.getElementById('inv-qty-bar').value=fmtQty(item.qtyBar);
+    document.getElementById('inv-qty-storage').value=fmtQty(item.qtyStorage);
     var supEl=document.getElementById('inv-supplier'); if(supEl) supEl.value=item.supplierId||'';
   } else {
     editInventoryId=null;
@@ -6091,11 +6111,11 @@ function fillWhoMe() { document.querySelectorAll('.who-me').forEach(function(b){
 function saveInventoryItem() {
   var name=document.getElementById('inv-item-name').value.trim(); if(!name){toast('Name required!','error');return;}
   var db=getDB(); var emp=whoAmI();
-  var qb=parseInt(document.getElementById('inv-qty-bar').value)||0;
-  var qs=parseInt(document.getElementById('inv-qty-storage').value)||0;
+  var qb=readQty(document.getElementById('inv-qty-bar').value)||0;
+  var qs=readQty(document.getElementById('inv-qty-storage').value)||0;
   var cat=document.getElementById('inv-category').value;
   var unit=document.getElementById('inv-unit').value.trim();
-  var minimum=Math.max(0, parseInt(document.getElementById('inv-minimum').value)||0);
+  var minimum=readQty(document.getElementById('inv-minimum').value)||0;
   var supId=(document.getElementById('inv-supplier')||{}).value||'';
   var now=new Date().toISOString();
   var eid=editInventoryId;
@@ -6138,16 +6158,16 @@ function openUpdateQtyModal(id){
   var db=getDB(); var item=db.inventory.find(function(i){return i.id===id;}); if(!item) return;
   document.getElementById('update-qty-id').value=id;
   document.getElementById('update-qty-name').textContent=item.name+(item.unit?' ('+item.unit+')':'');
-  document.getElementById('update-qty-bar').value=item.qtyBar;
-  document.getElementById('update-qty-storage').value=item.qtyStorage;
+  document.getElementById('update-qty-bar').value=fmtQty(item.qtyBar);
+  document.getElementById('update-qty-storage').value=fmtQty(item.qtyStorage);
   fillWhoMe();
   openModal('modal-update-qty');
 }
 function saveQtyUpdate(){
   var id=document.getElementById('update-qty-id').value;
   var emp=whoAmI();
-  var qb=parseInt(document.getElementById('update-qty-bar').value)||0;
-  var qs=parseInt(document.getElementById('update-qty-storage').value)||0;
+  var qb=readQty(document.getElementById('update-qty-bar').value)||0;
+  var qs=readQty(document.getElementById('update-qty-storage').value)||0;
   var now=new Date().toISOString();
   var db=getDB(); var idx=db.inventory.findIndex(function(i){return i.id===id;});
   var iname='';
@@ -6397,31 +6417,74 @@ function renderInventory(){
   if(bySup) items=items.filter(function(i){ return invSupplierFilter==='__none' ? !i.supplierId : i.supplierId===invSupplierFilter; });
   if(items.length===0){ el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>'+(searching?'Nothing matches “'+esc(invSearchVal.trim())+'”.':invView==='low'?'Nothing is running low.':'No items here yet. Tap Add to start.')+'</p></div>'; return; }
   el.innerHTML=items.map(function(item){
-    var total=item.qtyBar+item.qtyStorage;
+    var qb=+item.qtyBar||0, qs=+item.qtyStorage||0, nm=esc(item.name);
     var isPending=pendingOrderItems.some(function(p){return p.id===item.id;});
+    var sup=item.supplierId&&db.suppliers?(db.suppliers.find(function(s){return s.id===item.supplierId;})||null):null;
+    var meta=[item.unit?esc(item.unit):'', sup?'<b>'+esc(sup.name)+'</b>':''].filter(Boolean).join(' · ');
+    var stepper=function(f, v, where){
+      return '<div><span class="qty-lbl">'+where+'</span><div class="stepper">'
+        +'<button data-qty-step="-1" data-qty-f="'+f+'" aria-label="One less '+nm+' in '+where.toLowerCase()+'"'+(v<=0?' disabled':'')+'><i class="fas fa-minus"></i></button>'
+        +'<input data-qty-f="'+f+'" inputmode="decimal" autocomplete="off" value="'+fmtQty(v)+'" aria-label="'+nm+' in '+where.toLowerCase()+'" />'
+        +'<button data-qty-step="1" data-qty-f="'+f+'" aria-label="One more '+nm+' in '+where.toLowerCase()+'"><i class="fas fa-plus"></i></button>'
+      +'</div></div>';
+    };
     return '<div class="inv-card'+(isPending?' inv-ordered':'')+'" data-inv-id="'+esc(item.id)+'">'
       +'<div class="inv-card-head">'
         +'<div class="inv-cat-icon">'+(catIconMap[invCatKey(item.category)]||'<i class="fas fa-box"></i>')+'</div>'
         +'<div style="flex:1;min-width:0">'
-          +'<div class="inv-name">'+esc(item.name)+'</div>'
-          +(invIsLow(item)?'<div class="inv-low"><i class="fas fa-triangle-exclamation"></i> Low</div>':'')
-          +(item.unit?'<div style="font-size:11px;color:var(--slate-500);margin-top:1px">'+esc(item.unit)+'</div>':'')
-          +(function(){ var db2=getDB(); var sup=item.supplierId&&db2.suppliers?(db2.suppliers.find(function(s){return s.id===item.supplierId;})||null):null; return sup?'<div style="font-size:11px;color:var(--teal-500);margin-top:1px;font-weight:600">'+esc(sup.name)+'</div>':''; })()
+          +'<div class="inv-name">'+nm+'</div>'
+          +(meta?'<div class="inv-meta">'+meta+'</div>':'')
+          +'<div class="inv-lowslot">'+(invIsLow(item)?'<div class="inv-low"><i class="fas fa-triangle-exclamation"></i> Low</div>':'')+'</div>'
         +'</div>'
-        +(isAdmin?'<button class="inv-edit-link" data-edit-inv="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">Edit</button>':'')
+        +'<div class="inv-head-acts">'
+          +(isAdmin?'<button class="inv-edit-link" data-edit-inv="'+esc(item.id)+'" aria-label="Edit '+nm+'">Edit</button>':'')
+          +'<button class="inv-order-btn" data-quick-order="'+esc(item.id)+'" title="Add to order" aria-label="Add '+nm+' to the order"><i class="fas fa-cart-plus"></i></button>'
+        +'</div>'
       +'</div>'
-      +'<div class="inv-stats">'
-        +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyBar+'</div><div class="inv-stat-label">Bar</div></div>'
-        +'<div class="inv-stat"><div class="inv-stat-val">'+item.qtyStorage+'</div><div class="inv-stat-label">Storage</div></div>'
-        +'<div class="inv-stat"><div class="inv-stat-val" style="color:var(--teal-600)">'+total+'</div><div class="inv-stat-label">Total</div></div>'
-      +'</div>'
-      +'<div class="inv-actions">'
-        +'<button class="btn btn-secondary btn-sm inv-count-btn" data-update-qty="'+esc(item.id)+'" aria-label="Update the count of '+esc(item.name)+'"><i class="fas fa-pen"></i> Update</button>'
-        +'<button class="inv-order-btn" data-quick-order="'+esc(item.id)+'" title="Add to order" aria-label="Add '+esc(item.name)+' to the order"><i class="fas fa-cart-plus"></i></button>'
-      +'</div>'
+      +'<div class="inv-qty">'+stepper('bar', qb, 'Bar')+stepper('storage', qs, 'Storage')
+        +'<div class="qty-total"><span class="qty-lbl">Total</span><b>'+fmtQty(qb+qs)+'</b></div></div>'
+      +'<div class="qty-status" aria-live="polite"></div>'
     +'</div>';
   }).join('');
 }
+// Quantities: whole or part units (0,5 · 1,5), shown with a comma
+function fmtQty(n){ n=Math.round((+n||0)*100)/100; return String(n).replace('.', ','); }
+function readQty(v){ var n=accNum(v); return (n===null||isNaN(n))?null:Math.max(0, Math.round(n*100)/100); }
+var invQtyTimers = {};
+function invQtySet(id, field, val, fromTyping){
+  var db=getDB(), it=db.inventory.find(function(i){ return i.id===id; }); if(!it) return;
+  val=Math.max(0, Math.round((+val||0)*100)/100);
+  if(field==='bar') it.qtyBar=val; else it.qtyStorage=val;
+  it.lastEmployee=whoAmI(); it.updatedAt=new Date().toISOString(); saveDB(db);
+  var card=document.querySelector('.inv-card[data-inv-id="'+CSS.escape(id)+'"]');
+  if(card){
+    if(!fromTyping){ var inp=card.querySelector('input[data-qty-f="'+field+'"]'); if(inp) inp.value=fmtQty(val); }
+    var minus=card.querySelector('[data-qty-step="-1"][data-qty-f="'+field+'"]'); if(minus) minus.disabled=val<=0;
+    var tot=card.querySelector('.qty-total b'); if(tot) tot.textContent=fmtQty((+it.qtyBar||0)+(+it.qtyStorage||0));
+    var low=card.querySelector('.inv-lowslot'); if(low) low.innerHTML=invIsLow(it)?'<div class="inv-low"><i class="fas fa-triangle-exclamation"></i> Low</div>':'';
+    invQtyStatus(card, '', 'Saving…');
+  }
+  clearTimeout(invQtyTimers[id]); invQtyTimers[id]=setTimeout(function(){ invQtySave(id); }, 900);
+}
+function invQtyStatus(card, cls, txt){ var st=card&&card.querySelector('.qty-status'); if(!st) return; st.className='qty-status'+(cls?' '+cls:''); st.textContent=txt; }
+function invQtySave(id){
+  delete invQtyTimers[id];
+  var db=getDB(), it=db.inventory.find(function(i){ return i.id===id; }); if(!it) return;
+  var qb=+it.qtyBar||0, qs=+it.qtyStorage||0, emp=whoAmI(), now=new Date().toISOString();
+  var card=function(){ return document.querySelector('.inv-card[data-inv-id="'+CSS.escape(id)+'"]'); };
+  sbFetch('PATCH','inventory',{qty_bar:qb,qty_storage:qs,last_employee:emp,updated_at:now},'id=eq.'+id).then(function(){
+    addInvLog(db,{action:'update',item:it.name,employee:emp,qtyBar:qb,qtyStorage:qs}); saveDB(db);
+    sbAddInvLog({action:'update',item:it.name,employee:emp,qty_bar:qb,qty_storage:qs});
+    var c=card(); invQtyStatus(c, 'ok', 'Saved'); setTimeout(function(){ var c2=card(); if(c2 && !invQtyTimers[id]) invQtyStatus(c2, '', ''); }, 1800);
+  }).catch(function(){
+    var part=(qb%1!==0)||(qs%1!==0);
+    invQtyStatus(card(), 'bad', 'Not saved');
+    toast(part ? 'Part quantities like 0,5 need the stock database update (migration s). Whole numbers save fine.' : 'Not saved. Check the connection and try again.', 'error');
+  });
+}
+function invQtyFlush(){ Object.keys(invQtyTimers).forEach(function(id){ clearTimeout(invQtyTimers[id]); invQtySave(id); }); }
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') invQtyFlush(); });
+window.addEventListener('pagehide', invQtyFlush);
 function renderInvLog(){
   var db=getDB(); var el=document.getElementById('inv-log-list'); if(!el) return;
   var logs=db.invLogs.slice();
@@ -9402,7 +9465,15 @@ function accNewLineNamed(kind, name) {
   if (kind === 'expense') openAccLedger('expense', name);
 }
 
+// typed quantities: tidy the number when leaving the box; Enter leaves it
+document.addEventListener('focusout', function(e){
+  var t = e.target; if (!t || !t.dataset || !t.dataset.qtyF || t.tagName !== 'INPUT') return;
+  var qcard = t.closest('[data-inv-id]'); if (!qcard) return;
+  var it = getDB().inventory.find(function(i){ return i.id === qcard.dataset.invId; }); if (!it) return;
+  t.value = fmtQty(t.dataset.qtyF === 'bar' ? it.qtyBar : it.qtyStorage);
+});
 document.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' && e.target && e.target.dataset && e.target.dataset.qtyF && e.target.tagName === 'INPUT') { e.preventDefault(); e.target.blur(); return; }
   if (e.key === 'Escape') {
     var top = topModalId();
     if (top) { e.preventDefault(); if (top === 'modal-clock' && document.getElementById('btn-clock-cancel')) document.getElementById('btn-clock-cancel').click(); else closeModal(top); return; }
@@ -10481,6 +10552,10 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-inv-tab]');
   if (el) { switchInvTab(el.dataset.invTab); return; }
 
+  // Stock: count in place
+  el = t.closest('[data-qty-step]');
+  if (el) { var qc = el.closest('[data-inv-id]'), qi = getDB().inventory.find(function(i){ return i.id === qc.dataset.invId; });
+    if (qi) { var qf = el.dataset.qtyF, cur = qf === 'bar' ? (+qi.qtyBar || 0) : (+qi.qtyStorage || 0); invQtySet(qi.id, qf, cur + (+el.dataset.qtyStep)); } return; }
   // Stock: category cards, back, All items | By supplier, reorder
   el = t.closest('[data-inv-open]'); if (el) { var io = el.dataset.invOpen; if (io === '__low') invOpen('low'); else invOpen('cat', io); return; }
   if (t.closest('#inv-back')) { invOpen('home'); return; }
@@ -10885,6 +10960,7 @@ document.addEventListener('click', function(e) {
 document.addEventListener('input', function(e) {
   var t = e.target;
   if (t.id === 'inv-search') { invSearchVal=t.value; renderInventory(); }
+  if (t.dataset && t.dataset.qtyF && t.tagName === 'INPUT') { var qv = readQty(t.value), qcard = t.closest('[data-inv-id]'); if (qv !== null && qcard) invQtySet(qcard.dataset.invId, t.dataset.qtyF, qv, true); }
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
   if (t.id === 'bb-records-search') { bbRecordsSearch=t.value; renderBbItemRecords(); }
