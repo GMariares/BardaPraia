@@ -407,8 +407,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-cat-card.is-low.has { border-color:var(--amber-200); background:var(--amber-50); }
     .inv-cat-card.is-low.has .icc-icon { background:var(--panel); }
     .inv-top { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-    .inv-back { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:0; border-radius:var(--radius-sm); border:var(--rule); background:var(--panel); color:var(--slate-700); cursor:pointer; font-size:15px; }
-    .inv-back:hover { background:var(--slate-50); }
+    .stock-back { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:0; border-radius:var(--radius-sm); border:var(--rule); background:var(--panel); color:var(--slate-700); cursor:pointer; font-size:15px; }
+    .stock-back:hover { background:var(--slate-50); }
     .inv-where { flex:1; min-width:0; }
     .inv-where h3 { font-size:19px; font-weight:800; color:var(--slate-900); letter-spacing:-.01em; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .inv-where h3 small { font-size:13px; font-weight:600; color:var(--slate-500); margin-left:6px; letter-spacing:0; }
@@ -961,6 +961,26 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .inv-amt.owed b { color:var(--red); }
     .inv-tick { width:44px; height:44px; border-radius:10px; border:var(--rule); background:var(--panel); color:var(--slate-300); font-size:20px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     .inv-tick.on { background:var(--mint-50); border-color:var(--mint-200); color:var(--teal-700); }
+    .inv-sel { width:44px; height:44px; border-radius:10px; border:var(--rule); background:var(--panel); color:var(--slate-300); font-size:20px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .inv-sel:hover { color:var(--slate-500); }
+    .inv-sel.on { background:var(--teal-600); border-color:var(--teal-600); color:white; }
+    .inv-row.sel { background:var(--mint-50); }
+    .inv-paidmark { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--green); font-size:18px; }
+    .inv-selbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between; font-size:13px; color:var(--slate-600); margin:0 2px 8px; }
+    .inv-paybar { position:sticky; bottom:0; z-index:5; display:flex; align-items:center; gap:8px; margin-top:12px; padding:10px 12px; background:var(--slate-700); color:white; border-radius:var(--radius); box-shadow:var(--shadow-overlay); }
+    .inv-paybar-sum { flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.2; }
+    .inv-paybar-sum span { font-size:12px; color:var(--mint-200); font-weight:600; }
+    .inv-paybar-sum b { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+    .inv-paybar .btn-secondary { background:transparent; color:white; border-color:rgba(255,255,255,.3); }
+    .inv-pay-list { border:var(--rule); border-radius:var(--radius-sm); max-height:40vh; overflow-y:auto; }
+    .inv-pay-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border-bottom:1px solid var(--slate-100); font-size:14px; }
+    .inv-pay-row:last-child { border-bottom:none; }
+    .inv-pay-row span { min-width:0; font-weight:700; color:var(--slate-900); }
+    .inv-pay-row small { display:block; font-size:12px; font-weight:500; color:var(--slate-500); }
+    .inv-pay-row b { font-variant-numeric:tabular-nums; }
+    .inv-pay-total { display:flex; align-items:baseline; justify-content:space-between; padding:12px 4px 6px; }
+    .inv-pay-total span { font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--slate-600); }
+    .inv-pay-total b { font-size:24px; font-weight:800; color:var(--slate-900); font-variant-numeric:tabular-nums; }
     .inv-pill { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:10px; }
     .inv-pill.paid { background:var(--mint-50); color:var(--teal-700); border:1px solid var(--mint-200); }
     .inv-pill.open { background:var(--amber-50); color:var(--amber-700); border:1px solid var(--amber-200); }
@@ -1257,7 +1277,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
     <div id="inv-panel-stock">
       <div class="inv-top" id="inv-top" style="display:none">
-        <button class="inv-back" id="inv-back" aria-label="Back to all categories"><i class="fas fa-arrow-left"></i></button>
+        <button class="stock-back" id="stock-back" aria-label="Back to all categories"><i class="fas fa-arrow-left"></i></button>
         <div class="inv-where"><h3 id="inv-where"></h3></div>
         <button class="btn btn-secondary btn-sm" id="btn-inv-reorder" style="display:none"><i class="fas fa-arrow-down-up-across-line"></i> Reorder</button>
       </div>
@@ -2370,6 +2390,23 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-ask">Cancel</button>
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-ask-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invoices: confirm paying several at once -->
+<div class="modal-overlay" id="modal-inv-pay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-money-check" style="color:var(--teal-600)"></i><span>Mark as paid</span></h2>
+    <p class="acc-note" id="inv-pay-who" style="margin-bottom:10px"></p>
+    <div class="inv-pay-list" id="inv-pay-list"></div>
+    <div class="inv-pay-total"><span>Total paid</span><b id="inv-pay-total"></b></div>
+    <div id="inv-pay-nib" class="inv-nib-box"></div>
+    <div class="form-row" style="margin-top:12px"><label class="label" for="inv-pay-date">Paid on</label><input type="date" class="input-field" id="inv-pay-date" /></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-inv-pay">Cancel</button>
+      <button class="btn btn-primary" style="flex:2;justify-content:center" id="btn-inv-pay-confirm"></button>
     </div>
   </div>
 </div>
@@ -6342,7 +6379,7 @@ function renderInvHome(db){
   var cards=INV_CATS.map(function(c){
     var its=db.inventory.filter(function(i){ return invCatKey(i.category)===c.key; });
     var low=its.filter(invIsLow).length, cart=its.filter(function(i){ return inCart[i.id]; }).length;
-    return '<button class="inv-cat-card'+(its.length?'':' empty')+'" data-inv-open="'+c.key+'">'
+    return '<button class="inv-cat-card'+(its.length?'':' empty')+'" data-stock-open="'+c.key+'">'
       +'<span class="icc-icon"><i class="fas '+c.icon+'"></i></span>'
       +'<span class="icc-name">'+esc(c.label)+'</span>'
       +'<span class="icc-count">'+(its.length?'<b>'+its.length+'</b> item'+(its.length===1?'':'s'):'No items yet')+'</span>'
@@ -6350,7 +6387,7 @@ function renderInvHome(db){
     +'</button>';
   });
   var lowAll=db.inventory.filter(invIsLow).length;
-  cards.push('<button class="inv-cat-card is-low'+(lowAll?' has':'')+'" data-inv-open="__low">'
+  cards.push('<button class="inv-cat-card is-low'+(lowAll?' has':'')+'" data-stock-open="__low">'
     +'<span class="icc-icon"><i class="fas fa-triangle-exclamation"></i></span>'
     +'<span class="icc-name">Running low</span>'
     +'<span class="icc-count">'+(lowAll?'<b>'+lowAll+'</b> item'+(lowAll===1?'':'s')+' to reorder':(anyMin?'Nothing running low':'Set “Running low at” on items to use this'))+'</span>'
@@ -8749,6 +8786,7 @@ function accSetCell(kind, y, m, line, part, raw) {
 
 // ── Invoices: the supplier invoices with their photo, grouped by supplier, with a paid tick ──
 var invFilter = 'open', invSupplier = null, invFile = null, invFileUrl = '', invSaving = false;
+var invSel = {};   // invoices picked to pay together (supplier view)
 function invFromRow(r) {
   return { id:r.id, supplierId:r.supplier_id||'', supplierName:r.supplier_name||'', supplierNif:r.supplier_nif||'', number:r.number||'', date:r.date, dueDate:r.due_date||'',
     net:r.net==null?null:parseFloat(r.net), vat:r.vat==null?null:parseFloat(r.vat), total:parseFloat(r.total)||0, paid:!!r.paid, paidAt:r.paid_at||'', notes:r.notes||'',
@@ -8825,14 +8863,26 @@ function accInvoicesHTML() {
       + '<div class="acc-toolbar-title">' + esc(name) + ' <span>' + any.length + ' invoice' + (any.length === 1 ? '' : 's') + ' · ' + accEur(sTot) + (sOwed > 0 ? ' · <b style="color:var(--red)">' + accEur(sOwed) + ' to pay</b>' : '') + '</span></div></div>'
       + (function(){ var nh = invNibHtml(supRec); return nh ? '<div class="inv-nib-box">' + nh + '</div>' : (supRec ? '<p class="acc-note" style="margin-top:-4px">No NIB on this supplier yet — tap <b>Supplier</b> to add it.</p>' : ''); })();
     if (!mine.length) { h += '<div class="empty-state"><i class="fas fa-file-invoice"></i><p>No ' + (invFilter === 'paid' ? 'paid' : invFilter === 'open' ? 'unpaid' : '') + ' invoices for ' + esc(name) + '.</p></div>'; return h; }
+    var unpaidHere = mine.filter(function(i){ return !i.paid; });
+    Object.keys(invSel).forEach(function(id){ if (!unpaidHere.some(function(i){ return i.id === id; })) delete invSel[id]; });
+    var nSel = Object.keys(invSel).length;
+    if (unpaidHere.length) h += '<div class="inv-selbar"><span>Tick the invoices you are paying, then <b>Mark as paid</b>.</span>'
+      + (nSel < unpaidHere.length ? '<button class="notif-link" id="inv-sel-all">Select all ' + unpaidHere.length + ' unpaid</button>' : '<button class="notif-link" id="inv-sel-none">Clear selection</button>') + '</div>';
     h += '<div class="acc-card" style="padding:0">' + mine.map(function(i){
       var over = invIsOverdue(i);
-      return '<div class="inv-row" data-inv-open="' + esc(i.id) + '" role="button" tabindex="0">'
-        + '<button class="inv-tick' + (i.paid ? ' on' : '') + '" data-inv-paid="' + esc(i.id) + '" aria-pressed="' + i.paid + '" title="' + (i.paid ? 'Paid' + (i.paidAt ? ' ' + invDateTxt(i.paidAt) : '') + ' — tap to undo' : 'Tap when paid') + '"><i class="fas ' + (i.paid ? 'fa-square-check' : 'fa-square') + '"></i></button>'
+      var sel = !i.paid && !!invSel[i.id];
+      return '<div class="inv-row' + (sel ? ' sel' : '') + '" data-inv-open="' + esc(i.id) + '" role="button" tabindex="0">'
+        + (i.paid ? '<span class="inv-paidmark" title="Paid' + (i.paidAt ? ' ' + esc(invDateTxt(i.paidAt)) : '') + '"><i class="fas fa-circle-check"></i></span>'
+                  : '<button class="inv-sel' + (sel ? ' on' : '') + '" data-inv-sel="' + esc(i.id) + '" aria-pressed="' + sel + '" aria-label="Select ' + esc(i.number || 'invoice') + ' to pay"><i class="fas ' + (sel ? 'fa-square-check' : 'fa-square') + '"></i></button>')
         + '<div class="inv-main"><div class="inv-name">' + (i.number ? esc(i.number) : '<span style="color:var(--slate-500)">no number</span>') + (i.photoPath ? '<i class="fas fa-paperclip" style="color:var(--slate-400);font-size:12px"></i>' : '') + (i.source === 'qr' ? '<i class="fas fa-qrcode" style="color:var(--teal-600);font-size:12px" title="Read from the QR code"></i>' : '') + '</div>'
         + '<div class="inv-sub' + (over ? ' over' : '') + '">' + invDateTxt(i.date) + (i.dueDate ? ' · due ' + invDateTxt(i.dueDate) + (over ? ' (overdue)' : '') : '') + (i.paid && i.paidAt ? ' · paid ' + invDateTxt(i.paidAt) : '') + '</div></div>'
         + '<div class="inv-amt' + (i.paid ? '' : ' owed') + '"><b>' + accEur(i.total) + '</b>' + (i.net != null ? '<small>' + accEur(i.net) + ' + VAT ' + accEur(i.vat || 0) + '</small>' : '') + '</div></div>';
     }).join('') + '</div>';
+    if (nSel) {
+      var selSum = unpaidHere.filter(function(i){ return invSel[i.id]; }).reduce(function(s, i){ return s + (i.total || 0); }, 0);
+      h += '<div class="inv-paybar" role="region" aria-label="Selected invoices"><div class="inv-paybar-sum"><span>' + nSel + ' selected</span><b>' + accEur(selSum) + '</b></div>'
+        + '<button class="btn btn-secondary btn-sm" id="inv-sel-none2">Clear</button><button class="btn btn-primary" id="btn-inv-pay"><i class="fas fa-check"></i> Mark as paid…</button></div>';
+    }
     return h;
   }
   // invoices put aside: shown first, to finish by hand
@@ -9131,11 +9181,37 @@ function saveInvoice() {
   }).catch(function(e){ toast(e && e.message ? e.message : 'Not saved. Check the connection.', 'error'); })
     .then(function(){ invSaving = false; btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; });
 }
-function invSetPaid(id, on) {
-  var db = getDB(), i = (db.invoices || []).find(function(x){ return x.id === id; }); if (!i) return;
-  var patch = { paid:on, paid_at:on ? toDateStr(new Date()) : null, updated_at:new Date().toISOString() };
-  i.paid = on; i.paidAt = patch.paid_at || ''; saveDB(db); invUpdateBadge(); renderAccounting();
-  sbFetch('PATCH', 'invoices', patch, 'id=eq.' + encodeURIComponent(id)).catch(function(){ toast('Not saved. Check the connection.', 'error'); invoicesLoad(); });
+function invSelected() { return invoices().filter(function(i){ return invSel[i.id] && !i.paid; }).sort(function(a, b){ return String(a.date).localeCompare(String(b.date)); }); }
+function openInvPayConfirm() {
+  var list = invSelected(); if (!list.length) return;
+  var sum = list.reduce(function(s, i){ return s + (i.total || 0); }, 0), name = list[0].supplierName;
+  document.getElementById('inv-pay-who').innerHTML = '<b>' + list.length + ' invoice' + (list.length === 1 ? '' : 's') + '</b> from <b>' + esc(name) + '</b>. Check them before confirming.';
+  document.getElementById('inv-pay-list').innerHTML = list.map(function(i){
+    return '<div class="inv-pay-row"><span>' + (i.number ? esc(i.number) : '<i style="color:var(--slate-500)">no number</i>') + '<small>' + esc(invDateTxt(i.date)) + (i.dueDate ? ' · due ' + esc(invDateTxt(i.dueDate)) : '') + '</small></span><b>' + accEur(i.total) + '</b></div>';
+  }).join('');
+  document.getElementById('inv-pay-total').textContent = accEur(sum);
+  var nib = invNibHtml(invSupplierRec(invSupplierKey(list[0]), name)), nb = document.getElementById('inv-pay-nib');
+  nb.innerHTML = nib ? 'Transfer to ' + nib : ''; nb.style.display = nib ? '' : 'none';
+  document.getElementById('inv-pay-date').value = toDateStr(new Date());
+  var b = document.getElementById('btn-inv-pay-confirm'); b.disabled = false;
+  b.innerHTML = '<i class="fas fa-check"></i> Yes, mark ' + (list.length === 1 ? 'it' : 'all ' + list.length) + ' as paid';
+  openModal('modal-inv-pay');
+}
+function confirmInvPay() {
+  var list = invSelected(); if (!list.length) { closeModal('modal-inv-pay'); return; }
+  var day = document.getElementById('inv-pay-date').value || toDateStr(new Date()), btn = document.getElementById('btn-inv-pay-confirm');
+  var ids = list.map(function(i){ return i.id; });
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+  var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
+  sbFetch('PATCH', 'invoices', { paid:true, paid_at:day, updated_at:new Date().toISOString() }, filter).then(function(rows){
+    // only what the database confirms counts as paid
+    var done = Array.isArray(rows) ? rows.map(function(r){ return r.id; }) : ids;
+    var db = getDB(); (db.invoices || []).forEach(function(i){ if (done.indexOf(i.id) !== -1) { i.paid = true; i.paidAt = day; } }); saveDB(db);
+    var paidSum = list.filter(function(i){ return done.indexOf(i.id) !== -1; }).reduce(function(s, i){ return s + (i.total || 0); }, 0);
+    invSel = {}; closeModal('modal-inv-pay'); invUpdateBadge(); renderAccounting();
+    if (done.length < ids.length) { toast('Only ' + done.length + ' of ' + ids.length + ' were saved as paid. Check the list and try the rest again.', 'error'); invoicesLoad(); return; }
+    toast(done.length + ' invoice' + (done.length === 1 ? '' : 's') + ' marked as paid · ' + accEur(paidSum), 'success');
+  }).catch(function(){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Try again'; toast('Not saved. Check the connection and try again.', 'error'); });
 }
 function deleteInvoice() {
   var id = document.getElementById('inv-edit-id').value, i = invoices().find(function(x){ return x.id === id; }); if (!i) return;
@@ -10557,8 +10633,8 @@ document.addEventListener('click', function(e) {
   if (el) { var qc = el.closest('[data-inv-id]'), qi = getDB().inventory.find(function(i){ return i.id === qc.dataset.invId; });
     if (qi) { var qf = el.dataset.qtyF, cur = qf === 'bar' ? (+qi.qtyBar || 0) : (+qi.qtyStorage || 0); invQtySet(qi.id, qf, cur + (+el.dataset.qtyStep)); } return; }
   // Stock: category cards, back, All items | By supplier, reorder
-  el = t.closest('[data-inv-open]'); if (el) { var io = el.dataset.invOpen; if (io === '__low') invOpen('low'); else invOpen('cat', io); return; }
-  if (t.closest('#inv-back')) { invOpen('home'); return; }
+  el = t.closest('[data-stock-open]'); if (el) { var io = el.dataset.stockOpen; if (io === '__low') invOpen('low'); else invOpen('cat', io); return; }
+  if (t.closest('#stock-back')) { invOpen('home'); return; }
   el = t.closest('[data-inv-mode]'); if (el) { invSetMode(el.dataset.invMode); return; }
   if (t.closest('#btn-inv-reorder')) { invReorderIds = invOrdered(getDB().inventory.filter(function(i){ return invCatKey(i.category) === invCatFilter; })).map(function(i){ return i.id; }); renderInventory(); return; }
   if (t.closest('#btn-ro-cancel')) { invReorderIds = null; renderInventory(); return; }
@@ -10878,11 +10954,15 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-inv-add')) { openInvoiceModal(null); return; }
   el = t.closest('[data-sup-create]'); if (el) { var scName = el.dataset.supCreate; supplierModalDone = function(sp){ if (sp && currentSection === 'accounting') renderAccounting(); }; openSupplierModal(null, { name: scName }); return; }
   el = t.closest('[data-copy]'); if (el) { var cv = el.dataset.copy; (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(cv) : Promise.reject()).then(function(){ toast('Copied ' + nibPretty(cv), 'success'); }).catch(function(){ prompt('Copy the NIB:', nibPretty(cv)); }); return; }
-  el = t.closest('[data-inv-filter]'); if (el) { invFilter = el.dataset.invFilter; renderAccounting(); return; }
-  el = t.closest('[data-inv-paid]'); if (el) { var pi = invoices().find(function(x){ return x.id === el.dataset.invPaid; }); if (pi) invSetPaid(pi.id, !pi.paid); return; }
+  el = t.closest('[data-inv-filter]'); if (el) { invFilter = el.dataset.invFilter; invSel = {}; renderAccounting(); return; }
+  el = t.closest('[data-inv-sel]'); if (el) { var sid = el.dataset.invSel; if (invSel[sid]) delete invSel[sid]; else invSel[sid] = true; renderAccounting(); return; }
+  if (t.closest('#inv-sel-all')) { invFiltered().forEach(function(i){ if (!i.paid && !i.review && invSupplierKey(i) === invSupplier) invSel[i.id] = true; }); renderAccounting(); return; }
+  if (t.closest('#inv-sel-none') || t.closest('#inv-sel-none2')) { invSel = {}; renderAccounting(); return; }
+  if (t.closest('#btn-inv-pay')) { openInvPayConfirm(); return; }
+  if (t.closest('#btn-inv-pay-confirm')) { confirmInvPay(); return; }
   el = t.closest('[data-inv-open]'); if (el) { openInvoiceModal(el.dataset.invOpen); return; }
-  el = t.closest('[data-inv-supplier]'); if (el) { invSupplier = el.dataset.invSupplier; renderAccounting(); window.scrollTo(0, 0); return; }
-  if (t.closest('#inv-back')) { invSupplier = null; renderAccounting(); return; }
+  el = t.closest('[data-inv-supplier]'); if (el) { invSupplier = el.dataset.invSupplier; invSel = {}; renderAccounting(); var cwi = document.getElementById('content-wrap'); if (cwi) cwi.scrollTop = 0; return; }
+  if (t.closest('#inv-back')) { invSupplier = null; invSel = {}; renderAccounting(); return; }
   if (t.closest('#inv-batch-close')) { invBatchState = null; renderAccounting(); return; }
   if (t.closest('#btn-save-invoice')) { saveInvoice(); return; }
   if (t.closest('#btn-delete-invoice')) { deleteInvoice(); return; }
