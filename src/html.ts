@@ -552,7 +552,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     /* ── RESERVATION ITEMS ── */
     .res-item { border:var(--rule); background:var(--panel); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:border-color .15s; }
     .res-item:active { border-color:var(--slate-300); }
-    .res-item.confirmed { border-color:var(--green-200); background:var(--green-50); }
     .res-item.no-show { border-color:var(--red-200); background:var(--red-50); }
     .res-item-top { display:flex; align-items:center; justify-content:space-between; }
     .res-time { font-weight:800; font-size:15px; color:var(--slate-800); margin-right:8px; }
@@ -6797,9 +6796,8 @@ function renderCalendar(){
     var isToday=day.getTime()===today.getTime();
     var isSel=selectedCalendarDay===dateStr;
     var dayRes=db.reservations.filter(function(r){return r.date===dateStr;});
-    var conf=dayRes.filter(function(r){return r.status==='confirmed';}).length;
-    var pend=dayRes.filter(function(r){return !r.status||r.status==='pending';}).length;
-    var nos=dayRes.filter(function(r){return r.status==='no-show';}).length;
+    var conf=dayRes.filter(function(r){return !resNoShow(r);}).length, pend=0;
+    var nos=dayRes.filter(resNoShow).length;
     var el=document.createElement('div');
     el.className='cal-day'+(isToday?' today':'')+(isSel?' selected':'');
     el.dataset.calDay=dateStr;
@@ -6859,7 +6857,7 @@ function calvItems(dateStr) {
   });
   if (calvOn.res) (db.reservations || []).filter(function(r){ return r.date === dateStr; }).forEach(function(r){
     var tables = Array.isArray(r.tables) ? r.tables.join(', ') : (r.table || '');
-    out.push({ sort:r.time || '99', time:r.time + (r.endTime ? '–' + r.endTime : ''), type:'Reservation' + (r.status ? ' · ' + r.status : ''), color:'#2f6fa8',
+    out.push({ sort:r.time || '99', time:r.time + (r.endTime ? '–' + r.endTime : ''), type:'Reservation' + (resNoShow(r) ? ' · no-show' : ''), color:'#2f6fa8',
       title:r.guestName + ' (' + r.guests + ')', sub:[tables ? 'Table ' + tables : '', r.notes].filter(Boolean).join(' · '), chip:r.time + ' ' + r.guestName, attr:'data-open-res-detail="' + esc(r.id) + '"' });
   });
   if (calvOn.tasks) (db.tasks || []).filter(function(t){
@@ -7062,9 +7060,9 @@ function renderDayReservations(dateStr){
   if(res.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-calendar-xmark"></i><p>No reservations this day. Tap New to add one.</p></div>';return;}
   el.innerHTML=res.map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
-    return '<div class="res-item '+(r.status==='no-show'?'no-show':r.status==='confirmed'?'confirmed':'')+'" data-open-res-detail="'+esc(r.id)+'">'
+    return '<div class="res-item'+(resNoShow(r)?' no-show':'')+'" data-open-res-detail="'+esc(r.id)+'">'
       +'<div class="res-item-top"><div><span class="res-time">'+esc(r.time+(r.endTime?'–'+r.endTime:''))+'</span><span class="res-name">'+esc(r.guestName)+'</span></div>'
-      +'<span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>'
+      +''+resMark(r)+'</div>'
       +'<div class="res-meta"><span><i class="fas fa-users" style="margin-right:3px"></i>'+r.guests+'</span><span><i class="fas fa-chair" style="margin-right:3px"></i>'+esc(tables)+'</span>'+(r.phone?'<span><i class="fas fa-phone" style="margin-right:3px"></i>'+esc(r.phone)+'</span>':'')+'</div>'
     +'</div>';
   }).join('');
@@ -7074,7 +7072,7 @@ function openResDetail(id){
   var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
   document.getElementById('res-detail-content').innerHTML='<div class="detail-grid">'
     +'<div class="detail-cell"><div class="detail-cell-label">Guest</div><div class="detail-cell-val">'+esc(r.guestName)+'</div></div>'
-    +'<div class="detail-cell"><div class="detail-cell-label">Status</div><div class="detail-cell-val"><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div></div>'
+    +'<div class="detail-cell"><div class="detail-cell-label">Status</div><div class="detail-cell-val">'+resStatusBadge(r)+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Date</div><div class="detail-cell-val">'+esc(fmtDay(r.date))+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Time</div><div class="detail-cell-val">'+esc(r.time+(r.endTime?' – '+r.endTime:''))+'</div></div>'
     +'<div class="detail-cell"><div class="detail-cell-label">Guests</div><div class="detail-cell-val">'+r.guests+' people</div></div>'
@@ -7084,9 +7082,9 @@ function openResDetail(id){
     +'</div>';
   var actEl=document.getElementById('res-detail-actions'); actEl.innerHTML='';
   function mkBtn(cls,html,cb){var b=document.createElement('button');b.className=cls;b.innerHTML=html;b.addEventListener('click',cb);return b;}
-  actEl.appendChild(mkBtn('btn btn-primary btn-sm','<i class="fas fa-check"></i> Confirmed',function(){setResStatus(id,'confirmed');}));
-  actEl.appendChild(mkBtn('btn btn-danger btn-sm','<i class="fas fa-user-xmark"></i> No Show',function(){setResStatus(id,'no-show');}));
-  actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-clock"></i> Pending',function(){setResStatus(id,'pending');}));
+  // bookings are confirmed as soon as they're made; the only thing to record is a no-show
+  if(resNoShow(r)) actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-rotate-left"></i> Not a no-show',function(){setResStatus(id,'confirmed');}));
+  else actEl.appendChild(mkBtn('btn btn-danger btn-sm','<i class="fas fa-user-xmark"></i> No-show',function(){setResStatus(id,'no-show');}));
   actEl.appendChild(mkBtn('btn btn-secondary btn-sm','<i class="fas fa-pen"></i> Edit',function(){closeModal('modal-res-detail');openEditReservation(id);}));
   actEl.appendChild(mkBtn('btn btn-danger btn-sm','<i class="fas fa-trash"></i> Delete',function(){deleteReservation(id);}));
   actEl.children[0].style.cssText='flex:1;justify-content:center';
@@ -7094,10 +7092,15 @@ function openResDetail(id){
   actEl.children[2].style.cssText='flex:1;justify-content:center';
   openModal('modal-res-detail');
 }
+// A booking is confirmed unless it's flagged as a no-show (older "pending" ones count as confirmed)
+function resNoShow(r){ return !!r && r.status==='no-show'; }
+function resMark(r){ return resNoShow(r)?'<span class="badge badge-red">No-show</span>':''; }
+function resStatusBadge(r){ return resNoShow(r)?'<span class="badge badge-red">No-show</span>':'<span class="badge badge-green">Confirmed</span>'; }
 function setResStatus(id,status){
   var db=getDB(); var idx=db.reservations.findIndex(function(r){return r.id===id;});
   if(idx!==-1){db.reservations[idx].status=status;saveDB(db);}
-  closeModal('modal-res-detail'); renderCalendar(); renderAllReservations(); renderDashboard(); toast('Status: '+status+'!');
+  closeModal('modal-res-detail'); renderCalendar(); renderAllReservations(); renderDashboard(); if (currentSection==='calendar') renderCalView();
+  toast(status==='no-show'?'Marked as a no-show':'Back to confirmed', status==='no-show'?'':'success');
   sbFetch('PATCH','reservations',{status:status},'id=eq.'+id).catch(function(){});
 }
 function openAddReservationModal(){
@@ -7142,7 +7145,7 @@ function saveReservation(){
   var busy=busyTables(date,time,endTime,editId), clash=selectedTables.filter(function(t){return busy[t];});
   if(clash.length){ refreshResTableGrid(); toast(clash.map(function(t){return t+' is booked '+busy[t].label+' ('+busy[t].guest+')';}).join(' · '),'error'); return; }
   var prevRes=editId?(db.reservations.find(function(r){return r.id===editId;})||{}):{};
-  var status=prevRes.status||'pending';
+  var status=prevRes.status==='no-show'?'no-show':'confirmed';
   var phone=document.getElementById('res-phone').value.trim();
   var guests=parseInt(document.getElementById('res-guests').value)||1;
   var notes=document.getElementById('res-notes').value.trim();
@@ -7184,7 +7187,7 @@ function renderAllReservations(){
       +'<div class="res-date-box"><div class="rdb-d">'+esc(fmtDay(r.date, true))+'</div><div class="rdb-t">'+esc(r.time)+'</div>'+(r.endTime?'<div class="rdb-t" style="opacity:.7">–'+esc(r.endTime)+'</div>':'')+'</div>'
       +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(r.guestName)+'</div>'
       +'<div style="font-size:12px;color:var(--slate-500);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px"><span><i class="fas fa-users" style="margin-right:3px"></i>'+r.guests+'</span><span><i class="fas fa-chair" style="margin-right:3px"></i>'+esc(tables)+'</span></div></div>'
-      +'<span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span>'
+      +''+resMark(r)+''
     +'</div>';
   }).join('');
 }
@@ -10489,7 +10492,7 @@ function renderDashboard(){
   if(todayRes.length===0){todayEl.innerHTML='<div class="empty-state compact"><i class="fas fa-calendar-xmark"></i><p>No reservations today</p></div>';}
   else todayEl.innerHTML=todayRes.slice(0,5).map(function(r){
     var tables=Array.isArray(r.tables)?r.tables.join(', '):(r.table||'?');
-    return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--slate-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--slate-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--slate-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--slate-500)">'+esc(tables)+' · '+r.guests+' guests</div></div><span class="badge '+(r.status==='confirmed'?'badge-green':r.status==='no-show'?'badge-red':'badge-yellow')+'">'+esc(r.status||'Pending')+'</span></div>';
+    return '<div class="today-res-item" data-nav="reservations"><div style="width:38px;height:38px;background:var(--slate-200);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--slate-700);flex-shrink:0">'+esc(r.time)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--slate-900)">'+esc(r.guestName)+'</div><div style="font-size:11px;color:var(--slate-500)">'+esc(tables)+' · '+r.guests+' guests</div></div>'+resMark(r)+'</div>';
   }).join('');
   // Tasks: apply the same user-scoping as the Tasks screen
   var allDashTasks=db.tasks;
