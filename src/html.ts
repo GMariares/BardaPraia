@@ -285,6 +285,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     @media (pointer:coarse) {
       input:not(#section-finance input):not(#section-blackbox input), select:not(#section-finance select):not(#section-blackbox select), textarea:not(#section-finance textarea):not(#section-blackbox textarea) { font-size:16px !important; }
     }
+    .btn-wa i { color:#1f8f4e; }
     .btn-mini { padding:4px 9px; min-height:32px; min-width:32px; font-size:11px; border-radius:6px; gap:4px; }
     .btn-icon { width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; justify-content:center; }
 
@@ -2263,7 +2264,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <h2><i class="fas fa-truck" style="color:#2a9683"></i><span id="supplier-modal-title">Add Supplier</span></h2>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Name *</label><input type="text" class="input-field" id="supplier-name" placeholder="Supplier name" /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label">Email</label><input type="email" class="input-field" id="supplier-email" placeholder="supplier@example.com" /></div>
-    <div class="form-row" style="margin-bottom:12px"><label class="label">Phone</label><input type="text" class="input-field" id="supplier-phone" placeholder="+351..." /></div>
+    <div class="form-row" style="margin-bottom:12px"><label class="label" for="supplier-phone">Phone / WhatsApp</label><input type="tel" class="input-field" id="supplier-phone" placeholder="+351 912 345 678" /><p class="acc-note" style="margin-top:6px">Orders can be sent to this number by WhatsApp.</p></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label" for="supplier-nif">NIF (tax number)</label><input type="text" inputmode="numeric" class="input-field" id="supplier-nif" placeholder="9 digits — lets invoice QR codes find this supplier" maxlength="9" /></div>
     <div class="form-row" style="margin-bottom:12px"><label class="label" for="supplier-nib">NIB / IBAN</label><input type="text" class="input-field" id="supplier-nib" placeholder="PT50 0000 0000 0000 0000 0000 0" autocomplete="off" /><p class="acc-note" id="supplier-nib-note" style="display:none;margin-top:4px">Needs the supplier NIB SQL in Supabase before it can be saved.</p></div>
     <div style="margin-bottom:12px">
@@ -6681,6 +6682,7 @@ function renderOrderCard(o,db,sup){
       +(isStandby&&isAdmin?'<button class="btn btn-sm btn-primary" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
       +(isStandby&&!isAdmin?'<span style="font-size:11px;color:var(--amber-700);font-style:italic;align-self:center">Awaiting admin approval</span>':'')
       +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'"><i class="fas fa-envelope"></i> Email</button>':'')
+      +'<button class="btn btn-sm btn-secondary btn-wa" data-send-order-wa="'+esc(o.id)+'" aria-label="Send the order by WhatsApp'+(sup&&sup.name?' to '+esc(sup.name):'')+'"><i class="fab fa-whatsapp"></i> WhatsApp</button>'
       +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'"><i class="fas fa-euro-sign"></i> Amount</button>':'')
     +'</div>'
   +'</div>';
@@ -6767,6 +6769,25 @@ function sendOrderEmail(orderId){
   var body=encodeURIComponent(bodyText);
   window.location.href='mailto:'+encodeURIComponent(sup.email)+'?subject='+subject+'&body='+body;
   toast('Opening email client...','gold');
+}
+
+// WhatsApp: open the supplier's chat with the order written out (or WhatsApp's share screen when there is no number)
+function waPhone(p){
+  var d=String(p||'').replace(/\\D/g,'');
+  if(d.indexOf('00')===0) d=d.slice(2);
+  if(d.length===9 && /^[29]/.test(d)) d='351'+d;   // a Portuguese number typed without +351
+  return d.length>=8 ? d : '';
+}
+function sendOrderWhatsApp(orderId){
+  var db=getDB(); var ord=db.orders.find(function(o){return o.id===orderId;}); if(!ord) return;
+  var sup=ord.supplierId?db.suppliers.find(function(s){return s.id===ord.supplierId;}):null;
+  var nl=String.fromCharCode(10);
+  var lines=ord.items.map(function(i){ return '• '+i.name+': '+fmtQty(i.orderQty)+(i.unit?' '+i.unit:''); }).join(nl);
+  var text=(sup&&sup.name?'Olá '+sup.name+',':'Olá,')+nl+nl+'Segue a nossa encomenda:'+nl+nl+lines+nl+nl
+    +'Encomenda #'+orderId.slice(-6).toUpperCase()+' · '+new Date(ord.date).toLocaleDateString('pt-PT')+nl+nl+'Obrigado,'+nl+'Bar da Praia';
+  var to=sup?waPhone(sup.phone):'';
+  window.open('https://wa.me/'+to+'?text='+encodeURIComponent(text), '_blank', 'noopener');
+  toast(to?'Opening WhatsApp for '+sup.name+'…':'Opening WhatsApp: pick the supplier’s chat');
 }
 
 // ================================================
@@ -10745,6 +10766,7 @@ document.addEventListener('click', function(e) {
   if (el) { closeModal('modal-add-supplier'); deleteSupplier(el.dataset.deleteSupplier); return; }
   el = t.closest('[data-supplier-filter]');
   if (el) { filterBySupplier(el.dataset.supplierFilter); return; }
+  el = t.closest('[data-send-order-wa]'); if (el) { sendOrderWhatsApp(el.dataset.sendOrderWa); return; }
   el = t.closest('[data-send-order-email]');
   if (el) { sendOrderEmail(el.dataset.sendOrderEmail); return; }
   el = t.closest('[data-set-order-amount]');
