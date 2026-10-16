@@ -480,6 +480,30 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     /* ── ORDER STANDBY ── */
     .order-standby { border:var(--rule); border-color:var(--amber-200); background:var(--amber-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
     .order-confirmed { border:var(--rule); border-color:var(--green-200); background:var(--green-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
+    /* Order lines, with the admin's changes shown to everyone */
+    .ord-line { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:13px; padding:4px 0; border-bottom:1px solid var(--slate-50); }
+    .ord-line .ord-n { color:var(--slate-700); min-width:0; }
+    .ord-line .ord-q { font-weight:700; color:var(--slate-900); white-space:nowrap; }
+    .ord-was { text-decoration:line-through; color:var(--slate-400); font-weight:500; }
+    .ord-line.is-removed .ord-n, .ord-line.is-removed .ord-q { text-decoration:line-through; color:var(--slate-400); }
+    .ord-tag { display:inline-block; font-size:10px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:6px; margin-left:6px; vertical-align:1px; text-decoration:none; }
+    .ord-tag.chg { background:var(--amber-50); color:var(--amber-700); border:1px solid var(--amber-200); }
+    .ord-tag.add { background:var(--green-50); color:var(--green-700); border:1px solid var(--green-200); }
+    .ord-tag.rem { background:var(--red-50); color:var(--red-700); border:1px solid var(--red-200); }
+    .ord-changed { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--amber-700); margin-bottom:6px; }
+    .ord-acts { display:flex; gap:6px; flex-shrink:0; align-self:center; }
+    .ordrev-sub { font-size:13px; color:var(--slate-500); margin:-6px 0 14px; }
+    .ordrev-line { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--slate-100); }
+    .ordrev-line .ordrev-name { flex:1; min-width:0; font-size:14px; font-weight:600; color:var(--slate-800); }
+    .ordrev-line .ordrev-asked { display:block; font-size:11px; font-weight:500; color:var(--slate-500); margin-top:2px; }
+    .ordrev-line .stepper { width:132px; flex-shrink:0; }
+    .ordrev-line.is-removed .ordrev-name s { color:var(--slate-400); }
+    .ordrev-x { width:44px; height:44px; flex-shrink:0; border:var(--rule); border-radius:var(--radius-sm); background:var(--panel); color:var(--slate-500); cursor:pointer; font-size:14px; }
+    .ordrev-x:hover { color:var(--red); border-color:var(--red-200); }
+    .ordrev-undo { flex-shrink:0; min-height:44px; padding:0 14px; border:var(--rule); border-radius:var(--radius-sm); background:var(--panel); color:var(--slate-700); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+    .ordrev-add { display:flex; gap:8px; margin:14px 0 6px; }
+    .ordrev-add select { flex:1; min-width:0; }
+    .ordrev-add input { width:72px; text-align:center; }
 
     /* ── CALENDAR ── */
     .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
@@ -2377,6 +2401,25 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 </div>
 
 <!-- Set Order Amount (Admin) -->
+<div class="modal-overlay" id="modal-order-review">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-pen-to-square" style="color:var(--teal-600)"></i> Review order</h2>
+    <p class="ordrev-sub" id="ordrev-sub"></p>
+    <div id="ordrev-lines"></div>
+    <div class="ordrev-add">
+      <select class="input-field" id="ordrev-add-item" aria-label="Add an item"></select>
+      <input class="input-field" id="ordrev-add-qty" inputmode="decimal" value="1" aria-label="Quantity to order" />
+      <button class="btn btn-secondary" id="btn-ordrev-add" aria-label="Add the item to the order"><i class="fas fa-plus"></i></button>
+    </div>
+    <p class="acc-note" style="margin-bottom:16px">Everyone sees your changes on the order: what was asked, and what you changed.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-ordrev-approve"><i class="fas fa-check"></i> Save and approve</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" id="btn-ordrev-save"><i class="fas fa-save"></i> Save changes</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-set-order-amount">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -6787,7 +6830,7 @@ function renderOrderCard(o,db,sup){
   var isStandby=o.status==='standby';
   var canEmail=sup&&sup.sendEmail&&sup.email;
   var shortId=o.id.slice(-6).toUpperCase();
-  var itemCount=o.items.length;
+  var itemCount=ordLive(o).length;
   var detailId='order-detail-'+esc(o.id);
   // Header — always visible, tap to expand
   var header='<div class="order-card-header" data-toggle-order="'+esc(o.id)+'" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">'
@@ -6795,6 +6838,7 @@ function renderOrderCard(o,db,sup){
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
         +'<span style="font-weight:700;color:var(--slate-800);font-size:13px">Order #'+shortId+'</span>'
         +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'" style="font-size:11px">'+(isStandby?'<i class="fas fa-hourglass-half"></i> Standby':'<i class="fas fa-check"></i> Approved')+'</span>'
+        +(ordChanged(o)?'<span class="ord-tag chg" style="margin-left:0">Changed</span>':'')
       +'</div>'
       +'<div style="font-size:11px;color:var(--slate-500);margin-top:2px">'+fmtDate(o.date)+' · '+itemCount+' item'+(itemCount!==1?'s':'')+(o.amount>0?' · <span style="color:var(--green);font-weight:600">'+fmtMoney(o.amount)+'</span>':'')+'</div>'
     +'</div>'
@@ -6802,17 +6846,10 @@ function renderOrderCard(o,db,sup){
   +'</div>';
   // Detail — hidden by default
   var detail='<div id="'+detailId+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--slate-100)">'
-    +'<div style="margin-bottom:10px">'
-    +o.items.map(function(i){
-      return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid var(--slate-50)">'
-        +'<span style="color:var(--slate-700)">'+esc(i.name)+'</span>'
-        +'<span style="font-weight:700;color:var(--slate-900)">'+i.orderQty+' '+esc(i.unit||'')+'</span>'
-      +'</div>';
-    }).join('')
-    +'</div>'
+    +'<div style="margin-bottom:10px">'+ordChangedNote(o)+ordLinesHtml(o)+'</div>'
     // Action buttons inside the detail panel
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +(isStandby&&isAdmin?'<button class="btn btn-sm btn-primary" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
+      +(isStandby&&isAdmin?'<button class="btn btn-sm btn-secondary" data-review-order="'+esc(o.id)+'"><i class="fas fa-pen-to-square"></i> Review</button><button class="btn btn-sm btn-primary" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
       +(isStandby&&!isAdmin?'<span style="font-size:11px;color:var(--amber-700);font-style:italic;align-self:center">Awaiting admin approval</span>':'')
       +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'"><i class="fas fa-envelope"></i> Email</button>':'')
       +'<button class="btn btn-sm btn-secondary btn-wa" data-send-order-wa="'+esc(o.id)+'" aria-label="Send the order by WhatsApp'+(sup&&sup.name?' to '+esc(sup.name):'')+'"><i class="fab fa-whatsapp"></i> WhatsApp</button>'
@@ -6877,6 +6914,106 @@ function approveOrder(orderId){
   }).catch(function(){ toast('Approved locally','error'); });
 }
 
+// ── Admin review of a pending order ─────────────────────────────
+// The changes stay on each item so everyone sees them: origQty is what was asked, removed / added mark lines
+// the admin took out or put in, changedBy names the admin. The supplier only gets the lines still on the order.
+function ordLive(o){ return (o.items||[]).filter(function(i){ return !i.removed; }); }
+function ordChanged(o){ return (o.items||[]).some(function(i){ return i.removed||i.added||i.origQty!=null; }); }
+function ordChangedNote(o){
+  if(!ordChanged(o)) return '';
+  var by=(o.items||[]).find(function(i){ return i.changedBy; });
+  return '<div class="ord-changed"><i class="fas fa-pen-to-square"></i> '+(by?'Changed by '+esc(by.changedBy):'Changed by an admin')+'</div>';
+}
+function ordLinesHtml(o){
+  return (o.items||[]).map(function(i){
+    var u=i.unit?' '+esc(i.unit):'', tag='', q;
+    if(i.removed){ tag='<span class="ord-tag rem">Removed</span>'; q=fmtQty(i.orderQty)+u; }
+    else if(i.added){ tag='<span class="ord-tag add">Added</span>'; q=fmtQty(i.orderQty)+u; }
+    else if(i.origQty!=null){ tag='<span class="ord-tag chg">Changed</span>'; q='<span class="ord-was">'+fmtQty(i.origQty)+'</span> '+fmtQty(i.orderQty)+u; }
+    else q=fmtQty(i.orderQty)+u;
+    return '<div class="ord-line'+(i.removed?' is-removed':'')+'"><span class="ord-n">'+esc(i.name)+tag+'</span><span class="ord-q">'+q+'</span></div>';
+  }).join('');
+}
+var ordRev=null;   // {id, items:[…working copy, each with asked = the quantity staff asked for]}
+function openOrderReview(orderId){
+  var o=getDB().orders.find(function(x){ return x.id===orderId; }); if(!o) return;
+  if(o.status!=='standby'){ toast('This order is already approved','error'); return; }
+  if(String(o.id).indexOf('tmp-')===0){ toast('Still saving this order, one moment','error'); return; }
+  ordRev={ id:o.id, items:(o.items||[]).map(function(i){ var c=JSON.parse(JSON.stringify(i)); if(!c.added) c.asked=c.origQty!=null?c.origQty:c.orderQty; return c; }) };
+  var db=getDB(), sup=o.supplierId?(db.suppliers||[]).find(function(s){ return s.id===o.supplierId; }):null;
+  document.getElementById('ordrev-sub').textContent='Order #'+o.id.slice(-6).toUpperCase()+' · '+(sup?sup.name:'No supplier')+' · '+fmtDate(o.date);
+  document.getElementById('ordrev-add-qty').value='1';
+  renderOrderReview(); openModal('modal-order-review');
+}
+// Read the typed quantities back into the working copy
+function ordRevSync(){
+  if(!ordRev) return;
+  document.querySelectorAll('#ordrev-lines input[data-ordrev-i]').forEach(function(inp){
+    var it=ordRev.items[+inp.dataset.ordrevI], v=readQty(inp.value); if(it&&v!==null) it.orderQty=v;
+  });
+}
+function renderOrderReview(){
+  var o=getDB().orders.find(function(x){ return x.id===ordRev.id; }), db=getDB();
+  document.getElementById('ordrev-lines').innerHTML=ordRev.items.map(function(i, n){
+    var nm=esc(i.name), u=i.unit?' '+esc(i.unit):'';
+    var note=i.added?'<span class="ord-tag add">Added</span>':(!i.removed&&i.asked!=null&&i.orderQty!==i.asked?'<span class="ordrev-asked">Asked for '+fmtQty(i.asked)+u+'</span>':'');
+    if(i.removed) return '<div class="ordrev-line is-removed"><span class="ordrev-name"><s>'+nm+'</s><span class="ord-tag rem">Removed</span><span class="ordrev-asked">Asked for '+fmtQty(i.asked)+u+'</span></span><button class="ordrev-undo" data-ordrev-undo="'+n+'">Undo</button></div>';
+    return '<div class="ordrev-line"><span class="ordrev-name">'+nm+(i.unit?' <span style="font-weight:500;color:var(--slate-500)">('+esc(i.unit)+')</span>':'')+note+'</span>'
+      +'<div class="stepper"><button data-ordrev-step="-1" data-ordrev-n="'+n+'" aria-label="One less '+nm+'"'+(i.orderQty<=0?' disabled':'')+'><i class="fas fa-minus"></i></button>'
+      +'<input data-ordrev-i="'+n+'" inputmode="decimal" autocomplete="off" value="'+fmtQty(i.orderQty)+'" aria-label="'+nm+'" />'
+      +'<button data-ordrev-step="1" data-ordrev-n="'+n+'" aria-label="One more '+nm+'"><i class="fas fa-plus"></i></button></div>'
+      +'<button class="ordrev-x" data-ordrev-remove="'+n+'" aria-label="Remove '+nm+' from the order"><i class="fas fa-trash-can"></i></button></div>';
+  }).join('') || '<div class="empty-state compact"><p>No items left on this order.</p></div>';
+  // Items that can be added: this supplier's stock (or all stock when the order has no supplier), not already on it
+  var on={}; ordRev.items.forEach(function(i){ if(!i.removed) on[i.id]=true; });
+  var cands=(db.inventory||[]).filter(function(i){ return !on[i.id] && (!o||!o.supplierId||i.supplierId===o.supplierId); })
+    .sort(function(a,b){ return String(a.name).localeCompare(String(b.name)); });
+  document.getElementById('ordrev-add-item').innerHTML='<option value="">Add an item…</option>'+cands.map(function(i){ return '<option value="'+esc(i.id)+'">'+esc(i.name)+(i.unit?' ('+esc(i.unit)+')':'')+'</option>'; }).join('');
+}
+function ordRevAdd(){
+  ordRevSync();
+  var id=document.getElementById('ordrev-add-item').value, q=readQty(document.getElementById('ordrev-add-qty').value);
+  if(!id){ toast('Pick an item to add','error'); return; }
+  if(!q){ toast('Type a quantity','error'); return; }
+  var inv=(getDB().inventory||[]).find(function(i){ return i.id===id; }); if(!inv) return;
+  var was=ordRev.items.find(function(i){ return i.id===id; });
+  if(was){ was.removed=false; was.orderQty=q; }   // it was asked for and removed: bring it back with the new quantity
+  else ordRev.items.push({ id:inv.id, name:inv.name, unit:inv.unit||'', orderQty:q, supplierId:inv.supplierId||'', added:true });
+  document.getElementById('ordrev-add-qty').value='1';
+  renderOrderReview();
+}
+function saveOrderReview(andApprove){
+  if(!ordRev) return;
+  ordRevSync();
+  var who=currentUser?currentUser.name:'', now=new Date().toISOString();
+  var items=[];
+  ordRev.items.forEach(function(w){
+    var i=JSON.parse(JSON.stringify(w)), asked=i.asked; delete i.asked;
+    if(i.added){ if(i.removed||!(i.orderQty>0)) return; delete i.removed; delete i.origQty; }
+    else {
+      if(!(i.orderQty>0)) i.removed=true;
+      if(i.removed){ i.orderQty=asked; i.origQty=asked; }
+      else { delete i.removed; if(i.orderQty!==asked) i.origQty=asked; else delete i.origQty; }
+    }
+    var changed=i.added||i.removed||i.origQty!=null;
+    var before=(getDB().orders.find(function(o){ return o.id===ordRev.id; })||{items:[]}).items.find(function(x){ return x.id===i.id; });
+    var same=before&&!!before.added===!!i.added&&!!before.removed===!!i.removed&&before.orderQty===i.orderQty&&before.origQty==i.origQty;
+    if(!changed){ delete i.changedBy; delete i.changedAt; }
+    else if(!same){ i.changedBy=who; i.changedAt=now; }
+    items.push(i);
+  });
+  if(!items.some(function(i){ return !i.removed; })){ toast('An order needs at least one item','error'); return; }
+  var id=ordRev.id, btns=['btn-ordrev-save','btn-ordrev-approve'].map(function(b){ return document.getElementById(b); });
+  btns.forEach(function(b){ b.disabled=true; });
+  sbFetch('PATCH','orders',{items:items},'id=eq.'+id).then(function(rows){
+    if(!rows||!rows[0]) throw new Error('not saved');
+    var db=getDB(), o=db.orders.find(function(x){ return x.id===id; }); if(o) o.items=items; saveDB(db);
+    ordRev=null; closeModal('modal-order-review');
+    if(andApprove) approveOrder(id); else { toast('Order updated','success'); renderOrderHistory(); renderDashboard(); }
+  }).catch(function(){ toast('Not saved. Check the connection and try again.','error'); })
+    .then(function(){ btns.forEach(function(b){ b.disabled=false; }); });
+}
+
 function setOrderAmount(orderId){
   document.getElementById('set-amount-order-id').value=orderId;
   var db=getDB(); var ord=db.orders.find(function(o){return o.id===orderId;});
@@ -6897,7 +7034,7 @@ function sendOrderEmail(orderId){
   if(!sup||!sup.email){toast('Supplier email not configured','error');return;}
   var nl=String.fromCharCode(10);
   var subject=encodeURIComponent('Order #'+orderId.slice(-6).toUpperCase()+' - Bar da Praia');
-  var itemLines=ord.items.map(function(i){return '- '+i.name+': '+i.orderQty+' '+(i.unit||'');}).join(nl);
+  var itemLines=ordLive(ord).map(function(i){return '- '+i.name+': '+fmtQty(i.orderQty)+' '+(i.unit||'');}).join(nl);
   var bodyText='Dear '+sup.name+','+nl+nl+'Please find our order below:'+nl+nl+itemLines+nl+nl+'Date: '+new Date(ord.date).toLocaleDateString('pt-PT')+(ord.amount>0?nl+'Amount: EUR '+ord.amount.toFixed(2):'')+nl+nl+'Best regards,'+nl+'Bar da Praia';
   var body=encodeURIComponent(bodyText);
   window.location.href='mailto:'+encodeURIComponent(sup.email)+'?subject='+subject+'&body='+body;
@@ -6915,7 +7052,7 @@ function sendOrderWhatsApp(orderId){
   var db=getDB(); var ord=db.orders.find(function(o){return o.id===orderId;}); if(!ord) return;
   var sup=ord.supplierId?db.suppliers.find(function(s){return s.id===ord.supplierId;}):null;
   var nl=String.fromCharCode(10);
-  var lines=ord.items.map(function(i){ return '• '+i.name+': '+fmtQty(i.orderQty)+(i.unit?' '+i.unit:''); }).join(nl);
+  var lines=ordLive(ord).map(function(i){ return '• '+i.name+': '+fmtQty(i.orderQty)+(i.unit?' '+i.unit:''); }).join(nl);
   var text=(sup&&sup.name?'Olá '+sup.name+',':'Olá,')+nl+nl+'Segue a nossa encomenda:'+nl+nl+lines+nl+nl
     +'Encomenda #'+orderId.slice(-6).toUpperCase()+' · '+new Date(ord.date).toLocaleDateString('pt-PT')+nl+nl+'Obrigado,'+nl+'Bar da Praia';
   var to=sup?waPhone(sup.phone):'';
@@ -10697,12 +10834,13 @@ function renderDashboard(){
     if(ordersBadge) ordersBadge.textContent=standbyOrders.length;
     if(pendingEl){
       pendingEl.innerHTML=standbyOrders.slice().reverse().map(function(o){
-        return '<div class="order-standby" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
-          +'<div style="flex:1">'
-            +'<div style="font-weight:700;font-size:13px;color:var(--slate-800);margin-bottom:4px">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:var(--amber-700)">· '+fmtDate(o.date)+'</span></div>'
-            +'<div>'+o.items.map(function(i){return '<span style="font-size:12px;color:var(--slate-700);margin-right:8px">'+esc(i.name)+' ('+i.orderQty+(i.unit?' '+esc(i.unit):'')+')  </span>';}).join('')+'</div>'
+        return '<div class="order-standby">'
+          +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px">'
+            +'<div style="font-weight:700;font-size:13px;color:var(--slate-800)">Order #'+o.id.slice(-6).toUpperCase()+' <span style="font-size:11px;font-weight:500;color:var(--amber-700)">· '+fmtDate(o.date)+'</span></div>'
+            +(isAdmin?'':'<span class="badge badge-orange" style="flex-shrink:0"><i class="fas fa-hourglass-half"></i> Standby</span>')
           +'</div>'
-          +(isAdmin?'<button class="btn btn-sm btn-primary" style="flex-shrink:0" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'<span class="badge badge-orange" style="flex-shrink:0;align-self:center">⏳ Standby</span>')
+          +ordChangedNote(o)+ordLinesHtml(o)
+          +(isAdmin?'<div class="ord-acts" style="justify-content:flex-end;margin-top:10px"><button class="btn btn-sm btn-secondary" data-review-order="'+esc(o.id)+'"><i class="fas fa-pen-to-square"></i> Review</button><button class="btn btn-sm btn-primary" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button></div>':'')
         +'</div>';
       }).join('');
     }
@@ -10889,6 +11027,17 @@ document.addEventListener('click', function(e) {
     }
     return;
   }
+  el = t.closest('[data-review-order]');
+  if (el) { e.stopPropagation(); openOrderReview(el.dataset.reviewOrder); return; }
+  el = t.closest('[data-ordrev-step]');
+  if (el) { ordRevSync(); var it = ordRev && ordRev.items[+el.dataset.ordrevN]; if (it) { it.orderQty = Math.max(0, Math.round(((+it.orderQty || 0) + (+el.dataset.ordrevStep)) * 100) / 100); renderOrderReview(); } return; }
+  el = t.closest('[data-ordrev-remove]');
+  if (el) { ordRevSync(); var ri = ordRev && ordRev.items[+el.dataset.ordrevRemove]; if (ri) { if (ri.added) ordRev.items.splice(+el.dataset.ordrevRemove, 1); else ri.removed = true; renderOrderReview(); } return; }
+  el = t.closest('[data-ordrev-undo]');
+  if (el) { var ui = ordRev && ordRev.items[+el.dataset.ordrevUndo]; if (ui) { ui.removed = false; if (!(ui.orderQty > 0)) ui.orderQty = ui.asked; renderOrderReview(); } return; }
+  if (t.closest('#btn-ordrev-add')) { ordRevAdd(); return; }
+  if (t.closest('#btn-ordrev-save')) { saveOrderReview(false); return; }
+  if (t.closest('#btn-ordrev-approve')) { saveOrderReview(true); return; }
   el = t.closest('[data-confirm-order]');
   if (el) { approveOrder(el.dataset.confirmOrder); return; }
 
