@@ -8655,6 +8655,8 @@ var ACC_FIXED_DEFAULT = ['Renda','Luz','Água','Vodafone','Segurança social','A
 var ACC_EXPENSE_DEFAULT = ['Diversos','Filtros','Mel','Azeitonas','Gás','Laranjas','Mexilhão','Músicos'];
 var ACC_WAGE_PARTS = [['payslip','Payslip'],['ticket','Meal ticket'],['cash','Cash'],['extras','Extras']];
 var ACC_KIND_LABEL = { supplier:'Supplier', expense:'Expense', fixed:'Fixed cost' };
+// Accounting covers 2025 onwards: earlier years are neither shown nor compared against
+var ACC_FIRST_YEAR = 2025;
 var accYear = new Date().getFullYear(), accMonth = new Date().getMonth() + 1, accTab = 'summary', accBusy = false;
 var accLedger = null;   // { kind, line } open in the ledger sheet
 
@@ -8687,6 +8689,7 @@ function accPrevMonth(y, m) { return m === 1 ? [y - 1, 12] : [y, m - 1]; }
 
 // Revenue of a month: the daily closes when there are any, otherwise imported sales (Caixa 1 + Caixa FCP)
 function accRevenue(y, m) {
+  if (y < ACC_FIRST_YEAR) return { day: 0, surf: 0, total: 0, source: '', days: 0, genExp: 0, lines: {} };
   var ym = y + '-' + String(m).padStart(2, '0');
   var fin = (getDB().finEntries || []).filter(function(e){ return e.date && e.date.slice(0, 7) === ym; });
   if (fin.length) {
@@ -9232,7 +9235,9 @@ function renderAccounting() {
   // Accounting is for admins only (wages, margins, every cost)
   if (!isAdmin) { locked.style.display = 'flex'; content.style.display = 'none'; document.getElementById('acc-body').innerHTML = ''; return; }
   locked.style.display = 'none'; content.style.display = 'block';
+  if (accYear < ACC_FIRST_YEAR) accYear = ACC_FIRST_YEAR;
   document.getElementById('acc-year-label').textContent = accYear;
+  var ayp = document.getElementById('acc-year-prev'); if (ayp) ayp.disabled = accYear <= ACC_FIRST_YEAR;
   document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
   var body = document.getElementById('acc-body');
   if (accTab === 'foodcost') accTab = 'summary';
@@ -9343,20 +9348,21 @@ function drawAccChart(el) {
 }
 
 function accRevenueHTML() {
-  var h = '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th>Month</th><th>Total of the day</th><th>Revenue</th><th>Surf <small>(not in revenue)</small></th><th>Days</th><th>' + (accYear - 1) + '</th><th>Change</th></tr></thead><tbody>';
+  var h = '<div class="acc-card acc-scroll"><table class="acc-table"><thead><tr><th>Month</th><th>Total of the day</th><th>Revenue</th><th>Surf <small>(not in revenue)</small></th><th>Days</th>' + (accYear > ACC_FIRST_YEAR ? '<th>' + (accYear - 1) + '</th><th>Change</th>' : '') + '</tr></thead><tbody>';
+  var showPrev = accYear > ACC_FIRST_YEAR;
   var ty = 0, tp = 0, ts = 0, any = false;
   for (var m = 1; m <= 12; m++) {
     var r = accRevenue(accYear, m), p = accRevenue(accYear - 1, m).total;
     if (!r.total && !p && !r.surf) continue; any = true; ty += r.total; tp += p; ts += r.surf;
     var src = r.source === 'imported' ? ' <span class="acc-src" title="' + esc(Object.keys(r.lines).map(function(k){ return k + ' ' + accEur(r.lines[k]); }).join(' · ')) + '">imported</span>' : '';
-    h += '<tr><th>' + MONTH_NAMES[m - 1] + src + '</th><td>' + (r.total ? accEur0(r.day) : '—') + '</td><td><b>' + (r.total ? accEur0(r.total) : '—') + '</b></td><td class="acc-ref">' + (r.surf ? accEur0(r.surf) : '—') + '</td><td>' + (r.days || '—') + '</td><td>' + (p ? accEur0(p) : '—') + '</td><td>' + (p && r.total ? ((r.total >= p ? '+' : '') + Math.round((r.total - p) / p * 100) + '%') : '—') + '</td></tr>';
+    h += '<tr><th>' + MONTH_NAMES[m - 1] + src + '</th><td>' + (r.total ? accEur0(r.day) : '—') + '</td><td><b>' + (r.total ? accEur0(r.total) : '—') + '</b></td><td class="acc-ref">' + (r.surf ? accEur0(r.surf) : '—') + '</td><td>' + (r.days || '—') + '</td>' + (showPrev ? '<td>' + (p ? accEur0(p) : '—') + '</td><td>' + (p && r.total ? ((r.total >= p ? '+' : '') + Math.round((r.total - p) / p * 100) + '%') : '—') + '</td>' : '') + '</tr>';
   }
-  if (!any) h += '<tr><td colspan="7" class="acc-empty">No revenue recorded in ' + accYear + '.</td></tr>';
-  h += '<tr class="strong"><th>Year</th><td></td><td>' + accEur0(ty) + '</td><td class="acc-ref">' + (ts ? accEur0(ts) : '—') + '</td><td></td><td>' + (tp ? accEur0(tp) : '—') + '</td><td></td></tr></tbody></table></div>';
+  if (!any) h += '<tr><td colspan="' + (showPrev ? 7 : 5) + '" class="acc-empty">No revenue recorded in ' + accYear + '.</td></tr>';
+  h += '<tr class="strong"><th>Year</th><td></td><td>' + accEur0(ty) + '</td><td class="acc-ref">' + (ts ? accEur0(ts) : '—') + '</td><td></td>' + (showPrev ? '<td>' + (tp ? accEur0(tp) : '—') + '</td><td></td>' : '') + '</tr></tbody></table></div>';
   h += '<p class="acc-note">Revenue is the daily close in Finance: Total of the day (Invoiced + T51). Surf is shown for reference only and is not added to revenue. Months without closes use the imported sales (Caixa 1 + Caixa FCP).</p>';
-  var hist = accCfg().history.slice().sort(function(a, b){ return a.year - b.year; });
+  var hist = accCfg().history.filter(function(x){ return x.year >= ACC_FIRST_YEAR; }).sort(function(a, b){ return a.year - b.year; });
   var yearsSeen = hist.map(function(x){ return x.year; });
-  [accYear - 1, accYear].forEach(function(yy){ if (yearsSeen.indexOf(yy) === -1) { var s = 0; for (var mm = 1; mm <= 12; mm++) s += accRevenue(yy, mm).total; if (s > 0) hist.push({ year: yy, total: s, live: true }); } });
+  [accYear - 1, accYear].forEach(function(yy){ if (yy >= ACC_FIRST_YEAR && yearsSeen.indexOf(yy) === -1) { var s = 0; for (var mm = 1; mm <= 12; mm++) s += accRevenue(yy, mm).total; if (s > 0) hist.push({ year: yy, total: s, live: true }); } });
   if (hist.length) {
     h += '<div class="acc-card"><div class="acc-card-title">Turnover by year</div><table class="acc-table acc-hist"><tbody>'
       + hist.map(function(x, i){ var prev = i ? hist[i - 1].total : 0; return '<tr><th>' + x.year + (x.live ? ' <span class="acc-src">from the app</span>' : '') + '</th><td>' + accEur0(x.total) + '</td><td>' + (prev ? ((x.total >= prev ? '+' : '') + Math.round((x.total - prev) / prev * 100) + '%') : '') + '</td></tr>'; }).join('')
@@ -10970,7 +10976,7 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-save-invoice')) { saveInvoice(); return; }
   if (t.closest('#btn-delete-invoice')) { deleteInvoice(); return; }
   el = t.closest('[data-acc-month]'); if (el) { accMonth = +el.dataset.accMonth; renderAccounting(); return; }
-  if (t.closest('#acc-year-prev') || t.closest('#acc-year-next')) { accYear += t.closest('#acc-year-prev') ? -1 : 1; renderAccounting(); accLoad(); return; }
+  if (t.closest('#acc-year-prev') || t.closest('#acc-year-next')) { var ny = accYear + (t.closest('#acc-year-prev') ? -1 : 1); if (ny < ACC_FIRST_YEAR) return; accYear = ny; renderAccounting(); accLoad(); return; }
   el = t.closest('[data-acc-open]'); if (el) { var ao = el.dataset.accOpen.split('|'); openAccLedger(ao[0], ao.slice(1).join('|')); return; }
   el = t.closest('[data-acc-entry-del]'); if (el) { if (confirm('Delete this entry?')) accDelete([el.dataset.accEntryDel]).then(function(){ renderAccLedger(); renderAccounting(); }).catch(function(){}); return; }
   if (t.closest('#btn-acc-led-add')) { addAccLedgerEntry(); return; }
