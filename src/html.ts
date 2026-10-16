@@ -1,3 +1,5 @@
+import { PT } from './i18n-pt';
+
 export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -77,6 +79,15 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .btn-login { width:100%; padding:14px; min-height:48px; background:var(--teal-600); color:white; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; transition:background .15s, transform .1s; }
     .btn-login:hover { background:var(--teal-700); }
     .btn-login:active { transform:scale(.99); }
+    .lang-switch { display:flex; align-items:center; gap:4px; padding:3px; border-radius:11px; }
+    .lang-switch button { flex:1; min-height:36px; border:0; border-radius:8px; background:transparent; font:inherit; font-size:13px; font-weight:700; cursor:pointer; transition:background .15s, color .15s; }
+    .login-lang { margin:16px auto 0; max-width:260px; background:var(--slate-50); border:var(--rule); }
+    .login-lang button { color:var(--slate-500); }
+    .login-lang button[aria-pressed="true"] { background:var(--panel); color:var(--slate-900); box-shadow:0 1px 2px rgba(34,54,63,.12); }
+    .drawer-lang { margin:12px 0 10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); }
+    .drawer-lang i { color:rgba(255,255,255,.6); font-size:15px; padding:0 4px 0 8px; }
+    .drawer-lang button { color:rgba(255,255,255,.75); }
+    .drawer-lang button[aria-pressed="true"] { background:rgba(255,255,255,.92); color:var(--slate-900); }
 
     /* ── ROLE STAMPS ── */
     .role-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; margin:1px; border:1px solid transparent; line-height:1.3; }
@@ -1173,6 +1184,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div id="login-error"></div>
     <div id="login-sync-status" style="text-align:center;font-size:0.85rem;color:var(--slate-300);margin-bottom:8px;min-height:18px;"></div>
     <button class="btn-login" id="btn-do-login"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+    <div class="lang-switch login-lang" role="group" aria-label="Language"><button type="button" data-set-lang="en" lang="en">English</button><button type="button" data-set-lang="pt" lang="pt">Português</button></div>
   </div>
 </div>
 
@@ -1218,6 +1230,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div id="drawer-user-sub" style="color:rgba(255,255,255,.5);font-size:11px;margin-top:1px">Not signed in</div>
       </div>
     </div>
+    <div class="lang-switch drawer-lang" role="group" aria-label="Language"><i class="fas fa-language" aria-hidden="true"></i><button type="button" data-set-lang="en" lang="en">English</button><button type="button" data-set-lang="pt" lang="pt">Português</button></div>
     <button id="drawer-logout-btn" class="drawer-logout"><i class="fas fa-arrow-right-from-bracket"></i> Sign out</button>
     <button id="btn-enable-notif" style="margin-top:10px;width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
       <i class="fas fa-bell"></i> <span id="notif-btn-label">Enable Notifications</span> <i id="notif-status-dot" class="fas fa-circle" style="font-size:7px;margin-left:auto;color:rgba(255,255,255,.4)"></i>
@@ -2930,6 +2943,123 @@ var SB_URL = '${cfg.sbUrl}';
 var SB_KEY = '${cfg.sbKey}';
 var APP_BUILD = '${cfg.build || ''}';
 // ================================================
+// LANGUAGE (English / Português)
+// ================================================
+// Each person picks their language in the menu. The page is written in English; in Portuguese every text the
+// app shows is swapped for its translation as it appears (I18N_PT, from src/i18n-pt.ts), and dates use
+// Portuguese names. Changing language reloads the page so everything is drawn again in the new one.
+var I18N_PT = ${JSON.stringify(PT)};
+var LANG = (function(){ try { return localStorage.getItem('bp_lang') === 'pt' ? 'pt' : 'en'; } catch (e) { return 'en'; } })();
+var i18nExact = {}, i18nTpl = [], i18nCache = new Map();
+function i18nNorm(v) { return String(v).replace(/\\s+/g, ' ').trim(); }
+if (LANG === 'pt') {
+  Object.keys(I18N_PT).forEach(function(k){
+    if (k.indexOf('{}') === -1) { i18nExact[k] = I18N_PT[k]; return; }
+    var parts = k.split('{}'), longest = parts.slice().sort(function(a, b){ return b.length - a.length; })[0];
+    var re = new RegExp('^' + parts.map(function(x){ return x.replace(/[.*+?^$()|[\\]\\\\{}]/g, '\\\\$&'); }).join('(.*?)') + '$');
+    i18nTpl.push({ re: re, pt: I18N_PT[k], len: parts.join('').length, key: longest });
+  });
+  i18nTpl.sort(function(a, b){ return b.len - a.len; });
+}
+var I18N_DATE = { Jan:'Jan', Feb:'Fev', Mar:'Mar', Apr:'Abr', May:'Mai', Jun:'Jun', Jul:'Jul', Aug:'Ago', Sep:'Set', Oct:'Out', Nov:'Nov', Dec:'Dez',
+  Mon:'Seg', Tue:'Ter', Wed:'Qua', Thu:'Qui', Fri:'Sex', Sat:'Sáb', Sun:'Dom',
+  Monday:'Segunda-feira', Tuesday:'Terça-feira', Wednesday:'Quarta-feira', Thursday:'Quinta-feira', Friday:'Sexta-feira', Saturday:'Sábado', Sunday:'Domingo',
+  January:'janeiro', February:'fevereiro', March:'março', April:'abril', June:'junho', July:'julho', August:'agosto', September:'setembro', October:'outubro', November:'novembro', December:'dezembro' };
+var I18N_MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December';
+// "Fri 9 Oct", "9 October 2026", "Monday" → Portuguese (only in text that looks like a date)
+function i18nDates(v) {
+  var t = String(v).trim();
+  if (!/\\d/.test(t) && !Object.prototype.hasOwnProperty.call(I18N_DATE, t)) return v;
+  var full = function(m){ return m === 'May' ? 'maio' : I18N_DATE[m]; };
+  var out = String(v)
+    .replace(new RegExp('(\\\\d{1,2}) (' + I18N_MONTHS + ')( \\\\d{4})?', 'g'), function(_, d, m, y){ return d + ' de ' + full(m) + (y ? ' de' + y : ''); })
+    .replace(new RegExp('\\\\b(' + I18N_MONTHS + ') (\\\\d{4})\\\\b', 'g'), function(_, m, y){ return full(m) + ' de ' + y; })
+    .replace(/\\b(January|February|March|April|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\b/g, function(w){ return I18N_DATE[w]; });
+  if (/^\\s*[A-Z]/.test(v)) out = out.replace(/^(\\s*)(\\S)/, function(_, a, b){ return a + b.toUpperCase(); });
+  return out;
+}
+function i18nFill(pt, caps) {
+  var seq = 0;
+  return pt.replace(/\\{(\\d*)\\}/g, function(_, n){
+    var c = n === '' ? caps[seq++] : caps[+n]; if (c == null) return '';
+    var k = i18nNorm(c); return i18nExact[k] !== undefined ? i18nExact[k] : i18nDates(c);
+  });
+}
+// The Portuguese for one English text (unchanged in English, or when there is no translation)
+function T(v) {
+  if (LANG !== 'pt' || v == null) return v;
+  v = String(v); if (!/[A-Za-z]/.test(v)) return v;
+  var hit = i18nCache.get(v); if (hit !== undefined) return hit;
+  var m = /^(\\s*)([\\s\\S]*?)(\\s*)$/.exec(v), core = i18nNorm(m[2]), out = i18nExact[core];
+  if (out === undefined) for (var i = 0; i < i18nTpl.length; i++) {
+    var tp = i18nTpl[i]; if (tp.key && core.indexOf(tp.key) === -1) continue;
+    var r = tp.re.exec(core); if (r) { out = i18nFill(tp.pt, r.slice(1)); break; }
+  }
+  out = out === undefined ? i18nDates(m[2]) : out;
+  var res = out === m[2] ? v : m[1] + out + m[3];
+  if (i18nCache.size > 8000) i18nCache.clear();
+  i18nCache.set(v, res); return res;
+}
+var I18N_ATTRS = ['placeholder', 'title', 'aria-label'], I18N_SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, PRE: 1, CODE: 1 }, I18N_NOWALK = { SCRIPT: 1, STYLE: 1, PRE: 1, CODE: 1 };
+function i18nText(n) { var p = n.parentNode; if (!p || I18N_SKIP[p.nodeName]) return; var v = n.nodeValue, t = T(v); if (t !== v) n.nodeValue = t; }
+function i18nAttr(el, a) { var v = el.getAttribute(a); if (v) { var t = T(v); if (t !== v) el.setAttribute(a, t); } }
+function i18nTree(root) {
+  if (root.nodeType === 3) { i18nText(root); return; }
+  if (root.nodeType !== 1 || I18N_NOWALK[root.nodeName]) return;
+  I18N_ATTRS.forEach(function(a){ i18nAttr(root, a); });
+  var w = document.createTreeWalker(root, 5, { acceptNode: function(n){ return n.nodeType === 1 && I18N_NOWALK[n.nodeName] ? 2 : 1; } }), n;
+  while ((n = w.nextNode())) { if (n.nodeType === 3) i18nText(n); else for (var i = 0; i < 3; i++) i18nAttr(n, I18N_ATTRS[i]); }
+}
+if (LANG === 'pt') {
+  document.documentElement.lang = 'pt-PT';
+  i18nTree(document.body);
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      if (m.type === 'childList') { for (var j = 0; j < m.addedNodes.length; j++) i18nTree(m.addedNodes[j]); }
+      else if (m.type === 'characterData') i18nText(m.target);
+      else i18nAttr(m.target, m.attributeName);
+    });
+  }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
+}
+document.querySelectorAll('[data-set-lang]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.setLang === LANG)); });
+function confirm(m) { return window.confirm(T(m)); }
+function prompt(m, v) { return window.prompt(T(m), v); }
+// Dates written by the browser ("Friday 9 October"), in the person's language; short ones match fmtDay ("Fri 9 Oct")
+function locDate(d, o) {
+  if (LANG !== 'pt') return d.toLocaleDateString('en-GB', o);
+  if (o.month === 'short') return (o.weekday ? WD3[d.getDay()] + ' ' : '') + (o.day === '2-digit' ? String(d.getDate()).padStart(2, '0') : d.getDate()) + ' ' + MON3[d.getMonth()];
+  var r = d.toLocaleDateString('pt-PT', o); return r.charAt(0).toUpperCase() + r.slice(1);
+}
+// The language a person uses: saved with their login (secure login), else on this device; impersonating keeps yours
+function langForUser(user) {
+  if (isImpersonating()) return LANG;
+  var l = authSession && authSession.lang;
+  if (l !== 'pt' && l !== 'en') { try { l = localStorage.getItem('bp_lang_u_' + user.id); } catch (e) { l = null; } }
+  return l === 'pt' || l === 'en' ? l : LANG;
+}
+// Switch this device to the language and draw the page again (never twice in a row for the same language, so it cannot loop)
+function langReload(l) {
+  try {
+    localStorage.setItem('bp_lang', l); if (localStorage.getItem('bp_lang') !== l) return false;
+    var last = (sessionStorage.getItem('bp_lang_reload') || '').split('|');
+    if (last[0] === l && Date.now() - (+last[1] || 0) < 8000) return false;
+    sessionStorage.setItem('bp_lang_reload', l + '|' + Date.now());
+  } catch (e) { return false; }
+  location.reload(); return true;
+}
+function setLang(l) {
+  l = l === 'pt' ? 'pt' : 'en';
+  var mine = currentUser && !isImpersonating();
+  try { localStorage.setItem('bp_lang', l); if (mine) localStorage.setItem('bp_lang_u_' + currentUser.id, l); } catch (e) {}
+  var done = function(){ if (authSession && mine) { authSession.lang = l; saveAuthSession(authSession); } if (l !== LANG) langReload(l); };
+  if (!mine || !authSession) { done(); return; }
+  toast(l === 'pt' ? 'A guardar o idioma…' : 'Saving your language…');
+  authToken().then(function(tok){
+    if (!tok) return;
+    return rawFetch(SB_URL + '/auth/v1/user', { method: 'PUT', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ data: { lang: l } }) });
+  }).catch(function(){}).then(done);
+}
+// ================================================
 // SECURE LOGIN (Supabase Auth)
 // ================================================
 // Each staff login is a Supabase Auth user; its session token goes with every database and server
@@ -2943,7 +3073,8 @@ var rawFetch = window.fetch.bind(window);
 function saveAuthSession(s) { authSession = s; try { if (s) localStorage.setItem(AUTH_KEY, JSON.stringify(s)); else localStorage.removeItem(AUTH_KEY); } catch (e) {} }
 function authFromResponse(j) {
   return { access_token: j.access_token, refresh_token: j.refresh_token,
-    expires_at: j.expires_at || (Math.floor(Date.now() / 1000) + (j.expires_in || 3600)), meta: (j.user && j.user.app_metadata) || {} };
+    expires_at: j.expires_at || (Math.floor(Date.now() / 1000) + (j.expires_in || 3600)), meta: (j.user && j.user.app_metadata) || {},
+    lang: (j.user && j.user.user_metadata && j.user.user_metadata.lang) || '' };
 }
 var authRefreshing = null;
 // A valid access token (refreshed shortly before it expires), or null without a session
@@ -3011,7 +3142,7 @@ function renderImpCard() {
     .sort(function(a, b){ return a.name.localeCompare(b.name); });
   sel.innerHTML = '<option value="">Choose a person…</option>' + users.map(function(u){
     var plain = { admin:'Admin', finance:'Finance', shift_mgr:'Shift manager', employee:'Employee', chef:'Chef' };
-    return '<option value="' + esc(u.id) + '">' + esc(u.name) + ' — ' + esc((u.roles || []).map(function(r){ return plain[r] || r; }).join(', ') || 'no roles') + '</option>';
+    return '<option value="' + esc(u.id) + '">' + esc(u.name) + ' — ' + esc((u.roles || []).map(function(r){ return T(plain[r] || r); }).join(', ') || T('no roles')) + '</option>';
   }).join('');
   sel.value = keep;
   var btn = document.getElementById('btn-imp-start'); btn.disabled = !isSecure();
@@ -3183,7 +3314,7 @@ function sbFetchAll(table, params, pageSize) {
 // ================================================
 // CONSTANTS
 // ================================================
-var MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var MONTH_NAMES = LANG === 'pt' ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 var MONTH_KEYS=['01','02','03','04','05','06','07','08','09','10','11','12'];
 
 // ================================================
@@ -3670,14 +3801,15 @@ var selectedTables = [];
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function toDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 // The house formats (Finance and Black Box keep their own): dates "Fri 9 Oct" (+ year when not this year), money "€1234,56"
-var MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], WD3 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var MON3 = LANG === 'pt' ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var WD3 = LANG === 'pt' ? ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function fmtDay(v, noWeekday) {
   if (!v) return ''; var str = String(v), d = /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(str + 'T12:00:00') : new Date(str); if (isNaN(d)) return str;
   return (noWeekday ? '' : WD3[d.getDay()] + ' ') + d.getDate() + ' ' + MON3[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '');
 }
 function fmtDate(iso) { if (!iso) return ''; var d = new Date(iso); if (isNaN(d)) return String(iso); return fmtDay(iso, true) + ', ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
 function fmtMoney(v) { return accEur(v); }
-function fmtDateShort(iso) { if (!iso) return ''; var d = new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}); }
+function fmtDateShort(iso) { if (!iso) return ''; var d = new Date(iso+'T12:00:00'); return locDate(d, {weekday:'short',day:'2-digit',month:'short'}); }
 function getMonday(d) { var dd = new Date(d); var day = dd.getDay(); var diff = day===0?-6:1-day; dd.setDate(dd.getDate()+diff); dd.setHours(0,0,0,0); return dd; }
 function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtEur(n) { return '€' + (Math.round(n*100)/100).toFixed(2); }
@@ -3686,7 +3818,7 @@ function getWeekStart(offset) { var d = getMonday(new Date()); d.setDate(d.getDa
 var toastTimer;
 function toast(msg, type) {
   var el = document.getElementById('toast');
-  el.textContent = msg;
+  el.textContent = T(msg);
   el.style.background = type==='error' ? '#b4402f' : type==='gold' ? '#b7791f' : 'var(--slate-900)';
   el.classList.add('show');
   clearTimeout(toastTimer);
@@ -3846,6 +3978,7 @@ function applyLogin(user, showWelcome) {
   if (!isAdmin && !hasRole('chef')) forgetFoodCost();
   // Persist session across refreshes
   try { localStorage.setItem(SESSION_KEY, JSON.stringify({id: user.id, username: user.username})); } catch(e){}
+  var wantLang = langForUser(user); if (wantLang !== LANG && langReload(wantLang)) return;
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').textContent = '';
   document.getElementById('login-screen').classList.add('hidden');
@@ -4051,7 +4184,7 @@ function notifWhen(iso) {
   var dayDiff = Math.round((today - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
   if (dayDiff === 0) return 'Today ' + hm;
   if (dayDiff === 1) return 'Yesterday ' + hm;
-  return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }) + ' ' + hm;
+  return locDate(d, { weekday:'short', day:'numeric', month:'short' }) + ' ' + hm;
 }
 function renderNotifPanel() {
   var n = notifUnread();
@@ -4147,7 +4280,7 @@ function renderMyShift() {
   var next = dated.find(function(x){ return x.d > today && !x.s.dayOff && x.s.start; });
   // managers who are not on the rota these two weeks don't need an empty card
   if (!dated.length && (isAdmin || hasRole('shift_mgr'))) { body.innerHTML = ''; body.style.display = 'none'; syncTodayPanel(); return; }
-  if (next) { var nd = new Date(next.d + 'T12:00:00'); h += '<div class="myshift-next">Next: <b>' + esc(nd.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })) + ', ' + esc(span(next.s)) + '</b>' + (where(next.s) ? ' · ' + esc(where(next.s)) : '') + '</div>'; }
+  if (next) { var nd = new Date(next.d + 'T12:00:00'); h += '<div class="myshift-next">Next: <b>' + esc(locDate(nd, { weekday:'short', day:'numeric', month:'short' })) + ', ' + esc(span(next.s)) + '</b>' + (where(next.s) ? ' · ' + esc(where(next.s)) : '') + '</div>'; }
   else if (!work.length) h += '<div class="myshift-next">Nothing on the schedule for the next two weeks yet.</div>';
   body.innerHTML = h;
   syncTodayPanel();
@@ -4243,11 +4376,11 @@ function renderClockTab() {
     if (clockMonth !== want) return; clockRows = rows || []; clockLoaded = want; renderClockList();
   }).catch(function(){ if (clockMonth === want && clockLoaded !== want) el.innerHTML = '<div class="req-banner"><i class="fas fa-circle-info"></i> The clock switches on once the clock SQL has run in Supabase.</div>'; });
 }
-function clockDayTxt(d) { var x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : x.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }); }
+function clockDayTxt(d) { var x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : locDate(x, { weekday:'short', day:'numeric', month:'short' }); }
 function renderClockList() {
   var el = document.getElementById('clock-content'); if (!el) return;
   var ses = clockSessions(clockRows).filter(function(x){ return !clockDayF || String(x.day) === clockDayF; });
-  var label = clockDayF ? clockDayTxt(clockDayF) : new Date(clockMonth + '-01T12:00:00').toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+  var label = clockDayF ? clockDayTxt(clockDayF) : locDate(new Date(clockMonth + '-01T12:00:00'), { month:'long', year:'numeric' });
   var flagHtml = function(f){ return f ? '<span class="clock-flag' + (f === 'Still in' ? ' in' : '') + '">' + esc(f) + '</span>' : ''; };
   if (clockPerson) {
     var mine = ses.filter(function(x){ return accSame(x.employee, clockPerson); }), tot = mine.reduce(function(s, x){ return s + x.minutes; }, 0);
@@ -6807,7 +6940,7 @@ function renderCalendar(){
   var dnames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   var mnames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var end=new Date(calendarWeekStart); end.setDate(end.getDate()+6);
-  document.getElementById('calendar-week-label').textContent=mnames[calendarWeekStart.getMonth()]+' '+calendarWeekStart.getDate()+' - '+mnames[end.getMonth()]+' '+end.getDate();
+  document.getElementById('calendar-week-label').textContent=LANG === 'pt' ? calendarWeekStart.getDate()+' '+MON3[calendarWeekStart.getMonth()]+' – '+end.getDate()+' '+MON3[end.getMonth()] : mnames[calendarWeekStart.getMonth()]+' '+calendarWeekStart.getDate()+' - '+mnames[end.getMonth()]+' '+end.getDate();
   var grid=document.getElementById('calendar-grid'); if(!grid) return;
   var today=new Date(); today.setHours(0,0,0,0);
   grid.innerHTML='';
@@ -6910,7 +7043,7 @@ function calvGoTo(dateStr) {
 function renderCalView() {
   var grid = document.getElementById('calv-grid'); if (!grid) return;
   var lbl = document.getElementById('calv-month-label');
-  if (lbl) lbl.textContent = calvMonth.toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+  if (lbl) lbl.textContent = locDate(calvMonth, { month:'long', year:'numeric' });
   var addBtn = document.getElementById('btn-add-event'); if (addBtn) addBtn.style.display = canManageEvents() ? '' : 'none';
   var dayAdd = document.getElementById('calv-day-add'); if (dayAdd) dayAdd.style.display = canManageEvents() ? '' : 'none';
   document.getElementById('calv-filters').innerHTML = CALV_TYPES.map(function(t){
@@ -6920,7 +7053,7 @@ function renderCalView() {
   for (var d = new Date(r.start); d <= r.end; d.setDate(d.getDate() + 1)) {
     var ds = toDateStr(d), items = calvItems(ds), out = d.getMonth() !== calvMonth.getMonth();
     var colors = []; items.forEach(function(it){ if (colors.indexOf(it.color) === -1) colors.push(it.color); });
-    html += '<button class="calv-cell' + (out ? ' out' : '') + (ds === today ? ' today' : '') + (ds === calvSel ? ' sel' : '') + '" data-calv-day="' + ds + '" aria-label="' + esc(d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })) + (items.length ? ', ' + items.length + ' item' + (items.length === 1 ? '' : 's') : '') + '">'
+    html += '<button class="calv-cell' + (out ? ' out' : '') + (ds === today ? ' today' : '') + (ds === calvSel ? ' sel' : '') + '" data-calv-day="' + ds + '" aria-label="' + esc(locDate(d, { weekday:'long', day:'numeric', month:'long' })) + (items.length ? ', ' + items.length + ' item' + (items.length === 1 ? '' : 's') : '') + '">'
       + '<span class="calv-num">' + d.getDate() + '</span>'
       + (colors.length ? '<span class="calv-dots">' + colors.slice(0, 4).map(function(c){ return '<i style="background:' + c + '"></i>'; }).join('') + '</span>' : '')
       + (items.length ? '<span class="calv-chips">' + items.slice(0, 3).map(function(it){ return '<span class="calv-chip"><i class="cal-dot" style="background:' + it.color + '"></i>' + esc(it.chip) + '</span>'; }).join('')
@@ -6933,7 +7066,7 @@ function renderCalView() {
 function renderCalAgenda() {
   var el = document.getElementById('calv-agenda'); if (!el) return;
   var d = new Date(calvSel + 'T12:00:00');
-  document.getElementById('calv-day-label').textContent = d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('calv-day-label').textContent = locDate(d, { weekday:'long', day:'numeric', month:'long' });
   var items = calvItems(calvSel);
   var note = sbCols.events === false ? '<div class="req-banner" style="margin-bottom:10px"><i class="fas fa-circle-info"></i> Events switch on once the calendar SQL has run in Supabase.</div>' : '';
   if (!items.length) { el.innerHTML = note + '<div class="empty-state" style="padding:16px"><i class="fas fa-calendar"></i><p>Nothing on this day.</p></div>'; return; }
@@ -7579,7 +7712,7 @@ function renderMyWeekTab() {
         + (absIdx[emp + '|' + ds] ? '<span class="badge badge-red">Absent</span>' : '') + (req ? '<span class="badge badge-yellow">Change ' + esc(reqStatusLabel(req)) + '</span>' : '');
     }
     return '<button class="mw-row' + (ds === today ? ' today' : '') + '"' + (working ? ' data-action-shift="' + esc(sh.id) + '" data-action-shift-date="' + ds + '" data-action-shift-ws="' + wsStr + '"' : ' disabled')
-      + '><span class="mw-day">' + esc(d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })) + '</span><span class="mw-body">' + body + '</span>' + (working ? '<i class="fas fa-chevron-right"></i>' : '') + '</button>';
+      + '><span class="mw-day">' + esc(locDate(d, { weekday:'short', day:'numeric', month:'short' })) + '</span><span class="mw-body">' + body + '</span>' + (working ? '<i class="fas fa-chevron-right"></i>' : '') + '</button>';
   });
   el.innerHTML = '<div class="mw-head"><b>' + esc(emp) + '</b> · ' + (total ? (Math.round(total * 10) / 10).toString().replace('.', ',') + ' h scheduled this week' : 'no shifts this week') + '</div>' + rows.join('');
 }
@@ -7626,7 +7759,8 @@ function renderShifts(){
   var we = new Date(ws); we.setDate(we.getDate()+6);
   var mnames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('shifts-week-label').textContent =
-    mnames[ws.getMonth()]+' '+ws.getDate()+' – '+mnames[we.getMonth()]+' '+we.getDate()+', '+we.getFullYear();
+    LANG === 'pt' ? ws.getDate()+' '+MON3[ws.getMonth()]+' – '+we.getDate()+' '+MON3[we.getMonth()]+' '+we.getFullYear()
+    : mnames[ws.getMonth()]+' '+ws.getDate()+' – '+mnames[we.getMonth()]+' '+we.getDate()+', '+we.getFullYear();
 
   var db = getDB();
   var canShiftEdit = isAdmin || hasRole('shift_mgr');
@@ -9166,7 +9300,7 @@ function invNewSupplierFromForm() {
     if (!sup) return;
     sel.innerHTML = invSupplierOptions(sup.id, sup.name); sel.value = sup.id;
     var qn = document.getElementById('inv-qr-note');
-    if (qn && qn.style.display !== 'none' && /supplier/i.test(qn.textContent)) invQrNote('ok', '<i class="fas fa-circle-check"></i><span>' + esc(sup.name) + ' created' + (nif ? ' with NIF ' + esc(nif) : '') + '. Check and save.</span>');
+    if (qn && qn.style.display !== 'none' && /supplier|fornecedor/i.test(qn.textContent)) invQrNote('ok', '<i class="fas fa-circle-check"></i><span>' + esc(sup.name) + ' created' + (nif ? ' with NIF ' + esc(nif) : '') + '. Check and save.</span>');
   };
   openSupplierModal(null, { name: '', nif: nif });
 }
@@ -10506,8 +10640,8 @@ function renderDashboard(){
   try {
     var dNow = new Date();
     var dayEl = document.getElementById('dash-date-day'), fullEl = document.getElementById('dash-date-full');
-    if (dayEl) dayEl.textContent = dNow.toLocaleDateString('en-GB', { weekday: 'long' });
-    if (fullEl) fullEl.textContent = dNow.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (dayEl) dayEl.textContent = locDate(dNow, { weekday: 'long' });
+    if (fullEl) fullEl.textContent = locDate(dNow, { day: 'numeric', month: 'long', year: 'numeric' });
   } catch(e) {}
   var db=getDB();
   var today=toDateStr(new Date());
@@ -10582,6 +10716,10 @@ function renderDashboard(){
 document.addEventListener('click', function(e) {
   var t = e.target;
   var el;
+
+  // Language
+  el = t.closest('[data-set-lang]');
+  if (el) { if (el.dataset.setLang !== LANG) setLang(el.dataset.setLang); return; }
 
   // Pin pad
   el = t.closest('[data-pin-key]');
