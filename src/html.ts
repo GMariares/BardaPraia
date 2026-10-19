@@ -284,6 +284,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .btn:active { transform:scale(.98); }
     .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
     .btn-primary { background:var(--teal-600); color:white; }
+    .btn-primary.is-danger { background:var(--red); }
+    .btn-primary.is-danger:hover { background:var(--red-700); }
     .btn-primary:hover { background:var(--teal-700); }
     .btn-secondary { background:var(--panel); color:var(--slate-700); border-color:var(--slate-200); }
     .btn-secondary:hover { background:var(--slate-50); border-color:var(--slate-300); }
@@ -480,6 +482,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     /* ── ORDER STANDBY ── */
     .order-standby { border:var(--rule); border-color:var(--amber-200); background:var(--amber-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
     .order-confirmed { border:var(--rule); border-color:var(--green-200); background:var(--green-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
+    .order-rejected { border:var(--rule); border-color:var(--red-200); background:var(--red-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
+    .ord-rejected-note { display:flex; align-items:flex-start; gap:6px; font-size:12px; font-weight:600; color:var(--red-700); margin-bottom:8px; }
     /* Order lines, with the admin's changes shown to everyone */
     .ord-line { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:13px; padding:4px 0; border-bottom:1px solid var(--slate-50); }
     .ord-line .ord-n { color:var(--slate-700); min-width:0; }
@@ -491,7 +495,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .ord-tag.add { background:var(--green-50); color:var(--green-700); border:1px solid var(--green-200); }
     .ord-tag.rem { background:var(--red-50); color:var(--red-700); border:1px solid var(--red-200); }
     .ord-changed { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--amber-700); margin-bottom:6px; }
-    .ord-acts { display:flex; gap:6px; flex-shrink:0; align-self:center; }
+    .ord-acts { display:flex; flex-wrap:wrap; gap:6px; flex-shrink:0; align-self:center; }
     .ordrev-sub { font-size:13px; color:var(--slate-500); margin:-6px 0 14px; }
     .ordrev-line { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--slate-100); }
     .ordrev-line .ordrev-name { flex:1; min-width:0; font-size:14px; font-weight:600; color:var(--slate-800); }
@@ -3879,7 +3883,7 @@ function askText(o, cb) {
   document.getElementById('ask-title').textContent = o.title || '';
   var msg = document.getElementById('ask-msg'); msg.textContent = o.message || ''; msg.style.display = o.message ? '' : 'none';
   document.getElementById('ask-icon').className = 'fas ' + (o.icon || 'fa-pen');
-  document.getElementById('btn-ask-ok').textContent = o.ok || 'OK';
+  var okBtn = document.getElementById('btn-ask-ok'); okBtn.textContent = o.ok || 'OK'; okBtn.classList.toggle('is-danger', !!o.danger);
   var inp = document.getElementById('ask-input');
   inp.value = o.value == null ? '' : String(o.value); inp.placeholder = o.placeholder || ''; inp.setAttribute('inputmode', o.inputmode || 'text');
   document.getElementById('ask-list').innerHTML = (o.suggestions || []).map(function(x){ return '<option value="' + esc(x) + '"></option>'; }).join('');
@@ -6827,8 +6831,8 @@ function renderOrderHistory(){
   el.innerHTML=html;
 }
 function renderOrderCard(o,db,sup){
-  var isStandby=o.status==='standby';
-  var canEmail=sup&&sup.sendEmail&&sup.email;
+  var isStandby=o.status==='standby', isRejected=o.status==='rejected';
+  var canEmail=sup&&sup.sendEmail&&sup.email&&!isRejected;
   var shortId=o.id.slice(-6).toUpperCase();
   var itemCount=ordLive(o).length;
   var detailId='order-detail-'+esc(o.id);
@@ -6837,7 +6841,7 @@ function renderOrderCard(o,db,sup){
     +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
         +'<span style="font-weight:700;color:var(--slate-800);font-size:13px">Order #'+shortId+'</span>'
-        +'<span class="badge '+(isStandby?'badge-orange':'badge-green')+'" style="font-size:11px">'+(isStandby?'<i class="fas fa-hourglass-half"></i> Standby':'<i class="fas fa-check"></i> Approved')+'</span>'
+        +'<span class="badge '+(isStandby?'badge-orange':isRejected?'badge-red':'badge-green')+'" style="font-size:11px">'+(isStandby?'<i class="fas fa-hourglass-half"></i> Standby':isRejected?'<i class="fas fa-ban"></i> Rejected':'<i class="fas fa-check"></i> Approved')+'</span>'
         +(ordChanged(o)?'<span class="ord-tag chg" style="margin-left:0">Changed</span>':'')
       +'</div>'
       +'<div style="font-size:11px;color:var(--slate-500);margin-top:2px">'+fmtDate(o.date)+' · '+itemCount+' item'+(itemCount!==1?'s':'')+(o.amount>0?' · <span style="color:var(--green);font-weight:600">'+fmtMoney(o.amount)+'</span>':'')+'</div>'
@@ -6846,17 +6850,18 @@ function renderOrderCard(o,db,sup){
   +'</div>';
   // Detail — hidden by default
   var detail='<div id="'+detailId+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--slate-100)">'
-    +'<div style="margin-bottom:10px">'+ordChangedNote(o)+ordLinesHtml(o)+'</div>'
+    +'<div style="margin-bottom:10px">'+ordRejectedNote(o)+ordChangedNote(o)+ordLinesHtml(o)+'</div>'
     // Action buttons inside the detail panel
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +(isStandby&&isAdmin?'<button class="btn btn-sm btn-secondary" data-review-order="'+esc(o.id)+'"><i class="fas fa-pen-to-square"></i> Review</button><button class="btn btn-sm btn-primary" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button>':'')
+      +(isStandby&&isAdmin?ordAdminActs(o):'')
+      +(isRejected&&isAdmin?'<button class="btn btn-sm btn-secondary" data-reopen-order="'+esc(o.id)+'"><i class="fas fa-rotate-left"></i> Reopen</button>':'')
       +(isStandby&&!isAdmin?'<span style="font-size:11px;color:var(--amber-700);font-style:italic;align-self:center">Awaiting admin approval</span>':'')
       +(canEmail?'<button class="btn btn-sm btn-secondary" data-send-order-email="'+esc(o.id)+'"><i class="fas fa-envelope"></i> Email</button>':'')
-      +'<button class="btn btn-sm btn-secondary btn-wa" data-send-order-wa="'+esc(o.id)+'" aria-label="Send the order by WhatsApp'+(sup&&sup.name?' to '+esc(sup.name):'')+'"><i class="fab fa-whatsapp"></i> WhatsApp</button>'
-      +(isAdmin?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'"><i class="fas fa-euro-sign"></i> Amount</button>':'')
+      +(isRejected?'':'<button class="btn btn-sm btn-secondary btn-wa" data-send-order-wa="'+esc(o.id)+'" aria-label="Send the order by WhatsApp'+(sup&&sup.name?' to '+esc(sup.name):'')+'"><i class="fab fa-whatsapp"></i> WhatsApp</button>')
+      +(isAdmin&&!isRejected?'<button class="btn btn-sm btn-secondary" data-set-order-amount="'+esc(o.id)+'"><i class="fas fa-euro-sign"></i> Amount</button>':'')
     +'</div>'
   +'</div>';
-  return '<div class="'+(isStandby?'order-standby':'order-confirmed')+'" style="margin-bottom:8px">'+header+detail+'</div>';
+  return '<div class="'+(isStandby?'order-standby':isRejected?'order-rejected':'order-confirmed')+'" style="margin-bottom:8px">'+header+detail+'</div>';
 }
 
 function confirmDraftOrder(sid){
@@ -6934,10 +6939,49 @@ function ordLinesHtml(o){
     return '<div class="ord-line'+(i.removed?' is-removed':'')+'"><span class="ord-n">'+esc(i.name)+tag+'</span><span class="ord-q">'+q+'</span></div>';
   }).join('');
 }
+// Review · Reject · Approve, for an admin on a pending order
+function ordAdminActs(o){
+  var id=esc(o.id);
+  return '<button class="btn btn-sm btn-secondary" data-review-order="'+id+'"><i class="fas fa-pen-to-square"></i> Review</button>'
+    +'<button class="btn btn-sm btn-danger" data-reject-order="'+id+'"><i class="fas fa-ban"></i> Reject</button>'
+    +'<button class="btn btn-sm btn-primary" data-confirm-order="'+id+'"><i class="fas fa-check"></i> Approve</button>';
+}
+// Who rejected it and why: kept on the order's first line, like the review changes (no database change)
+function ordRejectInfo(o){ return (o.items||[]).find(function(i){ return i.rejectedBy; })||null; }
+function ordRejectedNote(o){
+  if(o.status!=='rejected') return '';
+  var r=ordRejectInfo(o);
+  return '<div class="ord-rejected-note"><i class="fas fa-ban" style="margin-top:2px"></i><span>'+(r?'Rejected by '+esc(r.rejectedBy):'Rejected')+(r&&r.rejectReason?': '+esc(r.rejectReason):'')+'</span></div>';
+}
+function rejectOrder(orderId){
+  var o=getDB().orders.find(function(x){ return x.id===orderId; }); if(!o) return;
+  if(o.status!=='standby'){ toast('This order is no longer waiting for approval','error'); return; }
+  if(String(o.id).indexOf('tmp-')===0){ toast('Still saving this order, one moment','error'); return; }
+  var sup=o.supplierId?(getDB().suppliers||[]).find(function(s){ return s.id===o.supplierId; }):null;
+  askText({ title:'Reject this order?', icon:'fa-ban', ok:'Reject order', danger:true, placeholder:'Reason (optional)',
+    message:'Order #'+o.id.slice(-6).toUpperCase()+(sup?' · '+sup.name:'')+'. It will not be sent to the supplier, and the team sees it as rejected.' }, function(reason){
+    var items=(o.items||[]).map(function(i){ var c=JSON.parse(JSON.stringify(i)); delete c.rejectedBy; delete c.rejectReason; delete c.rejectedAt; return c; });
+    if(items[0]){ items[0].rejectedBy=currentUser?currentUser.name:''; items[0].rejectedAt=new Date().toISOString(); if(String(reason||'').trim()) items[0].rejectReason=String(reason).trim().slice(0,300); }
+    ordSetStatus(o.id,'rejected',items,'Order rejected');
+  });
+}
+// Back to waiting for approval (a reject by mistake)
+function reopenOrder(orderId){
+  var o=getDB().orders.find(function(x){ return x.id===orderId; }); if(!o||o.status!=='rejected') return;
+  var items=(o.items||[]).map(function(i){ var c=JSON.parse(JSON.stringify(i)); delete c.rejectedBy; delete c.rejectReason; delete c.rejectedAt; return c; });
+  ordSetStatus(o.id,'standby',items,'Order back to waiting for approval');
+}
+function ordSetStatus(id,status,items,okMsg){
+  sbFetch('PATCH','orders',{status:status,items:items},'id=eq.'+id).then(function(rows){
+    if(!rows||!rows[0]) throw new Error('not saved');
+    var db=getDB(), o=db.orders.find(function(x){ return x.id===id; }); if(o){ o.status=status; o.items=items; } saveDB(db);
+    renderOrderHistory(); renderDashboard(); toast(okMsg,'success');
+  }).catch(function(){ toast('Not saved. Check the connection and try again.','error'); });
+}
 var ordRev=null;   // {id, items:[…working copy, each with asked = the quantity staff asked for]}
 function openOrderReview(orderId){
   var o=getDB().orders.find(function(x){ return x.id===orderId; }); if(!o) return;
-  if(o.status!=='standby'){ toast('This order is already approved','error'); return; }
+  if(o.status!=='standby'){ toast('This order is no longer waiting for approval','error'); return; }
   if(String(o.id).indexOf('tmp-')===0){ toast('Still saving this order, one moment','error'); return; }
   ordRev={ id:o.id, items:(o.items||[]).map(function(i){ var c=JSON.parse(JSON.stringify(i)); if(!c.added) c.asked=c.origQty!=null?c.origQty:c.orderQty; return c; }) };
   var db=getDB(), sup=o.supplierId?(db.suppliers||[]).find(function(s){ return s.id===o.supplierId; }):null;
@@ -10840,7 +10884,7 @@ function renderDashboard(){
             +(isAdmin?'':'<span class="badge badge-orange" style="flex-shrink:0"><i class="fas fa-hourglass-half"></i> Standby</span>')
           +'</div>'
           +ordChangedNote(o)+ordLinesHtml(o)
-          +(isAdmin?'<div class="ord-acts" style="justify-content:flex-end;margin-top:10px"><button class="btn btn-sm btn-secondary" data-review-order="'+esc(o.id)+'"><i class="fas fa-pen-to-square"></i> Review</button><button class="btn btn-sm btn-primary" data-confirm-order="'+esc(o.id)+'"><i class="fas fa-check"></i> Approve</button></div>':'')
+          +(isAdmin?'<div class="ord-acts" style="justify-content:flex-end;margin-top:10px">'+ordAdminActs(o)+'</div>':'')
         +'</div>';
       }).join('');
     }
@@ -11027,6 +11071,10 @@ document.addEventListener('click', function(e) {
     }
     return;
   }
+  el = t.closest('[data-reject-order]');
+  if (el) { e.stopPropagation(); rejectOrder(el.dataset.rejectOrder); return; }
+  el = t.closest('[data-reopen-order]');
+  if (el) { e.stopPropagation(); reopenOrder(el.dataset.reopenOrder); return; }
   el = t.closest('[data-review-order]');
   if (el) { e.stopPropagation(); openOrderReview(el.dataset.reviewOrder); return; }
   el = t.closest('[data-ordrev-step]');
