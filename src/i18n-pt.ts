@@ -558,6 +558,8 @@ export const PT: Record<string, string> = {
   "Order confirmed — awaiting approval.": "Encomenda confirmada — à espera de aprovação.",
   "Order rejected": "Encomenda rejeitada",
   "Order saved": "Encomenda guardada",
+  "Order to approve": "Encomenda para aprovar",
+  "Order to approve · {}": "Encomenda para aprovar · {}",
   "Order updated": "Encomenda atualizada",
   "Orders": "Encomendas",
   "Orders can be sent to this number by WhatsApp.": "As encomendas podem ser enviadas para este número por WhatsApp.",
