@@ -749,6 +749,17 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     /* ── SETTINGS ── */
     .settings-card { background:var(--panel); border-radius:var(--radius); padding:18px; margin-bottom:12px; border:var(--rule); }
     .settings-card h3 { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+    /* Settings cards start closed: the title opens and closes each one */
+    .settings-card.set-fold { padding:0; }
+    .settings-card.set-fold > h3 { margin:0; display:block; }
+    .set-toggle { width:100%; min-height:56px; display:flex; align-items:center; gap:8px; padding:14px 18px; background:none; border:0; border-radius:var(--radius); font:inherit; letter-spacing:inherit; text-transform:inherit; color:inherit; text-align:left; cursor:pointer; }
+    @media (hover:hover) { .set-toggle:hover { background:var(--slate-50); } }
+    .set-toggle:focus-visible { outline:2px solid var(--teal-500); outline-offset:-2px; }
+    .set-toggle .set-chev { margin-left:auto; color:var(--slate-400); font-size:13px; transition:transform .2s; }
+    .settings-card.open .set-toggle .set-chev { transform:rotate(180deg); }
+    .settings-card.open .set-toggle { border-bottom-left-radius:0; border-bottom-right-radius:0; }
+    .set-body { padding:2px 18px 18px; }
+    .set-body[hidden] { display:none; }
     .settings-card h3 i { color:var(--teal-600); }
     .emp-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; min-height:48px; background:var(--panel); border:var(--rule); border-radius:10px; margin-bottom:6px; }
     .emp-avatar { width:32px; height:32px; border-radius:50%; background:var(--slate-100); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--slate-700); }
@@ -5479,6 +5490,25 @@ function saveBudgets() {
       toast('Saved locally — Supabase sync failed (run migration SQL)', 'error');
     });
 }
+// Settings: every card starts closed; its title (a button) opens and closes it
+function settingsFold() {
+  document.querySelectorAll('#section-settings .settings-card').forEach(function(card, n){
+    if (card.classList.contains('set-fold')) return;
+    var h = card.querySelector(':scope > h3'); if (!h) return;
+    var body = document.createElement('div'); body.className = 'set-body'; body.id = 'set-body-' + n; body.hidden = true;
+    while (h.nextSibling) body.appendChild(h.nextSibling);
+    card.appendChild(body);
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'set-toggle'; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', body.id);
+    while (h.firstChild) btn.appendChild(h.firstChild);
+    btn.insertAdjacentHTML('beforeend', '<i class="fas fa-chevron-down set-chev" aria-hidden="true"></i>');
+    h.appendChild(btn); card.classList.add('set-fold');
+  });
+}
+function settingsToggle(btn) {
+  var card = btn.closest('.settings-card'), body = card && card.querySelector(':scope > .set-body'); if (!body) return;
+  var open = body.hidden; body.hidden = !open; card.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+}
+settingsFold();
 function renderSettings() {
   var settingsLocked = document.getElementById('settings-locked');
   var settingsContent = document.getElementById('settings-content');
@@ -10963,6 +10993,10 @@ function renderDashboard(){
 document.addEventListener('click', function(e) {
   var t = e.target;
   var el;
+
+  // Settings cards: open / close
+  el = t.closest('.set-toggle');
+  if (el) { settingsToggle(el); return; }
 
   // Language
   el = t.closest('[data-set-lang]');
