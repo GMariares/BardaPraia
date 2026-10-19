@@ -1070,6 +1070,18 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .acc-in:focus { outline:none; border-color:var(--teal-500); box-shadow:0 0 0 3px var(--mint-100); }
     .acc-fixed .acc-in { width:78px; }
     .acc-fixed tbody th { display:flex; align-items:center; justify-content:space-between; gap:6px; min-width:170px; }
+    /* Frozen: the table scrolls inside its box, the months row and the cost column stay in view (and the Total row at the bottom) */
+    .acc-freeze { max-height:calc(100vh - 230px); max-height:calc(100dvh - 230px); min-height:260px; overflow:auto; overscroll-behavior:contain; }
+    .acc-freeze thead th { z-index:2; box-shadow:inset 0 -1px 0 var(--slate-200); }
+    .acc-freeze thead th:first-child { z-index:3; }
+    .acc-freeze tbody th { box-shadow:inset -1px 0 0 var(--slate-200); }
+    .acc-freeze tr.strong td, .acc-freeze tr.strong th { position:sticky; bottom:0; background:var(--slate-50); box-shadow:inset 0 1px 0 var(--slate-200); z-index:1; }
+    .acc-freeze tr.strong th { z-index:2; }
+    @media (max-width:600px) {
+      .acc-freeze { max-height:calc(100dvh - 300px); }
+      .acc-fixed tbody th { min-width:0; width:150px; max-width:150px; white-space:normal; gap:2px; padding-right:2px; }
+      .acc-fixed tbody th span { line-height:1.25; font-size:12.5px; overflow-wrap:break-word; hyphens:auto; }
+    }
     .acc-auto { width:100%; min-height:36px; border:1px dashed var(--teal-500); background:var(--mint-50); color:var(--teal-700); border-radius:7px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; padding:3px 8px; text-align:right; }
     .acc-auto small { display:block; font-size:10px; font-weight:600; }
     .acc-icon { border:none; background:none; color:var(--slate-400); width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:13px; }
@@ -3333,9 +3345,10 @@ function sbFetch(method, table, body, params) {
       if (r.status === 401 || r.status === 403) { sbDenied = true; noteDenied(); }
       return r.json().then(function(e){ if (e && e.code === '42501') { sbDenied = true; noteDenied(); } throw e; }).catch(function(){ throw new Error('HTTP ' + r.status); });
     }
+    // an empty reply (204, or a delete with no rows back) is fine even when it says it is JSON
     var ct = r.headers.get('content-type') || '';
-    if (ct.indexOf('json') !== -1) return r.json();
-    return null;
+    if (r.status === 204 || ct.indexOf('json') === -1) return null;
+    return r.text().then(function(t){ return t ? JSON.parse(t) : null; });
   }).catch(function(e) {
     if (timer) clearTimeout(timer);
     throw e;
@@ -9576,6 +9589,7 @@ function deleteInvoice() {
 }
 
 // ── screen ──
+var accRedrawWaiting = false, accLastView = '';
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
   // Accounting is for admins only (wages, margins, every cost)
@@ -9588,8 +9602,21 @@ function renderAccounting() {
   var body = document.getElementById('acc-body');
   if (accTab === 'foodcost') accTab = 'summary';
   if (accMonth === 0 && accTab !== 'wages') accMonth = (accYear === new Date().getFullYear()) ? new Date().getMonth() + 1 : 12;
+  // Keep the person's place when a saved amount redraws the table: the box they are in, the table's scroll,
+  // and never wipe a box they are still typing in (redrawn when they leave it)
+  var view = accTab + '|' + accYear + '|' + accMonth, sameView = view === accLastView;
+  var act = document.activeElement, actKey = act && act.dataset && body.contains(act) ? act.dataset.accCell : '';
+  if (sameView && actKey && act.dataset.accTyped) { accRedrawWaiting = true; return; }
+  var caret = actKey ? [act.selectionStart, act.selectionEnd] : null;
+  accRedrawWaiting = false; accLastView = view;
+  var scrolls = sameView ? [].map.call(body.querySelectorAll('.acc-scroll'), function(x){ return [x.scrollLeft, x.scrollTop]; }) : [];
   var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
   body.innerHTML = html;
+  [].forEach.call(body.querySelectorAll('.acc-scroll'), function(x, i){ if (scrolls[i]) { x.scrollLeft = scrolls[i][0]; x.scrollTop = scrolls[i][1]; } });
+  if (actKey && sameView) {
+    var back = [].find.call(body.querySelectorAll('[data-acc-cell]'), function(x){ return x.dataset.accCell === actKey; });
+    if (back) { try { back.focus({ preventScroll: true }); } catch (e) { back.focus(); } try { back.setSelectionRange(caret[0], caret[1]); } catch (e) { back.select(); } }
+  }
   if (accTab === 'summary') { var ch = document.getElementById('acc-chart'); if (ch) drawAccChart(ch); }
 }
 function accMonthBar(withYear) {
@@ -9821,7 +9848,7 @@ function accFixedHTML() {
   var lines = accCfg().fixedLines.slice(), rows = accRows(accYear, 'fixed');
   rows.forEach(function(e){ if (!lines.some(function(l){ return accSame(l, e.line); })) lines.push(e.line); });
   var h = '<div class="acc-toolbar"><div class="acc-toolbar-title">Fixed costs · ' + accYear + '</div><button class="btn btn-primary btn-sm" data-acc-new-line="fixed"><i class="fas fa-plus"></i> Cost line</button></div>';
-  h += '<div class="acc-card acc-scroll"><table class="acc-table acc-edit acc-fixed"><thead><tr><th>Cost</th>';
+  h += '<div class="acc-card acc-scroll acc-freeze"><table class="acc-table acc-edit acc-fixed"><thead><tr><th>Cost</th>';
   for (var m = 1; m <= 12; m++) h += '<th>' + MONTH_NAMES[m - 1] + '</th>';
   h += '<th>Year</th></tr></thead><tbody>';
   var colTot = [0,0,0,0,0,0,0,0,0,0,0,0];
@@ -9896,6 +9923,34 @@ function accNewLineNamed(kind, name) {
   if (kind === 'expense') openAccLedger('expense', name);
 }
 
+// Accounting tables: Enter goes to the next box of the same line (next month), then the next line; Shift+Enter goes back
+function accNextCell(t, back) {
+  var all = [].slice.call(document.querySelectorAll('#acc-body input[data-acc-cell]')), i = all.indexOf(t);
+  return i === -1 ? null : all[i + (back ? -1 : 1)] || null;
+}
+document.addEventListener('input', function(e){ var t = e.target; if (t && t.dataset && t.dataset.accCell) t.dataset.accTyped = '1'; });
+document.addEventListener('focusin', function(e){
+  var t = e.target; if (!t || !t.dataset || !t.dataset.accCell) return;
+  delete t.dataset.accTyped; t.dataset.accFresh = '1';
+  // like a spreadsheet: going into a box selects its amount, so typing replaces it
+  setTimeout(function(){ if (document.activeElement === t && !t.dataset.accTyped && t.selectionStart === t.selectionEnd) t.select(); }, 0);
+});
+// the click (or tap) that went into the box would otherwise drop the selection and put the cursor in it
+document.addEventListener('mouseup', function(e){
+  var t = e.target; if (!t || !t.dataset || !t.dataset.accCell || !t.dataset.accFresh) return;
+  delete t.dataset.accFresh; e.preventDefault(); t.select();
+});
+document.addEventListener('keydown', function(e){ var t = e.target; if (t && t.dataset && t.dataset.accFresh) delete t.dataset.accFresh; }, true);
+document.addEventListener('keydown', function(e){
+  var t = e.target; if (e.key !== 'Enter' || !t || !t.dataset || !t.dataset.accCell) return;
+  e.preventDefault();
+  var n = accNextCell(t, e.shiftKey);
+  if (n) { n.focus(); n.select(); } else t.blur();
+});
+document.addEventListener('focusout', function(e){
+  var t = e.target; if (!accRedrawWaiting || !t || !t.dataset || !t.dataset.accCell) return;
+  setTimeout(function(){ if (accRedrawWaiting && currentSection === 'accounting') renderAccounting(); }, 0);
+});
 // typed quantities: tidy the number when leaving the box; Enter leaves it
 document.addEventListener('focusout', function(e){
   var t = e.target; if (!t || !t.dataset || !t.dataset.qtyF || t.tagName !== 'INPUT') return;
