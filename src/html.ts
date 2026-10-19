@@ -4089,11 +4089,12 @@ setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts|reservations|shopping|calendar|clock)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations|shopping|orders|calendar|clock)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
   if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
+  if (m[1] === 'orders') { showSection('dashboard'); var op = document.getElementById('dash-orders-panel'); if (op && op.style.display !== 'none') op.scrollIntoView({ block:'start' }); else { showSection('inventory'); switchInvTab('orders'); } return; }
   if (m[1] === 'clock') { showSection('dashboard'); var ck = /kind=(in|out)/.exec(url || ''); openClockScanner(ck ? ck[1] : 'auto'); return; }
   if (m[1] === 'calendar') { var cd = /date=(\\d{4}-\\d{2}-\\d{2})/.exec(url); showSection('calendar'); if (cd) calvGoTo(cd[1]); return; }
   if (m[1] === 'reservations') {
@@ -4219,6 +4220,7 @@ function notifIcon(url) {
   if (/open=(shifts|requests)/.test(u)) return 'fa-clock';
   if (/open=(reservations|calendar)/.test(u)) return 'fa-calendar-day';
   if (/open=shopping/.test(u)) return 'fa-bag-shopping';
+  if (/open=orders/.test(u)) return 'fa-truck';
   return 'fa-bell';
 }
 function notifWhen(iso) {
@@ -6888,6 +6890,7 @@ function confirmDraftOrder(sid){
   // Do NOT send id — let Supabase generate a proper UUID
   sbFetch('POST','orders',{items:orderItems,status:'standby',supplier_id:realSid||null,amount:0})
     .then(function(rows){
+      notifyOrderForApproval(orderItems, realSid);
       if(rows&&rows[0]){
         var db2=getDB();
         var oi=db2.orders.findIndex(function(o){return o.id===tempId;});
@@ -6899,6 +6902,13 @@ function confirmDraftOrder(sid){
       }
       toast('Order confirmed — awaiting approval.','gold');
     }).catch(function(e){console.error('Order sync error:',e); toast('Saved locally only — check connection','error');});
+}
+// Tell the admins an order is waiting for them (push + their inbox); the one who sent it is left out
+function notifyOrderForApproval(items, sid){
+  var sup=sid?(getDB().suppliers||[]).find(function(s){ return s.id===sid; }):null;
+  var list=items.map(function(i){ return i.name+' '+fmtQty(i.orderQty)+(i.unit?' '+i.unit:''); });
+  var body=(currentUser?currentUser.name+': ':'')+list.slice(0,5).join(', ')+(list.length>5?' +'+(list.length-5):'');
+  sendPush(adminUserIds(), 'Order to approve'+(sup?' · '+sup.name:''), body, '/?open=orders');
 }
 function approveOrder(orderId){
   var db=getDB(); var idx=db.orders.findIndex(function(o){return o.id===orderId;});
