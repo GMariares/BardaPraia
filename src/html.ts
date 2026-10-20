@@ -482,6 +482,29 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     /* ── ORDER STANDBY ── */
     .order-standby { border:var(--rule); border-color:var(--amber-200); background:var(--amber-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
     .order-confirmed { border:var(--rule); border-color:var(--green-200); background:var(--green-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
+    /* Item sales */
+    .is-sum { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+    .is-sum > div { flex:1; min-width:140px; background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:12px 14px; }
+    .is-sum b { display:block; font-size:20px; color:var(--slate-900); font-variant-numeric:tabular-nums; }
+    .is-sum span { font-size:12px; color:var(--slate-500); }
+    .is-cat td, .is-cat th { background:var(--slate-50); font-weight:800; color:var(--slate-900); }
+    .is-cat th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+    .is-src { display:block; font-size:11px; font-weight:500; color:var(--slate-500); white-space:normal; }
+    .is-table td.is-man { padding:3px 4px; }
+    .is-table tbody th, .is-table thead th:first-child { white-space:normal; min-width:150px; max-width:220px; line-height:1.25; }
+    @media (max-width:600px) { .is-table tbody th, .is-table thead th:first-child { min-width:0; width:130px; max-width:130px; font-size:12px; overflow-wrap:break-word; } }
+    .is-table .acc-in { width:72px; }
+    .is-menu-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--slate-100); }
+    .is-menu-row:last-child { border-bottom:0; }
+    .is-menu-row .nm { flex:1; min-width:0; font-weight:600; color:var(--slate-800); }
+    .is-menu-row .nm small { display:block; font-weight:500; font-size:11px; color:var(--slate-500); }
+    .is-menu-row .pr { font-weight:800; font-variant-numeric:tabular-nums; color:var(--slate-900); }
+    .is-cat-h { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--slate-50); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--slate-700); border-bottom:1px solid var(--slate-100); }
+    .bb-hist-row { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--slate-700); padding:6px 0; border-bottom:1px solid var(--slate-100); }
+    .bb-hist-row span:last-child { color:var(--slate-500); }
+    .is-imp-row { display:grid; grid-template-columns:1fr 64px; gap:6px 10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--slate-100); font-size:13px; }
+    .is-imp-row select { grid-column:1 / -1; }
+    .is-imp-row.skip { opacity:.55; }
     .order-rejected { border:var(--rule); border-color:var(--red-200); background:var(--red-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
     .ord-rejected-note { display:flex; align-items:flex-start; gap:6px; font-size:12px; font-weight:600; color:var(--red-700); margin-bottom:8px; }
     /* Order lines, with the admin's changes shown to everyone */
@@ -1330,7 +1353,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="section-header">
       <div class="tab-row" style="margin-bottom:0">
         <button class="tab-btn active" id="inv-tab-stock" data-inv-tab="stock"><i class="fas fa-warehouse"></i> Stock</button>
-        <button class="tab-btn" id="inv-tab-log" data-inv-tab="log"><i class="fas fa-clock-rotate-left"></i> Log</button>
         <button class="tab-btn" id="inv-tab-orders" data-inv-tab="orders"><i class="fas fa-truck"></i> Orders <span id="orders-standby-badge" style="display:none;background:#b7791f;color:white;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:2px"></span></button>
         <button class="tab-btn" id="inv-tab-shop" data-inv-tab="shop"><i class="fas fa-bag-shopping"></i> Shopping List <span id="shop-badge" class="shop-badge" style="display:none"></span></button>
       </div>
@@ -1358,12 +1380,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div id="inv-items-section">
         <div id="inventory-list"></div>
       </div>
-    </div>
-    <div id="inv-panel-log" style="display:none">
-      <div id="inv-log-supplier-filter" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
-        <button class="log-sup-filter active" data-log-supplier="">All Suppliers</button>
-      </div>
-      <div id="inv-log-list"><div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No log entries yet.</p></div></div>
     </div>
     <div id="inv-panel-orders" style="display:none">
       <div id="inv-orders-list"><div class="empty-state"><i class="fas fa-truck"></i><p>No orders placed yet.</p></div></div>
@@ -1612,6 +1628,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn" data-acc-tab="invoices"><i class="fas fa-file-invoice"></i> Invoices <span id="acc-inv-badge" class="shop-badge" style="display:none"></span></button>
         <button class="tab-btn" data-acc-tab="fixed"><i class="fas fa-house"></i> Fixed costs</button>
         <button class="tab-btn" data-acc-tab="expenses"><i class="fas fa-receipt"></i> Daily expenses</button>
+        <button class="tab-btn" data-acc-tab="items"><i class="fas fa-tags"></i> Item sales</button>
       </div>
       <div id="acc-body"></div>
     </div>
@@ -1894,8 +1911,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div class="tab-row" style="margin-bottom:14px">
         <button class="tab-btn active" id="bb-tab-daily" data-bb-tab="daily">Daily Entry</button>
         <button class="tab-btn" id="bb-tab-records" data-bb-tab="records">Records</button>
-        <button class="tab-btn" id="bb-tab-items" data-bb-tab="items">Item Records</button>
-        <button class="tab-btn" id="bb-tab-menu" data-bb-tab="menu">Menu Items</button>
       </div>
       <!-- Daily Entry -->
       <div id="bb-panel-daily">
@@ -1952,36 +1967,6 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <!-- Daily entries list -->
         <div style="font-weight:700;font-size:13px;color:var(--slate-800);margin-bottom:8px"><i class="fas fa-calendar-days" style="color:var(--teal-500)"></i> Daily Records</div>
         <div id="bb-records-list"></div>
-      </div>
-      <!-- Item Records -->
-      <div id="bb-panel-items" style="display:none">
-        <!-- Date range filter -->
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
-            <label style="font-size:11px;color:var(--teal-500);white-space:nowrap">From</label>
-            <input type="date" id="bb-items-from" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px">
-            <label style="font-size:11px;color:var(--teal-500);white-space:nowrap">To</label>
-            <input type="date" id="bb-items-to" class="input-field" style="font-size:12px;padding:4px 8px;flex:1" />
-          </div>
-          <button class="btn btn-secondary btn-sm" id="btn-bb-items-clear-range" style="white-space:nowrap"><i class="fas fa-xmark"></i> Clear</button>
-        </div>
-        <!-- Item search -->
-        <div class="search-bar" style="margin-bottom:10px">
-          <i class="fas fa-search"></i>
-          <input type="text" id="bb-records-search" placeholder="Search items..." />
-        </div>
-        <!-- Item summary list -->
-        <div id="bb-item-summary-list"></div>
-      </div>
-      <!-- Menu Items Management -->
-      <div id="bb-panel-menu" style="display:none">
-        <div class="section-header">
-          <div style="font-size:14px;color:var(--teal-500)">Manage items for sale</div>
-          <button class="btn btn-primary btn-sm" id="btn-add-bb-item"><i class="fas fa-plus"></i> Add Item</button>
-        </div>
-        <div id="bb-menu-manage-list"></div>
       </div>
     </div>
   </section>
@@ -2978,25 +2963,37 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <input type="hidden" id="bb-item-edit-id" />
     <div class="form-row"><label class="label">Item Name *</label><input type="text" class="input-field" id="bb-item-name" placeholder="e.g. Sangria" /></div>
     <div class="form-grid-2" style="margin-bottom:14px">
-      <div><label class="label">Price (€) *</label><input type="number" class="input-field" id="bb-item-price" min="0" step="0.01" placeholder="0.00" /></div>
+      <div><label class="label">Price (€) *</label><input type="text" inputmode="decimal" class="input-field" id="bb-item-price" placeholder="0,00" /></div>
       <div><label class="label">Category</label>
-        <select class="select-field" id="bb-item-category">
-          <option value="beverages">Beverages</option>
-          <option value="food">Food</option>
-          <option value="cocktails">Cocktails</option>
-          <option value="beer">Beer</option>
-          <option value="wine">Wine</option>
-          <option value="spirits">Spirits</option>
-          <option value="other">Other</option>
-        </select>
+        <select class="select-field" id="bb-item-category"></select>
       </div>
     </div>
+    <div class="form-row" id="bb-item-from-row" style="display:none">
+      <label class="label" for="bb-item-from">New price valid from</label>
+      <input type="date" class="input-field" id="bb-item-from" />
+      <p class="acc-note" style="margin-top:6px">Days already saved keep their price. Days saved later use the price valid on that day.</p>
+    </div>
+    <div id="bb-item-history" style="margin-bottom:14px"></div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-gold" style="flex:1;justify-content:center" id="btn-save-bb-item"><i class="fas fa-save"></i> Save</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-add-bb-item">Cancel</button>
     </div>
   </div>
 </div>
+
+<div class="modal-overlay" id="modal-is-import">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-file-import" style="color:var(--teal-600)"></i> <span id="is-import-title">Import sales</span></h2>
+    <p class="acc-note" id="is-import-sub" style="margin-bottom:10px"></p>
+    <div id="is-import-lines"></div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-is-import-save"><i class="fas fa-save"></i> Save</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-is-import">Cancel</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="is-file" accept=".csv,.txt,.xlsx,.xls,text/csv" style="display:none" />
 
 <!-- TOAST -->
 <div id="toast"></div>
@@ -3740,9 +3737,7 @@ function syncFromSupabase() {
       }).catch(function(){});
     }),   // silent fail
     sbFetch('GET', 'bb_menu', null, 'order=category.asc,name.asc').then(function(rows) {
-      if (rows) db.bbMenu = rows.map(function(r){ return {
-        id: r.id, name: r.name, price: parseFloat(r.price)||0, category: r.category
-      }; });
+      if (rows) { db.bbMenu = rows.map(bbMenuFromRow); if (rows[0]) sbCols.bbHist = 'price_history' in rows[0]; }
     }).catch(function(){}),   // silent fail
     sbFetch('GET', 'bb_entries', null, 'order=date.desc&limit=90').then(function(rows) {
       if (rows) db.bbEntries = rows.map(function(r){ return {
@@ -4852,7 +4847,7 @@ function refreshSection(name) {
       sbFetch('GET','bb_entries',null,'order=date.desc&limit=90')
     ]).then(function(res) {
       var db = getDB();
-      if (res[0]) db.bbMenu = res[0].map(function(x){ return {id:x.id,name:x.name,price:parseFloat(x.price)||0,category:x.category}; });
+      if (res[0]) { db.bbMenu = res[0].map(bbMenuFromRow); if (res[0][0]) sbCols.bbHist = 'price_history' in res[0][0]; }
       if (res[1]) db.bbEntries = res[1].map(function(x){ return {id:x.id,date:x.date,items:x.items||[],total:parseFloat(x.total)||0,savedAt:x.saved_at}; });
       saveDB(db);
       var ae = document.activeElement;
@@ -4981,7 +4976,7 @@ function showSection(name) {
 
   // Render immediately from local cache (instant UI)
   if (name === 'dashboard')    renderDashboard();
-  if (name === 'inventory')    { renderInventory(); renderSuppliers(); renderInvLogSupplierFilter(); }
+  if (name === 'inventory')    { renderInventory(); renderSuppliers(); }
   if (name === 'reservations') { renderCalendar(); renderAllReservations(); }
   if (name === 'calendar')     renderCalView();
   if (name === 'tasks')        renderTasks();
@@ -6181,13 +6176,13 @@ var catLabelMap={beverages:'Bar',food:'Cozinha',supplies:'Limpeza',equipment:'Ec
 var currentInvTab = 'stock';
 function switchInvTab(t) {
   currentInvTab = t;
-  ['stock','log','orders','shop'].forEach(function(x){
+  if(t==='log') t='stock';
+  ['stock','orders','shop'].forEach(function(x){
     document.getElementById('inv-tab-'+x).classList.toggle('active',x===t);
     document.getElementById('inv-panel-'+x).style.display=x===t?'block':'none';
   });
   var cartBtn=document.getElementById('btn-open-order'); if(cartBtn) cartBtn.style.display=t==='shop'?'none':'';
   if(t==='stock') { renderSuppliers(); renderInventory(); }
-  if(t==='log') { renderInvLogSupplierFilter(); renderInvLog(); }
   if(t==='orders') renderOrderHistory();
   if(t==='shop') renderShopList();
   refreshSection('inventory');
@@ -7824,7 +7819,7 @@ var DEFAULT_AREAS = [
   {name:'Dishes',     sections:['Geral']},
   {name:'Foccaceria', sections:['Geral']}
 ];
-var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null, invoices:null, clock:null, nib:null };   // which new columns exist in Supabase (seen during sync)
+var sbCols = { section:false, areas:false, requests:false, userEmployee:false, weekNotices:false, resEnd:false, acc:false, accConfig:false, fc:false, shop:null, notif:false, finNotes:false, events:null, invoices:null, clock:null, nib:null, bbHist:null, itemSales:null };   // which new columns exist in Supabase (seen during sync)
 function getAreas(db) { db = db || getDB(); return (db.areas && db.areas.length) ? db.areas : DEFAULT_AREAS; }
 var EXTRA_AREA_COLORS = ['#6d5a93','#3f7d4f','#9a4f5c','#4a6b8a','#7d6a3a'];   // areas added in Settings
 function areaColor(name) {
@@ -9136,9 +9131,17 @@ function accLoad() {
   return Promise.all([
     sbFetchAll('acc_entries', 'year=in.(' + yrs.join(',') + ')&order=id.asc').then(function(rows){ return rows || []; }),
     sbFetchAll('fin_entries', 'date=gte.' + (y - 1) + '-01-01&date=lte.' + y + '-12-31&order=date.asc,id.asc').catch(function(){ return null; }),
-    readAccountingCfg()
+    readAccountingCfg(),
+    sbFetchAll('item_sales', 'year=in.(' + yrs.join(',') + ')&order=id.asc').catch(function(){ return null; }),
+    sbFetchAll('bb_entries', 'date=gte.' + (y - 1) + '-01-01&date=lte.' + y + '-12-31&order=date.asc').catch(function(){ return null; })
   ]).then(function(res){
     var db = getDB();
+    sbCols.itemSales = !!res[3];
+    if (res[3]) db.itemSales = (db.itemSales || []).filter(function(e){ return yrs.indexOf(e.year) === -1; }).concat(res[3].map(isFromRow));
+    if (res[4]) {
+      var bbDates = {}; res[4].forEach(function(r){ bbDates[r.date] = { id: r.id, date: r.date, items: r.items || [], total: parseFloat(r.total) || 0, savedAt: r.saved_at }; });
+      db.bbEntries = (db.bbEntries || []).filter(function(e){ return !bbDates[e.date]; }).concat(Object.keys(bbDates).map(function(d){ return bbDates[d]; }));
+    }
     sbCols.acc = true;
     db.accEntries = (db.accEntries || []).filter(function(e){ return yrs.indexOf(e.year) === -1; }).concat(res[0].map(accFromRow));
     if (res[1]) {
@@ -9631,7 +9634,7 @@ function renderAccounting() {
   document.querySelectorAll('[data-acc-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.accTab === accTab); });
   var body = document.getElementById('acc-body');
   if (accTab === 'foodcost') accTab = 'summary';
-  if (accMonth === 0 && accTab !== 'wages') accMonth = (accYear === new Date().getFullYear()) ? new Date().getMonth() + 1 : 12;
+  if (accMonth === 0 && accTab !== 'wages' && accTab !== 'items') accMonth = (accYear === new Date().getFullYear()) ? new Date().getMonth() + 1 : 12;
   // Keep the person's place when a saved amount redraws the table: the box they are in, the table's scroll,
   // and never wipe a box they are still typing in (redrawn when they leave it)
   var view = accTab + '|' + accYear + '|' + accMonth, sameView = view === accLastView;
@@ -9640,7 +9643,7 @@ function renderAccounting() {
   var caret = actKey ? [act.selectionStart, act.selectionEnd] : null;
   accRedrawWaiting = false; accLastView = view;
   var scrolls = sameView ? [].map.call(body.querySelectorAll('.acc-scroll'), function(x){ return [x.scrollLeft, x.scrollTop]; }) : [];
-  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML }[accTab]();
+  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML, items: accItemsHTML }[accTab]();
   body.innerHTML = html;
   [].forEach.call(body.querySelectorAll('.acc-scroll'), function(x, i){ if (scrolls[i]) { x.scrollLeft = scrolls[i][0]; x.scrollTop = scrolls[i][1]; } });
   if (actKey && sameView) {
@@ -9872,6 +9875,189 @@ function addAccLedgerEntry() {
       if (year !== accYear || month !== accMonth) toast('Saved in ' + accMonthLabel(year, month) + ' (the date’s month)', 'success');
       renderAccLedger(); renderAccounting(); document.getElementById('acc-led-amount').focus(); })
     .catch(function(){ accBusy = false; });
+}
+
+// ── Item sales: units and € per menu item, from Black Box days plus sales typed by hand or loaded from a file ──
+// Black Box days keep the price they were saved with; typed / imported sales keep the € they were saved with.
+var accItemsView = 'sales';   // 'sales' | 'menu'
+var isImport = null;          // the file being imported: {lines:[{name, qty, amount}], y, m}
+function isPad(n) { return String(n).padStart(2, '0'); }
+function isLastDay(y, m) { return y + '-' + isPad(m) + '-' + isPad(new Date(y, m, 0).getDate()); }
+function isFromRow(r) { return { id: r.id, year: +r.year, month: +r.month, itemId: r.item_id || '', name: r.name || '', category: r.category || '', qty: parseFloat(r.qty) || 0, price: parseFloat(r.price) || 0, amount: parseFloat(r.amount) || 0, source: r.source || 'manual' }; }
+function isRows(y, m) { return (getDB().itemSales || []).filter(function(r){ return r.year === y && (!m || r.month === m); }); }
+// One line per item for a month (m) or the whole year (m = 0)
+function itemSalesData(y, m) {
+  var db = getDB(), menu = db.bbMenu || [], byKey = {};
+  var from = y + '-' + (m ? isPad(m) : '01') + '-01', to = m ? isLastDay(y, m) : y + '-12-31';
+  var line = function(id, name, cat) {
+    var it = (id && menu.find(function(i){ return i.id === id; })) || menu.find(function(i){ return accSame(i.name, name); });
+    var k = it ? it.id : 'n:' + normName(name);
+    if (!byKey[k]) byKey[k] = { key: k, id: it ? it.id : '', name: it ? it.name : (name || '?'), category: it ? (it.category || 'other') : (cat || 'other'), bbQty: 0, bbEur: 0, manQty: 0, manEur: 0, fileQty: 0, fileEur: 0 };
+    return byKey[k];
+  };
+  (db.bbEntries || []).forEach(function(e){
+    if (e.date < from || e.date > to) return;
+    (e.items || []).forEach(function(i){ var r = line(i.id, i.name, i.category), q = +i.qty || 0; r.bbQty += q; r.bbEur += i.subtotal != null ? +i.subtotal : (+i.price || 0) * q; });
+  });
+  isRows(y, m).forEach(function(s){ var r = line(s.itemId, s.name, s.category); if (s.source === 'file') { r.fileQty += s.qty; r.fileEur += s.amount; } else { r.manQty += s.qty; r.manEur += s.amount; } });
+  if (m) menu.forEach(function(it){ line(it.id, it.name, it.category); });   // a month lists every item, to type its sales
+  return Object.keys(byKey).map(function(k){ var r = byKey[k]; r.units = r.bbQty + r.manQty + r.fileQty; r.eur = r.bbEur + r.manEur + r.fileEur; return r; });
+}
+function isQty(v) { return v ? fmtQty(v) : '—'; }
+function accItemsHTML() {
+  var h = '<div class="acc-toolbar"><div class="acc-toolbar-title">Item sales · ' + (accItemsView === 'menu' ? 'menu items' : accMonth ? accMonthLabel(accYear, accMonth) : accYear) + '</div>'
+    + '<div class="fc-switch" role="tablist" aria-label="Item sales"><button class="' + (accItemsView === 'sales' ? 'active' : '') + '" data-is-view="sales">Sales</button><button class="' + (accItemsView === 'menu' ? 'active' : '') + '" data-is-view="menu">Menu items</button></div></div>';
+  if (accItemsView === 'menu') return h + accMenuItemsHTML();
+  h += accMonthBar(true);
+  var rows = itemSalesData(accYear, accMonth), m = accMonth;
+  var sum = function(list, f){ return list.reduce(function(a, r){ return a + r[f]; }, 0); };
+  var units = sum(rows, 'units'), eur = sum(rows, 'eur'), bbE = sum(rows, 'bbEur');
+  h += '<div class="is-sum"><div><b>' + fmtQty(units) + '</b><span>Units sold</span></div><div><b>' + accEur(eur) + '</b><span>Sales</span></div>'
+    + '<div><b>' + accEur(bbE) + '</b><span>From Black Box · ' + accEur(eur - bbE) + ' typed or imported</span></div></div>';
+  if (sbCols.itemSales === false) h += '<p class="acc-note" style="color:var(--amber-700)">Typing or importing sales needs the Item Sales SQL in Supabase. Black Box sales already show.</p>';
+  h += '<div class="acc-toolbar" style="margin:4px 0 8px"><div class="acc-note" style="margin:0">' + (m ? 'Type units sold that are not in Black Box; each one is valued at that month’s price.' : 'Pick a month to type sales or import a file.') + '</div>'
+    + '<button class="btn btn-secondary btn-sm" id="btn-is-import"' + (m ? '' : ' disabled') + '><i class="fas fa-file-import"></i> Import file</button></div>';
+  if (!rows.length) return h + '<div class="acc-card"><div class="acc-empty">No sales in ' + (m ? accMonthLabel(accYear, m) : accYear) + ' yet.</div></div>';
+  var cats = bbCatOrder(rows.map(function(r){ return r.category; }).filter(function(c, i, a){ return a.indexOf(c) === i; }));
+  h += '<div class="acc-card acc-scroll acc-freeze"><table class="acc-table acc-edit is-table"><thead><tr><th>Item</th><th>Black Box</th><th>Typed</th><th>File</th><th>Units</th><th>Sales</th></tr></thead><tbody>';
+  cats.forEach(function(c){
+    var list = rows.filter(function(r){ return r.category === c; }).sort(function(a, b){ return a.name.localeCompare(b.name); });
+    h += '<tr class="is-cat"><th>' + esc(bbCatLabel(c)) + '</th><td>' + isQty(sum(list, 'bbQty')) + '</td><td>' + isQty(sum(list, 'manQty')) + '</td><td>' + isQty(sum(list, 'fileQty')) + '</td><td>' + isQty(sum(list, 'units')) + '</td><td>' + accEur(sum(list, 'eur')) + '</td></tr>';
+    list.forEach(function(r){
+      var typed = m && r.id ? '<td class="is-man"><input class="acc-in" inputmode="decimal" data-acc-cell="itemsale|' + esc(r.id) + '||' + m + '" value="' + (r.manQty ? fmtQty(r.manQty) : '') + '" aria-label="' + esc(r.name) + ' typed units" /></td>' : '<td>' + isQty(r.manQty) + '</td>';
+      h += '<tr><th><span>' + esc(r.name) + '</span></th><td>' + isQty(r.bbQty) + '</td>' + typed + '<td>' + isQty(r.fileQty) + '</td><td><b>' + isQty(r.units) + '</b></td><td>' + (r.eur ? accEur(r.eur) : '—') + '</td></tr>';
+    });
+  });
+  h += '<tr class="strong"><th>Total</th><td>' + isQty(sum(rows, 'bbQty')) + '</td><td>' + isQty(sum(rows, 'manQty')) + '</td><td>' + isQty(sum(rows, 'fileQty')) + '</td><td>' + fmtQty(units) + '</td><td>' + accEur(eur) + '</td></tr></tbody></table></div>';
+  return h;
+}
+function accMenuItemsHTML() {
+  var menu = getDB().bbMenu || [], today = toDateStr(new Date());
+  var h = '<div class="acc-toolbar" style="margin:4px 0 10px"><div class="acc-note" style="margin:0">The prices Black Box and Item sales use. A new price starts on the date you choose; days already saved keep theirs.</div><button class="btn btn-primary btn-sm" id="btn-add-bb-item"><i class="fas fa-plus"></i> Add item</button></div>';
+  if (!menu.length) return h + '<div class="acc-card"><div class="acc-empty">No menu items yet.</div></div>';
+  var cats = bbCatOrder(menu.map(function(i){ return i.category || 'other'; }).filter(function(c, i, a){ return a.indexOf(c) === i; }));
+  cats.forEach(function(c){
+    var list = menu.filter(function(i){ return (i.category || 'other') === c; }).sort(function(a, b){ return a.name.localeCompare(b.name); });
+    h += '<div class="acc-card" style="padding:0;overflow:hidden"><div class="is-cat-h"><span>' + esc(bbCatLabel(c)) + '</span><span>' + list.length + ' item' + (list.length === 1 ? '' : 's') + '</span></div>';
+    list.forEach(function(it){
+      var hist = bbHistSorted(it), next = hist.filter(function(x){ return x.from > today; }).shift(), last = hist.filter(function(x){ return x.from <= today; }).pop();
+      var meta = next ? '→ ' + accEur(next.price) + ' from ' + fmtDay(next.from) : last ? 'This price since ' + fmtDay(last.from) : '';
+      h += '<div class="is-menu-row"><div class="nm">' + esc(it.name) + (meta ? '<small>' + esc(meta) + '</small>' : '') + '</div><div class="pr">' + accEur(bbPriceOn(it, today)) + '</div>'
+        + '<button class="btn btn-secondary btn-sm btn-icon" data-edit-bb-item="' + esc(it.id) + '" aria-label="Edit ' + esc(it.name) + '"><i class="fas fa-pen"></i></button>'
+        + '<button class="btn btn-danger btn-sm btn-icon" data-delete-bb-item="' + esc(it.id) + '" aria-label="Remove ' + esc(it.name) + '"><i class="fas fa-trash"></i></button></div>';
+    });
+    h += '</div>';
+  });
+  return h;
+}
+function isNeedsSql() { if (sbCols.itemSales === false) { toast('Needs the Item Sales SQL in Supabase', 'error'); return true; } return false; }
+// Units typed for one item in the open month (empty or 0 = none). A line already saved keeps its price.
+function isSetManual(itemId, raw) {
+  if (isNeedsSql()) { renderAccounting(); return; }
+  var v = accNum(raw); if (v !== null && (isNaN(v) || v < 0)) { toast('Not a number', 'error'); renderAccounting(); return; }
+  var it = (getDB().bbMenu || []).find(function(i){ return i.id === itemId; }); if (!it) return;
+  var y = accYear, m = accMonth, id = 'man-' + y + '-' + isPad(m) + '-' + itemId;
+  var old = (getDB().itemSales || []).find(function(r){ return r.id === id; });
+  var gone = function(){ var db = getDB(); db.itemSales = (db.itemSales || []).filter(function(r){ return r.id !== id; }); saveDB(db); };
+  var fail = function(){ toast('Not saved. Check the connection and try again.', 'error'); renderAccounting(); };
+  var del = old ? sbFetch('DELETE', 'item_sales', null, 'id=eq.' + encodeURIComponent(id)).then(gone) : Promise.resolve();
+  if (v === null || v === 0) { del.then(function(){ renderAccounting(); }).catch(fail); return; }
+  var price = old ? old.price : bbPriceOn(it, isLastDay(y, m)), q = Math.round(v * 100) / 100;
+  var row = { id: id, year: y, month: m, item_id: it.id, name: it.name, category: it.category || 'other', qty: q, price: price, amount: Math.round(q * price * 100) / 100, source: 'manual', created_by: currentUser ? currentUser.name : '' };
+  del.then(function(){ return sbFetch('POST', 'item_sales', row); }).then(function(){
+    var db = getDB(); db.itemSales = (db.itemSales || []).filter(function(r){ return r.id !== id; }).concat([isFromRow(row)]); saveDB(db); renderAccounting();
+  }).catch(fail);
+}
+// ── Import a file of sales for the open month (CSV, or Excel through SheetJS) ──
+function isReadFile(file) {
+  if (!file || isNeedsSql()) return;
+  if (!accMonth) { toast('Pick a month first', 'error'); return; }
+  var done = function(grid){ isOpenImport(isParseGrid(grid), file.name); };
+  var fail = function(){ toast('Could not read that file. Use Excel or CSV with an item column and a quantity column.', 'error'); };
+  if (/\.xlsx?$/i.test(file.name)) {
+    isLoadXlsx().then(function(X){ return file.arrayBuffer().then(function(buf){ var wb = X.read(buf, { type: 'array' }); return X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' }); }); }).then(done).catch(fail);
+  } else {
+    file.text().then(function(t){
+      var rows = t.replace(/\\r/g, '').split('\\n').filter(function(l){ return l.trim(); });
+      var first = rows[0] || '', sep = [';', '\\t', ','].sort(function(a, b){ return first.split(b).length - first.split(a).length; })[0];
+      done(rows.map(function(l){ return l.split(sep).map(function(c){ return c.replace(/^\\s*"|"\\s*$/g, '').trim(); }); }));
+    }).catch(fail);
+  }
+}
+var isXlsx = null;
+function isLoadXlsx() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!isXlsx) isXlsx = new Promise(function(ok, no){ var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = function(){ window.XLSX ? ok(window.XLSX) : no(); }; sc.onerror = function(){ isXlsx = null; no(); }; document.head.appendChild(sc); });
+  return isXlsx;
+}
+// Find the item, quantity and (if there is one) total columns, then one line per item name
+function isParseGrid(grid) {
+  var num = function(v){ if (typeof v === 'number') return v; var n = accNum(String(v || '').replace(/[^0-9,.\\-]/g, '')); return n === null || isNaN(n) ? null : n; };
+  var head = -1, cName = -1, cQty = -1, cAmt = -1;
+  for (var r = 0; r < Math.min(grid.length, 8) && head === -1; r++) {
+    var cells = grid[r].map(function(c){ return normName(c); });
+    var n = cells.findIndex(function(c){ return /artigo|item|produto|descri|nome|name|designa/.test(c); }), q = cells.findIndex(function(c){ return /^(qt|qtd|quant|unid|qty|units)/.test(c) || /quantidade|unidades/.test(c); });
+    if (n !== -1 && q !== -1) { head = r; cName = n; cQty = q; cAmt = cells.findIndex(function(c, i){ return i !== q && /total|valor|vendas|amount|montante|€/.test(c); }); }
+  }
+  if (head === -1) {   // no header row: the first text column and the first one or two number columns
+    var sample = grid.slice(0, 20);
+    var width = Math.max.apply(null, sample.map(function(r){ return r.length; }));
+    var numCols = [], txtCol = -1;
+    for (var c = 0; c < width; c++) {
+      var vals = sample.map(function(r){ return r[c]; }).filter(function(v){ return String(v).trim() !== ''; });
+      var nums = vals.filter(function(v){ return num(v) !== null; }).length;
+      if (vals.length && nums >= vals.length * 0.7) numCols.push(c); else if (txtCol === -1 && vals.length) txtCol = c;
+    }
+    cName = txtCol; cQty = numCols.filter(function(c){ return c > txtCol; })[0]; cAmt = numCols.filter(function(c){ return c > cQty; })[0]; if (cAmt === undefined) cAmt = -1;
+  }
+  var by = {};
+  grid.slice(head + 1).forEach(function(r){
+    var name = String(r[cName] == null ? '' : r[cName]).trim(), q = num(r[cQty]);
+    if (!name || q === null || q === 0 || /^total/i.test(name)) return;
+    var k = normName(name); if (!by[k]) by[k] = { name: name, qty: 0, amount: cAmt >= 0 ? 0 : null };
+    by[k].qty += q; if (by[k].amount !== null) { var a = num(r[cAmt]); by[k].amount = a === null ? null : by[k].amount + a; }
+  });
+  return Object.keys(by).map(function(k){ return by[k]; });
+}
+function isMatch(name) {
+  var menu = getDB().bbMenu || [], n = normName(name);
+  var hit = menu.find(function(i){ return normName(i.name) === n; }); if (hit) return hit.id;
+  var near = menu.filter(function(i){ var m = normName(i.name); return m.length > 2 && (n.indexOf(m) !== -1 || m.indexOf(n) !== -1); });
+  return near.length === 1 ? near[0].id : '';
+}
+function isOpenImport(lines, fname) {
+  if (!lines.length) { toast('No items with a quantity found in ' + fname, 'error'); return; }
+  isImport = { lines: lines.map(function(l){ return Object.assign({}, l, { itemId: isMatch(l.name) }); }), y: accYear, m: accMonth };
+  var menu = getDB().bbMenu || [], cats = bbCatOrder(menu.map(function(i){ return i.category || 'other'; }).filter(function(c, i, a){ return a.indexOf(c) === i; }));
+  var opts = function(sel){ return '<option value="">— Skip this line —</option>' + cats.map(function(c){ return '<optgroup label="' + esc(bbCatLabel(c)) + '">' + menu.filter(function(i){ return (i.category || 'other') === c; }).sort(function(a, b){ return a.name.localeCompare(b.name); }).map(function(i){ return '<option value="' + esc(i.id) + '"' + (i.id === sel ? ' selected' : '') + '>' + esc(i.name) + '</option>'; }).join('') + '</optgroup>'; }).join(''); };
+  var matched = isImport.lines.filter(function(l){ return l.itemId; }).length;
+  document.getElementById('is-import-title').textContent = 'Import sales · ' + accMonthLabel(accYear, accMonth);
+  document.getElementById('is-import-sub').textContent = fname + ': ' + lines.length + ' lines, ' + matched + ' matched to menu items. Check the ones left to skip, then save. This replaces the file imported before for this month.';
+  document.getElementById('is-import-lines').innerHTML = isImport.lines.map(function(l, i){
+    return '<div class="is-imp-row' + (l.itemId ? '' : ' skip') + '" data-is-row="' + i + '"><span><b>' + esc(l.name) + '</b>' + (l.amount != null ? ' · ' + accEur(l.amount) : '') + '</span><span style="text-align:right;font-weight:700">' + fmtQty(l.qty) + '</span>'
+      + '<select class="select-field" data-is-map="' + i + '" aria-label="Menu item for ' + esc(l.name) + '">' + opts(l.itemId) + '</select></div>';
+  }).join('');
+  openModal('modal-is-import');
+}
+function isSaveImport() {
+  if (!isImport || isNeedsSql()) return;
+  var y = isImport.y, m = isImport.m, menu = getDB().bbMenu || [], by = {};
+  isImport.lines.forEach(function(l){
+    var it = l.itemId && menu.find(function(i){ return i.id === l.itemId; }); if (!it) return;
+    if (!by[it.id]) by[it.id] = { it: it, qty: 0, amount: 0, priced: true };
+    by[it.id].qty += l.qty;
+    if (l.amount != null) by[it.id].amount += l.amount; else by[it.id].priced = false;
+  });
+  var rows = Object.keys(by).map(function(k){
+    var b = by[k], price = bbPriceOn(b.it, isLastDay(y, m)), amt = b.priced ? b.amount : b.qty * price;
+    return { id: 'file-' + y + '-' + isPad(m) + '-' + k, year: y, month: m, item_id: k, name: b.it.name, category: b.it.category || 'other', qty: Math.round(b.qty * 100) / 100, price: b.qty ? Math.round(amt / b.qty * 100) / 100 : price, amount: Math.round(amt * 100) / 100, source: 'file', created_by: currentUser ? currentUser.name : '' };
+  });
+  if (!rows.length) { toast('Pick a menu item for at least one line', 'error'); return; }
+  var btn = document.getElementById('btn-is-import-save'); btn.disabled = true;
+  sbFetch('DELETE', 'item_sales', null, 'year=eq.' + y + '&month=eq.' + m + '&source=eq.file').then(function(){ return sbFetch('POST', 'item_sales', rows); }).then(function(){
+    var db = getDB(); db.itemSales = (db.itemSales || []).filter(function(r){ return !(r.year === y && r.month === m && r.source === 'file'); }).concat(rows.map(isFromRow)); saveDB(db);
+    isImport = null; closeModal('modal-is-import'); renderAccounting(); toast(rows.length + ' items imported for ' + accMonthLabel(y, m), 'success');
+  }).catch(function(){ toast('Not saved. Check the connection and try again.', 'error'); }).then(function(){ btn.disabled = false; });
 }
 
 function accFixedHTML() {
@@ -10591,16 +10777,23 @@ function renderBlackBox(){
   switchBbTab(currentBbTab);
 }
 function switchBbTab(t){
+  if(t!=='records') t='daily';
   currentBbTab=t;
-  ['daily','records','items','menu'].forEach(function(x){
+  ['daily','records'].forEach(function(x){
     var btn=document.getElementById('bb-tab-'+x); if(btn) btn.classList.toggle('active',x===t);
     var panel=document.getElementById('bb-panel-'+x); if(panel) panel.style.display=x===t?'block':'none';
   });
   if(t==='daily') renderBbDaily();
   if(t==='records') renderBbRecords();
-  if(t==='items') renderBbItemRecords();
-  if(t==='menu') renderBbMenuManage();
 }
+// The price of a menu item on a day: a day already saved keeps the price it was saved with,
+// otherwise the price valid on that day (from the item's price log)
+function bbDayPrice(item, dateStr){
+  var e=(getDB().bbEntries||[]).find(function(x){ return x.date===dateStr; });
+  var had=e&&(e.items||[]).find(function(i){ return i.id===item.id; });
+  return had&&had.price!=null ? +had.price : bbPriceOn(item, dateStr);
+}
+function bbActiveDate(){ var d=document.getElementById('bb-entry-date'); return (d&&d.value)?d.value:toDateStr(new Date()); }
 function loadBbEntryForDate(dateStr){
   var db=getDB();
   var existing=(db.bbEntries||[]).find(function(e){return e.date===dateStr;});
@@ -10644,7 +10837,7 @@ function renderBbMenuSelector(){
         +'<input type="number" inputmode="numeric" class="bb-qty-val bb-qty-input" data-bb-qty-input="'+esc(item.id)+'" value="'+(qty||'')+'" placeholder="0" min="0" step="1" />'
         +'<button class="bb-qty-btn bb-qty-plus" data-bb-plus="'+esc(item.id)+'">+</button>'
       +'</div>'
-      +'<div class="bb-price">'+fmtEur(item.price)+'</div>'
+      +'<div class="bb-price">'+fmtEur(bbDayPrice(item, bbActiveDate()))+'</div>'
     +'</div>';
   }).join('');
 }
@@ -10665,19 +10858,19 @@ function renderBbSelectedList(){
   if(selected.length===0){el.innerHTML='<div class="empty-state" style="padding:16px"><p>No items selected yet.</p></div>';return;}
   el.innerHTML=selected.map(function(id){
     var item=db.bbMenu.find(function(i){return i.id===id;}); if(!item) return '';
-    var qty=bbSelectedItems[id];
-    var subtotal=item.price*qty;
+    var qty=bbSelectedItems[id], pr=bbDayPrice(item, bbActiveDate());
+    var subtotal=pr*qty;
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--slate-50);border-radius:10px;margin-bottom:6px">'
-      +'<div><div style="font-weight:700;font-size:14px">'+esc(item.name)+'</div><div style="font-size:12px;color:var(--slate-500)">'+fmtEur(item.price)+' x '+qty+'</div></div>'
+      +'<div><div style="font-weight:700;font-size:14px">'+esc(item.name)+'</div><div style="font-size:12px;color:var(--slate-500)">'+fmtEur(pr)+' x '+qty+'</div></div>'
       +'<div style="font-weight:800;color:var(--slate-700)">'+fmtEur(subtotal)+'</div>'
     +'</div>';
   }).join('');
 }
 function updateBbTotal(){
-  var db=getDB(); var total=0;
+  var db=getDB(); var total=0, d=bbActiveDate();
   Object.keys(bbSelectedItems).forEach(function(id){
     var item=db.bbMenu.find(function(i){return i.id===id;});
-    if(item) total+=item.price*(bbSelectedItems[id]||0);
+    if(item) total+=bbDayPrice(item, d)*(bbSelectedItems[id]||0);
   });
   document.getElementById('bb-today-total').textContent=fmtEur(total);
 }
@@ -10691,9 +10884,13 @@ function saveDailyEntry(){
     if(!had){toast('Nothing to save for '+fmtDateShort(date0)+'.','error');return;}
     if(!confirm('Save '+fmtDateShort(date0)+' as blank (\u20ac0)? This replaces what was saved for that day.')) return;
   }
+  // each line keeps the price of that day: what it was saved with, or the price valid on that date
+  var prevDay=(db.bbEntries||[]).find(function(e){return e.date===date0;});
   var items=selected.map(function(id){
     var item=db.bbMenu.find(function(i){return i.id===id;});
-    return{id:id,name:item?item.name:'?',price:item?item.price:0,qty:bbSelectedItems[id],subtotal:(item?item.price:0)*bbSelectedItems[id]};
+    var was=prevDay&&(prevDay.items||[]).find(function(i){return i.id===id;});
+    var pr=was&&was.price!=null ? +was.price : (item?bbPriceOn(item, date0):0);
+    return{id:id,name:item?item.name:(was?was.name:'?'),category:item?item.category:(was&&was.category||''),price:pr,qty:bbSelectedItems[id],subtotal:Math.round(pr*bbSelectedItems[id]*100)/100};
   });
   var total=items.reduce(function(s,i){return s+i.subtotal;},0);
   var dateInp=document.getElementById('bb-entry-date');
@@ -10795,50 +10992,6 @@ function renderBbRecords(){
     +'</div>';
   }).join('');
 }
-function renderBbItemRecords(){
-  var db=getDB();
-  // Sync date range inputs
-  var fromInp=document.getElementById('bb-items-from');
-  var toInp=document.getElementById('bb-items-to');
-  if(fromInp&&fromInp.value!==bbItemsFrom) fromInp.value=bbItemsFrom;
-  if(toInp&&toInp.value!==bbItemsTo) toInp.value=bbItemsTo;
-  var srchInp=document.getElementById('bb-records-search');
-  if(srchInp&&srchInp.value!==bbRecordsSearch) srchInp.value=bbRecordsSearch;
-  // Filter entries by date range
-  var filtered=db.bbEntries.filter(function(e){
-    if(bbItemsFrom&&e.date<bbItemsFrom) return false;
-    if(bbItemsTo&&e.date>bbItemsTo) return false;
-    return true;
-  });
-  // Aggregate per item
-  var itemMap={};
-  filtered.forEach(function(entry){
-    entry.items.forEach(function(i){
-      if(!itemMap[i.id]) itemMap[i.id]={name:i.name,timesSold:0,revenue:0};
-      itemMap[i.id].timesSold+=i.qty;
-      itemMap[i.id].revenue+=i.subtotal;
-    });
-  });
-  var itemList=Object.keys(itemMap).map(function(id){return Object.assign({id:id},itemMap[id]);});
-  itemList.sort(function(a,b){return b.timesSold-a.timesSold;});
-  // Apply search filter
-  var searchLow=bbRecordsSearch.toLowerCase();
-  var itemListFiltered=searchLow?itemList.filter(function(i){return i.name.toLowerCase().indexOf(searchLow)!==-1;}):itemList;
-  var sumEl=document.getElementById('bb-item-summary-list'); if(!sumEl) return;
-  if(itemListFiltered.length===0){
-    sumEl.innerHTML='<div class="empty-state" style="padding:14px"><i class="fas fa-chart-bar"></i><p>'+(searchLow?'No items match your search.':'No data yet.')+'</p></div>';
-  } else {
-    sumEl.innerHTML=itemListFiltered.map(function(i){
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--slate-50);border-radius:10px;margin-bottom:6px">'
-        +'<div style="flex:1;min-width:0">'
-          +'<div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(i.name)+'</div>'
-          +'<div style="font-size:12px;color:var(--slate-500)">Sold '+i.timesSold+' time'+(i.timesSold!==1?'s':'')+'</div>'
-        +'</div>'
-        +'<div style="font-weight:800;font-size:16px;color:var(--slate-700);margin-left:10px">'+fmtEur(i.revenue)+'</div>'
-      +'</div>';
-    }).join('');
-  }
-}
 function editBbEntry(dateStr){
   var db=getDB();
   var entry=db.bbEntries.find(function(e){return e.date===dateStr;}); if(!entry) return;
@@ -10846,68 +10999,97 @@ function editBbEntry(dateStr){
   bbSelectedItems={};
   entry.items.forEach(function(i){ bbSelectedItems[i.id]=i.qty; });
   // Switch to daily tab and set the date
+  var di0=document.getElementById('bb-entry-date'); if(di0){ di0.value=dateStr; di0.dataset.bbLoadedDate=dateStr; }
   switchBbTab('daily');
   var dateInp=document.getElementById('bb-entry-date');
   if(dateInp) dateInp.value=dateStr;
   renderBbDaily();
   toast('Editing entry for '+fmtDateShort(dateStr),'gold');
 }
-function renderBbMenuManage(){
-  var db=getDB(); var el=document.getElementById('bb-menu-manage-list'); if(!el) return;
-  if(db.bbMenu.length===0){el.innerHTML='<div class="empty-state"><i class="fas fa-tag"></i><p>No menu items.</p></div>';return;}
-  el.innerHTML=db.bbMenu.map(function(item){
-    return '<div class="bb-item" style="cursor:default">'
-      +'<div style="font-size:20px">'+(bbCatIcons[item.category]||'<i class="fas fa-box"></i>')+'</div>'
-      +'<div style="flex:1;min-width:0"><div class="bb-name">'+esc(item.name)+'</div><div class="bb-cat">'+esc(item.category)+'</div></div>'
-      +'<div class="bb-price">'+fmtEur(item.price)+'</div>'
-      +'<button class="btn btn-secondary btn-sm btn-icon" data-edit-bb-item="'+esc(item.id)+'"><i class="fas fa-pen"></i></button>'
-      +'<button class="btn btn-danger btn-sm btn-icon" data-delete-bb-item="'+esc(item.id)+'"><i class="fas fa-trash"></i></button>'
-    +'</div>';
-  }).join('');
+// ── Menu items (managed in Accounting → Item Sales) ───────────────
+// Each price change is logged with the date it is valid from: [{from, price, prev, at, by}]. bb_menu.price is the newest price.
+function bbMenuFromRow(r){
+  var h=Array.isArray(r.price_history)?r.price_history:[];
+  return {id:r.id,name:r.name,price:parseFloat(r.price)||0,category:r.category||'other',priceHistory:h.map(function(c){ return {from:c.from,price:+c.price,prev:c.prev==null?null:+c.prev,at:c.at||'',by:c.by||''}; })};
+}
+function bbHistSorted(item){ return (item.priceHistory||[]).slice().sort(function(a,b){ return String(a.from).localeCompare(String(b.from)) || String(a.at).localeCompare(String(b.at)); }); }
+// The price valid on a date (YYYY-MM-DD)
+function bbPriceOn(item, dateStr){
+  var h=bbHistSorted(item); if(!h.length) return +item.price||0;
+  var p=h[0].prev!=null?h[0].prev:h[0].price;
+  h.forEach(function(c){ if(String(c.from)<=dateStr) p=c.price; });
+  return +p||0;
+}
+var BB_CATS=[['beverages','Beverages'],['food','Food'],['cocktails','Cocktails'],['beer','Beer'],['wine','Wine'],['spirits','Spirits'],['other','Other']];
+function bbCatLabel(c){ var k=BB_CATS.find(function(x){ return x[0]===c; }); return k?k[1]:(c||'Other'); }
+// Categories in a steady order: the known ones first, then any other the items use
+function bbCatOrder(cats){
+  var known=BB_CATS.map(function(x){ return x[0]; });
+  return cats.slice().sort(function(a,b){ var ia=known.indexOf(a), ib=known.indexOf(b); if(ia===-1) ia=99; if(ib===-1) ib=99; return ia-ib || String(a).localeCompare(String(b)); });
 }
 function openAddBbItemModal(editId){
-  if(editId){
-    var db=getDB(); var item=db.bbMenu.find(function(i){return i.id===editId;}); if(!item) return;
-    editBbItemId=editId;
-    document.getElementById('bb-item-modal-title').textContent='Edit Item';
-    document.getElementById('bb-item-name').value=item.name;
-    document.getElementById('bb-item-price').value=item.price;
-    document.getElementById('bb-item-category').value=item.category||'other';
-  } else {
-    editBbItemId=null;
-    document.getElementById('bb-item-modal-title').textContent='Add Menu Item';
-    document.getElementById('bb-item-name').value='';
-    document.getElementById('bb-item-price').value='';
-    document.getElementById('bb-item-category').value='beverages';
-  }
+  var db=getDB(), item=editId?db.bbMenu.find(function(i){return i.id===editId;}):null; if(editId&&!item) return;
+  editBbItemId=item?editId:null;
+  var sel=document.getElementById('bb-item-category'), cats=BB_CATS.slice();
+  (db.bbMenu||[]).forEach(function(i){ if(i.category&&!cats.some(function(c){ return c[0]===i.category; })) cats.push([i.category,i.category]); });
+  sel.innerHTML=cats.map(function(c){ return '<option value="'+esc(c[0])+'">'+esc(c[1])+'</option>'; }).join('');
+  document.getElementById('bb-item-modal-title').textContent=item?'Edit Item':'Add Menu Item';
+  document.getElementById('bb-item-name').value=item?item.name:'';
+  document.getElementById('bb-item-price').value=item?accIn(item.price):'';
+  sel.value=item?(item.category||'other'):'beverages';
+  document.getElementById('bb-item-from').value=toDateStr(new Date());
+  document.getElementById('bb-item-from-row').style.display='none';
+  var hEl=document.getElementById('bb-item-history'), h=item?bbHistSorted(item).reverse():[];
+  hEl.innerHTML=h.length?'<div class="label" style="margin-top:4px">Price changes</div>'+h.map(function(c){
+    return '<div class="bb-hist-row"><span><b>'+(c.prev!=null?accEur(c.prev)+' → ':'')+accEur(c.price)+'</b> from '+esc(fmtDay(c.from))+'</span><span>'+esc(c.by||'')+(c.at?' · '+esc(fmtDay(String(c.at).slice(0,10))):'')+'</span></div>';
+  }).join(''):'';
   openModal('modal-add-bb-item');
+}
+// Show "valid from" only when the price is being changed
+function bbItemPriceTyped(){
+  var item=editBbItemId?getDB().bbMenu.find(function(i){return i.id===editBbItemId;}):null;
+  var v=accNum(document.getElementById('bb-item-price').value);
+  document.getElementById('bb-item-from-row').style.display=item&&v!==null&&!isNaN(v)&&Math.round(v*100)!==Math.round(item.price*100)?'':'none';
 }
 function saveBbItem(){
   var name=document.getElementById('bb-item-name').value.trim(); if(!name){toast('Name required!','error');return;}
-  var price=parseFloat(document.getElementById('bb-item-price').value); if(isNaN(price)||price<0){toast('Valid price required!','error');return;}
-  var cat=document.getElementById('bb-item-category').value;
+  var price=accNum(document.getElementById('bb-item-price').value); if(price===null||isNaN(price)||price<0){toast('Valid price required!','error');return;}
+  price=Math.round(price*100)/100;
+  var cat=document.getElementById('bb-item-category').value||'other';
   var db=getDB(); var eid=editBbItemId;
   if(eid){
-    var idx=db.bbMenu.findIndex(function(i){return i.id===eid;});
-    if(idx!==-1) db.bbMenu[idx]=Object.assign({},db.bbMenu[idx],{name:name,price:price,category:cat});
-    saveDB(db); closeModal('modal-add-bb-item'); renderBbMenuManage(); toast('Updating...'); editBbItemId=null;
-    sbFetch('PATCH','bb_menu',{name:name,price:price,category:cat},'id=eq.'+eid).then(function(){ toast('Updated!'); }).catch(function(){ toast('Updated locally','error'); });
+    var idx=db.bbMenu.findIndex(function(i){return i.id===eid;}); if(idx===-1) return;
+    var old=db.bbMenu[idx], row={name:name,category:cat}, upd={name:name,category:cat};
+    if(Math.round(price*100)!==Math.round(old.price*100)){
+      var from=document.getElementById('bb-item-from').value||toDateStr(new Date());
+      var h=(old.priceHistory||[]).concat([{from:from,price:price,prev:bbPriceOn(old, from),at:new Date().toISOString(),by:currentUser?currentUser.name:''}]);
+      // bb_menu.price = the newest price (the change with the latest date)
+      var newest=h.slice().sort(function(a,b){ return String(a.from).localeCompare(String(b.from)) || String(a.at).localeCompare(String(b.at)); }).pop();
+      row.price=newest.price; upd.price=newest.price; upd.priceHistory=h;
+      if(sbCols.bbHist!==false) row.price_history=h;
+    }
+    var after=function(){ var d2=getDB(), k=d2.bbMenu.findIndex(function(i){return i.id===eid;}); if(k!==-1) d2.bbMenu[k]=Object.assign({},d2.bbMenu[k],upd); saveDB(d2); closeModal('modal-add-bb-item'); editBbItemId=null; refreshItemViews(); };
+    sbFetch('PATCH','bb_menu',row,'id=eq.'+eid).then(function(){ after(); toast('Updated!','success'); }).catch(function(){
+      if(!row.price_history){ toast('Not saved. Check the connection and try again.','error'); return; }
+      // the price log needs the Item Sales SQL: save the price without it
+      delete row.price_history; delete upd.priceHistory; sbCols.bbHist=false;
+      sbFetch('PATCH','bb_menu',row,'id=eq.'+eid).then(function(){ after(); toast('Saved, but the price log needs the Item Sales SQL in Supabase','error'); }).catch(function(){ toast('Not saved. Check the connection and try again.','error'); });
+    });
   } else {
-    var newId=uid();
-    db.bbMenu.push({id:newId,name:name,price:price,category:cat});
-    saveDB(db); closeModal('modal-add-bb-item'); renderBbMenuManage(); toast('Adding...'); editBbItemId=null;
     sbFetch('POST','bb_menu',{name:name,price:price,category:cat}).then(function(rows){
-      if(rows&&rows[0]){var bi=db.bbMenu.findIndex(function(i){return i.id===newId;}); if(bi!==-1) db.bbMenu[bi].id=rows[0].id; saveDB(db);}
-      toast('Item added!');
-    }).catch(function(){ toast('Saved locally','error'); });
+      var d2=getDB(); d2.bbMenu.push(rows&&rows[0]?bbMenuFromRow(rows[0]):{id:uid(),name:name,price:price,category:cat,priceHistory:[]}); saveDB(d2);
+      closeModal('modal-add-bb-item'); editBbItemId=null; refreshItemViews(); toast('Item added!','success');
+    }).catch(function(){ toast('Not saved. Check the connection and try again.','error'); });
   }
 }
 function deleteBbItem(id){
-  if(!confirm('Remove this menu item?')) return;
-  var db=getDB(); db.bbMenu=db.bbMenu.filter(function(i){return i.id!==id;}); saveDB(db);
-  renderBbMenuManage(); toast('Removing...');
-  sbFetch('DELETE','bb_menu',null,'id=eq.'+id).then(function(){ toast('Removed.'); }).catch(function(){ toast('Removed locally','error'); });
+  var it=getDB().bbMenu.find(function(i){return i.id===id;}); if(!it) return;
+  if(!confirm('Remove '+it.name+' from the menu? Days already saved keep it.')) return;
+  sbFetch('DELETE','bb_menu',null,'id=eq.'+id).then(function(){
+    var db=getDB(); db.bbMenu=db.bbMenu.filter(function(i){return i.id!==id;}); saveDB(db); refreshItemViews(); toast('Removed.','success');
+  }).catch(function(){ toast('Not removed. Check the connection.','error'); });
 }
+function refreshItemViews(){ if(currentSection==='accounting') renderAccounting(); if(currentSection==='blackbox') renderBlackBox(); }
 
 // ================================================
 // DASHBOARD
@@ -10993,6 +11175,11 @@ function renderDashboard(){
 document.addEventListener('click', function(e) {
   var t = e.target;
   var el;
+
+  // Item sales
+  el = t.closest('[data-is-view]'); if (el) { accItemsView = el.dataset.isView; renderAccounting(); return; }
+  if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
+  if (t.closest('#btn-is-import-save')) { isSaveImport(); return; }
 
   // Settings cards: open / close
   el = t.closest('.set-toggle');
@@ -11382,12 +11569,6 @@ document.addEventListener('click', function(e) {
     var tr=document.getElementById('bb-records-to'); if(tr) tr.value='';
     renderBbRecords(); return;
   }
-  if (t.closest('#btn-bb-items-clear-range')) {
-    bbItemsFrom=''; bbItemsTo='';
-    var fi=document.getElementById('bb-items-from'); if(fi) fi.value='';
-    var ti=document.getElementById('bb-items-to'); if(ti) ti.value='';
-    renderBbItemRecords(); return;
-  }
 
   // Settings
   if (t.closest('#btn-add-employee') || t.closest('#btn-shifts-add-employee')) { addEmployee(); return; }
@@ -11503,12 +11684,12 @@ document.addEventListener('click', function(e) {
 });
 
 document.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 'bb-item-price') bbItemPriceTyped();
   var t = e.target;
   if (t.id === 'inv-search') { invSearchVal=t.value; renderInventory(); }
   if (t.dataset && t.dataset.qtyF && t.tagName === 'INPUT') { var qv = readQty(t.value), qcard = t.closest('[data-inv-id]'); if (qv !== null && qcard) invQtySet(qcard.dataset.invId, t.dataset.qtyF, qv, true); }
   if (t.id === 'res-search') { resSearchVal=t.value; renderAllReservations(); }
   if (t.id === 'bb-item-search') { bbItemSearchVal=t.value; renderBbMenuSelector(); }
-  if (t.id === 'bb-records-search') { bbRecordsSearch=t.value; renderBbItemRecords(); }
   if (t.dataset&&t.dataset.bbQtyInput) {
     var qid=t.dataset.bbQtyInput;
     var qval=parseInt(t.value,10);
@@ -11542,6 +11723,8 @@ document.addEventListener('change', function(e) {
   if (t.id === 'res-date-filter') { resDateFilter=t.value; renderAllReservations(); }
   if (t.id === 'ev-allday') evSyncTimes();
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
+  if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
+  if (t.dataset && t.dataset.isMap !== undefined && isImport) { var il = isImport.lines[+t.dataset.isMap]; if (il) { il.itemId = t.value; t.closest('.is-imp-row').classList.toggle('skip', !t.value); } }
   if (t.id === 'clock-month' && t.value) { clockMonth = t.value; clockDayF = clockDayF && clockDayF.slice(0, 7) === t.value ? clockDayF : ''; renderClockTab(); }
   if (t.id === 'clock-day') { clockDayF = t.value || ''; if (clockDayF && clockDayF.slice(0, 7) !== clockMonth) clockMonth = clockDayF.slice(0, 7); renderClockTab(); }
   if (t.id === 'inv-file' && t.files && t.files.length) { var modalOpen = document.getElementById('modal-invoice').classList.contains('open'); if (modalOpen || t.files.length === 1) invSetFile(t.files[0]); else invBatch(t.files); }
@@ -11568,7 +11751,8 @@ document.addEventListener('change', function(e) {
   if (t.id === 'inv-net' || t.id === 'inv-vat' || t.id === 'inv-total') invCheckAmounts(t.id);
   if (t.dataset && t.dataset.accCell) {
     var ac = t.dataset.accCell.split('|');   // kind|line|part|month
-    accSetCell(ac[0], accYear, ac[3] ? +ac[3] : accMonth, ac[1], ac[2] || '', t.value);
+    if (ac[0] === 'itemsale') isSetManual(ac[1], t.value);
+    else accSetCell(ac[0], accYear, ac[3] ? +ac[3] : accMonth, ac[1], ac[2] || '', t.value);
   }
   if (t.id === 'res-date' || t.id === 'res-time' || t.id === 'res-end') { refreshResTableGrid(); }
   if (t.id === 'req-colleague') { reqSwapHint(); }
@@ -11585,8 +11769,8 @@ document.addEventListener('change', function(e) {
   if (t.id === 'bb-records-from') { bbRecordsFrom=t.value; renderBbRecords(); }
   if (t.id === 'bb-records-to') { bbRecordsTo=t.value; renderBbRecords(); }
   // BB item records date range filter
-  if (t.id === 'bb-items-from') { bbItemsFrom=t.value; renderBbItemRecords(); }
-  if (t.id === 'bb-items-to') { bbItemsTo=t.value; renderBbItemRecords(); }
+
+
   if (t.id === 'hours-from' || t.id === 'hours-to') {
     var hf = document.getElementById('hours-from').value, ht = document.getElementById('hours-to').value;
     if (hf && ht) { hoursRange = { custom:true, from:hf, to:ht, preset:'' }; renderShiftsHoursTab(); }
