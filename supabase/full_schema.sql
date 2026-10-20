@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS bb_menu (
   category TEXT DEFAULT 'other',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE bb_menu ADD COLUMN IF NOT EXISTS price_history JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS bb_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -289,6 +290,24 @@ CREATE TABLE IF NOT EXISTS cal_events (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS cal_events_date ON cal_events (date);
+
+-- Item sales typed by hand or loaded from a file (policies in migrations/2026-10-20-u-item-sales.sql)
+CREATE TABLE IF NOT EXISTS item_sales (
+  id TEXT PRIMARY KEY,
+  year INT NOT NULL,
+  month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
+  item_id TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL DEFAULT '',
+  category TEXT DEFAULT '',
+  qty NUMERIC NOT NULL DEFAULT 0,
+  price NUMERIC NOT NULL DEFAULT 0,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'manual',
+  note TEXT DEFAULT '',
+  created_by TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS item_sales_period ON item_sales (year, month);
 
 -- Supplier invoices with photo (policies and the storage bucket in migrations/2026-10-07-o-invoices.sql)
 CREATE TABLE IF NOT EXISTS invoices (
