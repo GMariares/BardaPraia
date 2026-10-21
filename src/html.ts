@@ -695,6 +695,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .gantt-bar-label { position:absolute; top:0; bottom:0; right:0; display:block; line-height:24px; padding:0 7px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; pointer-events:none; }
     .gantt-bar.has-ot { border-top-right-radius:0; border-bottom-right-radius:0; }
     /* late: the part of the shift not worked, faded and hatched */
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .shift-b2-btn { width:34px; height:34px; border:var(--rule); border-radius:8px; background:var(--panel); color:var(--teal-600); cursor:pointer; font-size:12px; }
+    .shift-b2-btn.is-remove { color:var(--slate-500); }
+    .shift-b2-btn[aria-pressed="true"] { background:var(--mint-100); border-color:var(--teal-500); }
+    .shift-b2-row td { border-top:1px dashed var(--slate-200); }
+    .gantt-late.gantt-early { left:auto; right:0; border-radius:0 5px 5px 0; }
     .gantt-late { position:absolute; left:0; top:0; bottom:0; border-radius:5px 0 0 5px; pointer-events:none;
       background-color:rgba(255,255,255,.62); background-image:repeating-linear-gradient(45deg, rgba(34,54,63,.28) 0 2px, transparent 2px 6px); }
     /* overtime: an extension after the scheduled end, same colour, hatched */
@@ -2707,9 +2713,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:8px;font-size:14px" id="shift-action-edit">
       <i class="fas fa-pen" style="color:var(--teal-500)"></i> Edit Shift
     </button>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-late">
         <i class="fas fa-hourglass-half" style="color:var(--slate-600)"></i> <span id="shift-action-late-label">Late</span>
+      </button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-early">
+        <i class="fas fa-person-walking-arrow-right" style="color:var(--slate-600)"></i> <span id="shift-action-early-label">Left early</span>
       </button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center;font-size:14px" id="shift-action-ot">
         <i class="fas fa-business-time" style="color:var(--teal-600)"></i> <span id="shift-action-ot-label">Overtime</span>
@@ -2933,15 +2942,23 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           <th style="padding:6px 4px;font-weight:700;color:var(--slate-700)">End</th>
           <th style="padding:6px 4px;font-weight:700;color:var(--teal-500);min-width:130px">Area · Section</th>
           <th style="padding:6px 4px;font-weight:700;color:#b4402f;white-space:nowrap">Day Off</th>
+          <th style="padding:6px 2px"><span class="sr-only">Second block</span></th>
         </tr></thead>
         <tbody id="shift-days-body">
-          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
-          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td></tr>
+          <tr data-shift-day="Monday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Mon</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn" data-shift-b2="Monday" title="Add a second block (a break, or another area)" aria-label="Add a second block on Monday"><i class="fas fa-plus"></i></button></td></tr>
+          <tr class="shift-b2-row" data-b2-for="Monday" style="display:none"><td style="padding:2px 8px;font-size:11px;font-weight:700;color:var(--slate-500)">2nd</td><td style="padding:4px"><input type="time" class="input-field shift-day-start2" style="padding:5px 6px;font-size:12px" aria-label="Monday second block start"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end2" style="padding:5px 6px;font-size:12px" aria-label="Monday second block end"/></td><td style="padding:4px"><select class="select-field shift-day-zone2" style="padding:4px 6px;font-size:12px" aria-label="Monday second block area"><option value="">—</option></select></td><td></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn is-remove" data-shift-b2-remove="Monday" aria-label="Remove the second block on Monday"><i class="fas fa-xmark"></i></button></td></tr>
+          <tr data-shift-day="Tuesday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Tue</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn" data-shift-b2="Tuesday" title="Add a second block (a break, or another area)" aria-label="Add a second block on Tuesday"><i class="fas fa-plus"></i></button></td></tr>
+          <tr class="shift-b2-row" data-b2-for="Tuesday" style="display:none"><td style="padding:2px 8px;font-size:11px;font-weight:700;color:var(--slate-500)">2nd</td><td style="padding:4px"><input type="time" class="input-field shift-day-start2" style="padding:5px 6px;font-size:12px" aria-label="Tuesday second block start"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end2" style="padding:5px 6px;font-size:12px" aria-label="Tuesday second block end"/></td><td style="padding:4px"><select class="select-field shift-day-zone2" style="padding:4px 6px;font-size:12px" aria-label="Tuesday second block area"><option value="">—</option></select></td><td></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn is-remove" data-shift-b2-remove="Tuesday" aria-label="Remove the second block on Tuesday"><i class="fas fa-xmark"></i></button></td></tr>
+          <tr data-shift-day="Wednesday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Wed</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn" data-shift-b2="Wednesday" title="Add a second block (a break, or another area)" aria-label="Add a second block on Wednesday"><i class="fas fa-plus"></i></button></td></tr>
+          <tr class="shift-b2-row" data-b2-for="Wednesday" style="display:none"><td style="padding:2px 8px;font-size:11px;font-weight:700;color:var(--slate-500)">2nd</td><td style="padding:4px"><input type="time" class="input-field shift-day-start2" style="padding:5px 6px;font-size:12px" aria-label="Wednesday second block start"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end2" style="padding:5px 6px;font-size:12px" aria-label="Wednesday second block end"/></td><td style="padding:4px"><select class="select-field shift-day-zone2" style="padding:4px 6px;font-size:12px" aria-label="Wednesday second block area"><option value="">—</option></select></td><td></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn is-remove" data-shift-b2-remove="Wednesday" aria-label="Remove the second block on Wednesday"><i class="fas fa-xmark"></i></button></td></tr>
+          <tr data-shift-day="Thursday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Thu</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn" data-shift-b2="Thursday" title="Add a second block (a break, or another area)" aria-label="Add a second block on Thursday"><i class="fas fa-plus"></i></button></td></tr>
+          <tr class="shift-b2-row" data-b2-for="Thursday" style="display:none"><td style="padding:2px 8px;font-size:11px;font-weight:700;color:var(--slate-500)">2nd</td><td style="padding:4px"><input type="time" class="input-field shift-day-start2" style="padding:5px 6px;font-size:12px" aria-label="Thursday second block start"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end2" style="padding:5px 6px;font-size:12px" aria-label="Thursday second block end"/></td><td style="padding:4px"><select class="select-field shift-day-zone2" style="padding:4px 6px;font-size:12px" aria-label="Thursday second block area"><option value="">—</option></select></td><td></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn is-remove" data-shift-b2-remove="Thursday" aria-label="Remove the second block on Thursday"><i class="fas fa-xmark"></i></button></td></tr>
+          <tr data-shift-day="Friday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Fri</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn" data-shift-b2="Friday" title="Add a second block (a break, or another area)" aria-label="Add a second block on Friday"><i class="fas fa-plus"></i></button></td></tr>
+          <tr class="shift-b2-row" data-b2-for="Friday" style="display:none"><td style="padding:2px 8px;font-size:11px;font-weight:700;color:var(--slate-500)">2nd</td><td style="padding:4px"><input type="time" class="input-field shift-day-start2" style="padding:5px 6px;font-size:12px" aria-label="Friday second block start"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end2" style="padding:5px 6px;font-size:12px" aria-label="Friday second block end"/></td><td style="padding:4px"><select class="select-field shift-day-zone2" style="padding:4px 6px;font-size:12px" aria-label="Friday second block area"><option value="">—</option></select></td><td></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn is-remove" data-shift-b2-remove="Friday" aria-label="Remove the second block on Friday"><i class="fas fa-xmark"></i></button></td></tr>
+          <tr data-shift-day="Saturday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Sat</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn" data-shift-b2="Saturday" title="Add a second block (a break, or another area)" aria-label="Add a second block on Saturday"><i class="fas fa-plus"></i></button></td></tr>
+          <tr class="shift-b2-row" data-b2-for="Saturday" style="display:none"><td style="padding:2px 8px;font-size:11px;font-weight:700;color:var(--slate-500)">2nd</td><td style="padding:4px"><input type="time" class="input-field shift-day-start2" style="padding:5px 6px;font-size:12px" aria-label="Saturday second block start"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end2" style="padding:5px 6px;font-size:12px" aria-label="Saturday second block end"/></td><td style="padding:4px"><select class="select-field shift-day-zone2" style="padding:4px 6px;font-size:12px" aria-label="Saturday second block area"><option value="">—</option></select></td><td></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn is-remove" data-shift-b2-remove="Saturday" aria-label="Remove the second block on Saturday"><i class="fas fa-xmark"></i></button></td></tr>
+          <tr data-shift-day="Sunday"><td style="padding:5px 8px;font-weight:600;color:var(--slate-800)">Sun</td><td style="padding:4px"><input type="time" class="input-field shift-day-start" style="padding:5px 6px;font-size:12px" value="09:00"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end" style="padding:5px 6px;font-size:12px" value="17:00"/></td><td style="padding:4px"><select class="select-field shift-day-zone" style="padding:4px 6px;font-size:12px"><option value="">—</option></select></td><td style="padding:4px;text-align:center"><input type="checkbox" class="shift-day-off-chk" style="width:18px;height:18px;accent-color:#b4402f"/></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn" data-shift-b2="Sunday" title="Add a second block (a break, or another area)" aria-label="Add a second block on Sunday"><i class="fas fa-plus"></i></button></td></tr>
+          <tr class="shift-b2-row" data-b2-for="Sunday" style="display:none"><td style="padding:2px 8px;font-size:11px;font-weight:700;color:var(--slate-500)">2nd</td><td style="padding:4px"><input type="time" class="input-field shift-day-start2" style="padding:5px 6px;font-size:12px" aria-label="Sunday second block start"/></td><td style="padding:4px"><input type="time" class="input-field shift-day-end2" style="padding:5px 6px;font-size:12px" aria-label="Sunday second block end"/></td><td style="padding:4px"><select class="select-field shift-day-zone2" style="padding:4px 6px;font-size:12px" aria-label="Sunday second block area"><option value="">—</option></select></td><td></td><td style="padding:4px 2px;text-align:center"><button type="button" class="shift-b2-btn is-remove" data-shift-b2-remove="Sunday" aria-label="Remove the second block on Sunday"><i class="fas fa-xmark"></i></button></td></tr>
         </tbody>
       </table>
     </div>
@@ -3726,14 +3743,8 @@ function syncFromSupabase() {
     sbFetch('GET', 'shifts', null, 'order=week_start.desc,day.asc&limit=1').catch(function(){ return null; }).then(function(rows) {
       if (rows && rows[0] && rows[0].day_off === undefined) sbMissingItems.push('shifts.day_off');
       return sbFetchAll('shifts', 'order=week_start.desc,day.asc,id.asc').then(function(rows2) {
-        if (rows2 && rows2.length) sbCols.section = ('section' in rows2[0]);
-        if (rows2) db.shifts = rows2.map(function(r){ return {
-          id: r.id, employee: r.employee, day: r.day, weekStart: r.week_start,
-          start: r.start_time ? r.start_time.slice(0,5) : '',
-          end: r.end_time ? r.end_time.slice(0,5) : '',
-          role: r.role||'', zone: r.zone||'', dayOff: !!r.day_off, createdAt: r.created_at,
-          lateMinutes: r.late_minutes||0, overtimeMinutes: r.overtime_minutes||0, section: r.section||''
-        }; });
+        if (rows2 && rows2.length) { sbCols.section = ('section' in rows2[0]); sbCols.split = ('start2' in rows2[0]); }
+        if (rows2) db.shifts = rows2.map(shiftFromRow);
       }).catch(function(){});
     }),   // silent fail
     sbFetch('GET', 'bb_menu', null, 'order=category.asc,name.asc').then(function(rows) {
@@ -4326,7 +4337,7 @@ function loadMyShifts() {
   var from = toDateStr(getWeekStart(0)), to = toDateStr(getWeekStart(1));
   sbFetch('GET', 'shifts', null, 'employee=eq.' + encodeURIComponent(emp) + '&week_start=gte.' + from + '&week_start=lte.' + to).then(function(rows){
     if (!Array.isArray(rows)) return;
-    homeShifts = rows.map(function(x){ return { id:x.id, employee:x.employee, day:x.day, weekStart:x.week_start, start:x.start_time ? x.start_time.slice(0,5) : '', end:x.end_time ? x.end_time.slice(0,5) : '', zone:x.zone || '', section:x.section || '', dayOff:!!x.day_off }; });
+    homeShifts = rows.map(shiftFromRow);
     homeShiftsFor = emp; renderMyShift();
   }).catch(function(){});
 }
@@ -4340,7 +4351,7 @@ function renderMyShift() {
   var dated = list.map(function(x){ return { s:x, d:shiftDateStr(x) }; }).filter(function(x){ return x.d && x.d >= today; })
     .sort(function(a, b){ return (a.d + (a.s.start || '')).localeCompare(b.d + (b.s.start || '')); });
   var where = function(x){ return [x.zone, x.section].filter(Boolean).join(' · '); };
-  var span = function(x){ return x.start + (x.end ? '–' + x.end : ''); };
+  var span = function(x){ return shiftHas2(x) ? shiftSpan(x) : x.start + (x.end ? '–' + x.end : ''); };
   var now = dated.filter(function(x){ return x.d === today; }), work = now.filter(function(x){ return !x.s.dayOff && x.s.start; });
   var h = '';
   if (work.length) h = work.map(function(x){ return '<div class="myshift-now"><span class="myshift-time">' + esc(span(x.s)) + '</span><span class="myshift-where">' + esc(where(x.s) || 'Today') + '</span></div>'; }).join('');
@@ -4834,7 +4845,7 @@ function refreshSection(name) {
       if (res[3] === 'missing') sbCols.requests = false;
       else if (res[3]) { sbCols.requests = true; db.shiftRequests = res[3].map(reqFromRow); }
       if (res[0] && res[0].length) sbCols.section = ('section' in res[0][0]);
-      if (res[0]) db.shifts = res[0].map(function(x){ return {id:x.id,employee:x.employee,day:x.day,weekStart:x.week_start,start:x.start_time?x.start_time.slice(0,5):'',end:x.end_time?x.end_time.slice(0,5):'',role:x.role||'',zone:x.zone||'',dayOff:!!x.day_off,createdAt:x.created_at,lateMinutes:x.late_minutes||0,overtimeMinutes:x.overtime_minutes||0,section:x.section||''}; });
+      if (res[0]) { db.shifts = res[0].map(shiftFromRow); if (res[0].length) sbCols.split = ('start2' in res[0][0]); }
       if (res[1]) db.absences = res[1].map(function(x){ return {id:x.id,employee:x.employee,date:x.date,weekStart:x.week_start,justified:!!x.justified,createdAt:x.created_at}; });
       if (res[2]) db.employees = res[2].map(function(x){ return x.name; });
       saveDB(db);
@@ -7225,7 +7236,7 @@ function calvLoad() {
     var db = getDB();
     if (res[0]) { db.reservations = res[0].map(resFromRow); if (res[0].length) sbCols.resEnd = ('end_time' in res[0][0]); }
     if (res[1]) db.tasks = res[1].map(taskFromRow);
-    if (res[2]) calvShifts = res[2].map(function(x){ return { employee:x.employee, day:x.day, weekStart:x.week_start, start:x.start_time ? x.start_time.slice(0,5) : '', end:x.end_time ? x.end_time.slice(0,5) : '', zone:x.zone || '', section:x.section || '', dayOff:!!x.day_off }; });
+    if (res[2]) calvShifts = res[2].map(shiftFromRow);
     saveDB(db);
     if (currentSection === 'calendar') renderCalView();
   });
@@ -7257,7 +7268,7 @@ function calvItems(dateStr) {
       if (s.dayOff || !s.start) return;
       var d = new Date(s.weekStart + 'T12:00:00'); d.setDate(d.getDate() + DAYS.indexOf(s.day));
       if (toDateStr(d) !== dateStr) return;
-      out.push({ sort:s.start, time:s.start + (s.end ? '–' + s.end : ''), type:'Your shift', color:'#5f7079',
+      out.push({ sort:s.start, time:shiftHas2(s) ? shiftSpan(s) : s.start + (s.end ? '–' + s.end : ''), type:'Your shift', color:'#5f7079',
         title:[s.zone, s.section].filter(Boolean).join(' · ') || 'Shift', sub:'', chip:s.start + ' Your shift', attr:'data-calv-goto="shifts"' });
     });
   }
@@ -7844,7 +7855,7 @@ function areaSectionOptionsHTML(areas) {
 }
 function fillZoneSelects() {
   var html = areaSectionOptionsHTML(getAreas());
-  document.querySelectorAll('#shift-days-body .shift-day-zone').forEach(function(sel){ sel.innerHTML = html; });
+  document.querySelectorAll('#shift-days-body .shift-day-zone, #shift-days-body .shift-day-zone2').forEach(function(sel){ sel.innerHTML = html; });
 }
 function setZoneSelect(sel, zone, section) {
   if (!sel) return;
@@ -7937,7 +7948,8 @@ function renderMyWeekTab() {
     else {
       total += shiftScheduledHours(sh);
       var area = [sh.zone, sh.section].filter(Boolean).join(' · '), req = openRequestFor(emp, sh.weekStart, sh.day);
-      body = '<b>' + esc(sh.start + (sh.end ? '–' + sh.end : '')) + '</b>' + (area ? '<span style="display:inline-flex;align-items:center;gap:6px"><span class="mw-dot" style="background:' + areaColor(sh.zone) + '"></span>' + esc(area) + '</span>' : '')
+      body = shiftBlocks(sh).map(function(b){ var ar = [b.zone, b.section].filter(Boolean).join(' · ');
+          return '<b>' + esc(b.start + (b.end ? '–' + b.end : '')) + '</b>' + (ar ? '<span style="display:inline-flex;align-items:center;gap:6px"><span class="mw-dot" style="background:' + areaColor(b.zone) + '"></span>' + esc(ar) + '</span>' : ''); }).join('')
         + (absIdx[emp + '|' + ds] ? '<span class="badge badge-red">Absent</span>' : '') + (req ? '<span class="badge badge-yellow">Change ' + esc(reqStatusLabel(req)) + '</span>' : '');
     }
     return '<button class="mw-row' + (ds === today ? ' today' : '') + '"' + (working ? ' data-action-shift="' + esc(sh.id) + '" data-action-shift-date="' + ds + '" data-action-shift-ws="' + wsStr + '"' : ' disabled')
@@ -7961,14 +7973,19 @@ function shiftBarHTML(s, dateStr, wsStr, db) {
   }
   var color = ganttShiftColor(s, db);
   var late = Math.min(s.lateMinutes||0, Math.max(0, endMins-startMins)), ot = s.overtimeMinutes||0;
+  var early = Math.min(s.earlyMinutes||0, Math.max(0, endMins-startMins-late));
   var barLabel = esc(s.employee.split(' ')[0]) + ' ' + esc(s.start) + '–' + esc(s.end);
+  if (s._part) barLabel += ' ('+s._part+'/2)';
   if (s.role) barLabel += ' · '+esc(s.role);
   if (late) barLabel += ' · late '+fmtMins(late);
+  if (early) barLabel += ' · left '+fmtMins(early)+' early';
   if (ot) barLabel += ' · +'+fmtMins(ot);
   var visMins = Math.max(1, clampEnd - clampStart);
   var lateVis = Math.max(0, Math.min(startMins + late, clampEnd) - clampStart);
   var latePct = late ? Math.min(100, lateVis / visMins * 100) : 0;
   var lateHTML = latePct > 0 ? '<span class="gantt-late" style="width:'+latePct.toFixed(2)+'%"></span>' : '';
+  var earlyVis = early ? Math.max(0, clampEnd - Math.max(endMins - early, clampStart)) : 0;
+  if (earlyVis > 0) lateHTML += '<span class="gantt-late gantt-early" style="width:'+Math.min(100, earlyVis / visMins * 100).toFixed(2)+'%"></span>';
   var labelHTML = '<span class="gantt-bar-label" style="left:'+(latePct > 0 && latePct < 70 ? latePct.toFixed(2) : 0)+'%">'+barLabel+'</span>';
   var otHTML = '';
   if (ot) {
@@ -8071,7 +8088,7 @@ function renderShifts(){
 
     // Shift bars: area → section → lanes (people whose times overlap get their own lane); day offs as chips
     var areas = getAreas(db);
-    var worked = dayShifts.filter(function(s){ return !s.dayOff; });
+    var worked = shiftPieces(dayShifts.filter(function(s){ return !s.dayOff; }));
     var offs = dayShifts.filter(function(s){ return s.dayOff; });
     var rowsHTML = '';
     if (dayShifts.length === 0) {
@@ -8184,21 +8201,22 @@ function openShiftAdjust(kind, shiftId) {
   var db = getDB(); var s = db.shifts.find(function(x){ return x.id === shiftId; }); if (!s) return;
   _adjustKind = kind; _adjustShiftId = shiftId;
   var dur = Math.round(shiftScheduledHours(s) * 60);
-  var cur = kind === 'late' ? (s.lateMinutes||0) : (s.overtimeMinutes||0);
-  var maxH = kind === 'late' ? Math.floor(dur/60) : 8;
-  document.getElementById('adjust-title').innerHTML = kind === 'late'
-    ? '<i class="fas fa-hourglass-half"></i> Late' : '<i class="fas fa-business-time"></i> Overtime';
-  document.getElementById('adjust-info').textContent = s.employee + ' · ' + s.day + ' ' + shiftDateStr(s) + ' · ' + s.start + '–' + s.end;
+  var cur = kind === 'late' ? (s.lateMinutes||0) : kind === 'early' ? (s.earlyMinutes||0) : (s.overtimeMinutes||0);
+  var maxH = kind === 'overtime' ? 8 : Math.floor(dur/60);
+  document.getElementById('adjust-title').innerHTML = kind === 'late' ? '<i class="fas fa-hourglass-half"></i> Late'
+    : kind === 'early' ? '<i class="fas fa-person-walking-arrow-right"></i> Left early' : '<i class="fas fa-business-time"></i> Overtime';
+  document.getElementById('adjust-info').textContent = s.employee + ' · ' + s.day + ' ' + shiftDateStr(s) + ' · ' + shiftSpan(s);
   document.getElementById('adjust-help').textContent = kind === 'late'
     ? 'How late did they start? That time is hatched on the bar and does not count toward hours or tips.'
-    : 'How long did they stay after ' + s.end + '? Overtime counts toward hours and tips.';
+    : kind === 'early' ? 'How much earlier than ' + shiftLastEnd(s) + ' did they leave? That time is hatched on the bar and does not count toward hours or tips.'
+    : 'How long did they stay after ' + shiftLastEnd(s) + '? Overtime counts toward hours and tips.';
   var hSel = document.getElementById('adjust-hours'); var opts = '';
   for (var h = 0; h <= maxH; h++) opts += '<option value="'+h+'">'+h+'</option>';
   hSel.innerHTML = opts; hSel.value = String(Math.floor(cur/60));
   document.getElementById('adjust-mins').value = String(cur % 60 - (cur % 60) % 15);
-  var chips = kind === 'late' ? [15,30,60,120] : [30,60,90,120];
+  var chips = kind === 'overtime' ? [30,60,90,120] : [15,30,60,120];
   document.getElementById('adjust-chips').innerHTML = chips.map(function(m){
-    return '<button type="button" class="inv-slicer" data-adjust-quick="'+m+'">'+(kind==='late'?'':'+')+fmtMins(m)+'</button>'; }).join('');
+    return '<button type="button" class="inv-slicer" data-adjust-quick="'+m+'">'+(kind==='overtime'?'+':'')+fmtMins(m)+'</button>'; }).join('');
   document.getElementById('adjust-error').textContent = '';
   document.getElementById('btn-adjust-clear').style.display = cur ? '' : 'none';
   openModal('modal-shift-adjust');
@@ -8206,43 +8224,71 @@ function openShiftAdjust(kind, shiftId) {
 function saveShiftAdjust(minutes) {
   var db = getDB(); var s = db.shifts.find(function(x){ return x.id === _adjustShiftId; }); if (!s) { closeModal('modal-shift-adjust'); return; }
   var dur = Math.round(shiftScheduledHours(s) * 60);
-  if (_adjustKind === 'late' && minutes >= dur) { document.getElementById('adjust-error').textContent = 'Late must be shorter than the shift (' + fmtMins(dur) + ').'; return; }
-  var field = _adjustKind === 'late' ? 'lateMinutes' : 'overtimeMinutes';
-  var col = _adjustKind === 'late' ? 'late_minutes' : 'overtime_minutes';
+  if (_adjustKind === 'late' && minutes + (s.earlyMinutes||0) >= dur) { document.getElementById('adjust-error').textContent = 'Late and left early together must be shorter than the shift (' + fmtMins(dur) + ').'; return; }
+  if (_adjustKind === 'early' && minutes + (s.lateMinutes||0) >= dur) { document.getElementById('adjust-error').textContent = 'Late and left early together must be shorter than the shift (' + fmtMins(dur) + ').'; return; }
+  if (_adjustKind === 'early' && !sbCols.split) { document.getElementById('adjust-error').textContent = 'Left early needs the shifts SQL (2026-10-21) in Supabase first.'; return; }
+  var field = _adjustKind === 'late' ? 'lateMinutes' : _adjustKind === 'early' ? 'earlyMinutes' : 'overtimeMinutes';
+  var col = _adjustKind === 'late' ? 'late_minutes' : _adjustKind === 'early' ? 'early_minutes' : 'overtime_minutes';
   s[field] = minutes; saveDB(db); closeModal('modal-shift-adjust'); renderShifts();
   var body = {}; body[col] = minutes;
   sbFetch('PATCH','shifts',body,shiftSlotFilter(s.employee,s.weekStart,s.day))
-    .then(function(){ toast(minutes ? (_adjustKind==='late' ? s.employee+' late '+fmtMins(minutes) : s.employee+' overtime +'+fmtMins(minutes)) : 'Cleared', 'gold'); })
+    .then(function(){ toast(minutes ? (_adjustKind==='late' ? s.employee+' late '+fmtMins(minutes) : _adjustKind==='early' ? s.employee+' left '+fmtMins(minutes)+' early' : s.employee+' overtime +'+fmtMins(minutes)) : 'Cleared', 'gold'); })
     .catch(function(){ toast('Saved on this device only. Check the connection and try again.','error'); });
 }
 
 // ── Actual hours: the one rule used by Tips, Hours and Attendance ──
-// scheduled hours − late + overtime; 0 on a day off or when absent that day (justified or not)
+// scheduled hours − late − left early + overtime; 0 on a day off or when absent that day (justified or not)
 function shiftDateStr(s) {
   var i = DAYS.indexOf(s.day); if (i < 0 || !s.weekStart) return '';
   var d = new Date(s.weekStart + 'T00:00:00'); d.setDate(d.getDate() + i); return toDateStr(d);
 }
 function absenceIndex(db) { var idx = {}; (db.absences||[]).forEach(function(a){ idx[a.employee+'|'+a.date] = a; }); return idx; }
+function shiftFromRow(x) {
+  var t = function(v){ return v ? String(v).slice(0,5) : ''; };
+  return { id:x.id, employee:x.employee, day:x.day, weekStart:x.week_start, start:t(x.start_time), end:t(x.end_time), role:x.role||'', zone:x.zone||'', section:x.section||'',
+    dayOff:!!x.day_off, createdAt:x.created_at, lateMinutes:x.late_minutes||0, overtimeMinutes:x.overtime_minutes||0, earlyMinutes:x.early_minutes||0,
+    start2:t(x.start2), end2:t(x.end2), zone2:x.zone2||'', section2:x.section2||'' };
+}
+// A day can have a second block (a break in between, or another area / section)
+function shiftHas2(s) { return !!(s && !s.dayOff && s.start2 && s.end2); }
+function shiftBlocks(s) {
+  var b = [{ start:s.start, end:s.end, zone:s.zone||'', section:s.section||'' }];
+  if (shiftHas2(s)) b.push({ start:s.start2, end:s.end2, zone:s.zone2||s.zone||'', section:s.section2||'' });
+  return b;
+}
+function blockMins(b) { var a = timeToMins(b.start), e = timeToMins(b.end); if (e <= a) e += 24*60; return e - a; }
+function shiftLastEnd(s) { return shiftHas2(s) ? s.end2 : s.end; }
+// "10:00–13:00 · 18:00–22:00" (short: "10–13 · 18–22")
+function shiftSpan(s, short) { var f = short ? wkTime : function(t){ return t; }; return shiftBlocks(s).map(function(b){ return f(b.start) + '–' + f(b.end); }).join(' · '); }
+// What the schedule draws: each block on its own, with its own area and section. Late sits on the first, overtime and left-early on the last.
+function shiftPieces(list) {
+  var out = [];
+  list.forEach(function(s){
+    if (!shiftHas2(s)) { out.push(s); return; }
+    out.push(Object.assign({}, s, { _part:1, overtimeMinutes:0, earlyMinutes:0 }));
+    out.push(Object.assign({}, s, { _part:2, start:s.start2, end:s.end2, zone:s.zone2 || s.zone || '', section:s.section2 || '', lateMinutes:0 }));
+  });
+  return out;
+}
 function shiftScheduledHours(s) {
   if (s.dayOff) return 0;
-  var sm = timeToMins(s.start), em = timeToMins(s.end); if (em <= sm) em += 24*60;
-  return Math.max(0, (em - sm) / 60);
+  return shiftBlocks(s).reduce(function(a, b){ return a + blockMins(b); }, 0) / 60;
 }
 function shiftIsAbsent(s, absIdx) { return !s.dayOff && !!absIdx[s.employee+'|'+shiftDateStr(s)]; }
 function shiftActualHours(s, absIdx) {
   if (s.dayOff || shiftIsAbsent(s, absIdx)) return 0;
-  return Math.max(0, shiftScheduledHours(s) - (s.lateMinutes||0)/60 + (s.overtimeMinutes||0)/60);
+  return Math.max(0, shiftScheduledHours(s) - (s.lateMinutes||0)/60 - (s.earlyMinutes||0)/60 + (s.overtimeMinutes||0)/60);
 }
 // {employee: {hours, days, absentDays, lateMinutes, overtimeMinutes, zones:{zone:days}}} for shifts passing keep(s)
 function hoursByEmployee(db, keep) {
   var absIdx = absenceIndex(db), out = {};
   db.shifts.forEach(function(s){
     if (!keep(s)) return;
-    var st = out[s.employee] || (out[s.employee] = {hours:0, days:0, absentDays:0, lateMinutes:0, overtimeMinutes:0, zones:{}});
+    var st = out[s.employee] || (out[s.employee] = {hours:0, days:0, absentDays:0, lateMinutes:0, earlyMinutes:0, overtimeMinutes:0, zones:{}});
     if (s.dayOff) return;
     if (shiftIsAbsent(s, absIdx)) { st.absentDays++; return; }
     var h = shiftActualHours(s, absIdx);
-    st.hours += h; st.lateMinutes += (s.lateMinutes||0); st.overtimeMinutes += (s.overtimeMinutes||0);
+    st.hours += h; st.lateMinutes += (s.lateMinutes||0); st.earlyMinutes += (s.earlyMinutes||0); st.overtimeMinutes += (s.overtimeMinutes||0);
     if (h > 0) { st.days++; if (s.zone) st.zones[s.zone] = (st.zones[s.zone]||0) + 1; }
   });
   return out;
@@ -8259,7 +8305,7 @@ function computeTipSplit(db, ws, total) {
   parts.slice().sort(function(a,b){ return b.r - a.r || a.e.localeCompare(b.e); }).slice(0, left).forEach(function(p){ p.c++; });
   var split = {total: Math.round(total*100)/100, totalHours: Math.round(totalHrs*100)/100, generatedAt: new Date().toISOString(), hours:{}, shares:{}, absentDays:{}, lateMinutes:{}, overtimeMinutes:{}};
   parts.forEach(function(p){ split.hours[p.e] = Math.round(st[p.e].hours*100)/100; split.shares[p.e] = p.c/100;
-    if (st[p.e].lateMinutes) split.lateMinutes[p.e] = st[p.e].lateMinutes; if (st[p.e].overtimeMinutes) split.overtimeMinutes[p.e] = st[p.e].overtimeMinutes; });
+    if (st[p.e].lateMinutes) split.lateMinutes[p.e] = st[p.e].lateMinutes; if (st[p.e].earlyMinutes) { split.earlyMinutes = split.earlyMinutes || {}; split.earlyMinutes[p.e] = st[p.e].earlyMinutes; } if (st[p.e].overtimeMinutes) split.overtimeMinutes[p.e] = st[p.e].overtimeMinutes; });
   Object.keys(st).forEach(function(e){ if (st[e].absentDays) split.absentDays[e] = st[e].absentDays; });
   return split;
 }
@@ -8291,6 +8337,7 @@ function tipSplitHTML(split, heading) {
   var rows = emps.map(function(e){
     var note = split.absentDays && split.absentDays[e] ? ' · '+split.absentDays[e]+' day'+(split.absentDays[e]>1?'s':'')+' absent' : '';
     if (split.lateMinutes && split.lateMinutes[e]) note += ' · late '+fmtMins(split.lateMinutes[e]);
+    if (split.earlyMinutes && split.earlyMinutes[e]) note += ' · left '+fmtMins(split.earlyMinutes[e])+' early';
     if (split.overtimeMinutes && split.overtimeMinutes[e]) note += ' · +'+fmtMins(split.overtimeMinutes[e])+' overtime';
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--slate-100)">'
       +'<div><div style="font-weight:700;font-size:14px;color:var(--slate-900)">'+esc(e)+'</div>'
@@ -8432,12 +8479,13 @@ function renderShiftsHoursTab() {
 
   var totalH = 0, working = 0;
   var rows = people.map(function(e){
-    var x = st[e] || {hours:0, days:0, lateMinutes:0, overtimeMinutes:0, zones:{}};
+    var x = st[e] || {hours:0, days:0, lateMinutes:0, earlyMinutes:0, overtimeMinutes:0, zones:{}};
     var abs = absCount[e] || 0;
     totalH += x.hours; if (x.hours > 0) working++;
     var meta = [];
     meta.push(x.days + ' day' + (x.days === 1 ? '' : 's'));
     if (x.lateMinutes) meta.push('<span class="badge badge-yellow">late ' + fmtMins(x.lateMinutes) + '</span>');
+    if (x.earlyMinutes) meta.push('<span class="badge badge-yellow">left ' + fmtMins(x.earlyMinutes) + ' early</span>');
     if (x.overtimeMinutes) meta.push('<span class="badge badge-blue">+' + fmtMins(x.overtimeMinutes) + ' overtime</span>');
     if (abs) meta.push('<span class="badge badge-red">' + abs + ' absen' + (abs === 1 ? 'ce' : 'ces') + '</span>');
     var zones = Object.keys(x.zones).sort(function(a,b){ return x.zones[b] - x.zones[a]; }).map(function(z){ return z + ' ' + x.zones[z] + 'd'; }).join(', ');
@@ -8605,6 +8653,19 @@ function removeAbsent(absId) {
   toast('Absence removed');
 }
 
+// Second block in the shift form: shown when it has times (or the + is pressed), hidden and emptied with ×
+function shiftB2Row(day) { return document.querySelector('#shift-days-body tr[data-b2-for="' + day + '"]'); }
+function shiftB2Show(day, on, vals) {
+  var r = shiftB2Row(day); if (!r) return;
+  r.style.display = on ? '' : 'none';
+  var btn = document.querySelector('[data-shift-b2="' + day + '"]'); if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  vals = vals || {};
+  r.querySelector('.shift-day-start2').value = on ? (vals.start2 || '') : '';
+  r.querySelector('.shift-day-end2').value = on ? (vals.end2 || '') : '';
+  var z = r.querySelector('.shift-day-zone2');
+  if (on && vals.start2) setZoneSelect(z, vals.zone2 || '', vals.section2 || ''); else z.value = '';
+  if (on && !vals.start2) setTimeout(function(){ r.querySelector('.shift-day-start2').focus(); }, 30);
+}
 function prefillShiftRows(emp){
   if(!emp) return;
   fillZoneSelects();
@@ -8628,11 +8689,13 @@ function prefillShiftRows(emp){
       startEl.value=existing.dayOff?'':existing.start||'09:00';
       endEl.value=existing.dayOff?'':existing.end||'17:00';
       setZoneSelect(zoneEl, existing.zone||'', effectiveSection(existing));
+      shiftB2Show(day, shiftHas2(existing), existing);
     } else {
       offChk.checked=false;
       startEl.disabled=false; endEl.disabled=false;
       startEl.value=''; endEl.value='';
       if(zoneEl) zoneEl.value='';
+      shiftB2Show(day, false);
     }
   });
 }
@@ -8652,6 +8715,7 @@ function openAddShiftModal(preDay){
     row.querySelector('.shift-day-start').disabled=false;
     row.querySelector('.shift-day-end').disabled=false;
     var zoneEl=row.querySelector('.shift-day-zone'); if(zoneEl) zoneEl.value='';
+    shiftB2Show(row.dataset.shiftDay, false);
   });
   openModal('modal-add-shift');
 }
@@ -8670,6 +8734,7 @@ function shiftToRow(s) {
   var row = {employee:s.employee,day:s.day,start_time:s.start,end_time:s.end,role:s.role||'',zone:s.zone||'',day_off:!!s.dayOff,week_start:s.weekStart,
     late_minutes:s.lateMinutes||0,overtime_minutes:s.overtimeMinutes||0,section:s.section||''};
   if(!sbCols.section) delete row.section;
+  if(sbCols.split){ var two=shiftHas2(s); row.early_minutes=s.earlyMinutes||0; row.start2=two?s.start2:null; row.end2=two?s.end2:null; row.zone2=two?(s.zone2||''):''; row.section2=two?(s.section2||''):''; }
   return row;
 }
 var repeatBusy=false;
@@ -8731,8 +8796,8 @@ function sendPush(userIds, title, body, url) {
     .then(function(r){ return r.json(); }).then(function(d){ console.log('[Push] Sent:', d); })
     .catch(function(e){ console.warn('[Push] Send failed:', e.message); });
 }
-function shiftSnap(s) { return s ? { start:s.start, end:s.end, dayOff:!!s.dayOff, zone:s.zone || '', section:s.section || '', role:s.role || '' } : null; }
-function snapLabel(sn) { if (!sn) return 'not scheduled'; if (sn.dayOff) return 'day off'; return wkTime(sn.start) + '–' + wkTime(sn.end); }
+function shiftSnap(s) { return s ? { start:s.start, end:s.end, dayOff:!!s.dayOff, zone:s.zone || '', section:s.section || '', role:s.role || '', start2:shiftHas2(s) ? s.start2 : '', end2:shiftHas2(s) ? s.end2 : '' } : null; }
+function snapLabel(sn) { if (!sn) return 'not scheduled'; if (sn.dayOff) return 'day off'; return wkTime(sn.start) + '–' + wkTime(sn.end) + (sn.start2 && sn.end2 ? ' · ' + wkTime(sn.start2) + '–' + wkTime(sn.end2) : ''); }
 function reqDateLabel(q) { var d = new Date(q.weekStart + 'T00:00:00'); d.setDate(d.getDate() + DAYS.indexOf(q.day)); return q.day.slice(0,3) + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()]; }
 function reqSummary(q) {
   if (q.kind === 'times') return 'Change ' + snapLabel(q.snap) + ' → ' + wkTime(q.newStart) + '–' + wkTime(q.newEnd);
@@ -8911,7 +8976,7 @@ function reqAction(act, id, rejectNote) {
   }).catch(fail);
 }
 function shiftAt(db, emp, ws, day) { return db.shifts.find(function(x){ return x.employee === emp && x.weekStart === ws && x.day === day; }); }
-function snapSame(a, b) { if (!a || !b) return !a && !b; return a.start === b.start && a.end === b.end && !!a.dayOff === !!b.dayOff; }
+function snapSame(a, b) { if (!a || !b) return !a && !b; return a.start === b.start && a.end === b.end && !!a.dayOff === !!b.dayOff && (a.start2 || '') === (b.start2 || '') && (a.end2 || '') === (b.end2 || ''); }
 // Apply an approved request to the schedule. Resolves true when every write succeeded.
 function applyShiftRequest(q) {
   var db = getDB();
@@ -8920,10 +8985,12 @@ function applyShiftRequest(q) {
   if (!mine) { toast(q.requester + ' has no shift on that day any more', 'error'); return Promise.resolve(false); }
   var changed = !snapSame(shiftSnap(mine), q.snap) || (q.kind === 'swap' && !snapSame(shiftSnap(theirs), q.colleagueSnap));
   if (changed && !confirm('The schedule changed since this request was made. Apply it to the current shifts anyway?')) return Promise.resolve(false);
-  var body = function(s){ return { start:s.start, end:s.end, role:s.role || '', zone:s.zone || '', section:s.section || '', dayOff:!!s.dayOff, lateMinutes:0, overtimeMinutes:0 }; };
-  var off = { dayOff:true, lateMinutes:0, overtimeMinutes:0 };
+  var none2 = { start2:'', end2:'', zone2:'', section2:'' };
+  var body = function(s){ return { start:s.start, end:s.end, role:s.role || '', zone:s.zone || '', section:s.section || '', dayOff:!!s.dayOff, lateMinutes:0, overtimeMinutes:0, earlyMinutes:0,
+    start2:s.start2 || '', end2:s.end2 || '', zone2:s.zone2 || '', section2:s.section2 || '' }; };
+  var off = Object.assign({ dayOff:true, lateMinutes:0, overtimeMinutes:0, earlyMinutes:0 }, none2);
   var ops = [];   // [new shift state, is it a new row]
-  if (q.kind === 'times')  ops.push([Object.assign({}, mine, { start:q.newStart, end:q.newEnd, lateMinutes:0, overtimeMinutes:0 }), false]);
+  if (q.kind === 'times')  ops.push([Object.assign({}, mine, { start:q.newStart, end:q.newEnd, lateMinutes:0, overtimeMinutes:0, earlyMinutes:0 }, none2), false]);
   if (q.kind === 'dayoff') ops.push([Object.assign({}, mine, off), false]);
   if (q.kind === 'swap') {
     if (theirs && !theirs.dayOff) {            // both working: exchange the shifts
@@ -8978,11 +9045,11 @@ function shiftChangeLine(prev, next) {
   var s = next || prev, d = new Date(s.weekStart + 'T00:00:00'); d.setDate(d.getDate() + DAYS.indexOf(s.day));
   if (toDateStr(d) < toDateStr(new Date())) return '';            // past days do not matter any more
   var label = s.day.slice(0,3) + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()];
-  var when = function(x){ return x.dayOff ? 'day off' : wkTime(x.start) + '–' + wkTime(x.end); };
+  var when = function(x){ return x.dayOff ? 'day off' : shiftSpan(x, true); };
   var where = function(x){ return (x.dayOff || !x.zone) ? '' : x.zone + (effectiveSection(x) ? ' · ' + effectiveSection(x) : ''); };
   if (!prev) return label + ': new, ' + when(next) + (where(next) ? ' (' + where(next) + ')' : '');
   if (!next) return label + ': removed (was ' + when(prev) + ')';
-  var sameTime = !!prev.dayOff === !!next.dayOff && (next.dayOff || (prev.start === next.start && prev.end === next.end));
+  var sameTime = !!prev.dayOff === !!next.dayOff && (next.dayOff || shiftSpan(prev) === shiftSpan(next));
   var samePlace = where(prev) === where(next);
   if (sameTime && samePlace) return '';
   if (sameTime) return label + ': ' + when(next) + ', now ' + (where(next) || 'no area');
@@ -9004,7 +9071,7 @@ function pushOne(userId, title, body, url) {
 function myWeekLine(db, emp, wsStr) {
   return DAYS.map(function(d){
     var s = shiftAt(db, emp, wsStr, d); if (!s) return '';
-    return d.slice(0,3) + ' ' + (s.dayOff ? 'off' : wkTime(s.start) + '–' + wkTime(s.end));
+    return d.slice(0,3) + ' ' + (s.dayOff ? 'off' : shiftSpan(s, true));
   }).filter(Boolean).join(' · ');
 }
 function notifyWeekShifts(wsStr) {
@@ -10439,7 +10506,7 @@ function wkTime(t) { t = t || ''; return /:00$/.test(t) ? t.slice(0, t.length - 
 function weekSheetHTML(db, wsStr) {
   var areas = getAreas(db), absIdx = absenceIndex(db);
   var week = db.shifts.filter(function(s){ return s.weekStart === wsStr; });
-  var worked = week.filter(function(s){ return !s.dayOff; });
+  var worked = shiftPieces(week.filter(function(s){ return !s.dayOff; }));
   var todayStr = toDateStr(new Date());
   var dates = DAYS.map(function(d, i){ var x = new Date(wsStr + 'T00:00:00'); x.setDate(x.getDate() + i); return x; });
   // blocks: configured areas (all their sections), then unknown areas / sections found this week
@@ -10467,6 +10534,7 @@ function weekSheetHTML(db, wsStr) {
           var abs = shiftIsAbsent(s, absIdx);
           var tags = (abs ? '<span class="wk-tag abs">absent</span>' : '')
             + (!abs && s.lateMinutes ? '<span class="wk-tag late">late ' + fmtMins(s.lateMinutes) + '</span>' : '')
+            + (!abs && s.earlyMinutes ? '<span class="wk-tag late">left ' + fmtMins(s.earlyMinutes) + ' early</span>' : '')
             + (!abs && s.overtimeMinutes ? '<span class="wk-tag ot">+' + fmtMins(s.overtimeMinutes) + '</span>' : '');
           return '<span class="wk-p' + (abs ? ' is-absent' : '') + '" data-action-shift="' + esc(s.id) + '" data-action-shift-date="' + esc(shiftDateStr(s)) + '" data-action-shift-ws="' + esc(wsStr) + '" title="' + esc(s.employee + ' ' + s.start + '–' + s.end + (s.role ? ' · ' + s.role : '')) + '">'
             + '<b>' + esc(s.employee) + '</b> <span class="wk-t">' + wkTime(s.start) + '–' + wkTime(s.end) + '</span>' + tags + '</span>';
@@ -10601,7 +10669,8 @@ function repeatWeek() {
   names.forEach(function(n){
     p.src[n].forEach(function(s){
       var k = n + '|' + s.day; if (seen[k]) return; seen[k] = true;
-      copies.push({id:uid(), employee:n, day:s.day, start:s.start, end:s.end, role:s.role||'', zone:s.zone||'', section:s.section||'', dayOff:!!s.dayOff, weekStart:p.toWs, createdAt:new Date().toISOString()});
+      copies.push({id:uid(), employee:n, day:s.day, start:s.start, end:s.end, role:s.role||'', zone:s.zone||'', section:s.section||'', dayOff:!!s.dayOff, weekStart:p.toWs, createdAt:new Date().toISOString(),
+        start2:s.start2||'', end2:s.end2||'', zone2:s.zone2||'', section2:s.section2||''});
     });
   });
   var replacing = names.filter(function(n){ return p.tgt[n]; });
@@ -10622,6 +10691,18 @@ function repeatWeek() {
     })
     .catch(function(){ repeatBusy = false; toast('Copy not saved online. Check the connection and try again.', 'error'); });
 }
+// The second block typed for a day: {start2, end2, zone2, section2}, or null (none / day off); err when it does not fit
+function readShiftB2(day, start, end, off) {
+  var r = shiftB2Row(day); if (!r || r.style.display === 'none' || off) return null;
+  var s2 = r.querySelector('.shift-day-start2').value, e2 = r.querySelector('.shift-day-end2').value;
+  if (!s2 && !e2) return null;
+  if (!s2 || !e2) return { err: day + ': fill in both times of the second block, or remove it' };
+  var a = timeToMins(start), b = timeToMins(end); if (b <= a) b += 24*60;
+  var c = timeToMins(s2); if (c < a) c += 24*60;
+  if (c < b) return { err: day + ': the second block must start when the first ends (' + end + ') or later' };
+  var zr = readZoneSelect(r.querySelector('.shift-day-zone2'));
+  return { start2: s2, end2: e2, zone2: zr.zone, section2: zr.section };
+}
 function shiftFormChanges(emp, ws, role) {
   var db=getDB(); var out=[];
   document.querySelectorAll('#shift-days-body tr[data-shift-day]').forEach(function(row){
@@ -10632,12 +10713,13 @@ function shiftFormChanges(emp, ws, role) {
     if(!off&&(!st||!en)) return;
     var ex=db.shifts.find(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
     if(!ex) return;
-    var exSec=effectiveSection(ex);
-    var same = off ? !!ex.dayOff : (!ex.dayOff && ex.start===st && ex.end===en && (ex.zone||'')===zone && exSec===sec);
+    var exSec=effectiveSection(ex), b2=readShiftB2(day, st, en, off); if(b2&&b2.err) b2=null;
+    var nowObj=Object.assign({start:st,end:en,dayOff:off}, b2||{});
+    var same = off ? !!ex.dayOff : (!ex.dayOff && shiftSpan(ex)===shiftSpan(nowObj) && (ex.zone||'')===zone && exSec===sec);
     if(same && (ex.role||'')===role) return;
     var zoneChanged=(ex.zone||'')!==zone||exSec!==sec;
-    var fmt=function(o,s1,e1,z,sc){ return o ? 'day off' : (s1+'–'+e1+(zoneChanged&&z?' · '+z+(sc?' '+sc:''):'')); };
-    out.push({day:day, was:fmt(ex.dayOff,ex.start,ex.end,ex.zone||'',exSec), now:fmt(off,st,en,zone,sec), roleOnly:same});
+    var fmt=function(o,x,z,sc){ return o ? 'day off' : (shiftSpan(x)+(zoneChanged&&z?' · '+z+(sc?' '+sc:''):'')); };
+    out.push({day:day, was:fmt(ex.dayOff,ex,ex.zone||'',exSec), now:fmt(off,nowObj,zone,sec), roleOnly:same});
   });
   return out;
 }
@@ -10652,6 +10734,15 @@ function saveShift(force){
     if(row.querySelector('.shift-day-off-chk').checked||(row.querySelector('.shift-day-start').value&&row.querySelector('.shift-day-end').value)) anyDay=true;
   });
   if(!anyDay){ toast('Fill in the times for at least one day','error'); return; }
+  // second blocks must be complete and come after the first; they need the shifts SQL
+  var b2Err='', b2Any=false;
+  document.querySelectorAll('#shift-days-body tr[data-shift-day]').forEach(function(row){
+    var off=row.querySelector('.shift-day-off-chk').checked, st=row.querySelector('.shift-day-start').value, en=row.querySelector('.shift-day-end').value;
+    if(off||!st||!en) return;
+    var b2=readShiftB2(row.dataset.shiftDay, st, en, off); if(b2&&b2.err&&!b2Err) b2Err=b2.err; if(b2&&!b2.err) b2Any=true;
+  });
+  if(b2Err){ toast(b2Err,'error'); return; }
+  if(b2Any&&!sbCols.split){ toast('Second blocks need the shifts SQL (2026-10-21) in Supabase first','error'); return; }
   if(isAdd && force!==true){
     var changes=shiftFormChanges(emp, ws, role);
     if(changes.length){
@@ -10680,8 +10771,10 @@ function saveShift(force){
     var prev=db.shifts.find(function(s){return s.employee===emp&&s.day===day&&s.weekStart===ws;});
     db.shifts=db.shifts.filter(function(s){return !(s.employee===emp&&s.day===day&&s.weekStart===ws);});
     var newId=uid();
-    var ns={id:newId,employee:emp,day:day,start:start,end:end,role:role,zone:zone,section:section,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString()};
-    if(prev&&!isDayOff){ var durM=Math.round(shiftScheduledHours(ns)*60); ns.lateMinutes=Math.min(prev.lateMinutes||0, Math.max(0,durM-15)); ns.overtimeMinutes=prev.overtimeMinutes||0; }
+    var b2=readShiftB2(day, start, end, isDayOff);
+    var ns={id:newId,employee:emp,day:day,start:start,end:end,role:role,zone:zone,section:section,dayOff:isDayOff,weekStart:ws,createdAt:new Date().toISOString(),
+      start2:b2?b2.start2:'',end2:b2?b2.end2:'',zone2:b2?b2.zone2:'',section2:b2?b2.section2:''};
+    if(prev&&!isDayOff){ var durM=Math.round(shiftScheduledHours(ns)*60); ns.lateMinutes=Math.min(prev.lateMinutes||0, Math.max(0,durM-15)); ns.earlyMinutes=Math.min(prev.earlyMinutes||0, Math.max(0,durM-15-ns.lateMinutes)); ns.overtimeMinutes=prev.overtimeMinutes||0; }
     changeLines.push(shiftChangeLine(prev, ns));
     db.shifts.push(ns);
     sbFetch('DELETE','shifts',null,shiftSlotFilter(emp,ws,day))
@@ -10709,7 +10802,9 @@ function openShiftActionSheet(shiftId, dateStr, wsStr) {
   if (avatarEl) avatarEl.textContent = s.employee.charAt(0).toUpperCase();
   var info = s.dayOff ? 'Day Off' : (s.start + '–' + s.end);
   if (s.zone) info += ' · ' + s.zone + (effectiveSection(s) ? ' ' + effectiveSection(s) : '');
+  if (shiftHas2(s)) info += ' + ' + s.start2 + '–' + s.end2 + ((s.zone2 || s.section2) ? ' · ' + (s.zone2 || s.zone) + (s.section2 ? ' ' + s.section2 : '') : '');
   if (s.lateMinutes) info += ' · late ' + fmtMins(s.lateMinutes);
+  if (s.earlyMinutes) info += ' · left ' + fmtMins(s.earlyMinutes) + ' early';
   if (s.overtimeMinutes) info += ' · +' + fmtMins(s.overtimeMinutes) + ' overtime';
   info += ' · ' + (dateStr || '');
   if (infoEl) infoEl.textContent = info;
@@ -10736,6 +10831,7 @@ function openShiftActionSheet(shiftId, dateStr, wsStr) {
   var lateLbl = document.getElementById('shift-action-late-label'), otLbl = document.getElementById('shift-action-ot-label');
   if (lateLbl) lateLbl.textContent = s.lateMinutes ? 'Late · ' + fmtMins(s.lateMinutes) : 'Late';
   if (otLbl) otLbl.textContent = s.overtimeMinutes ? 'Overtime · +' + fmtMins(s.overtimeMinutes) : 'Overtime';
+  var earlyLbl = document.getElementById('shift-action-early-label'); if (earlyLbl) earlyLbl.textContent = s.earlyMinutes ? 'Left early · ' + fmtMins(s.earlyMinutes) : 'Left early';
   var reqBtn = document.getElementById('shift-action-request');
   if (reqBtn) {
     var me = myEmployee(), openReq = openRequestFor(s.employee, s.weekStart, s.day);
@@ -11176,6 +11272,10 @@ document.addEventListener('click', function(e) {
   var t = e.target;
   var el;
 
+  // Shift form: second block
+  el = t.closest('[data-shift-b2]'); if (el) { var b2r = shiftB2Row(el.dataset.shiftB2); shiftB2Show(el.dataset.shiftB2, b2r && b2r.style.display === 'none'); return; }
+  el = t.closest('[data-shift-b2-remove]'); if (el) { shiftB2Show(el.dataset.shiftB2Remove, false); return; }
+
   // Item sales
   el = t.closest('[data-is-view]'); if (el) { accItemsView = el.dataset.isView; renderAccounting(); return; }
   if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
@@ -11492,8 +11592,11 @@ document.addEventListener('click', function(e) {
     var src=trs.find(function(r){ return !r.querySelector('.shift-day-off-chk').checked && r.querySelector('.shift-day-start').value && r.querySelector('.shift-day-end').value; });
     if(!src){ toast('Enter the times for one day first','error'); return; }
     var sv=src.querySelector('.shift-day-start').value, ev=src.querySelector('.shift-day-end').value, zEl0=src.querySelector('.shift-day-zone'), zv=zEl0?zEl0.value:'';
+    var srcB2=shiftB2Row(src.dataset.shiftDay), b2on=srcB2&&srcB2.style.display!=='none'&&srcB2.querySelector('.shift-day-start2').value&&srcB2.querySelector('.shift-day-end2').value;
+    var b2v=b2on?{start2:srcB2.querySelector('.shift-day-start2').value,end2:srcB2.querySelector('.shift-day-end2').value,zone2v:srcB2.querySelector('.shift-day-zone2').value}:null;
     trs.forEach(function(r){ if(r===src||r.querySelector('.shift-day-off-chk').checked) return;
-      r.querySelector('.shift-day-start').value=sv; r.querySelector('.shift-day-end').value=ev; var z=r.querySelector('.shift-day-zone'); if(z&&!z.value) z.value=zv; });
+      r.querySelector('.shift-day-start').value=sv; r.querySelector('.shift-day-end').value=ev; var z=r.querySelector('.shift-day-zone'); if(z&&!z.value) z.value=zv;
+      if(b2v){ shiftB2Show(r.dataset.shiftDay, true, {start2:b2v.start2,end2:b2v.end2}); var z2=shiftB2Row(r.dataset.shiftDay).querySelector('.shift-day-zone2'); if(z2) z2.value=b2v.zone2v; } });
     return;
   }
   if (t.closest('#btn-clash-replace')) { closeModal('modal-shift-clash'); saveShift(true); return; }
@@ -11532,6 +11635,7 @@ document.addEventListener('click', function(e) {
   }
   if (t.closest('#shift-action-late')) { closeModal('modal-shift-action'); openShiftAdjust('late', _shiftActionId); return; }
   if (t.closest('#shift-action-ot'))   { closeModal('modal-shift-action'); openShiftAdjust('overtime', _shiftActionId); return; }
+  if (t.closest('#shift-action-early')) { closeModal('modal-shift-action'); openShiftAdjust('early', _shiftActionId); return; }
   el = t.closest('[data-adjust-quick]');
   if (el) { var qm = parseInt(el.dataset.adjustQuick,10); document.getElementById('adjust-hours').value = String(Math.floor(qm/60)); document.getElementById('adjust-mins').value = String(qm%60); return; }
   if (t.closest('#btn-adjust-save')) { saveShiftAdjust(parseInt(document.getElementById('adjust-hours').value||'0',10)*60 + parseInt(document.getElementById('adjust-mins').value||'0',10)); return; }
@@ -11783,6 +11887,8 @@ document.addEventListener('change', function(e) {
     if (row) {
       row.querySelector('.shift-day-start').disabled = t.checked;
       row.querySelector('.shift-day-end').disabled   = t.checked;
+      if (t.checked) shiftB2Show(row.dataset.shiftDay, false);
+      var b2b = row.querySelector('[data-shift-b2]'); if (b2b) b2b.disabled = t.checked;
       if (t.checked) {
         row.querySelector('.shift-day-start').value = '';
         row.querySelector('.shift-day-end').value   = '';

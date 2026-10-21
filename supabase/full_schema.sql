@@ -118,6 +118,12 @@ ALTER TABLE shifts ADD COLUMN IF NOT EXISTS zone TEXT DEFAULT '';
 ALTER TABLE shifts ADD COLUMN IF NOT EXISTS late_minutes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE shifts ADD COLUMN IF NOT EXISTS overtime_minutes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE shifts ADD COLUMN IF NOT EXISTS section TEXT DEFAULT '';
+-- left early and a second block on the same day (see supabase/migrations/2026-10-21-v-shift-blocks.sql)
+ALTER TABLE shifts ADD COLUMN IF NOT EXISTS early_minutes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE shifts ADD COLUMN IF NOT EXISTS start2 TIME;
+ALTER TABLE shifts ADD COLUMN IF NOT EXISTS end2 TIME;
+ALTER TABLE shifts ADD COLUMN IF NOT EXISTS zone2 TEXT DEFAULT '';
+ALTER TABLE shifts ADD COLUMN IF NOT EXISTS section2 TEXT DEFAULT '';
 -- one shift per person per day (see supabase/migrations/2026-09-25-b-one-shift-per-day.sql)
 CREATE UNIQUE INDEX IF NOT EXISTS shifts_one_per_person_per_day ON shifts (employee, week_start, day);
 
