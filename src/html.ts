@@ -551,6 +551,18 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .ps-up-risk i { margin-top:2px; }
     .ps-up-ok { display:flex; gap:8px; align-items:center; min-height:36px; font-size:13px; font-weight:700; color:var(--slate-800); margin-top:4px; cursor:pointer; }
     .ps-up-ok input { width:18px; height:18px; accent-color:var(--teal-600); }
+    .ps-up-wait { display:flex; gap:6px; align-items:center; font-weight:700; font-size:13.5px; color:var(--slate-500); }
+    .ps-up-pages { grid-column:1 / -1; display:flex; gap:8px; overflow-x:auto; padding:2px 0 4px; -webkit-overflow-scrolling:touch; }
+    .ps-pg { flex:0 0 132px; display:flex; flex-direction:column; gap:4px; }
+    .ps-pg-img { position:relative; display:block; padding:0; border:1px solid var(--slate-200); border-radius:8px; overflow:hidden; background:#fff; cursor:zoom-in; aspect-ratio:210 / 297; }
+    .ps-pg-img img { display:block; width:100%; height:100%; object-fit:cover; object-position:top; }
+    .ps-pg-img span { position:absolute; left:6px; bottom:6px; font-size:11px; font-weight:800; color:#fff; background:var(--slate-800); border-radius:5px; padding:1px 6px; }
+    .ps-pg-who { width:100%; min-height:34px; font:inherit; font-size:12px; border:1px solid var(--slate-200); border-radius:7px; padding:4px 6px; background:var(--panel); color:var(--slate-900); }
+    .ps-zoom { position:fixed; inset:0; z-index:10000; background:rgba(15,25,30,.82); display:flex; align-items:flex-start; justify-content:center; overflow:auto; padding:16px; cursor:zoom-out; }
+    .ps-zoom-in { max-width:900px; width:100%; }
+    .ps-zoom-in img { display:block; width:100%; height:auto; border-radius:6px; background:#fff; }
+    .ps-zoom-in span { display:block; text-align:center; color:#fff; font-size:24px; padding-top:30vh; }
+    .ps-zoom-x { position:fixed; top:12px; right:12px; width:44px; height:44px; border-radius:50%; border:0; background:#fff; color:var(--slate-900); font-size:18px; cursor:pointer; }
     .order-rejected { border:var(--rule); border-color:var(--red-200); background:var(--red-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
     .ord-rejected-note { display:flex; align-items:flex-start; gap:6px; font-size:12px; font-weight:600; color:var(--red-700); margin-bottom:8px; }
     /* Order lines, with the admin's changes shown to everyone */
@@ -10010,7 +10022,7 @@ function psPdfPages(buf) {
   return psPdfjs().then(function(lib){ return lib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise; }).then(function(doc){
     var texts = [];
     function next(i) {
-      if (i > doc.numPages) return texts;
+      if (i > doc.numPages) return { doc: doc, texts: texts };
       return doc.getPage(i).then(function(pg){ return pg.getTextContent(); }).then(function(tc){ texts.push(tc.items.map(function(it){ return it.str; }).join(' ')); return next(i + 1); });
     }
     return next(1);
@@ -10064,7 +10076,7 @@ function psOthers(it, users) {
   return users.filter(function(u){
     if (u.id === it.uid) return false;
     var k = psIdKey(u.employeeNo), nm = psNorm(u.name);
-    return (k && /^\d+$/.test(k) && ids[k]) || (nm.indexOf(' ') !== -1 && norm.indexOf(' ' + nm + ' ') !== -1);
+    return (k && /^\\d+$/.test(k) && ids[k]) || (nm.indexOf(' ') !== -1 && norm.indexOf(' ' + nm + ' ') !== -1);
   }).map(function(u){ return u.name; });
 }
 // A payslip to look at before saving: it names other people, has many pages, or could not be read
@@ -10076,126 +10088,224 @@ function psRisk(it, users) {
   return '';
 }
 function psLastMonth() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
-function psItem(blob, name, pages, text, users, preset, match) {
-  var label = name.replace(/\\.[a-z0-9]+$/i, '').replace(/[_\\-]+/g, ' ');
-  var m = preset ? { uid: preset, by: 'chosen' } : (match || psMatchText(text + ' ' + label, users));
-  var period = psPeriodIn(text + ' ' + label);
-  return { blob: blob, name: name, pages: pages, text: text, uid: m ? m.uid : '', by: m ? m.by : '', period: period || psLastMonth(), periodGuess: !period, url: URL.createObjectURL(blob) };
+// ── Upload review ──
+// Every page of a PDF has an owner; a payslip is one person's pages from one file. The admin can give any page
+// to someone else or leave it out, so a file with everyone never goes to one person.
+// psUpload = { srcs: [{ name, file, buf, doc, texts, thumbs, lib }], pages: [{ s, i, uid, by, g, drop }],
+//              files: [{ key, blob, name, uid, by, unread, url, drop }], period: {}, guess: {}, checked: {}, built: {}, n }
+// The end of a payslip: the net pay line ("Líquido a receber"); the next page with no match is someone else's
+var PS_END = /\\bliquido\\b|\\bnet pay\\b/;
+function psLabelText(name) { return String(name || '').replace(/\\.[a-z0-9]+$/i, '').replace(/[_\\-]+/g, ' '); }
+function psGroupPages(texts, users) {
+  var groups = [];
+  texts.forEach(function(t, i){
+    var m = psMatchText(t, users), g = groups[groups.length - 1], ids = Object.keys(psIdsInText(t));
+    // a page joins the payslip before it only when it shows no other Employee ID (one not of that person) and
+    // that payslip has not ended yet, so the next person's page starts a new payslip even when they are not in the app
+    var own = !g ? [] : g.uid ? psOwnIds(g.uid, users) : g.ids;
+    var other = !m && g && (g.closed || ids.some(function(k){ return own.indexOf(k) === -1; }));
+    if (g && !other && (!m || m.uid === g.uid)) g.pages.push(i);
+    else if (g && !other && !g.uid && !g.ids.length && m) { g.uid = m.uid; g.by = m.by; g.ids = ids; g.pages.push(i); }
+    else { g = { uid: m ? m.uid : '', by: m ? m.by : '', ids: ids, pages: [i] }; groups.push(g); }
+    if (PS_END.test(normName(t))) g.closed = true;
+  });
+  return groups;
 }
-// One file → one payslip per person (pages without a match stay with the person before them: a 2-page payslip)
-function psSplitFile(f, users, preset) {
-  var isPdf = f.type === 'application/pdf' || /\\.pdf$/i.test(f.name);
-  if (!isPdf) return Promise.resolve([psItem(f, f.name, 1, '', users, preset)]);
+function psAddFile(f, users, preset) {
+  var u = psUpload, isPdf = f.type === 'application/pdf' || /\\.pdf$/i.test(f.name);
+  function asFile(unread) {
+    var m = preset ? { uid: preset, by: 'chosen' } : psMatchText(psLabelText(f.name), users);
+    u.files.push({ key: 'f' + u.files.length, blob: f, name: f.name, pages: unread ? 0 : 1, text: '', uid: m ? m.uid : '', by: m ? m.by : '', unread: !!unread, url: URL.createObjectURL(f) });
+  }
+  if (!isPdf) { asFile(false); return Promise.resolve(); }
   return f.arrayBuffer().then(function(buf){
-    return psPdfPages(buf).then(function(texts){
-      // Pages are always grouped per person, also when the file was picked from one person's "+": a file with
-      // everyone must never go to one person
-      var groups = [];
-      texts.forEach(function(t, i){
-        var m = psMatchText(t, users), g = groups[groups.length - 1], ids = Object.keys(psIdsInText(t));
-        // a page joins the payslip before it only when it shows no other Employee ID (one not of that person),
-        // so the next person's page starts a new payslip even when that person is not in the app
-        var own = !g ? [] : g.uid ? psOwnIds(g.uid, users) : g.ids;
-        var other = !m && g && ids.some(function(k){ return own.indexOf(k) === -1; });
-        if (g && !other && (!m || m.uid === g.uid)) { g.pages.push(i); g.text += ' ' + t; return; }
-        if (g && !other && !g.uid && !g.ids.length && m) { g.uid = m.uid; g.by = m.by; g.ids = ids; g.pages.push(i); g.text += ' ' + t; return; }
-        groups.push({ uid: m ? m.uid : '', by: m ? m.by : '', ids: ids, pages: [i], text: t });
-      });
-      if (groups.length < 2) {
-        // one person's file: picked from someone's "+" it goes to them, unless the pages clearly name someone else
-        var g0 = groups[0], pre = preset && (!g0 || !g0.uid || g0.uid === preset) ? preset : '';
-        return [psItem(f, f.name, texts.length, texts.join(' '), users, pre, g0 && g0.uid ? g0 : null)];
-      }
-      return psPdflib().then(function(PDFLib){ return PDFLib.PDFDocument.load(buf, { ignoreEncryption: true }).then(function(src){
-        var out = [], chain = Promise.resolve();
-        groups.forEach(function(g){
-          chain = chain.then(function(){ return PDFLib.PDFDocument.create(); }).then(function(doc){
-            return doc.copyPages(src, g.pages).then(function(pgs){ pgs.forEach(function(p){ doc.addPage(p); }); return doc.save(); });
-          }).then(function(bytes){
-            var first = g.pages[0] + 1, last = g.pages[g.pages.length - 1] + 1;
-            var nm = f.name.replace(/\\.pdf$/i, '') + ' · p' + first + (last > first ? '–' + last : '') + '.pdf';
-            out.push(psItem(new Blob([bytes], { type: 'application/pdf' }), nm, g.pages.length, g.text, users, '', g.uid ? g : null));
-          });
-        });
-        return chain.then(function(){ return out; });
-      }); });
+    return psPdfPages(buf).then(function(r){
+      var s = u.srcs.length, groups = psGroupPages(r.texts, users);
+      u.srcs.push({ name: f.name, file: f, buf: buf, doc: r.doc, texts: r.texts, thumbs: {} });
+      // picked from a person's "+": theirs only when the whole file is one payslip that names no one else
+      if (preset && groups.length === 1 && (!groups[0].uid || groups[0].uid === preset)) { groups[0].uid = preset; groups[0].by = 'chosen'; }
+      groups.forEach(function(g){ var n = ++u.n; g.pages.forEach(function(i){ u.pages.push({ s: s, i: i, uid: g.uid, by: g.by, g: n }); }); });
     });
-  }).catch(function(){ var it = psItem(f, f.name, 0, '', users, ''); it.unread = true; return [it]; });   // text not readable: the admin chooses and checks
+  }).catch(function(){ asFile(true); });   // text not readable: the admin chooses and checks
 }
+// The payslips as they stand: per file, the pages of each person (pages nobody was found for stay apart)
+function psItems() {
+  var u = psUpload, out = [];
+  u.srcs.forEach(function(src, s){
+    var by = {};
+    u.pages.forEach(function(p, gi){
+      if (p.s !== s || p.drop) return;
+      var key = s + '|' + (p.uid || '?' + p.g), it = by[key];
+      if (!it) { it = by[key] = { key: key, src: src, s: s, uid: p.uid, by: p.by, pg: [], gi: [], text: '' }; out.push(it); }
+      it.pg.push(p.i); it.gi.push(gi); it.text += ' ' + src.texts[p.i];
+      if (p.by === 'chosen') it.by = 'chosen';
+    });
+  });
+  out.forEach(function(it){
+    var first = it.pg[0] + 1, last = it.pg[it.pg.length - 1] + 1, run = it.pg.length === last - first + 1;
+    it.pages = it.pg.length; it.sig = it.key + '#' + it.pg.join(',');
+    it.name = it.pg.length === it.src.texts.length ? it.src.name
+      : it.src.name.replace(/\\.pdf$/i, '') + ' · p' + (run ? first + (last > first ? '–' + last : '') : it.pg.map(function(x){ return x + 1; }).join(',')) + '.pdf';
+  });
+  u.files.forEach(function(f){ if (!f.drop) { f.sig = f.key; out.push(f); } });
+  return out;
+}
+function psPeriodOf(it) {
+  var u = psUpload;
+  if (!u.period[it.key]) { var p = psPeriodIn(it.text + ' ' + psLabelText(it.src ? it.src.name : it.name)); u.period[it.key] = p || psLastMonth(); u.guess[it.key] = !p; }
+  return u.period[it.key];
+}
+// The file to save: the whole PDF when it is all one person's, otherwise those pages copied into a new PDF
+function psBlob(it) {
+  if (!it.src) return Promise.resolve(it.blob);
+  var u = psUpload, c = u.built[it.sig];
+  if (c) return c.p;
+  c = u.built[it.sig] = {};
+  if (it.pg.length === it.src.texts.length) { c.blob = it.src.file; c.url = URL.createObjectURL(c.blob); c.p = Promise.resolve(c.blob); return c.p; }
+  var src = it.src, pg = it.pg.slice();
+  c.p = psPdflib().then(function(PDFLib){
+    if (!src.lib) src.lib = PDFLib.PDFDocument.load(src.buf, { ignoreEncryption: true });
+    return src.lib.then(function(whole){ return PDFLib.PDFDocument.create().then(function(doc){
+      return doc.copyPages(whole, pg).then(function(pgs){ pgs.forEach(function(p){ doc.addPage(p); }); return doc.save(); });
+    }); });
+  }).then(function(bytes){ c.blob = new Blob([bytes], { type: 'application/pdf' }); c.url = URL.createObjectURL(c.blob); return c.blob; });
+  c.p.catch(function(){ delete u.built[it.sig]; });
+  return c.p;
+}
+function psItemUrl(it) { if (!it.src) return it.url; var c = psUpload.built[it.sig]; return c && c.url ? c.url : ''; }
 function psPickFiles(uid) { psPreset = uid || ''; var f = document.getElementById('ps-file'); if (f) { f.value = ''; f.click(); } }
 function psReadFiles(files) {
   var list = [].slice.call(files || []), preset = psPreset; psPreset = '';
   if (!list.length) return;
-  var users = psPeople().filter(function(u){ return u.active !== false; }), items = [], chain = Promise.resolve();
+  var users = psPeople().filter(function(u){ return u.active !== false; }), chain = Promise.resolve();
+  psUpload = { srcs: [], pages: [], files: [], period: {}, guess: {}, checked: {}, built: {}, n: 0 };
   toast('Reading the payslips…');
-  list.forEach(function(f){ chain = chain.then(function(){ return psSplitFile(f, users, preset); }).then(function(arr){ items = items.concat(arr); }); });
-  chain.then(function(){ psUpload = { items: items }; psRenderReview(); openModal('modal-ps-upload'); });
+  list.forEach(function(f){ chain = chain.then(function(){ return psAddFile(f, users, preset); }); });
+  chain.then(function(){ psRenderReview(); openModal('modal-ps-upload'); });
 }
 var PS_BY = { id: 'matched by Employee ID', name: 'matched by name', both: 'matched by Employee ID and name', chosen: 'chosen by you' };
 function psRenderReview() {
   if (!psUpload) return;
-  var items = psUpload.items, users = psPeople().filter(function(u){ return u.active !== false; }), y = new Date().getFullYear();
-  var live = items.filter(function(it){ return !it.drop && !it.saved; });
-  document.getElementById('ps-up-sub').textContent = live.length + ' payslip(s) · ' + live.filter(function(it){ return it.uid; }).length + ' matched. Check the person and the month, then save.';
+  var u = psUpload, items = psItems(), users = psPeople().filter(function(x){ return x.active !== false; }), y = new Date().getFullYear();
+  var multi = u.srcs.some(function(src){ return src.texts.length > 1; });
+  document.getElementById('ps-up-sub').textContent = items.length + ' payslip(s) · ' + items.filter(function(it){ return it.uid; }).length + ' matched. Check the person and the month, then save.' +
+    (multi ? ' Each page says whose it is: change it when a page belongs to someone else.' : '');
+  var people = function(sel){ return users.map(function(x){ return '<option value="' + esc(x.id) + '"' + (x.id === sel ? ' selected' : '') + '>' + esc(x.name) + (x.employeeNo ? ' · ' + esc(x.employeeNo) : '') + '</option>'; }).join(''); };
   var h = '';
-  items.forEach(function(it, i){
-    if (it.drop || it.saved) return;
-    var py = +it.period.slice(0, 4), pm = +it.period.slice(5, 7), years = [y - 1, y, y + 1];
+  items.forEach(function(it){
+    var period = psPeriodOf(it), py = +period.slice(0, 4), pm = +period.slice(5, 7), years = [y - 1, y, y + 1];
     if (years.indexOf(py) === -1) years.unshift(py);
-    var dup = it.uid && (psState.rows || []).some(function(p){ return p.uid === it.uid && p.period === it.period; });
-    var note = it.uid ? PS_BY[it.by] || '' : 'not matched: choose the person', risk = psRisk(it, users);
+    var dup = it.uid && (psState.rows || []).some(function(p){ return p.uid === it.uid && p.period === period; });
+    var note = it.uid ? PS_BY[it.by] || '' : 'not matched: choose the person', risk = psRisk(it, users), url = psItemUrl(it), k = esc(it.key);
+    if (it.src && !url) psBlob(it).then(function(){ if (psUpload === u) psRenderReview(); });
     h += '<div class="ps-up-row' + (it.uid ? '' : ' need') + (risk ? ' risk' : '') + '">' +
-      '<div class="ps-up-file"><a href="' + it.url + '" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> <span>' + esc(it.name) + '</span></a>' +
+      '<div class="ps-up-file">' + (url ? '<a href="' + url + '" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> <span>' + esc(it.name) + '</span></a>' : '<span class="ps-up-wait"><i class="fas fa-spinner fa-spin"></i> <span>' + esc(it.name) + '</span></span>') +
         '<span class="ps-up-meta">' + (it.pages > 1 ? '<span>' + it.pages + ' pages</span> · ' : '') + '<span>' + note + '</span>' +
-        (it.periodGuess ? ' · <span>month not found: check it</span>' : '') + (dup ? ' · <span>replaces the one saved for this month</span>' : '') + '</span>' +
+        (u.guess[it.key] ? ' · <span>month not found: check it</span>' : '') + (dup ? ' · <span>replaces the one saved for this month</span>' : '') + '</span>' +
         (risk ? '<span class="ps-up-risk"><i class="fas fa-triangle-exclamation"></i> <span>' + esc(risk) + '</span></span>' +
-          '<label class="ps-up-ok"><input type="checkbox" data-ps-up-ok="' + i + '"' + (it.checked ? ' checked' : '') + ' /> <span>I opened it: one person only</span></label>' : '') + '</div>' +
-      '<button type="button" class="ps-del" data-ps-up-drop="' + i + '" aria-label="Leave out" title="Leave out"><i class="fas fa-xmark"></i></button>' +
-      '<select class="select-field" data-ps-up-user="' + i + '" aria-label="Person"><option value="">Choose the person…</option>' +
-        users.map(function(u){ return '<option value="' + esc(u.id) + '"' + (u.id === it.uid ? ' selected' : '') + '>' + esc(u.name) + (u.employeeNo ? ' · ' + esc(u.employeeNo) : '') + '</option>'; }).join('') + '</select>' +
-      '<div class="ps-up-period"><select class="select-field" data-ps-up-month="' + i + '" aria-label="Month">' +
+          '<label class="ps-up-ok"><input type="checkbox" data-ps-up-ok="' + esc(it.sig) + '"' + (u.checked[it.sig] ? ' checked' : '') + ' /> <span>I opened it: one person only</span></label>' : '') + '</div>' +
+      '<button type="button" class="ps-del" data-ps-up-drop="' + k + '" aria-label="Leave out" title="Leave out"><i class="fas fa-xmark"></i></button>' +
+      '<select class="select-field" data-ps-up-user="' + k + '" aria-label="Person"><option value="">Choose the person…</option>' + people(it.uid) + '</select>' +
+      '<div class="ps-up-period"><select class="select-field" data-ps-up-month="' + k + '" aria-label="Month">' +
         MONTH_NAMES.map(function(n, mi){ return '<option value="' + (mi + 1) + '"' + (mi + 1 === pm ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' +
-        '<select class="select-field" data-ps-up-year="' + i + '" aria-label="Year">' + years.map(function(v){ return '<option' + (v === py ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select></div>' +
+        '<select class="select-field" data-ps-up-year="' + k + '" aria-label="Year">' + years.map(function(v){ return '<option' + (v === py ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select></div>' +
+      (it.src && it.src.texts.length > 1 ? '<div class="ps-up-pages">' + it.pg.map(function(pi, n){
+        var gi = it.gi[n], p = u.pages[gi];
+        return '<div class="ps-pg"><button type="button" class="ps-pg-img" data-ps-zoom="' + it.s + '|' + pi + '" aria-label="Page ' + (pi + 1) + ', bigger"><img data-ps-thumb="' + it.s + '|' + pi + '" alt="" /><span>p' + (pi + 1) + '</span></button>' +
+          '<select class="ps-pg-who" data-ps-pg="' + gi + '" aria-label="Page ' + (pi + 1) + ' belongs to"><option value="">Not matched</option>' + people(p.uid) + '<option value="-">Leave this page out</option></select></div>';
+      }).join('') + '</div>' : '') +
       '</div>';
   });
   document.getElementById('ps-up-lines').innerHTML = h || '<p class="acc-note">Nothing left to save.</p>';
+  psThumbs();
 }
-function psSetPeriod(i, part, v) {
-  var it = psUpload && psUpload.items[i]; if (!it) return;
-  var y = part === 'y' ? +v : +it.period.slice(0, 4), m = part === 'm' ? +v : +it.period.slice(5, 7);
-  it.period = y + '-' + (m < 10 ? '0' : '') + m; it.periodGuess = false; psRenderReview();
+// Small pictures of the pages, drawn one after the other
+function psRenderPage(src, i, width) {
+  return src.doc.getPage(i + 1).then(function(pg){
+    var vp = pg.getViewport({ scale: width / pg.getViewport({ scale: 1 }).width }), c = document.createElement('canvas');
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    return pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function(){ return c.toDataURL('image/jpeg', 0.82); });
+  });
 }
+function psThumbs() {
+  var u = psUpload, chain = Promise.resolve();
+  [].forEach.call(document.querySelectorAll('#ps-up-lines img[data-ps-thumb]'), function(img){
+    var key = img.dataset.psThumb, k = key.split('|'), src = u.srcs[+k[0]], i = +k[1];
+    if (src.thumbs[i]) { img.src = src.thumbs[i]; return; }
+    chain = chain.then(function(){
+      if (psUpload !== u) return;
+      return (src.thumbs[i] ? Promise.resolve(src.thumbs[i]) : psRenderPage(src, i, 240)).then(function(url){
+        src.thumbs[i] = url;
+        [].forEach.call(document.querySelectorAll('#ps-up-lines img[data-ps-thumb="' + key + '"]'), function(x){ x.src = url; });
+      });
+    }).catch(function(){});
+  });
+}
+function psZoom(key) {
+  var k = key.split('|'), src = psUpload && psUpload.srcs[+k[0]]; if (!src) return;
+  var box = document.createElement('div'); box.className = 'ps-zoom'; box.setAttribute('data-ps-zoom-close', '');
+  box.innerHTML = '<div class="ps-zoom-in"><span><i class="fas fa-spinner fa-spin"></i></span></div><button type="button" class="ps-zoom-x" aria-label="Close"><i class="fas fa-xmark"></i></button>';
+  document.body.appendChild(box);
+  psRenderPage(src, +k[1], Math.min(1100, Math.max(600, window.innerWidth * 1.5))).then(function(url){ box.querySelector('.ps-zoom-in').innerHTML = '<img src="' + url + '" alt="Page ' + (+k[1] + 1) + '" />'; }).catch(function(){ box.remove(); });
+}
+// Give a whole payslip, or one page, to someone else
+function psSetOwner(key, uidv) {
+  var u = psUpload, it = psItems().find(function(x){ return x.key === key; }); if (!it) return;
+  if (!it.src) { it.uid = uidv; it.by = 'chosen'; u.period[it.key] = psPeriodOf(it); psRenderReview(); return; }
+  var period = psPeriodOf(it), n = ++u.n;
+  it.gi.forEach(function(gi){ var p = u.pages[gi]; p.uid = uidv; p.by = 'chosen'; p.g = n; });
+  var nk = it.s + '|' + (uidv || '?' + n);
+  if (!u.period[nk]) { u.period[nk] = period; u.guess[nk] = u.guess[key]; }
+  psRenderReview();
+}
+function psSetPageOwner(gi, v) {
+  var u = psUpload, p = u && u.pages[gi]; if (!p) return;
+  var from = psItems().find(function(x){ return x.gi && x.gi.indexOf(gi) !== -1; });
+  if (v === '-') p.drop = true; else { p.uid = v; p.by = 'chosen'; p.g = ++u.n; }
+  var nk = p.s + '|' + (p.uid || '?' + p.g);
+  if (from && !p.drop && !u.period[nk]) { u.period[nk] = psPeriodOf(from); u.guess[nk] = u.guess[from.key]; }
+  psRenderReview();
+}
+function psDropItem(key) {
+  var u = psUpload, it = psItems().find(function(x){ return x.key === key; }); if (!it) return;
+  if (it.src) it.gi.forEach(function(gi){ u.pages[gi].drop = true; }); else it.drop = true;
+  psRenderReview();
+}
+function psSetPeriod(key, part, v) {
+  var u = psUpload; if (!u || !u.period[key]) return;
+  var y = part === 'y' ? +v : +u.period[key].slice(0, 4), m = part === 'm' ? +v : +u.period[key].slice(5, 7);
+  u.period[key] = y + '-' + (m < 10 ? '0' : '') + m; u.guess[key] = false; psRenderReview();
+}
+// Saved quietly: nobody is notified (payslips are private; people find them in the app)
 function psSaveUpload() {
-  var list = psUpload ? psUpload.items.filter(function(it){ return !it.drop && !it.saved; }) : [];
+  var u = psUpload, list = u ? psItems() : [];
   if (!list.length) { closeModal('modal-ps-upload'); return; }
   if (list.some(function(it){ return !it.uid; })) { toast('Choose the person for every payslip, or leave it out', 'error'); return; }
   var users = psPeople();
-  if (list.some(function(it){ return !it.checked && psRisk(it, users); })) { toast('Open the payslips marked in red and tick that each holds one person only, or leave them out', 'error'); return; }
-  var btn = document.getElementById('btn-ps-up-save'), done = 0, told = {}, chain = Promise.resolve();
+  if (list.some(function(it){ return !u.checked[it.sig] && psRisk(it, users); })) { toast('Open the payslips marked in red and tick that each holds one person only, or leave them out', 'error'); return; }
+  var btn = document.getElementById('btn-ps-up-save'), done = 0, chain = Promise.resolve();
   btn.disabled = true;
   list.forEach(function(it){
-    chain = chain.then(function(){
-      var id = 'ps-' + uid(), u = (getDB().appUsers || []).find(function(x){ return x.id === it.uid; }) || {};
-      var ext = it.blob.type === 'application/pdf' || /\\.pdf$/i.test(it.name) ? 'pdf' : ((it.blob.type || '').split('/')[1] || 'bin');
-      var path = it.uid + '/' + it.period + '-' + id + '.' + ext;
-      return invUpload(path, it.blob, 'payslips').then(function(){
-        return sbFetch('POST', 'payslips', { id: id, app_user_id: it.uid, employee_no: u.employeeNo || '', name: u.name || '', period: it.period, path: path, size: it.blob.size || 0, pages: it.pages || 1, uploaded_by: currentUser ? currentUser.name : '' });
+    chain = chain.then(function(){ return psBlob(it); }).then(function(blob){
+      var id = 'ps-' + uid(), who = (getDB().appUsers || []).find(function(x){ return x.id === it.uid; }) || {}, period = psPeriodOf(it);
+      var ext = blob.type === 'application/pdf' || /\\.pdf$/i.test(it.name) ? 'pdf' : ((blob.type || '').split('/')[1] || 'bin');
+      var path = it.uid + '/' + period + '-' + id + '.' + ext;
+      return invUpload(path, blob, 'payslips').then(function(){
+        return sbFetch('POST', 'payslips', { id: id, app_user_id: it.uid, employee_no: who.employeeNo || '', name: who.name || '', period: period, path: path, size: blob.size || 0, pages: it.pages || 1, uploaded_by: currentUser ? currentUser.name : '' });
       }).then(function(){
-        it.saved = true; done++;
-        if (!told[it.uid] || told[it.uid] < it.period) told[it.uid] = it.period;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + done + ' / ' + list.length;
+        if (it.src) it.gi.forEach(function(gi){ u.pages[gi].drop = true; }); else it.drop = true;
+        done++; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + done + ' / ' + list.length;
       });
     });
   });
   chain.then(function(){
-    Object.keys(told).forEach(function(id){ sendPush([id], 'New payslip', 'Your payslip for ' + psMonthLabel(told[id]) + ' is in the app.', '/?open=payslips'); });
-    psUpload.items.forEach(function(it){ try { URL.revokeObjectURL(it.url); } catch (e) {} });
+    Object.keys(u.built).forEach(function(k){ if (u.built[k].url) try { URL.revokeObjectURL(u.built[k].url); } catch (e) {} });
+    u.files.forEach(function(f){ try { URL.revokeObjectURL(f.url); } catch (e) {} });
     psUpload = null; closeModal('modal-ps-upload'); toast(done + ' payslip(s) saved', 'success');
   }).catch(function(e){
     toast('Stopped: ' + (e.message || e) + ' (' + done + ' saved)', 'error'); psRenderReview();
   }).then(function(){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; psLoad(); });
 }
-
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
   // Accounting is for admins only (wages, margins, every cost); everyone else sees only their own payslips
@@ -11802,7 +11912,9 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-ps-del]'); if (el) { psDelete(el.dataset.psDel); return; }
   el = t.closest('[data-ps-add]'); if (el) { psPickFiles(el.dataset.psAdd); return; }
   if (t.closest('#btn-ps-upload')) { psPickFiles(''); return; }
-  el = t.closest('[data-ps-up-drop]'); if (el) { var pdi = psUpload && psUpload.items[+el.dataset.psUpDrop]; if (pdi) { pdi.drop = true; psRenderReview(); } return; }
+  el = t.closest('[data-ps-zoom-close]'); if (el) { el.remove(); return; }
+  el = t.closest('[data-ps-zoom]'); if (el) { psZoom(el.dataset.psZoom); return; }
+  el = t.closest('[data-ps-up-drop]'); if (el) { if (psUpload) psDropItem(el.dataset.psUpDrop); return; }
   if (t.closest('#btn-ps-up-save')) { psSaveUpload(); return; }
 
   // Settings cards: open / close
@@ -12353,10 +12465,11 @@ document.addEventListener('change', function(e) {
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
   if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
   if (t.id === 'ps-file' && t.files && t.files.length) { psReadFiles(t.files); t.value = ''; }
-  if (t.dataset && t.dataset.psUpUser !== undefined && psUpload) { var pui = psUpload.items[+t.dataset.psUpUser]; if (pui) { pui.uid = t.value; pui.by = 'chosen'; pui.checked = false; psRenderReview(); } }
-  if (t.dataset && t.dataset.psUpOk !== undefined && psUpload) { var pok = psUpload.items[+t.dataset.psUpOk]; if (pok) pok.checked = t.checked; }
-  if (t.dataset && t.dataset.psUpMonth !== undefined) psSetPeriod(+t.dataset.psUpMonth, 'm', t.value);
-  if (t.dataset && t.dataset.psUpYear !== undefined) psSetPeriod(+t.dataset.psUpYear, 'y', t.value);
+  if (t.dataset && t.dataset.psUpUser !== undefined && psUpload) psSetOwner(t.dataset.psUpUser, t.value);
+  if (t.dataset && t.dataset.psPg !== undefined && psUpload) psSetPageOwner(+t.dataset.psPg, t.value);
+  if (t.dataset && t.dataset.psUpOk !== undefined && psUpload) psUpload.checked[t.dataset.psUpOk] = t.checked;
+  if (t.dataset && t.dataset.psUpMonth !== undefined) psSetPeriod(t.dataset.psUpMonth, 'm', t.value);
+  if (t.dataset && t.dataset.psUpYear !== undefined) psSetPeriod(t.dataset.psUpYear, 'y', t.value);
   if (t.dataset && t.dataset.isMap !== undefined && isImport) { var il = isImport.lines[+t.dataset.isMap]; if (il) { il.itemId = t.value; t.closest('.is-imp-row').classList.toggle('skip', !t.value); } }
   if (t.id === 'clock-month' && t.value) { clockMonth = t.value; clockDayF = clockDayF && clockDayF.slice(0, 7) === t.value ? clockDayF : ''; renderClockTab(); }
   if (t.id === 'clock-day') { clockDayF = t.value || ''; if (clockDayF && clockDayF.slice(0, 7) !== clockMonth) clockMonth = clockDayF.slice(0, 7); renderClockTab(); }
