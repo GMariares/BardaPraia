@@ -109,7 +109,10 @@ async function upsertAuthUser(cfg: Cfg, existing: any, row: any, password: strin
   if (!r.ok) throw new Error((await r.text()).slice(0, 200))
   return 'created'
 }
-const USER_COLS = 'id,name,username,roles,contract_start,contract_end,hours,amount,discount,insurance,cloth_size,notes,active,employee,created_at'
+const USER_COLS = 'id,name,username,roles,contract_start,contract_end,hours,amount,discount,insurance,cloth_size,notes,active,employee,employee_no,created_at'
+// Until the payslips migration has run, app_users has no employee_no: read and save without it
+const USER_COLS_OLD = USER_COLS.replace(',employee_no', '')
+const noEmployeeNo = (t: string) => /employee_no/.test(t)
 
 // ── Favicon ───────────────────────────────────────────────────
 app.get('/favicon.ico', (c) => c.redirect('/brand/favicon-32.png', 301))
@@ -182,7 +185,9 @@ async function requireAdmin(c: any, cfg: Cfg) {
 // All users with pay and contract details (admins only)
 app.get('/api/users', async (c) => {
   const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
-  const r = await fetch(`${cfg.SB_URL}/rest/v1/app_users?select=${USER_COLS}&order=name.asc`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  const read = (cols: string) => fetch(`${cfg.SB_URL}/rest/v1/app_users?select=${cols}&order=name.asc`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  let r = await read(USER_COLS)
+  if (!r.ok) { const t = await r.text(); if (!noEmployeeNo(t)) return c.json({ error: t.slice(0, 200) }, 500); r = await read(USER_COLS_OLD) }
   return c.json(await r.json(), r.ok ? 200 : 500)
 })
 // Which people have a device registered for notifications (admins only). Since the lock-down the
@@ -208,10 +213,17 @@ app.post('/api/users/save', async (c) => {
   const found: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(row.id)}&select=id`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })).json().catch(() => [])
   const isNew = !Array.isArray(found) || !found.length
   if (isNew && !password) return c.json({ error: 'A new user needs a password' }, 400)
-  const ins = isNew
-    ? await fetch(`${cfg.SB_URL}/rest/v1/app_users`, { method: 'POST', headers: H, body: JSON.stringify({ password_hash: '', ...row }) })
-    : await fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(row.id)}`, { method: 'PATCH', headers: H, body: JSON.stringify(row) })
-  if (!ins.ok) return c.json({ error: 'Could not save the user: ' + (await ins.text()).slice(0, 200) }, 500)
+  const write = (r: any) => isNew
+    ? fetch(`${cfg.SB_URL}/rest/v1/app_users`, { method: 'POST', headers: H, body: JSON.stringify({ password_hash: '', ...r }) })
+    : fetch(`${cfg.SB_URL}/rest/v1/app_users?id=eq.${encodeURIComponent(row.id)}`, { method: 'PATCH', headers: H, body: JSON.stringify(r) })
+  let ins = await write(row)
+  if (!ins.ok) {
+    const t = await ins.text()
+    if (!('employee_no' in row) || !noEmployeeNo(t)) return c.json({ error: 'Could not save the user: ' + t.slice(0, 200) }, 500)
+    delete row.employee_no
+    ins = await write(row)
+    if (!ins.ok) return c.json({ error: 'Could not save the user: ' + (await ins.text()).slice(0, 200) }, 500)
+  }
   try {
     const all = await listAuthUsers(cfg)
     const email = emailFor(cfg, oldUsername || row.username)

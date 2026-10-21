@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS app_users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS employee TEXT DEFAULT '';
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS employee_no TEXT DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   user_id TEXT NOT NULL,
@@ -314,6 +315,21 @@ CREATE TABLE IF NOT EXISTS item_sales (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS item_sales_period ON item_sales (year, month);
+
+-- Payslips (policies, the latest-3 rule and the storage bucket in migrations/2026-10-21-w-payslips.sql)
+CREATE TABLE IF NOT EXISTS payslips (
+  id TEXT PRIMARY KEY,
+  app_user_id TEXT NOT NULL,
+  employee_no TEXT DEFAULT '',
+  name TEXT DEFAULT '',
+  period TEXT NOT NULL,
+  path TEXT NOT NULL,
+  size INT DEFAULT 0,
+  pages INT DEFAULT 1,
+  uploaded_by TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS payslips_user_period ON payslips (app_user_id, period DESC);
 
 -- Supplier invoices with photo (policies and the storage bucket in migrations/2026-10-07-o-invoices.sql)
 CREATE TABLE IF NOT EXISTS invoices (
