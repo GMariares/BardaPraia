@@ -505,6 +505,47 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .is-imp-row { display:grid; grid-template-columns:1fr 64px; gap:6px 10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--slate-100); font-size:13px; }
     .is-imp-row select { grid-column:1 / -1; }
     .is-imp-row.skip { opacity:.55; }
+    /* Payslips */
+    .acc-staff .acc-head, .acc-staff .tab-row, .acc-on-ps .acc-head { display:none; }
+    .ps-warn { display:flex; gap:8px; align-items:flex-start; background:var(--amber-50); border:1px solid var(--amber-200); color:var(--amber-700); border-radius:10px; padding:9px 12px; }
+    .ps-warn i { margin-top:2px; }
+    .ps-people { display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:10px; }
+    .ps-person { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:10px 12px; min-width:0; }
+    .ps-person.off { opacity:.6; }
+    .ps-head { display:flex; align-items:center; gap:8px; }
+    .ps-name { flex:1; min-width:0; font-weight:800; color:var(--slate-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ps-id { font-size:11px; font-weight:700; color:var(--slate-600); background:var(--slate-50); border:1px solid var(--slate-200); border-radius:6px; padding:2px 7px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .ps-id.none { color:var(--amber-700); background:var(--amber-50); border-color:var(--amber-200); }
+    .ps-add { width:36px; height:36px; justify-content:center; }
+    .ps-slips { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px; }
+    .ps-slip-wrap { display:inline-flex; align-items:stretch; border:1px solid var(--slate-200); border-radius:9px; overflow:hidden; }
+    .ps-slip { display:inline-flex; align-items:center; gap:7px; min-height:36px; padding:5px 10px; border:0; background:var(--panel); color:var(--slate-800); font:inherit; font-size:13px; font-weight:700; cursor:pointer; text-align:left; }
+    .ps-slip i { color:var(--red); }
+    .ps-slip:hover, .ps-slip:focus-visible { background:var(--slate-50); }
+    .ps-del { border:0; border-left:1px solid var(--slate-200); background:var(--panel); color:var(--slate-400); min-width:34px; cursor:pointer; font-size:13px; }
+    .ps-del:hover, .ps-del:focus-visible { color:var(--red); background:var(--red-50); }
+    .ps-none, .ps-older { font-size:12px; color:var(--slate-500); }
+    .ps-older { margin-left:2px; }
+    .ps-mine { display:flex; flex-direction:column; gap:8px; max-width:520px; }
+    .ps-slip.big { width:100%; min-height:56px; padding:10px 14px; border:var(--rule); border-radius:var(--radius); font-size:15px; }
+    .ps-slip.big i.fa-file-pdf { font-size:20px; }
+    .ps-slip.big .ps-month { flex:1; }
+    .ps-go { font-size:12.5px; font-weight:700; color:var(--teal-700); display:inline-flex; gap:6px; align-items:center; }
+    .ps-go i { color:inherit; font-size:11px; }
+    .ps-empty { text-align:center; padding:26px 16px; color:var(--slate-500); }
+    .ps-empty i { font-size:28px; color:var(--slate-300); margin-bottom:8px; }
+    .ps-empty p { margin:0; font-size:13.5px; }
+    .ps-up-row { display:grid; grid-template-columns:1fr auto; gap:6px 8px; padding:10px 0; border-bottom:1px solid var(--slate-100); }
+    .ps-up-row > select, .ps-up-row > .ps-up-period { grid-column:1 / -1; }
+    .ps-up-row .ps-del { border:1px solid var(--slate-200); border-radius:8px; min-height:36px; }
+    .ps-up-file { min-width:0; }
+    .ps-up-file a { display:flex; gap:6px; align-items:center; font-weight:700; font-size:13.5px; color:var(--slate-900); text-decoration:none; }
+    .ps-up-file a span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ps-up-file a i { color:var(--red); }
+    .ps-up-meta { display:block; font-size:12px; color:var(--teal-700); margin-top:2px; }
+    .ps-up-row.need .ps-up-meta { color:var(--amber-700); font-weight:700; }
+    .ps-up-row.need > select { border-color:var(--amber-700); }
+    .ps-up-period { display:grid; grid-template-columns:1fr 110px; gap:8px; }
     .order-rejected { border:var(--rule); border-color:var(--red-200); background:var(--red-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
     .ord-rejected-note { display:flex; align-items:flex-start; gap:6px; font-size:12px; font-weight:600; color:var(--red-700); margin-bottom:8px; }
     /* Order lines, with the admin's changes shown to everyone */
@@ -1681,6 +1722,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn" data-acc-tab="fixed"><i class="fas fa-house"></i> Fixed costs</button>
         <button class="tab-btn" data-acc-tab="expenses"><i class="fas fa-receipt"></i> Daily expenses</button>
         <button class="tab-btn" data-acc-tab="items"><i class="fas fa-tags"></i> Item sales</button>
+        <button class="tab-btn" data-acc-tab="payslips"><i class="fas fa-file-invoice-dollar"></i> Payslips</button>
       </div>
       <div id="acc-body"></div>
     </div>
@@ -2292,6 +2334,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <label class="label" for="user-employee">Name on the shift schedule</label>
       <select class="select-field" id="user-employee"></select>
       <div style="font-size:12px;color:var(--slate-500);margin-top:4px">Lets this person see their own shifts and ask for changes.</div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="label" for="user-employee-no">Employee ID (as on the payslip)</label>
+      <input type="text" class="input-field" id="user-employee-no" placeholder="e.g. 12" autocapitalize="none" style="max-width:200px" />
+      <div style="font-size:12px;color:var(--slate-500);margin-top:4px">Uploaded payslips are matched to this person by this number.</div>
     </div>
     <div class="form-grid-2" style="margin-bottom:14px">
       <div><label class="label">Password *</label><input type="password" class="input-field" id="user-password" placeholder="Min 6 chars" /></div>
@@ -3057,6 +3104,19 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </div>
 </div>
 <input type="file" id="is-file" accept=".csv,.txt,.xlsx,.xls,text/csv" style="display:none" />
+<div class="modal-overlay" id="modal-ps-upload">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-file-invoice-dollar" style="color:var(--teal-600)"></i> Upload payslips</h2>
+    <p class="acc-note" id="ps-up-sub" style="margin-bottom:6px"></p>
+    <div id="ps-up-lines"></div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-ps-up-save"><i class="fas fa-save"></i> Save</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-ps-upload">Cancel</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="ps-file" accept="application/pdf,.pdf,image/*" multiple style="display:none" />
 
 <!-- TOAST -->
 <div id="toast"></div>
@@ -3354,7 +3414,7 @@ function saveUserSecure(user, password, oldUsername) {
   function numOrNull(v)  { var n = parseFloat(v); return isNaN(n) ? null : n; }
   var row = { id: user.id, name: user.name, username: user.username, roles: user.roles || [], contract_start: dateOrNull(user.contractStart), contract_end: dateOrNull(user.contractEnd),
     hours: user.hours || null, amount: numOrNull(user.amount), discount: numOrNull(user.discount), insurance: user.insurance || null, cloth_size: user.clothSize || null,
-    notes: user.notes || null, active: user.active !== false, employee: user.employee || '', created_at: user.createdAt || new Date().toISOString() };
+    notes: user.notes || null, active: user.active !== false, employee: user.employee || '', employee_no: user.employeeNo || '', created_at: user.createdAt || new Date().toISOString() };
   return fetch('/api/users/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: row, password: password || null, oldUsername: oldUsername || null }) })
     .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'Not saved'); return j; }); })
     .then(function(){ toast('User saved', 'success'); loadUsersSecure(); })
@@ -3816,7 +3876,7 @@ function syncFromSupabase() {
       if (rows && rows.length) sbCols.finNotes = ('day_notes' in rows[0]);
     }).catch(function(){ sbMissingItems.push('fin_entries table'); }),
     sbFetch('GET', 'app_users', null, appUsersQuery()).then(function(rows) {
-      if (rows && rows.length) sbCols.userEmployee = ('employee' in rows[0]);
+      if (rows && rows.length) { sbCols.userEmployee = ('employee' in rows[0]); sbCols.userEmployeeNo = ('employee_no' in rows[0]); }
       if (rows && rows.length > 0) {
         db.appUsers = rows.map(function(r){ return {
           id: r.id, name: r.name, username: r.username,
@@ -3825,7 +3885,7 @@ function syncFromSupabase() {
           contractStart: r.contract_start||'', contractEnd: r.contract_end||'',
           hours: r.hours||'', amount: r.amount||'',
           discount: r.discount||'', insurance: r.insurance||'',
-          clothSize: r.cloth_size||'', notes: r.notes||'', employee: r.employee||'',
+          clothSize: r.cloth_size||'', notes: r.notes||'', employee: r.employee||'', employeeNo: r.employee_no||'',
           active: r.active !== false, createdAt: r.created_at
         }; });
       }
@@ -4038,7 +4098,7 @@ function hashPw(pw) { return btoa(unescape(encodeURIComponent(pw))); }
 function hasRole(role) { return currentUser && Array.isArray(currentUser.roles) && currentUser.roles.indexOf(role) !== -1; }
 
 function sbRowToUser(x) {
-  return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',employee:x.employee||'',active:x.active!==false,createdAt:x.created_at};
+  return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',employee:x.employee||'',employeeNo:x.employee_no||'',active:x.active!==false,createdAt:x.created_at};
 }
 
 var loginInFlight = false;
@@ -4165,10 +4225,11 @@ setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts|reservations|shopping|orders|calendar|clock)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations|shopping|orders|calendar|clock|payslips)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
+  if (m[1] === 'payslips') { accTab = 'payslips'; showSection('accounting'); return; }
   if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
   if (m[1] === 'orders') { showSection('dashboard'); var op = document.getElementById('dash-orders-panel'); if (op && op.style.display !== 'none') op.scrollIntoView({ block:'start' }); else { showSection('inventory'); switchInvTab('orders'); } return; }
   if (m[1] === 'clock') { showSection('dashboard'); var ck = /kind=(in|out)/.exec(url || ''); openClockScanner(ck ? ck[1] : 'auto'); return; }
@@ -4297,6 +4358,7 @@ function notifIcon(url) {
   if (/open=(reservations|calendar)/.test(u)) return 'fa-calendar-day';
   if (/open=shopping/.test(u)) return 'fa-bag-shopping';
   if (/open=orders/.test(u)) return 'fa-truck';
+  if (/open=payslips/.test(u)) return 'fa-file-invoice-dollar';
   return 'fa-bell';
 }
 function notifWhen(iso) {
@@ -4746,14 +4808,15 @@ function updateSessionUI() {
   dshow('ditem-calendar',     true);
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
-  dshow('ditem-accounting',   isAdmin);
+  dshow('ditem-accounting',   isAdmin || isSecure());   // staff: only their own payslips
+  var accBadge = document.querySelector('#ditem-accounting .admin-only-badge'); if (accBadge) accBadge.style.display = isAdmin ? '' : 'none';
   dshow('ditem-foodcost',     canFoodCost());
   dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
   dshow('ditem-blackbox',     isAdmin);
   dshow('ditem-users',        isAdmin || canShiftEdit);   // Team: admins see logins too, shift managers the rota names
   dshow('ditem-settings',     isAdmin);
   var officeLbl = document.getElementById('drawer-office-label');
-  if (officeLbl) officeLbl.style.display = (isFinance || isAdmin || canShiftEdit || canFoodCost()) ? '' : 'none';
+  if (officeLbl) officeLbl.style.display = (isFinance || isAdmin || canShiftEdit || canFoodCost() || isSecure()) ? '' : 'none';
 
   // ── Bottom nav visibility ──────────────────────────────────────
   function bshow(id, visible) {
@@ -4933,6 +4996,7 @@ function refreshSection(name) {
 
   } else if (name === 'accounting') {
     if (isAdmin) accLoad();
+    psLoad();
 
   } else if (name === 'foodcost') {
     if (canFoodCost()) fcLoad();
@@ -4950,7 +5014,7 @@ function refreshSection(name) {
     if (!isSecure()) sbFetch('GET','app_users',null,'order=name.asc').then(function(rows) {
       if (!rows || !rows.length) return;
       var db = getDB();
-      db.appUsers = rows.map(function(x){ return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',employee:x.employee||'',active:x.active!==false,createdAt:x.created_at}; });
+      db.appUsers = rows.map(function(x){ return {id:x.id,name:x.name,username:x.username,passwordHash:x.password_hash,roles:Array.isArray(x.roles)?x.roles:[],contractStart:x.contract_start||'',contractEnd:x.contract_end||'',hours:x.hours||'',amount:x.amount||'',discount:x.discount||'',insurance:x.insurance||'',clothSize:x.cloth_size||'',notes:x.notes||'',employee:x.employee||'',employeeNo:x.employee_no||'',active:x.active!==false,createdAt:x.created_at}; });
       if (!db.appUsers.find(function(u){ return u.id==='admin_seed'; })) {
         db.appUsers.push({id:'admin_seed',name:'Administrator',username:'admin',passwordHash:btoa(unescape(encodeURIComponent('Admin1234'))),roles:['admin','finance','shift_mgr','employee'],contractStart:'',contractEnd:'',hours:'',amount:'',discount:'',insurance:'',clothSize:'',notes:'',active:true,createdAt:new Date().toISOString()});
       }
@@ -5002,7 +5066,7 @@ function showSection(name) {
   if (!currentUser) { return; }
   if (name === 'inventory' && currentSection !== 'inventory') { invView = 'home'; invCatFilter = ''; invSupplierFilter = ''; invReorderIds = null; invSearchVal = ''; var isf = document.getElementById('inv-search'); if (isf) isf.value = ''; }
   if (name === 'users' && !isAdmin && !(currentUser && hasRole('shift_mgr'))) { toast('Admin or shift manager access required.', 'error'); return; }
-  if ((name === 'blackbox' || name === 'settings' || name === 'accounting') && !isAdmin) {
+  if ((name === 'blackbox' || name === 'settings' || (name === 'accounting' && !isSecure())) && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
   if (name === 'foodcost' && !canFoodCost()) {
@@ -5116,7 +5180,7 @@ function renderUsers() {
 function openUserModal(userId) {
   editUserId = userId || null;
   // Reset form
-  ['user-name','user-username','user-password','user-password2','user-contract-start','user-contract-end','user-hours','user-amount','user-discount','user-insurance','user-notes'].forEach(function(id){
+  ['user-name','user-username','user-employee-no','user-password','user-password2','user-contract-start','user-contract-end','user-hours','user-amount','user-discount','user-insurance','user-notes'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
   document.querySelectorAll('.user-role-cb').forEach(function(cb){ cb.checked = false; });
@@ -5144,6 +5208,7 @@ function openUserModal(userId) {
     setVal('user-insurance', u.insurance);
     setVal('user-cloth-size', u.clothSize);
     setVal('user-notes', u.notes);
+    setVal('user-employee-no', u.employeeNo);
     fillUserEmployeeSelect(u);
     if (activeEl) activeEl.checked = u.active !== false;
     (u.roles||[]).forEach(function(r){
@@ -5199,6 +5264,7 @@ function saveUserModal() {
       clothSize:     document.getElementById('user-cloth-size').value||'',
       notes:         document.getElementById('user-notes').value||'',
       employee:      document.getElementById('user-employee').value||'',
+      employeeNo:    (document.getElementById('user-employee-no').value||'').trim(),
       active:        active,
       createdAt:     new Date().toISOString()
     };
@@ -5237,6 +5303,7 @@ function saveUserModal() {
     existing.clothSize     = document.getElementById('user-cloth-size').value||'';
     existing.notes         = document.getElementById('user-notes').value||'';
     existing.employee      = document.getElementById('user-employee').value||'';
+    existing.employeeNo    = (document.getElementById('user-employee-no').value||'').trim();
     existing.active        = active;
     db.appUsers[idx] = existing;
     saveDB(db);
@@ -5287,11 +5354,13 @@ function syncUserToSb(user, method) {
     cloth_size:     user.clothSize||null,
     notes:          user.notes||null,
     employee:       user.employee||'',
+    employee_no:    user.employeeNo||'',
     active:         user.active !== false,
     created_at:     user.createdAt||new Date().toISOString()
   };
 
   if (!sbCols.userEmployee) delete payload.employee;   // column added by the step 11 migration
+  if (!sbCols.userEmployeeNo) delete payload.employee_no;   // column added by the payslips migration
 
   // Always use POST with on_conflict=id (true upsert — works for both insert and update)
   var url = SB_URL + '/rest/v1/app_users?on_conflict=id';
@@ -9619,17 +9688,17 @@ function invCompress(file) {
     img.src = url;
   });
 }
-function invUpload(path, blob) {
-  return fetch(SB_URL + '/storage/v1/object/invoices/' + path, { method:'POST', headers:{ 'Content-Type': blob.type || 'application/octet-stream', 'x-upsert':'true' }, body: blob })
+function invUpload(path, blob, bucket) {
+  return fetch(SB_URL + '/storage/v1/object/' + (bucket || 'invoices') + '/' + path, { method:'POST', headers:{ 'Content-Type': blob.type || 'application/octet-stream', 'x-upsert':'true' }, body: blob })
     .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error('Photo not uploaded (' + r.status + '): ' + t.slice(0, 120)); }); });
 }
-function invSignedUrl(path) {
-  return fetch(SB_URL + '/storage/v1/object/sign/invoices/' + path, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ expiresIn: 3600 }) })
+function invSignedUrl(path, bucket) {
+  return fetch(SB_URL + '/storage/v1/object/sign/' + (bucket || 'invoices') + '/' + path, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ expiresIn: 3600 }) })
     .then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ return j && j.signedURL ? SB_URL + '/storage/v1' + j.signedURL : ''; }).catch(function(){ return ''; });
 }
-function invRemoveFile(path) {
+function invRemoveFile(path, bucket) {
   if (!path) return Promise.resolve();
-  return fetch(SB_URL + '/storage/v1/object/invoices', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prefixes:[path] }) }).catch(function(){});
+  return fetch(SB_URL + '/storage/v1/object/' + (bucket || 'invoices'), { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prefixes:[path] }) }).catch(function(){});
 }
 function invRenderPhotoBox(existingPath) {
   var box = document.getElementById('inv-photo-box'); if (!box) return;
@@ -9813,10 +9882,290 @@ function deleteInvoice() {
 
 // ── screen ──
 var accRedrawWaiting = false, accLastView = '';
+// ── Payslips (Accounting → Payslips) ─────────────────────────────
+// Admins upload payslips: one PDF per person, or one PDF with everyone that is split here per person.
+// Each page is matched by the Employee ID (or the name) printed on it; the admin checks before saving.
+// A person sees their latest PS_KEEP months; older ones stay stored (the database decides what staff may read).
+var PS_KEEP = 3;
+var psState = { rows: null, loading: false }, psUpload = null, psPreset = '';
+function psLoad() {
+  if (psState.loading || !isSecure()) return Promise.resolve();
+  psState.loading = true;
+  return sbFetchAll('payslips', 'order=period.desc,created_at.desc').then(function(rows){
+    psState.rows = (rows || []).map(function(r){ return { id: r.id, uid: r.app_user_id, period: r.period, path: r.path, pages: r.pages || 1, at: r.created_at || '' }; });
+    sbCols.payslips = true;
+    return psSignShown();
+  }).catch(function(){ psState.rows = []; sbCols.payslips = false; })
+    .then(function(){ psState.loading = false; if (currentSection === 'accounting' && accTab === 'payslips') renderAccounting(); });
+}
+// The newest payslip of each month for a person, newest month first: the first PS_KEEP are shown
+function psLatest(uid) {
+  var mine = (psState.rows || []).filter(function(p){ return p.uid === uid; }), seen = {}, out = [];
+  mine.slice().sort(function(a, b){ return a.period !== b.period ? (a.period < b.period ? 1 : -1) : (a.at < b.at ? 1 : -1); })
+    .forEach(function(p){ if (!seen[p.period]) { seen[p.period] = 1; out.push(p); } });
+  var shown = out.slice(0, PS_KEEP);
+  return { shown: shown, older: mine.length - shown.length };
+}
+function psMonthLabel(period) {
+  var p = String(period || '').split('-'), d = new Date(+p[0], (+p[1] || 1) - 1, 1);
+  return isNaN(d) ? String(period || '') : locDate(d, { month: 'long', year: 'numeric' });
+}
+function psPeople() {
+  var rows = psState.rows || [];
+  return (getDB().appUsers || []).filter(function(u){ return u.id !== 'admin_seed' && (u.active !== false || rows.some(function(p){ return p.uid === u.id; })); })
+    .sort(function(a, b){ return String(a.name).localeCompare(String(b.name)); });
+}
+// Links are signed ahead (one request for all), so a tap opens the file straight away, also on a phone
+function psSignShown() {
+  var list = [];
+  (psState.rows || []).forEach(function(p){ if (list.indexOf(p.uid) === -1) list.push(p.uid); });
+  var shown = [].concat.apply([], list.map(function(id){ return psLatest(id).shown; }));
+  if (!shown.length) return Promise.resolve();
+  return fetch(SB_URL + '/storage/v1/object/sign/payslips', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ expiresIn: 3600, paths: shown.map(function(p){ return p.path; }) }) })
+    .then(function(r){ return r.ok ? r.json() : []; }).then(function(arr){
+      var at = Date.now();
+      (Array.isArray(arr) ? arr : []).forEach(function(x){ var p = shown.find(function(s){ return s.path === x.path; }); if (p && x.signedURL) { p.url = SB_URL + '/storage/v1' + x.signedURL; p.urlAt = at; } });
+    }).catch(function(){});
+}
+function psOpen(id) {
+  var p = (psState.rows || []).find(function(x){ return x.id === id; }); if (!p) return;
+  if (p.url && Date.now() - p.urlAt < 50 * 60000) { window.open(p.url, '_blank', 'noopener'); return; }
+  var w = null; try { w = window.open('', '_blank'); } catch (e) {}
+  invSignedUrl(p.path, 'payslips').then(function(u){
+    if (!u) { if (w) w.close(); toast('Could not open the payslip', 'error'); return; }
+    p.url = u; p.urlAt = Date.now();
+    if (w) w.location.href = u; else location.href = u;
+  });
+}
+function psDelete(id) {
+  var p = (psState.rows || []).find(function(x){ return x.id === id; }); if (!p) return;
+  if (!confirm('Delete this payslip? The file is removed from storage too.')) return;
+  sbFetch('DELETE', 'payslips', null, 'id=eq.' + encodeURIComponent(id)).then(function(){ return invRemoveFile(p.path, 'payslips'); })
+    .then(function(){ psState.rows = psState.rows.filter(function(x){ return x.id !== id; }); toast('Payslip deleted', 'success'); renderAccounting(); })
+    .catch(function(e){ toast('Not deleted: ' + (e.message || e), 'error'); });
+}
+function accPayslipsHTML() {
+  if (!isSecure()) return '<div class="acc-card"><p class="acc-note" style="margin:0">Payslips need the secure login to be switched on.</p></div>';
+  if (psState.rows === null) { psLoad(); return '<p class="acc-note">Loading payslips…</p>'; }
+  if (sbCols.payslips === false) return isAdmin
+    ? '<div class="acc-card"><p class="acc-note" style="margin:0">To switch payslips on, run the SQL file supabase/migrations/2026-10-21-w-payslips.sql in Supabase.</p></div>'
+    : '<div class="acc-card ps-empty"><i class="fas fa-file-invoice-dollar"></i><p>Payslips are not available yet.</p></div>';
+  return isAdmin ? psAdminHTML() : psMineHTML();
+}
+function psSlipBtn(p, big) {
+  return '<button type="button" class="ps-slip' + (big ? ' big' : '') + '" data-ps-open="' + esc(p.id) + '"><i class="fas fa-file-pdf"></i><span class="ps-month">' + esc(psMonthLabel(p.period)) + '</span>' +
+    (big ? '<span class="ps-go">View <i class="fas fa-arrow-up-right-from-square"></i></span>' : '') + '</button>';
+}
+function psMineHTML() {
+  var mine = psLatest(currentUser.id).shown;
+  var h = '<div class="acc-toolbar"><div class="acc-toolbar-title">My payslips</div></div>';
+  if (!mine.length) return h + '<div class="acc-card ps-empty"><i class="fas fa-file-invoice-dollar"></i><p>No payslips yet. They appear here once the office uploads them.</p></div>';
+  return h + '<p class="acc-note">Your last ' + PS_KEEP + ' months. Tap one to open it.</p><div class="ps-mine">' + mine.map(function(p){ return psSlipBtn(p, true); }).join('') + '</div>';
+}
+function psAdminHTML() {
+  var people = psPeople(), noId = people.filter(function(u){ return u.active !== false && !u.employeeNo; }).length;
+  var h = '<div class="acc-toolbar"><div class="acc-toolbar-title">Payslips</div>' +
+    '<button class="btn btn-primary btn-sm" id="btn-ps-upload"><i class="fas fa-upload"></i> Upload payslips</button></div>' +
+    '<p class="acc-note">Upload one PDF per person or one PDF with everyone. Each page is matched to a person by the Employee ID (or the name) on it, and you check before saving. People see their latest ' + PS_KEEP + ' months; older payslips stay stored but are hidden.</p>';
+  if (noId) h += '<p class="acc-note ps-warn"><i class="fas fa-triangle-exclamation"></i> <span>' + noId + ' people have no Employee ID yet. Add it in Team → edit person, so their payslips are matched automatically.</span></p>';
+  h += '<div class="ps-people">';
+  people.forEach(function(u){
+    var l = psLatest(u.id);
+    h += '<div class="ps-person' + (u.active === false ? ' off' : '') + '"><div class="ps-head"><span class="ps-name">' + esc(u.name) + '</span>' +
+      (u.employeeNo ? '<span class="ps-id">ID ' + esc(u.employeeNo) + '</span>' : '<span class="ps-id none">No ID</span>') +
+      '<button type="button" class="btn btn-secondary btn-sm btn-icon ps-add" data-ps-add="' + esc(u.id) + '" aria-label="Upload a payslip" title="Upload a payslip"><i class="fas fa-plus"></i></button></div>' +
+      '<div class="ps-slips">' + (l.shown.length ? l.shown.map(function(p){ return '<span class="ps-slip-wrap">' + psSlipBtn(p) + '<button type="button" class="ps-del" data-ps-del="' + esc(p.id) + '" aria-label="Delete" title="Delete"><i class="fas fa-xmark"></i></button></span>'; }).join('') : '<span class="ps-none">No payslips yet</span>') +
+      (l.older > 0 ? '<span class="ps-older">+' + l.older + ' older stored</span>' : '') + '</div></div>';
+  });
+  return h + '</div>';
+}
+
+// ── Reading uploaded files ──
+var psPdfJs = null, psPdfLib = null;
+function psScript(src, name) {
+  return new Promise(function(ok, no){
+    if (window[name]) { ok(window[name]); return; }
+    var sc = document.createElement('script'); sc.src = src;
+    sc.onload = function(){ window[name] ? ok(window[name]) : no(new Error(name)); }; sc.onerror = function(){ no(new Error(name)); };
+    document.head.appendChild(sc);
+  });
+}
+function psPdfjs() {
+  if (!psPdfJs) psPdfJs = psScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'pdfjsLib').then(function(lib){
+    lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; return lib;
+  }).catch(function(e){ psPdfJs = null; throw e; });
+  return psPdfJs;
+}
+function psPdflib() {
+  if (!psPdfLib) psPdfLib = psScript('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js', 'PDFLib').catch(function(e){ psPdfLib = null; throw e; });
+  return psPdfLib;
+}
+// The text of every page
+function psPdfPages(buf) {
+  return psPdfjs().then(function(lib){ return lib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise; }).then(function(doc){
+    var texts = [];
+    function next(i) {
+      if (i > doc.numPages) return texts;
+      return doc.getPage(i).then(function(pg){ return pg.getTextContent(); }).then(function(tc){ texts.push(tc.items.map(function(it){ return it.str; }).join(' ')); return next(i + 1); });
+    }
+    return next(1);
+  });
+}
+function psNorm(x) { return normName(x).replace(/[^a-z0-9]+/g, ' ').trim(); }
+function psIdKey(v) { var s = String(v || '').trim().toLowerCase(); return /^\\d+$/.test(s) ? String(parseInt(s, 10)) : s; }
+// The Employee ID: a number after "Funcionário", "Colaborador", "Nº mecanográfico", "Employee" (a few words may sit
+// between), or right after "Nº", "Número", "Código", "ID" (so "Nº de dias: 22" is not taken for an ID)
+function psIdsInText(text) {
+  var ids = {}, m;
+  var strong = /(funcion[aá]rio|colaborador|mecanogr[aá]fico|trabalhador|empregado|employee)[^0-9]{0,30}?\\b(\\d{1,6})\\b/gi;
+  var weak = /(\\bn\\s*[º°]|\\bn\\.\\s*[º°o]?|\\bno\\.|\\bn[uú]mero|\\bnum\\.|\\bc[oó]digo|\\bc[oó]d\\.|\\bid)[\\s:.\\-]{0,3}(\\d{1,6})\\b/gi;
+  while ((m = strong.exec(text))) ids[psIdKey(m[2])] = 1;
+  while ((m = weak.exec(text))) ids[psIdKey(m[2])] = 1;
+  return ids;
+}
+// The person a page belongs to: the Employee ID counts most, the full name too; ties are left for the admin
+function psMatchText(text, users) {
+  var ids = psIdsInText(text), norm = ' ' + psNorm(text) + ' ', best = null, tie = false;
+  users.forEach(function(u){
+    var score = 0, byId = false, byName = false, k = psIdKey(u.employeeNo);
+    if (k && (/^\\d+$/.test(k) ? ids[k] : norm.indexOf(' ' + psNorm(u.employeeNo) + ' ') !== -1)) { score += 2; byId = true; }
+    var nm = psNorm(u.name).split(' ').filter(function(w){ return w.length > 1; });
+    if (nm.length && norm.indexOf(' ' + nm.join(' ') + ' ') !== -1) { score += 2; byName = true; }
+    else if (nm.length > 1 && norm.indexOf(' ' + nm[0] + ' ') !== -1 && norm.indexOf(' ' + nm[nm.length - 1] + ' ') !== -1) { score += 1; byName = true; }
+    if (!score) return;
+    var by = byId && byName ? 'both' : byId ? 'id' : 'name';
+    if (!best || score > best.score) { best = { uid: u.id, score: score, by: by }; tie = false; }
+    else if (score === best.score) tie = true;
+  });
+  return best && !tie ? best : null;
+}
+// The month a payslip is for: month names count most ("Outubro 2026"), then dates like 10/2026 or 2026-10
+var PS_MON = { jan:1, fev:2, feb:2, mar:3, abr:4, apr:4, mai:5, may:5, jun:6, jul:7, ago:8, aug:8, set:9, sep:9, out:10, oct:10, nov:11, dez:12, dec:12 };
+function psPeriodIn(text) {
+  var t = normName(text), votes = {}, m, re, best = '';
+  function vote(y, mo, w) { mo = +mo; y = +y; if (!(mo >= 1 && mo <= 12) || y < 2020 || y > 2100) return; var k = y + '-' + (mo < 10 ? '0' : '') + mo; votes[k] = (votes[k] || 0) + w; }
+  re = /\\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|january|february|march|april|may|june|july|august|september|october|november|december|jan|fev|feb|mar|abr|apr|mai|jun|jul|ago|aug|set|sep|out|oct|nov|dez|dec)\\.?[\\s\\/\\-]*(?:de\\s+)?(20\\d{2})\\b/g;
+  while ((m = re.exec(t))) vote(m[2], PS_MON[m[1].slice(0, 3)], 3);
+  re = /\\b(0?[1-9]|1[0-2])[\\/.\\-](20\\d{2})\\b/g; while ((m = re.exec(t))) vote(m[2], m[1], 1);
+  re = /\\b(20\\d{2})[\\/.\\-](0?[1-9]|1[0-2])\\b/g; while ((m = re.exec(t))) vote(m[1], m[2], 1);
+  Object.keys(votes).forEach(function(k){ if (!best || votes[k] > votes[best]) best = k; });
+  return best;
+}
+function psLastMonth() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function psItem(blob, name, pages, text, users, preset, match) {
+  var label = name.replace(/\\.[a-z0-9]+$/i, '').replace(/[_\\-]+/g, ' ');
+  var m = preset ? { uid: preset, by: 'chosen' } : (match || psMatchText(text + ' ' + label, users));
+  var period = psPeriodIn(text + ' ' + label);
+  return { blob: blob, name: name, pages: pages, uid: m ? m.uid : '', by: m ? m.by : '', period: period || psLastMonth(), periodGuess: !period, url: URL.createObjectURL(blob) };
+}
+// One file → one payslip per person (pages without a match stay with the person before them: a 2-page payslip)
+function psSplitFile(f, users, preset) {
+  var isPdf = f.type === 'application/pdf' || /\\.pdf$/i.test(f.name);
+  if (!isPdf) return Promise.resolve([psItem(f, f.name, 1, '', users, preset)]);
+  return f.arrayBuffer().then(function(buf){
+    return psPdfPages(buf).then(function(texts){
+      var groups = [];
+      if (!preset) texts.forEach(function(t, i){
+        var m = psMatchText(t, users), g = groups[groups.length - 1], ids = Object.keys(psIdsInText(t));
+        // a page with an Employee ID of its own is someone else's payslip, even when that person is not in the app
+        var other = !m && g && ids.length && !ids.some(function(k){ return g.ids.indexOf(k) !== -1; });
+        if (g && !other && (!m || m.uid === g.uid)) { g.pages.push(i); g.text += ' ' + t; return; }
+        if (g && !other && !g.uid && !g.ids.length && m) { g.uid = m.uid; g.by = m.by; g.ids = ids; g.pages.push(i); g.text += ' ' + t; return; }
+        groups.push({ uid: m ? m.uid : '', by: m ? m.by : '', ids: ids, pages: [i], text: t });
+      });
+      if (groups.length < 2) return [psItem(f, f.name, texts.length, texts.join(' '), users, preset, groups[0] && groups[0].uid ? groups[0] : null)];
+      return psPdflib().then(function(PDFLib){ return PDFLib.PDFDocument.load(buf, { ignoreEncryption: true }).then(function(src){
+        var out = [], chain = Promise.resolve();
+        groups.forEach(function(g){
+          chain = chain.then(function(){ return PDFLib.PDFDocument.create(); }).then(function(doc){
+            return doc.copyPages(src, g.pages).then(function(pgs){ pgs.forEach(function(p){ doc.addPage(p); }); return doc.save(); });
+          }).then(function(bytes){
+            var first = g.pages[0] + 1, last = g.pages[g.pages.length - 1] + 1;
+            var nm = f.name.replace(/\\.pdf$/i, '') + ' · p' + first + (last > first ? '–' + last : '') + '.pdf';
+            out.push(psItem(new Blob([bytes], { type: 'application/pdf' }), nm, g.pages.length, g.text, users, '', g.uid ? g : null));
+          });
+        });
+        return chain.then(function(){ return out; });
+      }); });
+    });
+  }).catch(function(){ return [psItem(f, f.name, 1, '', users, preset)]; });   // could not read the text: the admin chooses
+}
+function psPickFiles(uid) { psPreset = uid || ''; var f = document.getElementById('ps-file'); if (f) { f.value = ''; f.click(); } }
+function psReadFiles(files) {
+  var list = [].slice.call(files || []), preset = psPreset; psPreset = '';
+  if (!list.length) return;
+  var users = psPeople().filter(function(u){ return u.active !== false; }), items = [], chain = Promise.resolve();
+  toast('Reading the payslips…');
+  list.forEach(function(f){ chain = chain.then(function(){ return psSplitFile(f, users, preset); }).then(function(arr){ items = items.concat(arr); }); });
+  chain.then(function(){ psUpload = { items: items }; psRenderReview(); openModal('modal-ps-upload'); });
+}
+var PS_BY = { id: 'matched by Employee ID', name: 'matched by name', both: 'matched by Employee ID and name', chosen: 'chosen by you' };
+function psRenderReview() {
+  if (!psUpload) return;
+  var items = psUpload.items, users = psPeople().filter(function(u){ return u.active !== false; }), y = new Date().getFullYear();
+  var live = items.filter(function(it){ return !it.drop && !it.saved; });
+  document.getElementById('ps-up-sub').textContent = live.length + ' payslip(s) · ' + live.filter(function(it){ return it.uid; }).length + ' matched. Check the person and the month, then save.';
+  var h = '';
+  items.forEach(function(it, i){
+    if (it.drop || it.saved) return;
+    var py = +it.period.slice(0, 4), pm = +it.period.slice(5, 7), years = [y - 1, y, y + 1];
+    if (years.indexOf(py) === -1) years.unshift(py);
+    var dup = it.uid && (psState.rows || []).some(function(p){ return p.uid === it.uid && p.period === it.period; });
+    var note = it.uid ? PS_BY[it.by] || '' : 'not matched: choose the person';
+    h += '<div class="ps-up-row' + (it.uid ? '' : ' need') + '">' +
+      '<div class="ps-up-file"><a href="' + it.url + '" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> <span>' + esc(it.name) + '</span></a>' +
+        '<span class="ps-up-meta">' + (it.pages > 1 ? '<span>' + it.pages + ' pages</span> · ' : '') + '<span>' + note + '</span>' +
+        (it.periodGuess ? ' · <span>month not found: check it</span>' : '') + (dup ? ' · <span>replaces the one saved for this month</span>' : '') + '</span></div>' +
+      '<button type="button" class="ps-del" data-ps-up-drop="' + i + '" aria-label="Leave out" title="Leave out"><i class="fas fa-xmark"></i></button>' +
+      '<select class="select-field" data-ps-up-user="' + i + '" aria-label="Person"><option value="">Choose the person…</option>' +
+        users.map(function(u){ return '<option value="' + esc(u.id) + '"' + (u.id === it.uid ? ' selected' : '') + '>' + esc(u.name) + (u.employeeNo ? ' · ' + esc(u.employeeNo) : '') + '</option>'; }).join('') + '</select>' +
+      '<div class="ps-up-period"><select class="select-field" data-ps-up-month="' + i + '" aria-label="Month">' +
+        MONTH_NAMES.map(function(n, mi){ return '<option value="' + (mi + 1) + '"' + (mi + 1 === pm ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' +
+        '<select class="select-field" data-ps-up-year="' + i + '" aria-label="Year">' + years.map(function(v){ return '<option' + (v === py ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select></div>' +
+      '</div>';
+  });
+  document.getElementById('ps-up-lines').innerHTML = h || '<p class="acc-note">Nothing left to save.</p>';
+}
+function psSetPeriod(i, part, v) {
+  var it = psUpload && psUpload.items[i]; if (!it) return;
+  var y = part === 'y' ? +v : +it.period.slice(0, 4), m = part === 'm' ? +v : +it.period.slice(5, 7);
+  it.period = y + '-' + (m < 10 ? '0' : '') + m; it.periodGuess = false; psRenderReview();
+}
+function psSaveUpload() {
+  var list = psUpload ? psUpload.items.filter(function(it){ return !it.drop && !it.saved; }) : [];
+  if (!list.length) { closeModal('modal-ps-upload'); return; }
+  if (list.some(function(it){ return !it.uid; })) { toast('Choose the person for every payslip, or leave it out', 'error'); return; }
+  var btn = document.getElementById('btn-ps-up-save'), done = 0, told = {}, chain = Promise.resolve();
+  btn.disabled = true;
+  list.forEach(function(it){
+    chain = chain.then(function(){
+      var id = 'ps-' + uid(), u = (getDB().appUsers || []).find(function(x){ return x.id === it.uid; }) || {};
+      var ext = it.blob.type === 'application/pdf' || /\\.pdf$/i.test(it.name) ? 'pdf' : ((it.blob.type || '').split('/')[1] || 'bin');
+      var path = it.uid + '/' + it.period + '-' + id + '.' + ext;
+      return invUpload(path, it.blob, 'payslips').then(function(){
+        return sbFetch('POST', 'payslips', { id: id, app_user_id: it.uid, employee_no: u.employeeNo || '', name: u.name || '', period: it.period, path: path, size: it.blob.size || 0, pages: it.pages || 1, uploaded_by: currentUser ? currentUser.name : '' });
+      }).then(function(){
+        it.saved = true; done++;
+        if (!told[it.uid] || told[it.uid] < it.period) told[it.uid] = it.period;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + done + ' / ' + list.length;
+      });
+    });
+  });
+  chain.then(function(){
+    Object.keys(told).forEach(function(id){ sendPush([id], 'New payslip', 'Your payslip for ' + psMonthLabel(told[id]) + ' is in the app.', '/?open=payslips'); });
+    psUpload.items.forEach(function(it){ try { URL.revokeObjectURL(it.url); } catch (e) {} });
+    psUpload = null; closeModal('modal-ps-upload'); toast(done + ' payslip(s) saved', 'success');
+  }).catch(function(e){
+    toast('Stopped: ' + (e.message || e) + ' (' + done + ' saved)', 'error'); psRenderReview();
+  }).then(function(){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; psLoad(); });
+}
+
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
-  // Accounting is for admins only (wages, margins, every cost)
-  if (!isAdmin) { locked.style.display = 'flex'; content.style.display = 'none'; document.getElementById('acc-body').innerHTML = ''; return; }
+  // Accounting is for admins only (wages, margins, every cost); everyone else sees only their own payslips
+  if (!isAdmin && !isSecure()) { locked.style.display = 'flex'; content.style.display = 'none'; document.getElementById('acc-body').innerHTML = ''; return; }
+  if (!isAdmin) accTab = 'payslips';
+  content.classList.toggle('acc-staff', !isAdmin); content.classList.toggle('acc-on-ps', accTab === 'payslips');
   locked.style.display = 'none'; content.style.display = 'block';
   if (accYear < ACC_FIRST_YEAR) accYear = ACC_FIRST_YEAR;
   document.getElementById('acc-year-label').textContent = accYear;
@@ -9833,7 +10182,7 @@ function renderAccounting() {
   var caret = actKey ? [act.selectionStart, act.selectionEnd] : null;
   accRedrawWaiting = false; accLastView = view;
   var scrolls = sameView ? [].map.call(body.querySelectorAll('.acc-scroll'), function(x){ return [x.scrollLeft, x.scrollTop]; }) : [];
-  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML, items: accItemsHTML }[accTab]();
+  var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML, items: accItemsHTML, payslips: accPayslipsHTML }[accTab]();
   body.innerHTML = html;
   [].forEach.call(body.querySelectorAll('.acc-scroll'), function(x, i){ if (scrolls[i]) { x.scrollLeft = scrolls[i][0]; x.scrollTop = scrolls[i][1]; } });
   if (actKey && sameView) {
@@ -11412,6 +11761,14 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
   if (t.closest('#btn-is-import-save')) { isSaveImport(); return; }
 
+  // Payslips
+  el = t.closest('[data-ps-open]'); if (el) { psOpen(el.dataset.psOpen); return; }
+  el = t.closest('[data-ps-del]'); if (el) { psDelete(el.dataset.psDel); return; }
+  el = t.closest('[data-ps-add]'); if (el) { psPickFiles(el.dataset.psAdd); return; }
+  if (t.closest('#btn-ps-upload')) { psPickFiles(''); return; }
+  el = t.closest('[data-ps-up-drop]'); if (el) { var pdi = psUpload && psUpload.items[+el.dataset.psUpDrop]; if (pdi) { pdi.drop = true; psRenderReview(); } return; }
+  if (t.closest('#btn-ps-up-save')) { psSaveUpload(); return; }
+
   // Settings cards: open / close
   el = t.closest('.set-toggle');
   if (el) { settingsToggle(el); return; }
@@ -11959,6 +12316,10 @@ document.addEventListener('change', function(e) {
   if (t.id === 'ev-allday') evSyncTimes();
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
   if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
+  if (t.id === 'ps-file' && t.files && t.files.length) { psReadFiles(t.files); t.value = ''; }
+  if (t.dataset && t.dataset.psUpUser !== undefined && psUpload) { var pui = psUpload.items[+t.dataset.psUpUser]; if (pui) { pui.uid = t.value; pui.by = 'chosen'; psRenderReview(); } }
+  if (t.dataset && t.dataset.psUpMonth !== undefined) psSetPeriod(+t.dataset.psUpMonth, 'm', t.value);
+  if (t.dataset && t.dataset.psUpYear !== undefined) psSetPeriod(+t.dataset.psUpYear, 'y', t.value);
   if (t.dataset && t.dataset.isMap !== undefined && isImport) { var il = isImport.lines[+t.dataset.isMap]; if (il) { il.itemId = t.value; t.closest('.is-imp-row').classList.toggle('skip', !t.value); } }
   if (t.id === 'clock-month' && t.value) { clockMonth = t.value; clockDayF = clockDayF && clockDayF.slice(0, 7) === t.value ? clockDayF : ''; renderClockTab(); }
   if (t.id === 'clock-day') { clockDayF = t.value || ''; if (clockDayF && clockDayF.slice(0, 7) !== clockMonth) clockMonth = clockDayF.slice(0, 7); renderClockTab(); }
