@@ -546,6 +546,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .ps-up-row.need .ps-up-meta { color:var(--amber-700); font-weight:700; }
     .ps-up-row.need > select { border-color:var(--amber-700); }
     .ps-up-period { display:grid; grid-template-columns:1fr 110px; gap:8px; }
+    .ps-up-row.risk { background:var(--red-50); margin:0 -10px; padding:10px; border-radius:10px; }
+    .ps-up-risk { display:flex; gap:6px; align-items:flex-start; font-size:12.5px; font-weight:700; color:var(--red); margin-top:6px; }
+    .ps-up-risk i { margin-top:2px; }
+    .ps-up-ok { display:flex; gap:8px; align-items:center; min-height:36px; font-size:13px; font-weight:700; color:var(--slate-800); margin-top:4px; cursor:pointer; }
+    .ps-up-ok input { width:18px; height:18px; accent-color:var(--teal-600); }
     .order-rejected { border:var(--rule); border-color:var(--red-200); background:var(--red-50); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
     .ord-rejected-note { display:flex; align-items:flex-start; gap:6px; font-size:12px; font-weight:600; color:var(--red-700); margin-bottom:8px; }
     /* Order lines, with the admin's changes shown to everyone */
@@ -10051,12 +10056,31 @@ function psPeriodIn(text) {
   Object.keys(votes).forEach(function(k){ if (!best || votes[k] > votes[best]) best = k; });
   return best;
 }
+function psOwnIds(uid, users) { var u = users.find(function(x){ return x.id === uid; }); var k = u ? psIdKey(u.employeeNo) : ''; return k ? [k] : []; }
+// Other people a payslip mentions (their Employee ID, or their full name when it has two words or more)
+function psOthers(it, users) {
+  if (!it.text) return [];
+  var ids = psIdsInText(it.text), norm = ' ' + psNorm(it.text) + ' ';
+  return users.filter(function(u){
+    if (u.id === it.uid) return false;
+    var k = psIdKey(u.employeeNo), nm = psNorm(u.name);
+    return (k && /^\d+$/.test(k) && ids[k]) || (nm.indexOf(' ') !== -1 && norm.indexOf(' ' + nm + ' ') !== -1);
+  }).map(function(u){ return u.name; });
+}
+// A payslip to look at before saving: it names other people, has many pages, or could not be read
+function psRisk(it, users) {
+  var others = psOthers(it, users);
+  if (others.length) return 'Also mentions ' + others.join(', ') + ': open it and check it holds one person only';
+  if (it.pages > 2) return it.pages + ' pages: open it and check it holds one person only';
+  if (it.unread) return 'Could not read this file: open it and check it holds one person only';
+  return '';
+}
 function psLastMonth() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 function psItem(blob, name, pages, text, users, preset, match) {
   var label = name.replace(/\\.[a-z0-9]+$/i, '').replace(/[_\\-]+/g, ' ');
   var m = preset ? { uid: preset, by: 'chosen' } : (match || psMatchText(text + ' ' + label, users));
   var period = psPeriodIn(text + ' ' + label);
-  return { blob: blob, name: name, pages: pages, uid: m ? m.uid : '', by: m ? m.by : '', period: period || psLastMonth(), periodGuess: !period, url: URL.createObjectURL(blob) };
+  return { blob: blob, name: name, pages: pages, text: text, uid: m ? m.uid : '', by: m ? m.by : '', period: period || psLastMonth(), periodGuess: !period, url: URL.createObjectURL(blob) };
 }
 // One file → one payslip per person (pages without a match stay with the person before them: a 2-page payslip)
 function psSplitFile(f, users, preset) {
@@ -10064,16 +10088,24 @@ function psSplitFile(f, users, preset) {
   if (!isPdf) return Promise.resolve([psItem(f, f.name, 1, '', users, preset)]);
   return f.arrayBuffer().then(function(buf){
     return psPdfPages(buf).then(function(texts){
+      // Pages are always grouped per person, also when the file was picked from one person's "+": a file with
+      // everyone must never go to one person
       var groups = [];
-      if (!preset) texts.forEach(function(t, i){
+      texts.forEach(function(t, i){
         var m = psMatchText(t, users), g = groups[groups.length - 1], ids = Object.keys(psIdsInText(t));
-        // a page with an Employee ID of its own is someone else's payslip, even when that person is not in the app
-        var other = !m && g && ids.length && !ids.some(function(k){ return g.ids.indexOf(k) !== -1; });
+        // a page joins the payslip before it only when it shows no other Employee ID (one not of that person),
+        // so the next person's page starts a new payslip even when that person is not in the app
+        var own = !g ? [] : g.uid ? psOwnIds(g.uid, users) : g.ids;
+        var other = !m && g && ids.some(function(k){ return own.indexOf(k) === -1; });
         if (g && !other && (!m || m.uid === g.uid)) { g.pages.push(i); g.text += ' ' + t; return; }
         if (g && !other && !g.uid && !g.ids.length && m) { g.uid = m.uid; g.by = m.by; g.ids = ids; g.pages.push(i); g.text += ' ' + t; return; }
         groups.push({ uid: m ? m.uid : '', by: m ? m.by : '', ids: ids, pages: [i], text: t });
       });
-      if (groups.length < 2) return [psItem(f, f.name, texts.length, texts.join(' '), users, preset, groups[0] && groups[0].uid ? groups[0] : null)];
+      if (groups.length < 2) {
+        // one person's file: picked from someone's "+" it goes to them, unless the pages clearly name someone else
+        var g0 = groups[0], pre = preset && (!g0 || !g0.uid || g0.uid === preset) ? preset : '';
+        return [psItem(f, f.name, texts.length, texts.join(' '), users, pre, g0 && g0.uid ? g0 : null)];
+      }
       return psPdflib().then(function(PDFLib){ return PDFLib.PDFDocument.load(buf, { ignoreEncryption: true }).then(function(src){
         var out = [], chain = Promise.resolve();
         groups.forEach(function(g){
@@ -10088,7 +10120,7 @@ function psSplitFile(f, users, preset) {
         return chain.then(function(){ return out; });
       }); });
     });
-  }).catch(function(){ return [psItem(f, f.name, 1, '', users, preset)]; });   // could not read the text: the admin chooses
+  }).catch(function(){ var it = psItem(f, f.name, 0, '', users, ''); it.unread = true; return [it]; });   // text not readable: the admin chooses and checks
 }
 function psPickFiles(uid) { psPreset = uid || ''; var f = document.getElementById('ps-file'); if (f) { f.value = ''; f.click(); } }
 function psReadFiles(files) {
@@ -10111,11 +10143,13 @@ function psRenderReview() {
     var py = +it.period.slice(0, 4), pm = +it.period.slice(5, 7), years = [y - 1, y, y + 1];
     if (years.indexOf(py) === -1) years.unshift(py);
     var dup = it.uid && (psState.rows || []).some(function(p){ return p.uid === it.uid && p.period === it.period; });
-    var note = it.uid ? PS_BY[it.by] || '' : 'not matched: choose the person';
-    h += '<div class="ps-up-row' + (it.uid ? '' : ' need') + '">' +
+    var note = it.uid ? PS_BY[it.by] || '' : 'not matched: choose the person', risk = psRisk(it, users);
+    h += '<div class="ps-up-row' + (it.uid ? '' : ' need') + (risk ? ' risk' : '') + '">' +
       '<div class="ps-up-file"><a href="' + it.url + '" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> <span>' + esc(it.name) + '</span></a>' +
         '<span class="ps-up-meta">' + (it.pages > 1 ? '<span>' + it.pages + ' pages</span> · ' : '') + '<span>' + note + '</span>' +
-        (it.periodGuess ? ' · <span>month not found: check it</span>' : '') + (dup ? ' · <span>replaces the one saved for this month</span>' : '') + '</span></div>' +
+        (it.periodGuess ? ' · <span>month not found: check it</span>' : '') + (dup ? ' · <span>replaces the one saved for this month</span>' : '') + '</span>' +
+        (risk ? '<span class="ps-up-risk"><i class="fas fa-triangle-exclamation"></i> <span>' + esc(risk) + '</span></span>' +
+          '<label class="ps-up-ok"><input type="checkbox" data-ps-up-ok="' + i + '"' + (it.checked ? ' checked' : '') + ' /> <span>I opened it: one person only</span></label>' : '') + '</div>' +
       '<button type="button" class="ps-del" data-ps-up-drop="' + i + '" aria-label="Leave out" title="Leave out"><i class="fas fa-xmark"></i></button>' +
       '<select class="select-field" data-ps-up-user="' + i + '" aria-label="Person"><option value="">Choose the person…</option>' +
         users.map(function(u){ return '<option value="' + esc(u.id) + '"' + (u.id === it.uid ? ' selected' : '') + '>' + esc(u.name) + (u.employeeNo ? ' · ' + esc(u.employeeNo) : '') + '</option>'; }).join('') + '</select>' +
@@ -10135,6 +10169,8 @@ function psSaveUpload() {
   var list = psUpload ? psUpload.items.filter(function(it){ return !it.drop && !it.saved; }) : [];
   if (!list.length) { closeModal('modal-ps-upload'); return; }
   if (list.some(function(it){ return !it.uid; })) { toast('Choose the person for every payslip, or leave it out', 'error'); return; }
+  var users = psPeople();
+  if (list.some(function(it){ return !it.checked && psRisk(it, users); })) { toast('Open the payslips marked in red and tick that each holds one person only, or leave them out', 'error'); return; }
   var btn = document.getElementById('btn-ps-up-save'), done = 0, told = {}, chain = Promise.resolve();
   btn.disabled = true;
   list.forEach(function(it){
@@ -12317,7 +12353,8 @@ document.addEventListener('change', function(e) {
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
   if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
   if (t.id === 'ps-file' && t.files && t.files.length) { psReadFiles(t.files); t.value = ''; }
-  if (t.dataset && t.dataset.psUpUser !== undefined && psUpload) { var pui = psUpload.items[+t.dataset.psUpUser]; if (pui) { pui.uid = t.value; pui.by = 'chosen'; psRenderReview(); } }
+  if (t.dataset && t.dataset.psUpUser !== undefined && psUpload) { var pui = psUpload.items[+t.dataset.psUpUser]; if (pui) { pui.uid = t.value; pui.by = 'chosen'; pui.checked = false; psRenderReview(); } }
+  if (t.dataset && t.dataset.psUpOk !== undefined && psUpload) { var pok = psUpload.items[+t.dataset.psUpOk]; if (pok) pok.checked = t.checked; }
   if (t.dataset && t.dataset.psUpMonth !== undefined) psSetPeriod(+t.dataset.psUpMonth, 'm', t.value);
   if (t.dataset && t.dataset.psUpYear !== undefined) psSetPeriod(+t.dataset.psUpYear, 'y', t.value);
   if (t.dataset && t.dataset.isMap !== undefined && isImport) { var il = isImport.lines[+t.dataset.isMap]; if (il) { il.itemId = t.value; t.closest('.is-imp-row').classList.toggle('skip', !t.value); } }
