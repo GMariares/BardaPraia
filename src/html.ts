@@ -695,6 +695,36 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .gantt-bar-label { position:absolute; top:0; bottom:0; right:0; display:block; line-height:24px; padding:0 7px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; pointer-events:none; }
     .gantt-bar.has-ot { border-top-right-radius:0; border-bottom-right-radius:0; }
     /* late: the part of the shift not worked, faded and hatched */
+    /* Calendar → Tables */
+    .rt-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .rt-nav { display:flex; align-items:center; gap:8px; }
+    .rt-label { font-weight:800; color:var(--slate-900); min-width:110px; text-align:center; }
+    .rt-sum { font-size:13px; color:var(--slate-500); margin-bottom:10px; }
+    .rt-sum b { color:var(--slate-900); }
+    .rt-card { padding:0; overflow:hidden; }
+    .rt-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .rt-day { min-width:720px; }
+    .rt-row { display:flex; align-items:stretch; border-bottom:1px solid var(--slate-100); }
+    .rt-row:last-child { border-bottom:0; }
+    .rt-name { width:76px; flex-shrink:0; padding:10px; font-weight:800; font-size:13px; color:var(--slate-800); position:sticky; left:0; background:var(--panel); z-index:2; border-right:1px solid var(--slate-100); }
+    .rt-track { flex:1; position:relative; min-height:46px; cursor:copy; background-image:linear-gradient(to right, var(--slate-100) 1px, transparent 1px); background-size:calc(100% / var(--rt-hours, 14)) 100%; }
+    .rt-head .rt-name { background:var(--slate-50); }
+    .rt-ticks { flex:1; position:relative; height:28px; background:var(--slate-50); }
+    .rt-ticks span { position:absolute; top:7px; transform:translateX(-50%); font-size:11px; font-weight:700; color:var(--slate-500); }
+    .rt-ticks span:first-child { transform:none; padding-left:4px; }
+    .rt-block { position:absolute; top:6px; bottom:6px; border:0; border-radius:7px; background:var(--teal-600); color:white; font:inherit; font-size:12px; text-align:left; padding:0 8px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
+    .rt-block.is-noshow { background:var(--slate-300); color:var(--slate-700); text-decoration:line-through; }
+    .rt-block.is-clash { background:var(--red); }
+    .rt-week { border-collapse:collapse; width:100%; min-width:760px; font-size:12px; }
+    .rt-week th, .rt-week td { border-bottom:1px solid var(--slate-100); padding:6px; vertical-align:top; text-align:left; }
+    .rt-week thead th { background:var(--slate-50); font-size:12px; }
+    .rt-week thead th.is-today { background:var(--mint-100); }
+    .rt-week thead small { display:block; font-weight:500; color:var(--slate-500); }
+    .rt-week tbody th { position:sticky; left:0; background:var(--panel); font-weight:800; color:var(--slate-800); width:64px; z-index:1; }
+    .rt-week td.rt-free { color:var(--slate-300); cursor:pointer; }
+    .rt-daylink { background:none; border:0; padding:0; font:inherit; font-weight:800; color:var(--slate-800); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+    .rt-chip { display:block; width:100%; text-align:left; margin-bottom:4px; padding:4px 6px; border:0; border-radius:6px; background:var(--mint-100); color:var(--slate-900); font:inherit; font-size:12px; cursor:pointer; }
+    .rt-chip.is-noshow { background:var(--slate-100); color:var(--slate-500); text-decoration:line-through; }
     .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
     .shift-b2-btn { width:34px; height:34px; border:var(--rule); border-radius:8px; background:var(--panel); color:var(--teal-600); cursor:pointer; font-size:12px; }
     .shift-b2-btn.is-remove { color:var(--slate-500); }
@@ -1402,6 +1432,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn" data-nav="calendar"><i class="fas fa-calendar-days"></i> Month</button>
         <button class="tab-btn active" id="res-tab-calendar" data-res-tab="calendar"><i class="fas fa-calendar-week"></i> Week</button>
         <button class="tab-btn" id="res-tab-list" data-res-tab="list"><i class="fas fa-list"></i> Reservations</button>
+        <button class="tab-btn" id="res-tab-tables" data-res-tab="tables"><i class="fas fa-chair"></i> Tables</button>
       </div>
       <button class="btn btn-primary btn-sm" id="btn-add-reservation"><i class="fas fa-plus"></i> Reservation</button>
     </div>
@@ -1422,6 +1453,20 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <div id="res-day-list"><div class="empty-state"><i class="fas fa-hand-pointer"></i><p>Tap a day to see reservations</p></div></div>
       </div>
     </div>
+    <div id="res-panel-tables" style="display:none">
+      <div class="rt-bar">
+        <div class="fc-switch" role="tablist" aria-label="Day or week">
+          <button data-rt-mode="day">Day</button><button data-rt-mode="week">Week</button>
+        </div>
+        <div class="rt-nav">
+          <button class="btn btn-secondary btn-sm btn-icon" data-rt-step="-1" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+          <span class="rt-label" id="rt-label"></span>
+          <button class="btn btn-secondary btn-sm btn-icon" data-rt-step="1" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+          <button class="btn btn-secondary btn-sm" data-rt-today>Today</button>
+        </div>
+      </div>
+      <div id="rt-body"></div>
+    </div>
     <div id="res-panel-list" style="display:none">
       <div class="search-bar">
         <i class="fas fa-search"></i>
@@ -1441,6 +1486,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn active" aria-selected="true"><i class="fas fa-calendar-days"></i> Month</button>
         <button class="tab-btn" data-cal-goto="calendar"><i class="fas fa-calendar-week"></i> Week</button>
         <button class="tab-btn" data-cal-goto="list"><i class="fas fa-list"></i> Reservations</button>
+        <button class="tab-btn" data-cal-goto="tables"><i class="fas fa-chair"></i> Tables</button>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" id="btn-add-event" style="display:none"><i class="fas fa-calendar-plus"></i> Event</button>
@@ -4988,7 +5034,7 @@ function showSection(name) {
   // Render immediately from local cache (instant UI)
   if (name === 'dashboard')    renderDashboard();
   if (name === 'inventory')    { renderInventory(); renderSuppliers(); }
-  if (name === 'reservations') { renderCalendar(); renderAllReservations(); }
+  if (name === 'reservations') { renderCalendar(); renderAllReservations(); if (currentResTab === 'tables') renderResTables(); }
   if (name === 'calendar')     renderCalView();
   if (name === 'tasks')        renderTasks();
   if (name === 'shifts')       renderShifts();
@@ -5356,6 +5402,79 @@ function renderTableGrid(gridId, selectedArr, busy) {
     grid.appendChild(chip);
   });
 }
+// ── Tables view (Calendar → Tables): which tables are booked when, by day or by week ──
+var rtMode = 'day', rtDate = '';
+function rtTablesFor(list) {
+  var tabs = getTables().slice();
+  list.forEach(function(r){ resTablesOf(r).forEach(function(t){ if (tabs.indexOf(t) === -1) tabs.push(t); }); });
+  return tabs;
+}
+function resTablesOf(r) { return Array.isArray(r.tables) ? r.tables : (r.table ? [r.table] : []); }
+function rtResOn(dateStr) { return (getDB().reservations || []).filter(function(r){ return r.date === dateStr && r.status !== 'cancelled'; }); }
+function rtHM(m) { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function renderResTables() {
+  var el = document.getElementById('rt-body'); if (!el) return;
+  if (!rtDate) rtDate = toDateStr(new Date());
+  document.querySelectorAll('[data-rt-mode]').forEach(function(b){ b.classList.toggle('active', b.dataset.rtMode === rtMode); });
+  var d0 = new Date(rtDate + 'T12:00:00');
+  if (rtMode === 'week') {
+    var mon = getMonday(d0), days = [];
+    for (var i = 0; i < 7; i++) { var x = new Date(mon); x.setDate(mon.getDate() + i); days.push(toDateStr(x)); }
+    document.getElementById('rt-label').textContent = fmtDay(days[0], true) + ' – ' + fmtDay(days[6], true);
+    var all = []; days.forEach(function(ds){ all = all.concat(rtResOn(ds)); });
+    var tabs = rtTablesFor(all), today = toDateStr(new Date());
+    if (!tabs.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-chair"></i><p>No tables yet. Add them in Settings → Table configuration.</p></div>'; return; }
+    var h = '<div class="card rt-card"><div class="rt-scroll"><table class="rt-week"><thead><tr><th>Table</th>' + days.map(function(ds){
+      return '<th class="' + (ds === today ? 'is-today' : '') + '"><button class="rt-daylink" data-rt-day="' + ds + '">' + esc(fmtDay(ds, false)) + '</button><small>' + rtResOn(ds).length + ' res.</small></th>'; }).join('') + '</tr></thead><tbody>';
+    tabs.forEach(function(t){
+      h += '<tr><th>' + esc(t) + '</th>' + days.map(function(ds){
+        var list = rtResOn(ds).filter(function(r){ return resTablesOf(r).indexOf(t) !== -1; }).sort(function(a, b){ return String(a.time).localeCompare(String(b.time)); });
+        if (!list.length) return '<td class="rt-free" data-rt-day="' + ds + '" title="Free all day">free</td>';
+        return '<td>' + list.map(function(r){ return '<button class="rt-chip' + (r.status === 'no-show' ? ' is-noshow' : '') + '" data-open-res="' + esc(r.id) + '"><b>' + esc(r.time) + '</b> ' + esc(r.guestName) + ' · ' + esc(r.guests) + '</button>'; }).join('') + '</td>';
+      }).join('') + '</tr>';
+    });
+    el.innerHTML = h + '</tbody></table></div></div><p class="acc-note">Tap a booking to open it, or a day to see it hour by hour.</p>';
+    return;
+  }
+  // Day: one line per table, bookings placed on the hours
+  document.getElementById('rt-label').textContent = fmtDay(rtDate);
+  var res = rtResOn(rtDate), tabs2 = rtTablesFor(res);
+  if (!tabs2.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-chair"></i><p>No tables yet. Add them in Settings → Table configuration.</p></div>'; return; }
+  var from = 10 * 60, to = 24 * 60;
+  res.forEach(function(r){ var w = resWindow(r); from = Math.min(from, Math.floor(w[0] / 60) * 60); to = Math.max(to, Math.ceil(w[1] / 60) * 60); });
+  var span = to - from, pct = function(m){ return ((m - from) / span * 100).toFixed(2); };
+  var busy = 0, guests = 0; res.forEach(function(r){ if (r.status !== 'no-show') guests += +r.guests || 0; });
+  var ticks = ''; for (var m = from; m <= to; m += 60) ticks += '<span style="left:' + pct(m) + '%">' + (m / 60 % 24) + '</span>';
+  var rows = tabs2.map(function(t){
+    var list = res.filter(function(r){ return resTablesOf(r).indexOf(t) !== -1; });
+    if (list.some(function(r){ return r.status !== 'no-show'; })) busy++;
+    // bookings that overlap on the same table go on separate lanes, one above the other
+    var lanes = [], laneOf = {};
+    list.slice().sort(function(a, b){ return resWindow(a)[0] - resWindow(b)[0]; }).forEach(function(r){
+      var w = resWindow(r), li = lanes.findIndex(function(end){ return end <= w[0]; });
+      if (li === -1) { li = lanes.length; lanes.push(0); } lanes[li] = w[1]; laneOf[r.id] = li;
+    });
+    var nl = Math.max(1, lanes.length);
+    var blocks = list.map(function(r){
+      var w = resWindow(r), clash = list.some(function(o){ if (o === r || o.status === 'no-show' || r.status === 'no-show') return false; var v = resWindow(o); return w[0] < v[1] && v[0] < w[1]; });
+      var laneH = 100 / nl, top = 'calc(' + (laneOf[r.id] * laneH).toFixed(2) + '% + 4px)', hgt = 'calc(' + laneH.toFixed(2) + '% - 8px)';
+      return '<button class="rt-block' + (r.status === 'no-show' ? ' is-noshow' : '') + (clash ? ' is-clash' : '') + '" style="top:' + top + ';height:' + hgt + ';bottom:auto;left:' + pct(w[0]) + '%;width:' + Math.max(1.5, (w[1] - w[0]) / span * 100).toFixed(2) + '%" data-open-res="' + esc(r.id) + '" title="' + esc(resLabel(r) + ' ' + r.guestName + ' · ' + r.guests + (r.endTime ? '' : ' (no end time: held ' + (RES_DEFAULT_MINUTES / 60) + 'h)')) + '">'
+        + '<b>' + esc(r.time) + '</b> ' + esc(r.guestName) + ' · ' + esc(r.guests) + '</button>';
+    }).join('');
+    return '<div class="rt-row"><div class="rt-name">' + esc(t) + '</div><div class="rt-track" style="min-height:' + (nl * 40 + 6) + 'px" data-rt-table="' + esc(t) + '" data-rt-from="' + from + '" data-rt-span="' + span + '">' + blocks + '</div></div>';
+  }).join('');
+  el.innerHTML = '<div class="rt-sum"><b>' + res.length + '</b> reservation' + (res.length === 1 ? '' : 's') + ' · <b>' + guests + '</b> guests · <b>' + busy + '</b> of ' + tabs2.length + ' tables booked</div>'
+    + '<div class="card rt-card"><div class="rt-scroll"><div class="rt-day" style="--rt-hours:' + (span / 60) + '"><div class="rt-row rt-head"><div class="rt-name"></div><div class="rt-ticks">' + ticks + '</div></div>' + rows + '</div></div></div>'
+    + '<p class="acc-note">Tap a booking to open it, or an empty spot to book that table at that time. Red: two bookings overlap on the same table.</p>';
+}
+// Tap on an empty spot of a table's line: book that table, at that time (rounded to 30 minutes)
+function rtTrackTap(track, ev) {
+  var r = track.getBoundingClientRect(); if (!r.width) return;
+  var m = +track.dataset.rtFrom + (ev.clientX - r.left) / r.width * +track.dataset.rtSpan;
+  m = Math.round(m / 30) * 30;
+  openAddReservationModal({ date: rtDate, time: rtHM(m), table: track.dataset.rtTable });
+}
+
 // ── Table availability for reservations ─────────────────────────
 var RES_DEFAULT_MINUTES = 120;   // a reservation without an end time holds its tables this long
 function resWindow(r) {
@@ -7166,8 +7285,11 @@ function sendOrderWhatsApp(orderId){
 // ================================================
 // RESERVATIONS
 // ================================================
+var currentResTab = 'calendar';
 function switchResTab(t){
-  ['calendar','list'].forEach(function(x){
+  currentResTab = t;
+  if (t === 'tables') renderResTables();
+  ['calendar','list','tables'].forEach(function(x){
     document.getElementById('res-tab-'+x).classList.toggle('active',x===t);
     document.getElementById('res-tab-'+x).setAttribute('aria-selected', x===t ? 'true' : 'false');
     document.getElementById('res-panel-'+x).style.display=x===t?'block':'none';
@@ -7497,15 +7619,16 @@ function setResStatus(id,status){
   toast(status==='no-show'?'Marked as a no-show':'Back to confirmed', status==='no-show'?'':'success');
   sbFetch('PATCH','reservations',{status:status},'id=eq.'+id).catch(function(){});
 }
-function openAddReservationModal(){
-  selectedTables=[];
+function openAddReservationModal(pre){
+  pre = pre && pre.date ? pre : null;
+  selectedTables=pre&&pre.table?[pre.table]:[];
   renderTableGrid('res-table-grid', selectedTables);
   document.getElementById('res-modal-title').textContent='New Reservation';
   document.getElementById('res-edit-id').value='';
   document.getElementById('res-guest-name').value='';
   document.getElementById('res-phone').value='';
-  document.getElementById('res-date').value=toDateStr(new Date());
-  document.getElementById('res-time').value='12:00';
+  document.getElementById('res-date').value=pre?pre.date:toDateStr(new Date());
+  document.getElementById('res-time').value=pre&&pre.time?pre.time:'12:00';
   document.getElementById('res-end').value='';
   document.getElementById('res-guests').value='2';
   document.getElementById('res-notes').value='';
@@ -11271,6 +11394,14 @@ function renderDashboard(){
 document.addEventListener('click', function(e) {
   var t = e.target;
   var el;
+
+  // Calendar → Tables
+  el = t.closest('[data-rt-mode]'); if (el) { rtMode = el.dataset.rtMode; renderResTables(); return; }
+  el = t.closest('[data-rt-step]'); if (el) { var rd = new Date((rtDate || toDateStr(new Date())) + 'T12:00:00'); rd.setDate(rd.getDate() + (+el.dataset.rtStep) * (rtMode === 'week' ? 7 : 1)); rtDate = toDateStr(rd); renderResTables(); return; }
+  if (t.closest('[data-rt-today]')) { rtDate = toDateStr(new Date()); renderResTables(); return; }
+  el = t.closest('[data-rt-day]'); if (el) { rtDate = el.dataset.rtDay; rtMode = 'day'; renderResTables(); return; }
+  el = t.closest('[data-open-res]'); if (el && el.closest('#rt-body')) { openResDetail(el.dataset.openRes); return; }
+  el = t.closest('.rt-track'); if (el && t === el) { rtTrackTap(el, e); return; }
 
   // Shift form: second block
   el = t.closest('[data-shift-b2]'); if (el) { var b2r = shiftB2Row(el.dataset.shiftB2); shiftB2Show(el.dataset.shiftB2, b2r && b2r.style.display === 'none'); return; }
