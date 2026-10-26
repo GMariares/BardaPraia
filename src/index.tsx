@@ -282,6 +282,148 @@ app.post('/api/clock', async (c) => {
   return c.json({ ok: true, event: ev, time: loc.hm, minutes: open ? Math.round((now.getTime() - new Date(open.at).getTime()) / 60000) : 0 })
 })
 
+// ── Calendar on the phone (one way: the app → the phone's calendar) ──
+// Each person may create a private link (cal_feeds) that their phone subscribes to. The phone fetches it
+// every so often; nothing is ever written back. Deleting the link (or deactivating the person) stops it.
+const CAL_OPTS = ['shifts', 'events', 'reservations']
+function calCanReservations(roles: string[]) { return roles.indexOf('admin') !== -1 || roles.indexOf('shift_mgr') !== -1 }
+function calToken() { const b = new Uint8Array(24); crypto.getRandomValues(b); return btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') }
+function calFeedOut(c: any, row: any) {
+  if (!row) return null
+  const https = new URL(c.req.url).origin + '/cal/' + row.token + '.ics'
+  return { shifts: row.shifts !== false, events: row.events !== false, reservations: !!row.reservations, lang: row.lang || 'en', url: https, webcal: https.replace(/^https?:/, 'webcal:'), lastUsed: row.last_used_at || null }
+}
+async function calMine(cfg: Cfg, appUserId: string) {
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/cal_feeds?app_user_id=eq.${encodeURIComponent(appUserId)}&select=*`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  if (!r.ok) throw new Error((await r.text()).slice(0, 160))
+  const rows: any[] = await r.json()
+  return rows[0] || null
+}
+app.get('/api/cal/me', async (c) => {
+  const cfg = getConfig(c.env); c.header('Cache-Control', 'no-store')
+  const me = await staffFromToken(c, cfg); if (!me) return c.json({ error: 'Not logged in' }, 401)
+  if (!cfg.SB_SERVICE_KEY) return c.json({ error: 'The SB_SERVICE_KEY secret is not set in Cloudflare yet' }, 400)
+  try { return c.json({ feed: calFeedOut(c, await calMine(cfg, me.appUserId)), canReservations: calCanReservations(me.roles) }) }
+  catch (e: any) { return c.json({ error: e.message, missing: /cal_feeds/.test(e.message) }, 500) }
+})
+// Create the link, or change what it shows ({ renew: true } makes a new link: the old one stops working)
+app.post('/api/cal/me', async (c) => {
+  const cfg = getConfig(c.env)
+  const me = await staffFromToken(c, cfg); if (!me) return c.json({ error: 'Not logged in' }, 401)
+  if (!cfg.SB_SERVICE_KEY) return c.json({ error: 'The SB_SERVICE_KEY secret is not set in Cloudflare yet' }, 400)
+  const body: any = await c.req.json().catch(() => ({}))
+  const H = { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json', Prefer: 'return=representation' }
+  try {
+    const old = await calMine(cfg, me.appUserId)
+    const row: any = { app_user_id: me.appUserId, lang: body.lang === 'pt' ? 'pt' : 'en' }
+    CAL_OPTS.forEach(k => { row[k] = body[k] !== undefined ? !!body[k] : (old ? old[k] : k !== 'reservations') })
+    if (!calCanReservations(me.roles)) row.reservations = false
+    let r
+    if (old && !body.renew) r = await fetch(`${cfg.SB_URL}/rest/v1/cal_feeds?app_user_id=eq.${encodeURIComponent(me.appUserId)}`, { method: 'PATCH', headers: H, body: JSON.stringify(row) })
+    else {
+      if (old) await fetch(`${cfg.SB_URL}/rest/v1/cal_feeds?app_user_id=eq.${encodeURIComponent(me.appUserId)}`, { method: 'DELETE', headers: H })
+      r = await fetch(`${cfg.SB_URL}/rest/v1/cal_feeds`, { method: 'POST', headers: H, body: JSON.stringify({ ...row, token: calToken() }) })
+    }
+    if (!r.ok) throw new Error((await r.text()).slice(0, 160))
+    return c.json({ feed: calFeedOut(c, (await r.json())[0]), canReservations: calCanReservations(me.roles) })
+  } catch (e: any) { return c.json({ error: e.message, missing: /cal_feeds/.test(e.message) }, 500) }
+})
+app.delete('/api/cal/me', async (c) => {
+  const cfg = getConfig(c.env)
+  const me = await staffFromToken(c, cfg); if (!me) return c.json({ error: 'Not logged in' }, 401)
+  if (!cfg.SB_SERVICE_KEY) return c.json({ error: 'The SB_SERVICE_KEY secret is not set in Cloudflare yet' }, 400)
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/cal_feeds?app_user_id=eq.${encodeURIComponent(me.appUserId)}`, { method: 'DELETE', headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  return r.ok ? c.json({ ok: true }) : c.json({ error: (await r.text()).slice(0, 160) }, 500)
+})
+
+// The calendar file the phone reads
+const CAL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const CAL_TXT: Record<string, Record<string, string>> = {
+  en: { cal: 'Bar da Praia', shift: 'Shift', off: 'Day off', res: 'Reservation', pax: 'people', table: 'Table', from: 'Updated from the Bar da Praia app. Changes made here are not sent back.' },
+  pt: { cal: 'Bar da Praia', shift: 'Turno', off: 'Folga', res: 'Reserva', pax: 'pessoas', table: 'Mesa', from: 'Atualizado a partir da app Bar da Praia. Alterações feitas aqui não são enviadas de volta.' }
+}
+function calNorm(x: any) { return String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() }
+function calEsc(s: any) { return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/([,;])/g, '\\$1') }
+// Lines longer than 75 bytes are folded (RFC 5545)
+function calFold(line: string) {
+  const enc = new TextEncoder(), out: string[] = []
+  let cur = '', len = 0
+  for (const ch of line) { const n = enc.encode(ch).length; if (len + n > (out.length ? 74 : 75)) { out.push(cur); cur = ''; len = 0 } cur += ch; len += n }
+  out.push(cur)
+  return out.join('\r\n ')
+}
+function calAddDays(ymd: string, n: number) { const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
+const calYmd = (ymd: string) => ymd.replace(/-/g, '')
+const calHm = (t: any) => String(t || '').slice(0, 5)
+function calLocal(ymd: string, hm: string) { return calYmd(ymd) + 'T' + hm.replace(':', '').padEnd(4, '0') + '00' }
+// Start and end in Lisbon time; an end at or before the start is the next day
+function calTimed(ymd: string, a: string, b: string) {
+  const s = calHm(a), e = calHm(b) || s
+  return [`DTSTART;TZID=Europe/Lisbon:${calLocal(ymd, s)}`, `DTEND;TZID=Europe/Lisbon:${calLocal(e <= s ? calAddDays(ymd, 1) : ymd, e)}`]
+}
+const CAL_TZ = ['BEGIN:VTIMEZONE', 'TZID:Europe/Lisbon', 'X-LIC-LOCATION:Europe/Lisbon',
+  'BEGIN:DAYLIGHT', 'TZOFFSETFROM:+0000', 'TZOFFSETTO:+0100', 'TZNAME:WEST', 'DTSTART:19700329T010000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'END:DAYLIGHT',
+  'BEGIN:STANDARD', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0000', 'TZNAME:WET', 'DTSTART:19701025T020000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'END:STANDARD', 'END:VTIMEZONE']
+app.get('/cal/:file', async (c) => {
+  const cfg = getConfig(c.env)
+  const token = String(c.req.param('file') || '').replace(/\.ics$/i, '')
+  if (!cfg.SB_SERVICE_KEY || !/^[A-Za-z0-9_-]{20,64}$/.test(token)) return c.text('Not found', 404)
+  const H = svcHeaders(cfg.SB_SERVICE_KEY)
+  const get = async (q: string) => { const r = await fetch(`${cfg.SB_URL}/rest/v1/${q}`, { headers: H }); const j: any = r.ok ? await r.json().catch(() => []) : []; return Array.isArray(j) ? j : [] }
+  const feed = (await get(`cal_feeds?token=eq.${token}&select=*`))[0]
+  if (!feed) return c.text('Not found', 404)
+  const user = (await get(`app_users?id=eq.${encodeURIComponent(feed.app_user_id)}&select=id,name,username,employee,roles,active`))[0]
+  if (!user || user.active === false) return c.text('Not found', 404)
+  const L = CAL_TXT[feed.lang] || CAL_TXT.en, roles: string[] = Array.isArray(user.roles) ? user.roles : []
+  const today = new Date().toISOString().slice(0, 10), since = calAddDays(today, -60)
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
+  const ev: string[][] = []
+  const add = (uid: string, lines: string[]) => ev.push(['BEGIN:VEVENT', `UID:${uid}@bardapraia.org`, `DTSTAMP:${stamp}`, ...lines, 'END:VEVENT'])
+  // the person's name on the shift schedule: set in Users, otherwise matched on username or name (as in the app)
+  let emp = user.employee && user.employee !== '-' ? user.employee : ''
+  if (!emp && user.employee !== '-') {
+    const keys = [calNorm(user.username), calNorm(user.name), calNorm(String(user.name || '').split(' ')[0])]
+    const e = (await get('employees?select=name')).find((x: any) => keys.indexOf(calNorm(x.name)) !== -1)
+    emp = e ? e.name : ''
+  }
+  if (feed.shifts !== false && emp) {
+    const rows = await get(`shifts?employee=eq.${encodeURIComponent(emp)}&week_start=gte.${calAddDays(since, -7)}&select=*`)
+    rows.forEach((s: any) => {
+      const i = CAL_DAYS.indexOf(s.day); if (i < 0) return
+      const day = calAddDays(String(s.week_start).slice(0, 10), i); if (day < since) return
+      if (s.day_off) { add(`shift-${s.id}`, [`DTSTART;VALUE=DATE:${calYmd(day)}`, `DTEND;VALUE=DATE:${calYmd(calAddDays(day, 1))}`, `SUMMARY:${calEsc(L.off)}`, 'TRANSP:TRANSPARENT']); return }
+      const where = (z: any, sec: any) => [z, sec].filter(Boolean).join(' · ')
+      add(`shift-${s.id}`, [...calTimed(day, s.start_time, s.end_time), `SUMMARY:${calEsc(L.shift + (where(s.zone, s.section) ? ' · ' + where(s.zone, s.section) : ''))}`, `DESCRIPTION:${calEsc(L.from)}`])
+      if (s.start2 && s.end2) add(`shift-${s.id}-2`, [...calTimed(day, s.start2, s.end2), `SUMMARY:${calEsc(L.shift + (where(s.zone2 || s.zone, s.section2) ? ' · ' + where(s.zone2 || s.zone, s.section2) : ''))}`, `DESCRIPTION:${calEsc(L.from)}`])
+    })
+  }
+  if (feed.events !== false) {
+    const rows = await get(`cal_events?date=gte.${since}&select=*`)
+    rows.filter((e: any) => e.everyone || (Array.isArray(e.attendees) && e.attendees.indexOf(user.id) !== -1)).forEach((e: any) => {
+      const when = e.all_day || !e.start_time ? [`DTSTART;VALUE=DATE:${calYmd(e.date)}`, `DTEND;VALUE=DATE:${calYmd(calAddDays(e.date, 1))}`]
+        : calTimed(e.date, e.start_time, e.end_time || (String(Math.min(23, +calHm(e.start_time).slice(0, 2) + 1)).padStart(2, '0') + calHm(e.start_time).slice(2)))
+      add(`event-${e.id}`, [...when, `SUMMARY:${calEsc(e.title || 'Bar da Praia')}`, `DESCRIPTION:${calEsc([e.notes, L.from].filter(Boolean).join('\n\n'))}`])
+    })
+  }
+  if (feed.reservations && calCanReservations(roles)) {
+    const rows = await get(`reservations?date=gte.${calAddDays(today, -7)}&select=id,guest_name,date,time,end_time,guests,tables,status`)
+    rows.filter((r: any) => ['cancelled', 'no-show', 'noshow'].indexOf(String(r.status)) === -1).forEach((r: any) => {
+      const s = calHm(r.time), e = calHm(r.end_time) || (String((+s.slice(0, 2) + 2) % 24).padStart(2, '0') + s.slice(2))
+      const tables = Array.isArray(r.tables) && r.tables.length ? ' · ' + r.tables.join(', ') : ''
+      add(`res-${r.id}`, [...calTimed(r.date, s, e), `SUMMARY:${calEsc(L.res + ' · ' + (r.guest_name || '') + ' · ' + (r.guests || '?') + ' ' + L.pax + tables)}`, `DESCRIPTION:${calEsc(L.from)}`])
+    })
+  }
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Bar da Praia//Team app//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    `X-WR-CALNAME:${calEsc(L.cal + ' · ' + (user.name || ''))}`, 'X-WR-TIMEZONE:Europe/Lisbon', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H',
+    ...CAL_TZ, ...ev.flat(), 'END:VCALENDAR']
+  // note when the phone last read it (shown in the app), at most every 10 minutes
+  if (!feed.last_used_at || Date.now() - new Date(feed.last_used_at).getTime() > 600e3) {
+    const w = fetch(`${cfg.SB_URL}/rest/v1/cal_feeds?token=eq.${token}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ last_used_at: new Date().toISOString() }) }).catch(() => {})
+    try { c.executionCtx.waitUntil(w) } catch (e) { await w }
+  }
+  return new Response(lines.map(calFold).join('\r\n') + '\r\n', { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'private, max-age=300', 'Content-Disposition': 'inline; filename="bardapraia.ics"' } })
+})
+
 // Impersonate (admins, for testing): a real session for another staff login, so the app and the
 // database behave exactly as they would for that person. No email is sent; the person stays logged in
 // on their own devices.

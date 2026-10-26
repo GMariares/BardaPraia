@@ -316,6 +316,19 @@ CREATE TABLE IF NOT EXISTS item_sales (
 );
 CREATE INDEX IF NOT EXISTS item_sales_period ON item_sales (year, month);
 
+-- Calendar links for phones (only the server uses it; see migrations/2026-10-26-x-calendar-feeds.sql)
+CREATE TABLE IF NOT EXISTS cal_feeds (
+  token TEXT PRIMARY KEY,
+  app_user_id TEXT NOT NULL UNIQUE,
+  shifts BOOLEAN NOT NULL DEFAULT true,
+  events BOOLEAN NOT NULL DEFAULT true,
+  reservations BOOLEAN NOT NULL DEFAULT false,
+  lang TEXT NOT NULL DEFAULT 'en',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  last_used_at TIMESTAMPTZ
+);
+ALTER TABLE cal_feeds ENABLE ROW LEVEL SECURITY;
+
 -- Payslips (policies, the latest-3 rule and the storage bucket in migrations/2026-10-21-w-payslips.sql)
 CREATE TABLE IF NOT EXISTS payslips (
   id TEXT PRIMARY KEY,

@@ -494,6 +494,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .is-table tbody th, .is-table thead th:first-child { white-space:normal; min-width:150px; max-width:220px; line-height:1.25; }
     @media (max-width:600px) { .is-table tbody th, .is-table thead th:first-child { min-width:0; width:130px; max-width:130px; font-size:12px; overflow-wrap:break-word; } }
     .is-table .acc-in { width:72px; }
+    #acc-body [hidden] { display:none !important; }
+    .is-search { position:relative; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 10px; }
+    .is-search i { position:absolute; left:12px; top:13px; color:var(--slate-400); font-size:14px; pointer-events:none; }
+    .is-search input { flex:1 1 220px; max-width:360px; padding-left:36px; min-height:42px; }
+    .is-search span { font-size:12.5px; font-weight:700; color:var(--teal-700); font-variant-numeric:tabular-nums; }
     .is-menu-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--slate-100); }
     .is-menu-row:last-child { border-bottom:0; }
     .is-menu-row .nm { flex:1; min-width:0; font-weight:600; color:var(--slate-800); }
@@ -505,6 +510,20 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .is-imp-row { display:grid; grid-template-columns:1fr 64px; gap:6px 10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--slate-100); font-size:13px; }
     .is-imp-row select { grid-column:1 / -1; }
     .is-imp-row.skip { opacity:.55; }
+    /* Calendar on my phone */
+    .drawer-cal { margin-top:10px; width:100%; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:9px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
+    .cal-opts { background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
+    .cal-opt { display:flex; gap:10px; align-items:flex-start; padding:7px 0; cursor:pointer; }
+    .cal-opt input { width:20px; height:20px; margin-top:1px; accent-color:var(--teal-600); flex:0 0 auto; }
+    .cal-opt b { display:block; font-size:14px; color:var(--slate-900); }
+    .cal-opt small { display:block; font-size:12px; color:var(--slate-500); margin-top:1px; }
+    .cal-main { width:100%; justify-content:center; }
+    .cal-add { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .cal-add .btn { justify-content:center; text-decoration:none; }
+    .cal-add .btn-secondary { grid-column:1 / -1; }
+    .cal-help { margin:12px 0 8px; padding-left:18px; font-size:12.5px; color:var(--slate-600); line-height:1.5; }
+    .cal-used { margin-bottom:10px; }
+    .cal-actions { display:flex; gap:8px; justify-content:space-between; margin-bottom:10px; }
     /* Payslips */
     .acc-staff .acc-head, .acc-staff .tab-row, .acc-on-ps .acc-head { display:none; }
     .ps-warn { display:flex; gap:8px; align-items:flex-start; background:var(--amber-50); border:1px solid var(--amber-200); color:var(--amber-700); border-radius:10px; padding:9px 12px; }
@@ -1399,6 +1418,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       </div>
     </div>
     <div class="lang-switch drawer-lang" role="group" aria-label="Language"><i class="fas fa-language" aria-hidden="true"></i><button type="button" data-set-lang="en" lang="en">English</button><button type="button" data-set-lang="pt" lang="pt">Português</button></div>
+    <button id="btn-cal-sync" class="drawer-cal" data-cal-sync style="display:none"><i class="fas fa-calendar-check"></i> <span>Calendar on my phone</span></button>
     <button id="drawer-logout-btn" class="drawer-logout"><i class="fas fa-arrow-right-from-bracket"></i> Sign out</button>
     <button id="btn-enable-notif" style="margin-top:10px;width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
       <i class="fas fa-bell"></i> <span id="notif-btn-label">Enable Notifications</span> <i id="notif-status-dot" class="fas fa-circle" style="font-size:7px;margin-left:auto;color:rgba(255,255,255,.4)"></i>
@@ -1547,6 +1567,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
         <button class="tab-btn" data-cal-goto="tables"><i class="fas fa-chair"></i> Tables</button>
       </div>
       <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm cal-sync-btn" data-cal-sync style="display:none" title="Calendar on my phone" aria-label="Calendar on my phone"><i class="fas fa-mobile-screen"></i> <span>On my phone</span></button>
         <button class="btn btn-secondary btn-sm" id="btn-add-event" style="display:none"><i class="fas fa-calendar-plus"></i> Event</button>
         <button class="btn btn-primary btn-sm" id="calv-add-res"><i class="fas fa-plus"></i> Reservation</button>
       </div>
@@ -3130,6 +3151,17 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div style="display:flex;gap:10px;margin-top:14px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-ps-up-save"><i class="fas fa-save"></i> Save</button>
       <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-ps-upload">Cancel</button>
+    </div>
+  </div>
+</div>
+ <div class="modal-overlay" id="modal-cal-sync">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-calendar-check" style="color:var(--teal-600)"></i> Calendar on my phone</h2>
+    <p class="acc-note">Your shifts and events show in your phone’s calendar and keep themselves up to date. It only goes one way: changes made on the phone are not sent to the app.</p>
+    <div id="cal-sync-body"></div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-cal-sync">Close</button>
     </div>
   </div>
 </div>
@@ -4826,6 +4858,7 @@ function updateSessionUI() {
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
   dshow('ditem-accounting',   isAdmin || isSecure());   // staff: only their own payslips
+  document.querySelectorAll('[data-cal-sync]').forEach(function(b){ b.style.display = isSecure() ? '' : 'none'; });
   var accBadge = document.querySelector('#ditem-accounting .admin-only-badge'); if (accBadge) accBadge.style.display = isAdmin ? '' : 'none';
   dshow('ditem-foodcost',     canFoodCost());
   dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
@@ -10306,6 +10339,64 @@ function psSaveUpload() {
     toast('Stopped: ' + (e.message || e) + ' (' + done + ' saved)', 'error'); psRenderReview();
   }).then(function(){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; psLoad(); });
 }
+// ── Calendar on my phone (one way: the app → the phone's calendar) ──
+// Each person makes their own private link; the phone subscribes to it and refreshes it by itself.
+var calSync = null;   // { feed, canReservations, loading, busy, error, missing, draft }
+function calSyncOpen() {
+  if (!isSecure()) { toast('Needs the secure login to be switched on', 'error'); return; }
+  calSync = { loading: true }; calSyncRender(); openModal('modal-cal-sync'); calSyncCall('GET');
+}
+function calSyncOpts() {
+  var o = { lang: LANG };
+  [].forEach.call(document.querySelectorAll('#cal-sync-body [data-cal-opt]'), function(x){ o[x.dataset.calOpt] = x.checked; });
+  return o;
+}
+function calSyncCall(method, body) {
+  var prev = calSync || {};
+  calSync = Object.assign({}, prev, { busy: true, error: '' }); if (method !== 'GET') calSyncRender();
+  return fetch('/api/cal/me', { method: method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+    .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if (!r.ok) { var e = new Error(j.error || 'Not saved'); e.missing = !!j.missing; throw e; } return j; }); })
+    .then(function(j){
+      calSync = { feed: j.feed || null, canReservations: 'canReservations' in j ? !!j.canReservations : !!prev.canReservations, draft: prev.draft };
+      if (method === 'DELETE') toast('Calendar link stopped', 'success');
+      calSyncRender();
+    })
+    .catch(function(e){ calSync = Object.assign({}, prev, { busy: false, loading: false, error: e.message, missing: e.missing }); calSyncRender(); });
+}
+function calSyncRender() {
+  var box = document.getElementById('cal-sync-body'); if (!box || !calSync) return;
+  var s = calSync, f = s.feed, h = '';
+  if (s.loading) { box.innerHTML = '<p class="acc-note"><i class="fas fa-spinner fa-spin"></i> Loading…</p>'; return; }
+  if (s.missing) { box.innerHTML = '<p class="acc-note ps-warn"><i class="fas fa-triangle-exclamation"></i> <span>' + (isAdmin ? 'To switch this on, run the SQL file supabase/migrations/2026-10-26-x-calendar-feeds.sql in Supabase.' : 'This is not switched on yet. Ask the office.') + '</span></p>'; return; }
+  if (s.error) h += '<p class="acc-note ps-warn"><i class="fas fa-triangle-exclamation"></i> <span>' + esc(s.error) + '</span></p>';
+  var o = f || s.draft || { shifts: true, events: true, reservations: false };
+  var opt = function(k, label, help){ return '<label class="cal-opt"><input type="checkbox" data-cal-opt="' + k + '"' + (o[k] ? ' checked' : '') + (s.busy ? ' disabled' : '') + ' /><span><b>' + label + '</b>' + (help ? '<small>' + help + '</small>' : '') + '</span></label>'; };
+  h += '<div class="cal-opts"><div class="acc-card-title">Show in my calendar</div>' +
+    opt('shifts', 'My shifts', 'Days off too, from 2 months ago on') + opt('events', 'Events I am invited to', 'Meetings, opening hours, events') +
+    (s.canReservations ? opt('reservations', 'Reservations', 'Everyone’s, with the name, people and tables') : '') + '</div>';
+  if (!f) {
+    h += '<button class="btn btn-primary cal-main" id="btn-cal-create"' + (s.busy ? ' disabled' : '') + '><i class="fas fa-link"></i> Create my calendar link</button>';
+  } else {
+    var used = f.lastUsed ? new Date(f.lastUsed) : null;
+    h += '<div class="cal-add">' +
+      '<a class="btn btn-primary" href="' + esc(f.webcal) + '"><i class="fab fa-apple"></i> iPhone / Mac</a>' +
+      '<a class="btn btn-primary" href="https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(f.webcal) + '" target="_blank" rel="noopener"><i class="fab fa-google"></i> Google / Android</a>' +
+      '<button type="button" class="btn btn-secondary" data-copy-cal="' + esc(f.url) + '"><i class="fas fa-copy"></i> Copy link</button></div>' +
+      '<ul class="cal-help"><li>iPhone: tap “iPhone / Mac”, then Subscribe.</li><li>Android: tap “Google / Android” and add it with the Google account your phone uses.</li>' +
+      '<li>Changes in the app reach the phone by themselves, usually within an hour (Google can take a few hours).</li></ul>' +
+      '<p class="acc-note cal-used"><i class="fas fa-mobile-screen"></i> ' + (used ? 'Your phone last updated it: ' + fmtDay(toDateStr(used)) + ', ' + String(used.getHours()).padStart(2, '0') + ':' + String(used.getMinutes()).padStart(2, '0') : 'Not on a phone yet.') + '</p>' +
+      '<div class="cal-actions"><button type="button" class="btn btn-secondary btn-sm" id="btn-cal-renew"' + (s.busy ? ' disabled' : '') + '><i class="fas fa-rotate"></i> New link</button>' +
+      '<button type="button" class="btn btn-danger btn-sm" id="btn-cal-stop"' + (s.busy ? ' disabled' : '') + '><i class="fas fa-link-slash"></i> Stop syncing</button></div>' +
+      '<p class="acc-note">Keep the link to yourself: anyone who has it can see what it shows. “New link” turns the old one off.</p>';
+  }
+  box.innerHTML = h;
+}
+function calSyncOptChanged() {
+  if (!calSync) return;
+  if (calSync.feed) calSyncCall('POST', calSyncOpts());
+  else calSync.draft = calSyncOpts();
+}
+
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
   // Accounting is for admins only (wages, margins, every cost); everyone else sees only their own payslips
@@ -10325,7 +10416,7 @@ function renderAccounting() {
   var view = accTab + '|' + accYear + '|' + accMonth, sameView = view === accLastView;
   var act = document.activeElement, actKey = act && act.dataset && body.contains(act) ? act.dataset.accCell : '';
   if (sameView && actKey && act.dataset.accTyped) { accRedrawWaiting = true; return; }
-  var caret = actKey ? [act.selectionStart, act.selectionEnd] : null;
+  var caret = actKey ? [act.selectionStart, act.selectionEnd] : null, searching = act && act.id === 'is-search';
   accRedrawWaiting = false; accLastView = view;
   var scrolls = sameView ? [].map.call(body.querySelectorAll('.acc-scroll'), function(x){ return [x.scrollLeft, x.scrollTop]; }) : [];
   var html = { summary: accSummaryHTML, revenue: accRevenueHTML, wages: accWagesHTML, suppliers: accSuppliersHTML, invoices: accInvoicesHTML, fixed: accFixedHTML, expenses: accExpensesHTML, items: accItemsHTML, payslips: accPayslipsHTML }[accTab]();
@@ -10336,6 +10427,11 @@ function renderAccounting() {
     if (back) { try { back.focus({ preventScroll: true }); } catch (e) { back.focus(); } try { back.setSelectionRange(caret[0], caret[1]); } catch (e) { back.select(); } }
   }
   if (accTab === 'summary') { var ch = document.getElementById('acc-chart'); if (ch) drawAccChart(ch); }
+  if (accTab === 'items') {
+    isApplySearch();
+    var sb = searching && document.getElementById('is-search');
+    if (sb) { try { sb.focus({ preventScroll: true }); } catch (e) { sb.focus(); } sb.setSelectionRange(sb.value.length, sb.value.length); }
+  }
 }
 function accMonthBar(withYear) {
   var h = '<div class="acc-months" role="tablist" aria-label="Month">';
@@ -10565,6 +10661,30 @@ function addAccLedgerEntry() {
 // ── Item sales: units and € per menu item, from Black Box days plus sales typed by hand or loaded from a file ──
 // Black Box days keep the price they were saved with; typed / imported sales keep the € they were saved with.
 var accItemsView = 'sales';   // 'sales' | 'menu'
+var isQuery = '';             // the search box: shows only the items whose name has this text
+function isSearchHTML() {
+  return '<div class="is-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><input type="search" class="input-field" id="is-search" placeholder="Search items" value="' + esc(isQuery) + '" autocomplete="off" aria-label="Search items" /><span id="is-search-sum" aria-live="polite"></span></div>'
+    + '<p class="acc-note" id="is-search-none" hidden>No items match.</p>';
+}
+// Hide the lines that do not match, without drawing the table again (the box keeps the cursor)
+function isApplySearch() {
+  var body = document.getElementById('acc-body'); if (!body || accTab !== 'items') return;
+  var q = normName(isQuery), n = 0, total = 0, units = 0, eur = 0;
+  [].forEach.call(body.querySelectorAll('[data-is-name]'), function(r){
+    var ok = !q || r.dataset.isName.indexOf(q) !== -1; total++; r.hidden = !ok;
+    if (ok) { n++; units += +r.dataset.isUnits || 0; eur += +r.dataset.isEur || 0; }
+  });
+  // a category stays while one of its items shows
+  [].forEach.call(body.querySelectorAll('tr.is-cat'), function(c){
+    var x = c.nextElementSibling, any = false;
+    while (x && !x.classList.contains('is-cat') && !x.classList.contains('strong')) { if (!x.hidden) any = true; x = x.nextElementSibling; }
+    c.hidden = !any;
+  });
+  [].forEach.call(body.querySelectorAll('.is-menu-card'), function(c){ c.hidden = !c.querySelector('.is-menu-row:not([hidden])'); });
+  var sum = document.getElementById('is-search-sum');
+  if (sum) sum.textContent = !q ? '' : accItemsView === 'menu' ? n + ' of ' + total + ' items' : n + ' of ' + total + ' items · ' + fmtQty(units) + ' units · ' + accEur(eur);
+  var none = document.getElementById('is-search-none'); if (none) none.hidden = !(q && !n);
+}
 var isImport = null;          // the file being imported: {lines:[{name, qty, amount}], y, m}
 function isPad(n) { return String(n).padStart(2, '0'); }
 function isLastDay(y, m) { return y + '-' + isPad(m) + '-' + isPad(new Date(y, m, 0).getDate()); }
@@ -10603,6 +10723,7 @@ function accItemsHTML() {
   h += '<div class="acc-toolbar" style="margin:4px 0 8px"><div class="acc-note" style="margin:0">' + (m ? 'Type units sold that are not in Black Box; each one is valued at that month’s price.' : 'Pick a month to type sales or import a file.') + '</div>'
     + '<button class="btn btn-secondary btn-sm" id="btn-is-import"' + (m ? '' : ' disabled') + '><i class="fas fa-file-import"></i> Import file</button></div>';
   if (!rows.length) return h + '<div class="acc-card"><div class="acc-empty">No sales in ' + (m ? accMonthLabel(accYear, m) : accYear) + ' yet.</div></div>';
+  h += isSearchHTML();
   var cats = bbCatOrder(rows.map(function(r){ return r.category; }).filter(function(c, i, a){ return a.indexOf(c) === i; }));
   h += '<div class="acc-card acc-scroll acc-freeze"><table class="acc-table acc-edit is-table"><thead><tr><th>Item</th><th>Black Box</th><th>Typed</th><th>File</th><th>Units</th><th>Sales</th></tr></thead><tbody>';
   cats.forEach(function(c){
@@ -10610,7 +10731,7 @@ function accItemsHTML() {
     h += '<tr class="is-cat"><th>' + esc(bbCatLabel(c)) + '</th><td>' + isQty(sum(list, 'bbQty')) + '</td><td>' + isQty(sum(list, 'manQty')) + '</td><td>' + isQty(sum(list, 'fileQty')) + '</td><td>' + isQty(sum(list, 'units')) + '</td><td>' + accEur(sum(list, 'eur')) + '</td></tr>';
     list.forEach(function(r){
       var typed = m && r.id ? '<td class="is-man"><input class="acc-in" inputmode="decimal" data-acc-cell="itemsale|' + esc(r.id) + '||' + m + '" value="' + (r.manQty ? fmtQty(r.manQty) : '') + '" aria-label="' + esc(r.name) + ' typed units" /></td>' : '<td>' + isQty(r.manQty) + '</td>';
-      h += '<tr><th><span>' + esc(r.name) + '</span></th><td>' + isQty(r.bbQty) + '</td>' + typed + '<td>' + isQty(r.fileQty) + '</td><td><b>' + isQty(r.units) + '</b></td><td>' + (r.eur ? accEur(r.eur) : '—') + '</td></tr>';
+      h += '<tr data-is-name="' + esc(normName(r.name)) + '" data-is-units="' + r.units + '" data-is-eur="' + r.eur + '"><th><span>' + esc(r.name) + '</span></th><td>' + isQty(r.bbQty) + '</td>' + typed + '<td>' + isQty(r.fileQty) + '</td><td><b>' + isQty(r.units) + '</b></td><td>' + (r.eur ? accEur(r.eur) : '—') + '</td></tr>';
     });
   });
   h += '<tr class="strong"><th>Total</th><td>' + isQty(sum(rows, 'bbQty')) + '</td><td>' + isQty(sum(rows, 'manQty')) + '</td><td>' + isQty(sum(rows, 'fileQty')) + '</td><td>' + fmtQty(units) + '</td><td>' + accEur(eur) + '</td></tr></tbody></table></div>';
@@ -10620,14 +10741,15 @@ function accMenuItemsHTML() {
   var menu = getDB().bbMenu || [], today = toDateStr(new Date());
   var h = '<div class="acc-toolbar" style="margin:4px 0 10px"><div class="acc-note" style="margin:0">The prices Black Box and Item sales use. A new price starts on the date you choose; days already saved keep theirs.</div><button class="btn btn-primary btn-sm" id="btn-add-bb-item"><i class="fas fa-plus"></i> Add item</button></div>';
   if (!menu.length) return h + '<div class="acc-card"><div class="acc-empty">No menu items yet.</div></div>';
+  h += isSearchHTML();
   var cats = bbCatOrder(menu.map(function(i){ return i.category || 'other'; }).filter(function(c, i, a){ return a.indexOf(c) === i; }));
   cats.forEach(function(c){
     var list = menu.filter(function(i){ return (i.category || 'other') === c; }).sort(function(a, b){ return a.name.localeCompare(b.name); });
-    h += '<div class="acc-card" style="padding:0;overflow:hidden"><div class="is-cat-h"><span>' + esc(bbCatLabel(c)) + '</span><span>' + list.length + ' item' + (list.length === 1 ? '' : 's') + '</span></div>';
+    h += '<div class="acc-card is-menu-card" style="padding:0;overflow:hidden"><div class="is-cat-h"><span>' + esc(bbCatLabel(c)) + '</span><span>' + list.length + ' item' + (list.length === 1 ? '' : 's') + '</span></div>';
     list.forEach(function(it){
       var hist = bbHistSorted(it), next = hist.filter(function(x){ return x.from > today; }).shift(), last = hist.filter(function(x){ return x.from <= today; }).pop();
       var meta = next ? '→ ' + accEur(next.price) + ' from ' + fmtDay(next.from) : last ? 'This price since ' + fmtDay(last.from) : '';
-      h += '<div class="is-menu-row"><div class="nm">' + esc(it.name) + (meta ? '<small>' + esc(meta) + '</small>' : '') + '</div><div class="pr">' + accEur(bbPriceOn(it, today)) + '</div>'
+      h += '<div class="is-menu-row" data-is-name="' + esc(normName(it.name)) + '"><div class="nm">' + esc(it.name) + (meta ? '<small>' + esc(meta) + '</small>' : '') + '</div><div class="pr">' + accEur(bbPriceOn(it, today)) + '</div>'
         + '<button class="btn btn-secondary btn-sm btn-icon" data-edit-bb-item="' + esc(it.id) + '" aria-label="Edit ' + esc(it.name) + '"><i class="fas fa-pen"></i></button>'
         + '<button class="btn btn-danger btn-sm btn-icon" data-delete-bb-item="' + esc(it.id) + '" aria-label="Remove ' + esc(it.name) + '"><i class="fas fa-trash"></i></button></div>';
     });
@@ -10830,6 +10952,7 @@ function accNextCell(t, back) {
   return i === -1 ? null : all[i + (back ? -1 : 1)] || null;
 }
 document.addEventListener('input', function(e){ var t = e.target; if (t && t.dataset && t.dataset.accCell) t.dataset.accTyped = '1'; });
+document.addEventListener('input', function(e){ if (e.target && e.target.id === 'is-search') { isQuery = e.target.value; isApplySearch(); } });
 document.addEventListener('focusin', function(e){
   var t = e.target; if (!t || !t.dataset || !t.dataset.accCell) return;
   delete t.dataset.accTyped; t.dataset.accFresh = '1';
@@ -11907,6 +12030,13 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
   if (t.closest('#btn-is-import-save')) { isSaveImport(); return; }
 
+  // Calendar on my phone
+  if (t.closest('[data-cal-sync]')) { closeDrawer(); calSyncOpen(); return; }
+  if (t.closest('#btn-cal-create')) { calSyncCall('POST', calSyncOpts()); return; }
+  if (t.closest('#btn-cal-renew')) { if (confirm('Make a new link? The old one stops working, so add the calendar to your phone again.')) calSyncCall('POST', Object.assign(calSyncOpts(), { renew: true })); return; }
+  if (t.closest('#btn-cal-stop')) { if (confirm('Stop syncing? The Bar da Praia calendar stops updating on your phone; you can then remove it there.')) calSyncCall('DELETE'); return; }
+  el = t.closest('[data-copy-cal]'); if (el) { var cl = el.dataset.copyCal; (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(cl) : Promise.reject()).then(function(){ toast('Link copied', 'success'); }).catch(function(){ prompt('Copy the link:', cl); }); return; }
+
   // Payslips
   el = t.closest('[data-ps-open]'); if (el) { psOpen(el.dataset.psOpen); return; }
   el = t.closest('[data-ps-del]'); if (el) { psDelete(el.dataset.psDel); return; }
@@ -12464,6 +12594,7 @@ document.addEventListener('change', function(e) {
   if (t.id === 'ev-allday') evSyncTimes();
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
   if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
+  if (t.dataset && t.dataset.calOpt !== undefined) calSyncOptChanged();
   if (t.id === 'ps-file' && t.files && t.files.length) { psReadFiles(t.files); t.value = ''; }
   if (t.dataset && t.dataset.psUpUser !== undefined && psUpload) psSetOwner(t.dataset.psUpUser, t.value);
   if (t.dataset && t.dataset.psPg !== undefined && psUpload) psSetPageOwner(+t.dataset.psPg, t.value);
