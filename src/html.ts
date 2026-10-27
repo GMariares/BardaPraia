@@ -510,6 +510,66 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .is-imp-row { display:grid; grid-template-columns:1fr 64px; gap:6px 10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--slate-100); font-size:13px; }
     .is-imp-row select { grid-column:1 / -1; }
     .is-imp-row.skip { opacity:.55; }
+    /* Reputation → NPS */
+    #nps-qr-box img { display:block; width:240px; max-width:100%; image-rendering:pixelated; margin:0 auto 8px; border:var(--rule); border-radius:12px; padding:10px; background:#fff; }
+    .nps-head { display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom:14px; }
+    .nps-title { margin:0; font-size:20px; font-weight:800; color:var(--slate-900); }
+    .nps-tools { display:flex; gap:8px; align-items:center; }
+    .nps-tools .select-field { width:auto; min-height:38px; }
+    .nps-cards { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin-bottom:12px; }
+    .nps-card { background:var(--panel); border:var(--rule); border-radius:var(--radius); padding:14px 16px; min-width:0; }
+    .nps-card-top { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+    .nps-ic { width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:var(--mint-100); color:var(--teal-700); font-size:17px; flex:0 0 auto; }
+    .nps-ic.blue { background:#e3eefc; color:#2f6fd0; } .nps-ic.gold { background:var(--amber-50); color:var(--amber-700); }
+    .nps-label { font-weight:700; color:var(--slate-800); }
+    .nps-num { font-size:36px; line-height:1.1; font-weight:800; color:var(--slate-900); font-variant-numeric:tabular-nums; }
+    .nps-num small { font-size:15px; font-weight:700; color:var(--slate-500); }
+    .nps-delta { display:block; font-size:12.5px; font-weight:700; margin-top:2px; }
+    .nps-delta.up { color:#2e8b57; } .nps-delta.down { color:var(--red); } .nps-delta.flat { color:var(--slate-500); font-weight:600; }
+    .nps-delta small { font-weight:500; color:var(--slate-500); }
+    .nps-bar { display:flex; height:9px; border-radius:6px; overflow:hidden; background:var(--slate-100); margin:12px 0 8px; }
+    .nps-bar span { display:block; height:100%; }
+    .nps-bar .det, .nps-legend i.det, .nps-donut .det { background:#d4553e; stroke:#d4553e; }
+    .nps-bar .pas, .nps-legend i.pas, .nps-donut .pas { background:#e3b23c; stroke:#e3b23c; }
+    .nps-bar .pro, .nps-legend i.pro, .nps-donut .pro { background:#2e9a62; stroke:#2e9a62; }
+    .nps-verdict { font-size:13px; color:var(--slate-600); } .nps-verdict span { color:var(--slate-500); }
+    .nps-sub { font-size:12.5px; color:var(--slate-500); margin-top:6px; }
+    .nps-mid { display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr); gap:12px; margin-bottom:12px; }
+    .nps-mid .acc-card { margin-bottom:0; }
+    .nps-chart { width:100%; height:auto; display:block; }
+    .nps-chart text { font-size:11px; fill:var(--slate-500); }
+    .nps-chart .grid { stroke:var(--slate-100); } .nps-chart .zero { stroke:var(--slate-300); stroke-dasharray:4 4; }
+    .nps-chart .area { fill:rgba(46,154,98,.12); } .nps-chart .line { fill:none; stroke:#2e9a62; stroke-width:2.5; stroke-linejoin:round; } .nps-chart .dot { fill:#2e9a62; stroke:#fff; stroke-width:1.5; }
+    .nps-chart-empty { text-align:center; margin:-110px 0 90px; }
+    .nps-split-in { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .nps-donut-box { position:relative; width:140px; height:140px; flex:0 0 auto; margin:0 auto; }
+    .nps-donut { width:140px; height:140px; transform:rotate(-90deg); }
+    .nps-donut .seg { fill:none; stroke-width:18; } .nps-donut .seg.empty { stroke:var(--slate-100); }
+    .nps-donut-c { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .nps-donut-c b { font-size:24px; font-weight:800; color:var(--slate-900); } .nps-donut-c span { font-size:12px; color:var(--slate-500); }
+    .nps-legend { list-style:none; margin:0; padding:0; flex:1 1 170px; }
+    .nps-legend li { display:grid; grid-template-columns:12px 1fr auto 44px; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--slate-100); font-size:13.5px; }
+    .nps-legend li:last-child { border-bottom:0; }
+    .nps-legend i { width:10px; height:10px; border-radius:50%; } .nps-legend small { color:var(--slate-500); }
+    .nps-legend b { font-variant-numeric:tabular-nums; } .nps-legend em { font-style:normal; text-align:right; color:var(--slate-500); font-variant-numeric:tabular-nums; }
+    .nps-list-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:6px; }
+    .nps-chips { display:flex; gap:6px; flex-wrap:wrap; }
+    .nps-chip { min-height:34px; border:var(--rule); background:var(--panel); border-radius:999px; padding:4px 12px; font:inherit; font-size:13px; font-weight:700; color:var(--slate-700); cursor:pointer; }
+    .nps-chip span { color:var(--slate-500); font-weight:600; margin-left:2px; }
+    .nps-chip.on { background:var(--slate-800); border-color:var(--slate-800); color:#fff; } .nps-chip.on span { color:rgba(255,255,255,.75); }
+    .nps-chip.warn:not(.on) { border-color:#f1c2bb; color:var(--red); }
+    .nps-item { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--slate-100); }
+    .nps-score { width:40px; height:40px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; color:#fff; }
+    .nps-score.pro { background:#2e9a62; } .nps-score.pas { background:#e3b23c; color:#3d2e05; } .nps-score.det { background:#d4553e; }
+    .nps-text { flex:1; min-width:0; } .nps-text p { margin:0 0 3px; font-size:14px; color:var(--slate-900); line-height:1.45; overflow-wrap:anywhere; white-space:pre-line; }
+    .nps-text p.none { color:var(--slate-400); font-style:italic; } .nps-meta { font-size:12px; color:var(--slate-500); }
+    .nps-done { flex:0 0 auto; min-height:34px; border:1px solid #f1c2bb; background:var(--red-50); color:var(--red); border-radius:8px; padding:4px 10px; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
+    .nps-done.is-done { border-color:var(--mint-200); background:var(--mint-50); color:var(--teal-700); }
+    @media (max-width: 760px) {
+      .nps-cards { grid-template-columns:1fr 1fr; } .nps-main { grid-column:1 / -1; }
+      .nps-mid { grid-template-columns:1fr; }
+      .nps-done span { display:none; }
+    }
     /* Calendar on my phone */
     .drawer-cal { margin-top:10px; width:100%; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:9px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
     .cal-opts { background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
@@ -1406,6 +1466,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <button class="drawer-item" id="ditem-finance" data-nav="finance"><i class="fas fa-euro-sign"></i> Finance <span class="admin-only-badge" style="background:rgba(139,92,246,.3);color:#cfc2f0">FINANCE</span></button>
     <button class="drawer-item" id="ditem-foodcost" data-nav="foodcost"><i class="fas fa-utensils"></i> Food Cost <span class="admin-only-badge" style="background:rgba(176,123,89,.35);color:#f1dccd">CHEF</span></button>
     <button class="drawer-item" id="ditem-accounting" data-nav="accounting"><i class="fas fa-scale-balanced"></i> Accounting <span class="admin-only-badge">ADMIN</span></button>
+    <button class="drawer-item" id="ditem-reputation" data-nav="reputation"><i class="fas fa-face-smile"></i> Reputation <span class="admin-only-badge">ADMIN</span></button>
     <button class="drawer-item" id="ditem-users" data-nav="users" style="display:none"><i class="fas fa-users"></i> Team</button>
     <button class="drawer-item" id="ditem-settings" data-nav="settings"><i class="fas fa-gear"></i> Settings <span class="admin-only-badge">ADMIN</span></button>
   </nav>
@@ -1736,6 +1797,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </section>
 
   <!-- ═══ ACCOUNTING ═══ -->
+  <section id="section-reputation" class="page-section">
+    <div id="nps-body"></div>
+  </section>
+
   <section id="section-accounting" class="page-section">
     <div id="acc-locked" class="locked-overlay" style="display:none">
       <i class="fas fa-scale-balanced" style="color:var(--gold)"></i>
@@ -3154,7 +3219,23 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     </div>
   </div>
 </div>
- <div class="modal-overlay" id="modal-cal-sync">
+ <div class="modal-overlay" id="modal-nps-share">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2><i class="fas fa-qrcode" style="color:var(--teal-600)"></i> Get feedback</h2>
+    <p class="acc-note">Put this QR on the tables, the bill folder or the receipt. Guests scan it, pick a score from 0 to 10 and can leave a comment. No app or login needed.</p>
+    <label class="label" for="nps-qr-table">For one table (optional)</label>
+    <input type="text" class="input-field" id="nps-qr-table" placeholder="e.g. T5" style="max-width:200px;margin-bottom:12px" />
+    <div id="nps-qr-box"></div>
+    <p class="acc-note">After a reservation: open the booking in Calendar and tap “Ask for feedback” to send the guest their link on WhatsApp.</p>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-nps-print"><i class="fas fa-print"></i> Print</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" id="btn-nps-copy"><i class="fas fa-copy"></i> Copy link</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" data-close-modal="modal-nps-share">Close</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-cal-sync">
   <div class="modal">
     <div class="modal-handle"></div>
     <h2><i class="fas fa-calendar-check" style="color:var(--teal-600)"></i> Calendar on my phone</h2>
@@ -4274,11 +4355,12 @@ setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts|reservations|shopping|orders|calendar|clock|payslips)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations|shopping|orders|calendar|clock|payslips|nps)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
   if (m[1] === 'payslips') { accTab = 'payslips'; showSection('accounting'); return; }
+  if (m[1] === 'nps') { npsFilter = 'todo'; npsRows = null; showSection('reputation'); return; }
   if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
   if (m[1] === 'orders') { showSection('dashboard'); var op = document.getElementById('dash-orders-panel'); if (op && op.style.display !== 'none') op.scrollIntoView({ block:'start' }); else { showSection('inventory'); switchInvTab('orders'); } return; }
   if (m[1] === 'clock') { showSection('dashboard'); var ck = /kind=(in|out)/.exec(url || ''); openClockScanner(ck ? ck[1] : 'auto'); return; }
@@ -4408,6 +4490,7 @@ function notifIcon(url) {
   if (/open=shopping/.test(u)) return 'fa-bag-shopping';
   if (/open=orders/.test(u)) return 'fa-truck';
   if (/open=payslips/.test(u)) return 'fa-file-invoice-dollar';
+  if (/open=nps/.test(u)) return 'fa-face-frown';
   return 'fa-bell';
 }
 function notifWhen(iso) {
@@ -4858,6 +4941,7 @@ function updateSessionUI() {
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
   dshow('ditem-accounting',   isAdmin || isSecure());   // staff: only their own payslips
+  dshow('ditem-reputation',   isAdmin);
   document.querySelectorAll('[data-cal-sync]').forEach(function(b){ b.style.display = isSecure() ? '' : 'none'; });
   var accBadge = document.querySelector('#ditem-accounting .admin-only-badge'); if (accBadge) accBadge.style.display = isAdmin ? '' : 'none';
   dshow('ditem-foodcost',     canFoodCost());
@@ -5044,6 +5128,9 @@ function refreshSection(name) {
       if (currentSection === name) renderFinance();
     }).catch(function(){});
 
+  } else if (name === 'reputation') {
+    if (isAdmin) npsLoad();
+
   } else if (name === 'accounting') {
     if (isAdmin) accLoad();
     psLoad();
@@ -5116,7 +5203,7 @@ function showSection(name) {
   if (!currentUser) { return; }
   if (name === 'inventory' && currentSection !== 'inventory') { invView = 'home'; invCatFilter = ''; invSupplierFilter = ''; invReorderIds = null; invSearchVal = ''; var isf = document.getElementById('inv-search'); if (isf) isf.value = ''; }
   if (name === 'users' && !isAdmin && !(currentUser && hasRole('shift_mgr'))) { toast('Admin or shift manager access required.', 'error'); return; }
-  if ((name === 'blackbox' || name === 'settings' || (name === 'accounting' && !isSecure())) && !isAdmin) {
+  if ((name === 'blackbox' || name === 'settings' || name === 'reputation' || (name === 'accounting' && !isSecure())) && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
   if (name === 'foodcost' && !canFoodCost()) {
@@ -5139,7 +5226,7 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + navName);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Home',inventory:'Stock',reservations:'Calendar',calendar:'Calendar',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',foodcost:'Food Cost',users:'Team',settings:'Settings'};
+  var titles = {dashboard:'Home',inventory:'Stock',reservations:'Calendar',calendar:'Calendar',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',reputation:'Reputation',foodcost:'Food Cost',users:'Team',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   moveBnavMarker();
   currentSection = name;
@@ -5155,6 +5242,7 @@ function showSection(name) {
   if (name === 'blackbox')     renderBlackBox();
   if (name === 'finance')      renderFinance();
   if (name === 'accounting')   renderAccounting();
+  if (name === 'reputation')   renderNps();
   if (name === 'foodcost')     renderFoodCost();
   if (name === 'users')        renderUsers();
   if (name === 'settings')     renderSettings();
@@ -7725,6 +7813,8 @@ function openResDetail(id){
   actEl.children[0].style.cssText='flex:1;justify-content:center';
   actEl.children[1].style.cssText='flex:1;justify-content:center';
   actEl.children[2].style.cssText='flex:1;justify-content:center';
+  // after the visit: send the guest their feedback link
+  if(!resNoShow(r) && r.date<=toDateStr(new Date())){ var fb=mkBtn('btn btn-primary btn-sm','<i class="fab fa-whatsapp"></i> Ask for feedback',function(){npsAskReservation(id);}); fb.style.cssText='flex:1 1 100%;justify-content:center'; actEl.appendChild(fb); }
   openModal('modal-res-detail');
 }
 // A booking is confirmed unless it's flagged as a no-show (older "pending" ones count as confirmed)
@@ -10397,6 +10487,137 @@ function calSyncOptChanged() {
   else calSync.draft = calSyncOpts();
 }
 
+// ── Reputation → NPS (guest feedback) ──────────────────────────
+// Guests answer on the public page /feedback (QR on the tables / bill, or a link after their reservation).
+// NPS = % promoters (9–10) − % detractors (0–6); 7–8 are passives.
+var npsRows = null, npsDays = 30, npsFilter = 'all', npsMissing = false, npsLoading = false;
+function npsFromRow(r) { return { id: r.id, score: +r.score, comment: r.comment || '', source: r.source || 'link', table: r.table_name || '', guest: r.guest_name || '', visit: r.visit_date || '', at: r.created_at || '', done: !!r.followed_up, doneBy: r.followed_up_by || '' }; }
+function npsLoad() {
+  if (npsLoading) return Promise.resolve();
+  npsLoading = true;
+  var since = new Date(Date.now() - 800 * 864e5).toISOString();
+  return sbFetchAll('nps_responses', 'created_at=gte.' + since + '&order=created_at.desc')
+    .then(function(rows){ npsRows = (rows || []).map(npsFromRow); npsMissing = false; })
+    .catch(function(){ npsRows = []; npsMissing = true; })
+    .then(function(){ npsLoading = false; if (currentSection === 'reputation') renderNps(); });
+}
+function npsKind(s) { return s >= 9 ? 'pro' : s >= 7 ? 'pas' : 'det'; }
+function npsStats(list) {
+  var n = list.length, pro = 0, det = 0, sum = 0;
+  list.forEach(function(r){ sum += r.score; if (r.score >= 9) pro++; else if (r.score <= 6) det++; });
+  return { n: n, pro: pro, pas: n - pro - det, det: det, nps: n ? Math.round((pro - det) / n * 100) : null, avg: n ? sum / n : null };
+}
+function npsIn(from, to) { return (npsRows || []).filter(function(r){ var t = new Date(r.at).getTime(); return t >= from && t < to; }); }
+function npsDelta(cur, prev, fmt, unit) {
+  if (cur == null || prev == null) return '<span class="nps-delta flat">No earlier answers to compare</span>';
+  var d = cur - prev, cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+  return '<span class="nps-delta ' + cls + '"><i class="fas fa-arrow-' + (d > 0 ? 'up' : d < 0 ? 'down' : 'right') + '"></i> ' + (d > 0 ? '+' : '') + fmt(d) + (unit || '') + ' <small>vs. the ' + npsDays + ' days before</small></span>';
+}
+function npsVerdict(v) { return v == null ? '' : v >= 70 ? 'World class' : v >= 50 ? 'Excellent' : v >= 30 ? 'Great' : v >= 0 ? 'Good' : 'Needs attention'; }
+// Line of the NPS over time: each point is the NPS of the answers in the window before it
+function npsTrendSVG(now) {
+  var span = npsDays * 864e5, start = now - span, win = npsDays <= 7 ? 7 * 864e5 : 30 * 864e5;
+  var steps = npsDays <= 7 ? 7 : npsDays <= 30 ? 15 : npsDays <= 90 ? 18 : 12, pts = [];
+  for (var i = 0; i <= steps; i++) {
+    var t = start + span * i / steps, st = npsStats(npsIn(t - win, t + 1));
+    pts.push({ t: t, v: st.nps, n: st.n });
+  }
+  var W = 640, H = 220, L = 34, R = 10, T = 12, B = 26, y = function(v){ return T + (100 - v) / 200 * (H - T - B); }, x = function(i){ return L + (W - L - R) * i / steps; };
+  var g = '';
+  [-100, -50, 0, 50, 100].forEach(function(v){ g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" class="' + (v === 0 ? 'zero' : 'grid') + '"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + '</text>'; });
+  var have = pts.map(function(p, i){ return p.v == null ? null : [x(i), y(p.v), p]; }).filter(Boolean);
+  if (have.length) {
+    var line = have.map(function(p, i){ return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+    var area = line + ' L' + have[have.length - 1][0].toFixed(1) + ' ' + (H - B) + ' L' + have[0][0].toFixed(1) + ' ' + (H - B) + ' Z';
+    g += '<path d="' + area + '" class="area"/><path d="' + line + '" class="line"/>';
+    g += have.map(function(p){ return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.5" class="dot"><title>' + esc(fmtDay(toDateStr(new Date(p[2].t)))) + ': NPS ' + p[2].v + ' (' + p[2].n + ')</title></circle>'; }).join('');
+  }
+  [0, Math.round(steps / 2), steps].forEach(function(i){ g += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="' + (i === 0 ? 'start' : i === steps ? 'end' : 'middle') + '">' + esc(fmtDay(toDateStr(new Date(pts[i].t)), true)) + '</text>'; });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="nps-chart" role="img" aria-label="NPS over time">' + g + '</svg>' + (have.length ? '' : '<p class="acc-note nps-chart-empty">The line appears once guests answer.</p>');
+}
+function npsDonut(st) {
+  var r = 52, c = 2 * Math.PI * r, off = 0, seg = '';
+  [['pro', st.pro], ['pas', st.pas], ['det', st.det]].forEach(function(p){
+    if (!st.n || !p[1]) return; var len = p[1] / st.n * c;
+    seg += '<circle r="' + r + '" cx="70" cy="70" class="seg ' + p[0] + '" stroke-dasharray="' + len.toFixed(2) + ' ' + (c - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>'; off += len;
+  });
+  return '<svg viewBox="0 0 140 140" class="nps-donut" aria-hidden="true"><circle r="' + r + '" cx="70" cy="70" class="seg empty"/>' + seg + '</svg>';
+}
+function npsWhen(r) {
+  var where = r.source === 'res' ? 'Reservation' + (r.guest ? ' · ' + r.guest : '') : r.source === 'qr' ? 'QR' + (r.table ? ' · ' + r.table : '') : 'Link';
+  return '<span>' + esc(notifWhen(r.at)) + '</span> · <span>' + esc(where) + '</span>';
+}
+function renderNps() {
+  var box = document.getElementById('nps-body'); if (!box) return;
+  if (!isAdmin) { box.innerHTML = '<div class="acc-card"><p class="acc-note" style="margin:0">Admins only.</p></div>'; return; }
+  if (npsRows === null) { box.innerHTML = '<p class="acc-note"><i class="fas fa-spinner fa-spin"></i> Loading…</p>'; npsLoad(); return; }
+  var head = '<div class="nps-head"><div><h2 class="nps-title">Guest feedback (NPS)</h2><p class="acc-note" style="margin:2px 0 0">What guests tell us after their visit, from the QR on the tables and the link after a reservation.</p></div>'
+    + '<div class="nps-tools"><select class="select-field" id="nps-days" aria-label="Period">' + [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'Last 12 months']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === npsDays ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'
+    + '<button class="btn btn-primary btn-sm" id="btn-nps-share"><i class="fas fa-qrcode"></i> Get feedback</button></div></div>';
+  if (npsMissing) { box.innerHTML = head + '<div class="acc-card"><p class="acc-note" style="margin:0">To switch this on, run the SQL file supabase/migrations/2026-10-27-y-nps.sql in Supabase.</p></div>'; return; }
+  var now = Date.now(), span = npsDays * 864e5, cur = npsIn(now - span, now + 1), prev = npsIn(now - 2 * span, now - span), st = npsStats(cur), ps = npsStats(prev);
+  var pct = function(v){ return st.n ? Math.round(v / st.n * 100) : 0; };
+  var cards = '<div class="nps-cards">'
+    + '<div class="nps-card nps-main"><div class="nps-card-top"><span class="nps-ic"><i class="fas fa-face-smile"></i></span><span class="nps-label">NPS</span></div>'
+    + '<div class="nps-num">' + (st.nps == null ? '—' : (st.nps > 0 ? '+' : '') + st.nps) + '</div>' + npsDelta(st.nps, ps.nps, function(d){ return Math.round(d); })
+    + '<div class="nps-bar" aria-hidden="true"><span class="det" style="width:' + pct(st.det) + '%"></span><span class="pas" style="width:' + pct(st.pas) + '%"></span><span class="pro" style="width:' + pct(st.pro) + '%"></span></div>'
+    + '<div class="nps-verdict">' + (st.n ? '<b>' + npsVerdict(st.nps) + '</b> <span>(−100 to +100; above 50 is excellent)</span>' : '<span>No answers in this period yet</span>') + '</div></div>'
+    + '<div class="nps-card"><div class="nps-card-top"><span class="nps-ic blue"><i class="fas fa-comment-dots"></i></span><span class="nps-label">Answers</span></div><div class="nps-num">' + st.n + '</div>' + npsDelta(st.n, prev.length ? ps.n : null, function(d){ return d; })
+    + '<div class="nps-sub">' + cur.filter(function(r){ return r.comment; }).length + ' with a comment</div></div>'
+    + '<div class="nps-card"><div class="nps-card-top"><span class="nps-ic gold"><i class="fas fa-star"></i></span><span class="nps-label">Average score</span></div><div class="nps-num">' + (st.avg == null ? '—' : st.avg.toFixed(1).replace('.', LANG === 'pt' ? ',' : '.')) + '<small> / 10</small></div>'
+    + npsDelta(st.avg, ps.avg, function(d){ return d.toFixed(1).replace('.', LANG === 'pt' ? ',' : '.'); }) + '</div></div>';
+  var mid = '<div class="nps-mid"><div class="acc-card nps-trend"><div class="acc-card-title">NPS over time</div>' + npsTrendSVG(now) + '</div>'
+    + '<div class="acc-card nps-split"><div class="acc-card-title">Promoters, passives, detractors</div><div class="nps-split-in"><div class="nps-donut-box">' + npsDonut(st) + '<div class="nps-donut-c"><b>' + st.n + '</b><span>answers</span></div></div><ul class="nps-legend">'
+    + [['pro', 'Promoters', '9–10', st.pro], ['pas', 'Passives', '7–8', st.pas], ['det', 'Detractors', '0–6', st.det]].map(function(p){ return '<li><i class="' + p[0] + '"></i><span>' + p[1] + ' <small>' + p[2] + '</small></span><b>' + p[3] + '</b><em>' + pct(p[3]) + '%</em></li>'; }).join('') + '</ul></div></div></div>';
+  var open = cur.filter(function(r){ return r.score <= 6 && !r.done; }).length;
+  var list = cur.filter(function(r){ return npsFilter === 'all' || (npsFilter === 'todo' ? r.score <= 6 && !r.done : npsKind(r.score) === npsFilter); });
+  var chips = [['all', 'All', cur.length], ['pro', 'Promoters', st.pro], ['pas', 'Passives', st.pas], ['det', 'Detractors', st.det], ['todo', 'To follow up', open]].map(function(c){
+    return '<button class="nps-chip' + (npsFilter === c[0] ? ' on' : '') + (c[0] === 'todo' && c[2] ? ' warn' : '') + '" data-nps-filter="' + c[0] + '">' + c[1] + ' <span>' + c[2] + '</span></button>'; }).join('');
+  var items = list.slice(0, 200).map(function(r){
+    var k = npsKind(r.score);
+    return '<div class="nps-item"><div class="nps-score ' + k + '">' + r.score + '</div><div class="nps-text">'
+      + (r.comment ? '<p>' + esc(r.comment) + '</p>' : '<p class="none">No comment</p>') + '<div class="nps-meta">' + npsWhen(r) + '</div></div>'
+      + (r.score <= 6 ? (r.done ? '<button class="nps-done is-done" data-nps-done="' + esc(r.id) + '" title="' + esc(r.doneBy) + '"><i class="fas fa-check"></i> <span>Followed up</span></button>'
+        : '<button class="nps-done" data-nps-done="' + esc(r.id) + '"><i class="fas fa-flag"></i> <span>Mark followed up</span></button>') : '') + '</div>';
+  }).join('');
+  box.innerHTML = head + cards + mid + '<div class="acc-card nps-list"><div class="nps-list-head"><div class="acc-card-title" style="margin:0">Latest answers</div><div class="nps-chips">' + chips + '</div></div>'
+    + (items || '<p class="acc-note" style="margin:14px 0 4px">' + (cur.length ? 'Nothing here.' : 'No answers yet. Print the QR for the tables (Get feedback) to start.') + '</p>') + '</div>';
+}
+function npsToggleDone(id) {
+  var r = (npsRows || []).find(function(x){ return x.id === id; }); if (!r) return;
+  r.done = !r.done; r.doneBy = r.done && currentUser ? currentUser.name : ''; renderNps();
+  sbFetch('PATCH', 'nps_responses', { followed_up: r.done, followed_up_by: r.doneBy }, 'id=eq.' + encodeURIComponent(id))
+    .catch(function(){ r.done = !r.done; renderNps(); toast('Not saved', 'error'); });
+}
+// Get feedback: the QR for the tables / bill (optionally for one table) and the link
+function npsLink(table) { return location.origin + '/feedback?s=qr' + (table ? '&t=' + encodeURIComponent(table) : ''); }
+function npsShareOpen() { openModal('modal-nps-share'); npsShareRender(); }
+function npsShareRender() {
+  var tEl = document.getElementById('nps-qr-table'), table = tEl ? tEl.value.trim() : '', url = npsLink(table), box = document.getElementById('nps-qr-box');
+  box.innerHTML = '<p class="acc-note">Loading…</p>';
+  loadQRCodeLib().then(function(qrcode){
+    var qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+    box.innerHTML = '<img id="nps-qr-img" src="' + qr.createDataURL(8, 4) + '" alt="Feedback QR code" /><p class="acc-note" style="text-align:center;overflow-wrap:anywhere">' + esc(url) + '</p>';
+  }).catch(function(){ box.innerHTML = '<p class="acc-note">' + esc(url) + '</p>'; });
+}
+function npsPrintQr() {
+  var img = document.getElementById('nps-qr-img'); if (!img) return;
+  var t = (document.getElementById('nps-qr-table').value || '').trim();
+  document.getElementById('print-root').innerHTML = '<div class="clock-print"><h1>Bar da Praia</h1><p><b>Como foi a sua visita?</b> · How was your visit?</p><img src="' + img.src + '" alt="" /><p>Diga-nos em 20 segundos · Tell us in 20 seconds</p>' + (t ? '<p style="color:#667">' + esc(t) + '</p>' : '') + '</div>';
+  document.body.classList.add('print-clock');
+  var done = function(){ document.body.classList.remove('print-clock'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done); window.print();
+}
+// After a reservation: WhatsApp the guest their own feedback link (one answer per reservation)
+function npsAskReservation(id) {
+  var r = (getDB().reservations || []).find(function(x){ return x.id === id; }); if (!r) return;
+  var link = location.origin + '/feedback?s=res&r=' + encodeURIComponent(id), first = String(r.guestName || '').split(' ')[0], nl = String.fromCharCode(10);
+  var text = 'Olá' + (first ? ' ' + first : '') + '! Obrigado pela visita ao Bar da Praia. Como correu? Leva 20 segundos.' + nl + 'Thank you for visiting Bar da Praia. How was it? It takes 20 seconds.' + nl + nl + link;
+  var to = waPhone(r.phone);
+  if (to) { window.open('https://wa.me/' + to + '?text=' + encodeURIComponent(text), '_blank', 'noopener'); return; }
+  (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : Promise.reject()).then(function(){ toast('No phone number: message copied, paste it to the guest', 'success'); }).catch(function(){ prompt('Send this to the guest:', text); });
+}
+
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
   // Accounting is for admins only (wages, margins, every cost); everyone else sees only their own payslips
@@ -12030,6 +12251,13 @@ document.addEventListener('click', function(e) {
   if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
   if (t.closest('#btn-is-import-save')) { isSaveImport(); return; }
 
+  // Reputation → NPS
+  if (t.closest('#btn-nps-share')) { npsShareOpen(); return; }
+  if (t.closest('#btn-nps-print')) { npsPrintQr(); return; }
+  if (t.closest('#btn-nps-copy')) { var nl0 = npsLink((document.getElementById('nps-qr-table').value || '').trim()); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(nl0) : Promise.reject()).then(function(){ toast('Link copied', 'success'); }).catch(function(){ prompt('Copy the link:', nl0); }); return; }
+  el = t.closest('[data-nps-filter]'); if (el) { npsFilter = el.dataset.npsFilter; renderNps(); return; }
+  el = t.closest('[data-nps-done]'); if (el) { npsToggleDone(el.dataset.npsDone); return; }
+
   // Calendar on my phone
   if (t.closest('[data-cal-sync]')) { closeDrawer(); calSyncOpen(); return; }
   if (t.closest('#btn-cal-create')) { calSyncCall('POST', calSyncOpts()); return; }
@@ -12595,6 +12823,8 @@ document.addEventListener('change', function(e) {
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
   if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
   if (t.dataset && t.dataset.calOpt !== undefined) calSyncOptChanged();
+  if (t.id === 'nps-days') { npsDays = +t.value || 30; renderNps(); }
+  if (t.id === 'nps-qr-table') npsShareRender();
   if (t.id === 'ps-file' && t.files && t.files.length) { psReadFiles(t.files); t.value = ''; }
   if (t.dataset && t.dataset.psUpUser !== undefined && psUpload) psSetOwner(t.dataset.psUpUser, t.value);
   if (t.dataset && t.dataset.psPg !== undefined && psUpload) psSetPageOwner(+t.dataset.psPg, t.value);

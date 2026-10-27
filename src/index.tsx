@@ -424,6 +424,132 @@ app.get('/cal/:file', async (c) => {
   return new Response(lines.map(calFold).join('\r\n') + '\r\n', { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'private, max-age=300', 'Content-Disposition': 'inline; filename="bardapraia.ics"' } })
 })
 
+// ── Guest feedback (NPS) ──────────────────────────────────────
+// A public page guests open from the QR on the table / bill or a link after their reservation:
+// "From 0 to 10, how likely are you to recommend us?" + an optional comment. Saved by the server
+// (nps_responses is admins-only); a score of 0–6 notifies the admins straight away.
+const NPS_TXT: Record<string, Record<string, string>> = {
+  pt: { title: 'A sua opinião', q: 'De 0 a 10, qual a probabilidade de recomendar o Bar da Praia a um amigo?', low: 'Nada provável', high: 'Muito provável',
+    why: 'Qual a principal razão da sua nota? (opcional)', ph: 'Conte-nos…', send: 'Enviar', sending: 'A enviar…', thanks: 'Obrigado!',
+    thanksHi: 'Ficamos muito contentes. Até breve!', thanksLo: 'Obrigado pela sinceridade. Vamos ler com atenção e melhorar.', again: 'Mudar a resposta',
+    err: 'Não foi possível enviar. Tente outra vez.', hi: 'Olá', other: 'English' },
+  en: { title: 'Your feedback', q: 'From 0 to 10, how likely are you to recommend Bar da Praia to a friend?', low: 'Not likely', high: 'Very likely',
+    why: 'What is the main reason for your score? (optional)', ph: 'Tell us…', send: 'Send', sending: 'Sending…', thanks: 'Thank you!',
+    thanksHi: 'We are so glad. See you soon!', thanksLo: 'Thank you for being honest. We will read it carefully and do better.', again: 'Change my answer',
+    err: 'Could not send. Please try again.', hi: 'Hi', other: 'Português' }
+}
+const npsEsc = (s: any) => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as any)[ch])
+const npsClean = (v: any, n: number) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n)
+app.get('/feedback', async (c) => {
+  const cfg = getConfig(c.env), q = c.req.query()
+  const lang = q.lang === 'en' || q.lang === 'pt' ? q.lang : /^pt\b/i.test(c.req.header('Accept-Language') || 'pt') ? 'pt' : 'en'
+  const L = NPS_TXT[lang]
+  let guest = ''
+  if (q.r && /^[A-Za-z0-9_-]{6,64}$/.test(q.r) && cfg.SB_SERVICE_KEY) {
+    const rows: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/reservations?id=eq.${encodeURIComponent(q.r)}&select=guest_name`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })).json().catch(() => [])
+    guest = Array.isArray(rows) && rows[0] ? String(rows[0].guest_name || '').split(' ')[0] : ''
+  }
+  const other = new URL(c.req.url); other.searchParams.set('lang', lang === 'pt' ? 'en' : 'pt')
+  const ctx = JSON.stringify({ s: npsClean(q.s, 10) || 'link', t: npsClean(q.t, 20), r: npsClean(q.r, 64), lang }).replace(/</g, '\\u003c')
+  c.header('Cache-Control', 'no-store')
+  return c.html(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bar da Praia · ${L.title}</title><link rel="icon" href="/brand/favicon-32.png"><meta name="robots" content="noindex">
+<style>
+:root{--ink:#16313a;--muted:#5b6f76;--line:#dfe6e8;--teal:#1d7a6a;--teal-d:#145c50;--bg:#f3f1ec;--red:#c4472f;--amber:#c98a12;--green:#2e8b57}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:520px;margin:0 auto;padding:22px 16px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.top img{height:46px}
+.top a{color:var(--muted);font-size:14px;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:#fff}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+h1{font-size:21px;line-height:1.3;margin:0 0 18px;font-weight:750}
+.scale{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:6px}
+.scale button{min-height:50px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-weight:750;font-size:16px;cursor:pointer;padding:0;touch-action:manipulation}
+.scale button[data-v="0"],.scale button[data-v="1"],.scale button[data-v="2"],.scale button[data-v="3"],.scale button[data-v="4"],.scale button[data-v="5"],.scale button[data-v="6"]{border-bottom-color:#e7b3a8}
+.scale button[data-v="7"],.scale button[data-v="8"]{border-bottom-color:#ecd39a}.scale button[data-v="9"],.scale button[data-v="10"]{border-bottom-color:#a9d5bb}
+.scale button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:8px}
+@media (max-width:520px){.scale{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.scale button{min-height:52px;font-size:18px}}
+.more{display:none;margin-top:22px}.more.show{display:block}
+label{display:block;font-weight:650;margin-bottom:8px}
+textarea{width:100%;min-height:110px;border:1.5px solid var(--line);border-radius:12px;padding:12px;font:inherit;resize:vertical;color:var(--ink)}
+textarea:focus,.scale button:focus-visible{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(29,122,106,.18)}
+.send{margin-top:14px;width:100%;min-height:50px;border:0;border-radius:12px;background:var(--teal);color:#fff;font:inherit;font-weight:750;font-size:17px;cursor:pointer}
+.send:disabled{opacity:.6}.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.err{color:var(--red);font-size:14px;margin-top:10px;min-height:1em}
+.done{display:none;text-align:center;padding:12px 0}.done.show{display:block}.done .big{font-size:44px;line-height:1;margin-bottom:10px}
+.done h2{margin:0 0 6px;font-size:22px}.done p{margin:0 0 16px;color:var(--muted)}
+.done button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
+</style></head><body><main>
+<div class="top"><img src="/brand/logo-transparent.png" alt="Bar da Praia"><a href="${npsEsc(other.pathname + other.search)}">${L.other}</a></div>
+<div class="card">
+<form id="f" novalidate>
+<h1>${guest ? npsEsc(L.hi + ' ' + guest + ', ' + L.q.charAt(0).toLowerCase() + L.q.slice(1)) : npsEsc(L.q)}</h1>
+<div class="scale" role="radiogroup" aria-label="0–10">${Array.from({ length: 11 }, (_, i) => `<button type="button" role="radio" aria-checked="false" data-v="${i}">${i}</button>`).join('')}</div>
+<div class="ends"><span>${L.low}</span><span>${L.high}</span></div>
+<div class="more" id="more"><label for="c">${L.why}</label><textarea id="c" maxlength="1000" placeholder="${L.ph}"></textarea>
+<input class="hp" id="w" tabindex="-1" autocomplete="off" aria-hidden="true">
+<button class="send" id="b" type="submit">${L.send}</button><div class="err" id="e" role="alert"></div></div>
+</form>
+<div class="done" id="d"><div class="big" id="dk"></div><h2>${L.thanks}</h2><p id="dm"></p><button type="button" id="a">${L.again}</button></div>
+</div></main>
+<script>
+(function(){var X=${ctx},L=${JSON.stringify({ sending: L.sending, send: L.send, err: L.err, hi: L.thanksHi, lo: L.thanksLo }).replace(/</g, '\\u003c')},v=null,t0=Date.now();
+var f=document.getElementById('f'),more=document.getElementById('more'),b=document.getElementById('b'),e=document.getElementById('e');
+[].forEach.call(document.querySelectorAll('.scale button'),function(x){x.addEventListener('click',function(){v=+x.dataset.v;[].forEach.call(document.querySelectorAll('.scale button'),function(y){y.classList.toggle('on',y===x);y.setAttribute('aria-checked',y===x?'true':'false');});more.classList.add('show');});});
+f.addEventListener('submit',function(ev){ev.preventDefault();if(v===null)return;b.disabled=true;b.textContent=L.sending;e.textContent='';
+fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({score:v,comment:document.getElementById('c').value,website:document.getElementById('w').value,ms:Date.now()-t0,s:X.s,t:X.t,r:X.r,lang:X.lang})})
+.then(function(r){if(!r.ok)throw 0;f.style.display='none';document.getElementById('dk').textContent=v>=9?'\\u2600\\ufe0f':v>=7?'\\ud83d\\ude42':'\\ud83d\\ude4f';document.getElementById('dm').textContent=v>=7?L.hi:L.lo;document.getElementById('d').classList.add('show');})
+.catch(function(){e.textContent=L.err;}).then(function(){b.disabled=false;b.textContent=L.send;});});
+document.getElementById('a').addEventListener('click',function(){document.getElementById('d').classList.remove('show');f.style.display='';});
+})();
+</script></body></html>`)
+})
+// One answer from the page above. A reservation link keeps one answer per reservation (a new one replaces it).
+const npsSeen = new Map<string, number[]>()
+app.post('/api/feedback', async (c) => {
+  const cfg = getConfig(c.env)
+  if (!cfg.SB_SERVICE_KEY) return c.json({ error: 'Not available' }, 503)
+  const b: any = await c.req.json().catch(() => ({}))
+  const score = Number(b.score)
+  if (!Number.isInteger(score) || score < 0 || score > 10) return c.json({ error: 'Pick a score from 0 to 10' }, 400)
+  if (b.website || Number(b.ms) < 1500) return c.json({ ok: true })   // filled by a robot: say thanks, keep nothing
+  // at most 6 answers per 10 minutes from one connection
+  const ip = c.req.header('CF-Connecting-IP') || 'x', now = Date.now()
+  const recent = (npsSeen.get(ip) || []).filter(t => now - t < 600e3)
+  if (recent.length >= 6) return c.json({ error: 'Too many answers, try again later' }, 429)
+  recent.push(now); npsSeen.set(ip, recent); if (npsSeen.size > 5000) npsSeen.clear()
+  const H = { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json' }
+  const r = /^[A-Za-z0-9_-]{6,64}$/.test(String(b.r || '')) ? String(b.r) : ''
+  let guest = '', resDate = null
+  if (r) {
+    const rows: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/reservations?id=eq.${encodeURIComponent(r)}&select=guest_name,date`, { headers: H })).json().catch(() => [])
+    if (Array.isArray(rows) && rows[0]) { guest = npsClean(rows[0].guest_name, 80); resDate = rows[0].date || null }
+  }
+  const row: any = { score, comment: npsClean(b.comment, 1000), source: ['qr', 'res', 'link'].indexOf(b.s) !== -1 ? b.s : 'link', table_name: npsClean(b.t, 20),
+    reservation_id: guest ? r : '', guest_name: guest, visit_date: resDate, lang: b.lang === 'pt' ? 'pt' : 'en', created_at: new Date().toISOString() }
+  let saved = false
+  if (row.reservation_id) {
+    const up = await fetch(`${cfg.SB_URL}/rest/v1/nps_responses?reservation_id=eq.${encodeURIComponent(r)}`, { method: 'PATCH', headers: { ...H, Prefer: 'return=representation' }, body: JSON.stringify({ ...row, followed_up: false }) })
+    saved = up.ok && ((await up.json().catch(() => [])) as any[]).length > 0
+  }
+  if (!saved) {
+    const ins = await fetch(`${cfg.SB_URL}/rest/v1/nps_responses`, { method: 'POST', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ id: 'nps-' + now.toString(36) + Math.random().toString(36).slice(2, 7), ...row }) })
+    if (!ins.ok) { console.log('[NPS] not saved: ' + (await ins.text()).slice(0, 200)); return c.json({ error: 'Not saved' }, 500) }
+  }
+  // a low score: tell the admins now, so someone can react the same day
+  if (score <= 6 && cfg.VAPID_PRIVATE) {
+    const job = (async () => {
+      const users: any[] = await (await fetch(`${cfg.SB_URL}/rest/v1/app_users?select=id,roles,active`, { headers: H })).json().catch(() => [])
+      const admins = (Array.isArray(users) ? users : []).filter(u => u.active !== false && Array.isArray(u.roles) && u.roles.indexOf('admin') !== -1).map(u => u.id)
+      if (!admins.length) return
+      const where = row.guest_name ? ' · ' + row.guest_name : row.table_name ? ' · ' + row.table_name : ''
+      await pushToUsers(cfg, admins, `Low guest score: ${score}/10${where}`, row.comment ? row.comment.slice(0, 160) : 'No comment left', '/?open=nps', 'bardapraia-nps')
+    })().catch(e => console.log('[NPS] alert failed: ' + e.message))
+    try { c.executionCtx.waitUntil(job) } catch (e) { await job }
+  }
+  return c.json({ ok: true })
+})
+
 // Impersonate (admins, for testing): a real session for another staff login, so the app and the
 // database behave exactly as they would for that person. No email is sent; the person stays logged in
 // on their own devices.
@@ -506,6 +632,91 @@ app.post('/api/push/subscribe', async (c) => {
 })
 
 // ── Send push notifications to a list of user IDs ─────────────
+// Send a notification to these people: kept in their inbox (Home → Notifications) and pushed to their devices
+async function pushToUsers(cfg: Cfg, userIds: string[], title: string, body: string, url: string, tag?: string): Promise<{ code: number, out: any }> {
+  const { SB_URL, VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT } = cfg
+  // Keep a copy in each person's inbox (Home → Notifications), also for people with no
+  // device registered or who are logged off. Tests are not kept. Needs the service key.
+  let stored = 0
+  if (tag !== 'bardapraia-test' && cfg.SB_SERVICE_KEY) {
+    const rows = [...new Set(userIds as unknown[])].filter((id): id is string => typeof id === 'string' && !!id).map(id => ({
+      user_id: id,
+      title: String(title).slice(0, 200),
+      body: String(body || '').slice(0, 1000),
+      url: typeof url === 'string' && url.startsWith('/') ? url.slice(0, 300) : '/'
+    }))
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/notifications`, { method: 'POST', headers: { ...dbHeaders(cfg), 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(rows) })
+      if (r.ok) stored = rows.length
+      else console.log('[Inbox] not stored: HTTP ' + r.status + ' ' + (await r.text()).slice(0, 160))
+    } catch (e: any) { console.log('[Inbox] not stored: ' + e.message) }
+  }
+
+  // Fetch subscriptions for given users — use in.() filter (correct PostgREST syntax)
+  const idList = userIds.map((id: string) => encodeURIComponent(id)).join(',')
+  const subUrl = `${SB_URL}/rest/v1/push_subscriptions?user_id=in.(${idList})&select=endpoint,p256dh,auth`
+  const subRes = await fetch(subUrl, { headers: dbHeaders(cfg) })
+  const subBody = await subRes.text()
+  if (!subRes.ok) return { code: 500, out: { error: 'Failed to fetch subscriptions', detail: subBody } }
+  const subs: any[] = JSON.parse(subBody)
+  if (!subs.length) return { code: 200, out: { sent: 0, stored, message: 'No subscriptions found for userIds', userIds } }
+
+  // Build VAPID JWT
+  const vapidJwt = await buildVapidJwt(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
+
+  const payload = JSON.stringify({
+    title,
+    body: body || '',
+    url: url || '/',
+    icon: '/brand/icon-192.png',
+    tag: typeof tag === 'string' && tag ? tag.slice(0, 64) : 'bardapraia-task-' + Date.now()
+  })
+
+  // Send to each subscription
+  let sent = 0
+  const errors: string[] = []
+  await Promise.all(subs.map(async (sub) => {
+    try {
+      const encrypted = await encryptPayload(payload, sub.p256dh, sub.auth)
+
+      // Build VAPID JWT per-subscription (audience = push service origin)
+      const endpointOrigin = new URL(sub.endpoint).origin
+      const perSubJwt = await buildVapidJwt(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE, endpointOrigin)
+
+      const pushRes = await fetch(sub.endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `vapid t=${perSubJwt.jwt},k=${VAPID_PUBLIC}`,
+          'Content-Type': 'application/octet-stream',
+          'Content-Encoding': 'aes128gcm',
+          'TTL': '86400'
+        },
+        body: encrypted
+      })
+
+      const responseText = await pushRes.text()
+      console.log(`[Push] ${sub.endpoint.slice(0,50)} → HTTP ${pushRes.status}: ${responseText.slice(0,200)}`)
+
+      if (pushRes.status === 201 || pushRes.status === 200 || pushRes.status === 202) {
+        sent++
+      } else if (pushRes.status === 410 || pushRes.status === 404) {
+        // Subscription expired – remove it
+        await fetch(`${SB_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, {
+          method: 'DELETE',
+          headers: dbHeaders(cfg)
+        })
+        errors.push(`Expired (${pushRes.status}): ${sub.endpoint.slice(0, 60)}`)
+      } else {
+        errors.push(`HTTP ${pushRes.status}: ${responseText.slice(0,100)}`)
+      }
+    } catch (err: any) {
+      errors.push(`Exception: ${err.message}`)
+    }
+  }))
+
+  return { code: 200, out: { sent, stored, total: subs.length, errors } }
+}
+
 app.post('/api/push/send', async (c) => {
   const cfg = getConfig(c.env), { SB_URL, VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT } = cfg
   if (await secureMode(cfg) && !(await staffFromToken(c, cfg))) return c.json({ error: 'Not logged in' }, 401)
@@ -518,86 +729,8 @@ app.post('/api/push/send', async (c) => {
       return c.json({ error: 'Missing userIds or title' }, 400)
     }
 
-    // Keep a copy in each person's inbox (Home → Notifications), also for people with no
-    // device registered or who are logged off. Tests are not kept. Needs the service key.
-    let stored = 0
-    if (tag !== 'bardapraia-test' && cfg.SB_SERVICE_KEY) {
-      const rows = [...new Set(userIds as unknown[])].filter((id): id is string => typeof id === 'string' && !!id).map(id => ({
-        user_id: id,
-        title: String(title).slice(0, 200),
-        body: String(body || '').slice(0, 1000),
-        url: typeof url === 'string' && url.startsWith('/') ? url.slice(0, 300) : '/'
-      }))
-      try {
-        const r = await fetch(`${SB_URL}/rest/v1/notifications`, { method: 'POST', headers: { ...dbHeaders(cfg), 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(rows) })
-        if (r.ok) stored = rows.length
-        else console.log('[Inbox] not stored: HTTP ' + r.status + ' ' + (await r.text()).slice(0, 160))
-      } catch (e: any) { console.log('[Inbox] not stored: ' + e.message) }
-    }
-
-    // Fetch subscriptions for given users — use in.() filter (correct PostgREST syntax)
-    const idList = userIds.map((id: string) => encodeURIComponent(id)).join(',')
-    const subUrl = `${SB_URL}/rest/v1/push_subscriptions?user_id=in.(${idList})&select=endpoint,p256dh,auth`
-    const subRes = await fetch(subUrl, { headers: dbHeaders(cfg) })
-    const subBody = await subRes.text()
-    if (!subRes.ok) return c.json({ error: 'Failed to fetch subscriptions', detail: subBody }, 500)
-    const subs: any[] = JSON.parse(subBody)
-    if (!subs.length) return c.json({ sent: 0, stored, message: 'No subscriptions found for userIds', userIds })
-
-    // Build VAPID JWT
-    const vapidJwt = await buildVapidJwt(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
-
-    const payload = JSON.stringify({
-      title,
-      body: body || '',
-      url: url || '/',
-      icon: '/brand/icon-192.png',
-      tag: typeof tag === 'string' && tag ? tag.slice(0, 64) : 'bardapraia-task-' + Date.now()
-    })
-
-    // Send to each subscription
-    let sent = 0
-    const errors: string[] = []
-    await Promise.all(subs.map(async (sub) => {
-      try {
-        const encrypted = await encryptPayload(payload, sub.p256dh, sub.auth)
-
-        // Build VAPID JWT per-subscription (audience = push service origin)
-        const endpointOrigin = new URL(sub.endpoint).origin
-        const perSubJwt = await buildVapidJwt(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE, endpointOrigin)
-
-        const pushRes = await fetch(sub.endpoint, {
-          method: 'POST',
-          headers: {
-            'Authorization': `vapid t=${perSubJwt.jwt},k=${VAPID_PUBLIC}`,
-            'Content-Type': 'application/octet-stream',
-            'Content-Encoding': 'aes128gcm',
-            'TTL': '86400'
-          },
-          body: encrypted
-        })
-
-        const responseText = await pushRes.text()
-        console.log(`[Push] ${sub.endpoint.slice(0,50)} → HTTP ${pushRes.status}: ${responseText.slice(0,200)}`)
-
-        if (pushRes.status === 201 || pushRes.status === 200 || pushRes.status === 202) {
-          sent++
-        } else if (pushRes.status === 410 || pushRes.status === 404) {
-          // Subscription expired – remove it
-          await fetch(`${SB_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, {
-            method: 'DELETE',
-            headers: dbHeaders(cfg)
-          })
-          errors.push(`Expired (${pushRes.status}): ${sub.endpoint.slice(0, 60)}`)
-        } else {
-          errors.push(`HTTP ${pushRes.status}: ${responseText.slice(0,100)}`)
-        }
-      } catch (err: any) {
-        errors.push(`Exception: ${err.message}`)
-      }
-    }))
-
-    return c.json({ sent, stored, total: subs.length, errors })
+    const r = await pushToUsers(cfg, userIds, title, body, url, tag)
+    return c.json(r.out, r.code as any)
   } catch (e: any) {
     return c.json({ error: e.message }, 500)
   }

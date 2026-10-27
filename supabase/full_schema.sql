@@ -316,6 +316,23 @@ CREATE TABLE IF NOT EXISTS item_sales (
 );
 CREATE INDEX IF NOT EXISTS item_sales_period ON item_sales (year, month);
 
+-- Guest feedback / NPS (policies in migrations/2026-10-27-y-nps.sql)
+CREATE TABLE IF NOT EXISTS nps_responses (
+  id TEXT PRIMARY KEY,
+  score INT NOT NULL CHECK (score BETWEEN 0 AND 10),
+  comment TEXT DEFAULT '',
+  source TEXT NOT NULL DEFAULT 'link',
+  table_name TEXT DEFAULT '',
+  reservation_id TEXT DEFAULT '',
+  guest_name TEXT DEFAULT '',
+  visit_date DATE,
+  lang TEXT DEFAULT 'pt',
+  followed_up BOOLEAN NOT NULL DEFAULT false,
+  followed_up_by TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS nps_responses_created ON nps_responses (created_at DESC);
+
 -- Calendar links for phones (only the server uses it; see migrations/2026-10-26-x-calendar-feeds.sql)
 CREATE TABLE IF NOT EXISTS cal_feeds (
   token TEXT PRIMARY KEY,
