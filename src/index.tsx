@@ -612,11 +612,36 @@ async function googleFetch(cfg: Cfg, key: string) {
     throw e
   }
 }
+// Nearby restaurants to compare with (rep_platforms rows 'gc:<place id>'): rating and number of reviews only
+const G_MAX_COMP = 5
+async function googleCompetitors(cfg: Cfg) { return (await repRows(cfg, 'rep_platforms?select=*')).filter((r: any) => String(r.id).indexOf('gc:') === 0) }
+async function googleFetchOne(cfg: Cfg, key: string, row: any) {
+  const now = new Date().toISOString(), day = gLisbonDay()
+  try {
+    const p = await gPlaces(cfg, key, 'places/' + encodeURIComponent(row.place_id) + '?languageCode=pt', 'id,displayName,formattedAddress,rating,userRatingCount,googleMapsUri')
+    await repWrite(cfg, 'rep_platforms', [{ id: row.id, place_id: row.place_id, name: (p.displayName && p.displayName.text) || row.name, address: p.formattedAddress || row.address, url: p.googleMapsUri || row.url,
+      rating: p.rating ?? null, review_count: p.userRatingCount ?? null, fetched_at: now, fetch_error: '', updated_at: now }])
+    await repWrite(cfg, 'rep_snapshots', [{ id: row.id + ':' + day, platform: row.id, day, rating: p.rating ?? null, review_count: p.userRatingCount ?? null, source: 'auto' }])
+    return { id: row.id, rating: p.rating, count: p.userRatingCount }
+  } catch (e: any) {
+    await repWrite(cfg, 'rep_platforms', [{ id: row.id, place_id: row.place_id, name: row.name, fetch_error: String(e.message).slice(0, 300), updated_at: now }]).catch(() => {})
+    return { id: row.id, error: e.message }
+  }
+}
+async function googleFetchAll(cfg: Cfg, key: string) {
+  const ours = await googleFetch(cfg, key)
+  const comps = []
+  for (const r of await googleCompetitors(cfg)) comps.push(await googleFetchOne(cfg, key, r))
+  return { ...ours, competitors: comps }
+}
 function gKey(c: any) { return (c.env && c.env.GOOGLE_PLACES_KEY) || '' }
 app.get('/api/rep/google', async (c) => {
   const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
   c.header('Cache-Control', 'no-store')
-  try { return c.json({ keySet: !!gKey(c), place: (await repRows(cfg, 'rep_platforms?id=eq.google&select=*'))[0] || null }) }
+  try {
+    const rows = await repRows(cfg, 'rep_platforms?select=*')
+    return c.json({ keySet: !!gKey(c), place: rows.find((r: any) => r.id === 'google') || null, competitors: rows.filter((r: any) => String(r.id).indexOf('gc:') === 0), max: G_MAX_COMP })
+  }
   catch (e: any) { return c.json({ error: e.message, missing: /rep_platforms/.test(e.message) }, 500) }
 })
 // Find the restaurant on Google by name (to choose it once)
@@ -648,7 +673,45 @@ app.post('/api/rep/google/refresh', async (c) => {
   const key = gKey(c); if (!key) return c.json({ error: 'The GOOGLE_PLACES_KEY secret is not set in Cloudflare yet' }, 400)
   if (Date.now() - gLastManual.at < 60e3) return c.json({ error: 'Just checked. Try again in a minute.' }, 429)
   gLastManual.at = Date.now()
-  try { return c.json(await googleFetch(cfg, key)) } catch (e: any) { return c.json({ error: e.message }, 502) }
+  try { return c.json(await googleFetchAll(cfg, key)) } catch (e: any) { return c.json({ error: e.message }, 502) }
+})
+// Add a restaurant to compare with (up to 5), or take one off (its history is kept)
+app.post('/api/rep/google/competitor', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const key = gKey(c); if (!key) return c.json({ error: 'The GOOGLE_PLACES_KEY secret is not set in Cloudflare yet' }, 400)
+  const { id, name, address } = await c.req.json().catch(() => ({} as any))
+  if (!id || !/^[A-Za-z0-9_-]{10,300}$/.test(String(id))) return c.json({ error: 'Choose a place' }, 400)
+  try {
+    const ours = (await repRows(cfg, 'rep_platforms?id=eq.google&select=place_id'))[0]
+    if (ours && ours.place_id === id) return c.json({ error: 'That is our own restaurant' }, 400)
+    const comps = await googleCompetitors(cfg)
+    if (comps.some((r: any) => r.place_id === id)) return c.json({ error: 'Already on the list' }, 400)
+    if (comps.length >= G_MAX_COMP) return c.json({ error: 'Up to ' + G_MAX_COMP + ' restaurants: remove one first' }, 400)
+    const row = { id: 'gc:' + id, place_id: id, name: String(name || '').slice(0, 200), address: String(address || '').slice(0, 300), url: '' }
+    await repWrite(cfg, 'rep_platforms', [{ ...row, updated_at: new Date().toISOString() }])
+    return c.json(await googleFetchOne(cfg, key, row))
+  } catch (e: any) { return c.json({ error: e.message }, 502) }
+})
+app.delete('/api/rep/google/competitor', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const { id } = await c.req.json().catch(() => ({} as any))
+  if (!/^gc:[A-Za-z0-9_-]{10,300}$/.test(String(id || ''))) return c.json({ error: 'Not found' }, 400)
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/rep_platforms?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  return r.ok ? c.json({ ok: true }) : c.json({ error: (await r.text()).slice(0, 160) }, 500)
+})
+// Restaurants near ours, most popular first (to pick from)
+app.post('/api/rep/google/nearby', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const key = gKey(c); if (!key) return c.json({ error: 'The GOOGLE_PLACES_KEY secret is not set in Cloudflare yet' }, 400)
+  try {
+    const ours = (await repRows(cfg, 'rep_platforms?id=eq.google&select=place_id'))[0]
+    if (!ours || !ours.place_id) return c.json({ error: 'Choose our restaurant on the Google tab first' }, 400)
+    const me = await gPlaces(cfg, key, 'places/' + encodeURIComponent(ours.place_id), 'id,location')
+    if (!me.location) return c.json({ error: 'Google did not give our location' }, 502)
+    const j = await gPlaces(cfg, key, 'places:searchNearby', 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount',
+      { includedTypes: ['restaurant'], maxResultCount: 15, rankPreference: 'POPULARITY', languageCode: 'pt', locationRestriction: { circle: { center: me.location, radius: 5000 } } })
+    return c.json({ places: (j.places || []).filter((p: any) => p.id !== ours.place_id).map((p: any) => ({ id: p.id, name: p.displayName && p.displayName.text, address: p.formattedAddress, rating: p.rating ?? null, count: p.userRatingCount ?? null })) })
+  } catch (e: any) { return c.json({ error: e.message }, 502) }
 })
 
 // Impersonate (admins, for testing): a real session for another staff login, so the app and the
@@ -963,11 +1026,11 @@ async function hkdf(salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, length:
   return okm.slice(0, length)
 }
 
-// Every morning (wrangler.jsonc → triggers): read the Google rating and reviews
+// Every morning (wrangler.jsonc → triggers): read the Google rating and reviews, and the restaurants we compare with
 async function scheduled(_event: any, env: Bindings, ctx: any) {
   const cfg = getConfig(env)
   if (!env.GOOGLE_PLACES_KEY || !cfg.SB_SERVICE_KEY) return
-  ctx.waitUntil(googleFetch(cfg, env.GOOGLE_PLACES_KEY).then(r => console.log('[Google] ' + JSON.stringify(r))).catch(e => console.log('[Google] failed: ' + e.message)))
+  ctx.waitUntil(googleFetchAll(cfg, env.GOOGLE_PLACES_KEY).then(r => console.log('[Google] ' + JSON.stringify(r))).catch(e => console.log('[Google] failed: ' + e.message)))
 }
 
 export default { fetch: app.fetch, scheduled }
