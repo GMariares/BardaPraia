@@ -590,6 +590,19 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .g-tr { margin:2px 0 4px; } .g-tr summary { font-size:12px; color:var(--teal-700); cursor:pointer; } .g-tr p { color:var(--slate-600); }
     .g-foot { margin-top:4px; } .link-btn { border:0; background:none; padding:0; font:inherit; color:var(--teal-700); text-decoration:underline; cursor:pointer; }
     .nps-chart .line.g { stroke:#f2a516; } .nps-chart .area.g { fill:rgba(242,165,22,.12); }
+    /* Reputation → Compare */
+    .cmp-table th, .cmp-table td { white-space:nowrap; vertical-align:middle; }
+    .cmp-table tbody th { font-weight:700; text-align:left; }
+    .cmp-table tbody th a { color:var(--slate-900); text-decoration:none; } .cmp-table tbody th a:hover { text-decoration:underline; }
+    .cmp-table .g-stars { font-size:11px; }
+    .cmp-table tr.cmp-us > th, .cmp-table tr.cmp-us > td { background:var(--mint-50); }
+    .cmp-table thead th:nth-child(2) { text-align:left; }
+    .cmp-rank { white-space:nowrap; font-size:30px; }
+    .cmp-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:0; }
+    .cmp-you { font-size:10.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--teal-700); background:var(--mint-100); border-radius:5px; padding:1px 6px; margin-left:6px; }
+    .cmp-del { border:1px solid var(--slate-200); border-radius:8px; min-height:32px; }
+    .cmp-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:12.5px; color:var(--slate-600); }
+    .cmp-legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
     /* Calendar on my phone */
     .drawer-cal { margin-top:10px; width:100%; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:9px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
     .cal-opts { background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
@@ -1821,9 +1834,11 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     <div class="tab-row" style="margin-bottom:14px" role="tablist" aria-label="Reputation">
       <button class="tab-btn active" data-rep-tab="nps"><i class="fas fa-face-smile"></i> NPS</button>
       <button class="tab-btn" data-rep-tab="google"><i class="fab fa-google"></i> Google</button>
+      <button class="tab-btn" data-rep-tab="compare"><i class="fas fa-ranking-star"></i> Compare</button>
     </div>
     <div id="nps-body"></div>
     <div id="google-body" style="display:none"></div>
+    <div id="compare-body" style="display:none"></div>
   </section>
 
   <section id="section-accounting" class="page-section">
@@ -5156,7 +5171,7 @@ function refreshSection(name) {
     }).catch(function(){});
 
   } else if (name === 'reputation') {
-    if (isAdmin) { npsLoad(); if (repTab === 'google') gLoad(); }
+    if (isAdmin) { npsLoad(); if (repTab === 'google' || repTab === 'compare') gLoad(); }
 
   } else if (name === 'accounting') {
     if (isAdmin) accLoad();
@@ -10652,18 +10667,22 @@ function renderReputation() {
   document.querySelectorAll('[data-rep-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.repTab === repTab); });
   document.getElementById('nps-body').style.display = repTab === 'nps' ? '' : 'none';
   document.getElementById('google-body').style.display = repTab === 'google' ? '' : 'none';
-  if (repTab === 'nps') renderNps(); else renderGoogle();
+  document.getElementById('compare-body').style.display = repTab === 'compare' ? '' : 'none';
+  if (repTab === 'nps') renderNps(); else if (repTab === 'compare') renderCompare(); else renderGoogle();
 }
 function gLoad() {
   if (!isAdmin) return Promise.resolve();
   var prev = gRep || {};
   return fetch('/api/rep/google').then(function(r){ return r.json().then(function(j){ if (!r.ok) { var e = new Error(j.error || 'Failed'); e.missing = !!j.missing; throw e; } return j; }); })
     .then(function(info){
-      return Promise.all([sbFetchAll('rep_snapshots', 'platform=eq.google&order=day.asc'), sbFetchAll('rep_reviews', 'platform=eq.google&order=published_at.desc')])
-        .then(function(res){ gRep = { info: info, snaps: res[0] || [], reviews: res[1] || [], filter: prev.filter || 'all' }; });
+      return Promise.all([sbFetchAll('rep_snapshots', 'order=day.asc'), sbFetchAll('rep_reviews', 'platform=eq.google&order=published_at.desc')])
+        .then(function(res){
+          var all = res[0] || [];
+          gRep = { info: info, allSnaps: all, snaps: all.filter(function(x){ return x.platform === 'google'; }), reviews: res[1] || [], filter: prev.filter || 'all', adding: prev.adding, cmpResults: prev.cmpResults, cmpQ: prev.cmpQ };
+        });
     })
     .catch(function(e){ gRep = { error: e.message, missing: !!e.missing, info: prev.info, snaps: [], reviews: [] }; })
-    .then(function(){ if (currentSection === 'reputation' && repTab === 'google') renderGoogle(); });
+    .then(function(){ if (currentSection === 'reputation' && repTab === 'google') renderGoogle(); if (currentSection === 'reputation' && repTab === 'compare') renderCompare(); });
 }
 function gStars(v) {
   var h = '', n = +v || 0;
@@ -10757,6 +10776,108 @@ function gPick(i) {
 function gRefresh() {
   gCall('/api/rep/google/refresh').then(function(j){ toast(j.new ? j.new + ' new review(s)' : 'Up to date', 'success'); return gLoad(); })
     .catch(function(e){ gRep.error = e.message; renderGoogle(); });
+}
+
+// ── Reputation → Compare: our Google rating against up to 5 restaurants nearby ──
+var CMP_COLORS = ['#2f6fd0', '#d4553e', '#8e44ad', '#e3b23c', '#5d6d7e'];
+// Rating and reviews now, and the change since ~30 days ago (or the first day read)
+function cmpEntry(row, isUs, i) {
+  var snaps = ((gRep && gRep.allSnaps) || []).filter(function(s){ return s.platform === row.id; });
+  var today = toDateStr(new Date()), want = toDateStr(new Date(Date.now() - 30 * 864e5));
+  var old = snaps.filter(function(s){ return s.day <= want; }).pop(), since = '';
+  if (!old) { old = snaps.filter(function(s){ return s.day < today; })[0]; if (old) since = old.day; }
+  return { id: row.id, name: row.name || 'Google', url: row.url, isUs: isUs, color: isUs ? '#1d7a6a' : CMP_COLORS[i % CMP_COLORS.length], rating: row.rating == null ? null : +row.rating, count: row.review_count == null ? null : +row.review_count,
+    dRating: old && old.rating != null && row.rating != null ? +row.rating - +old.rating : null, dCount: old && old.review_count != null && row.review_count != null ? +row.review_count - +old.review_count : null,
+    since: since, snaps: snaps, error: row.fetch_error || '' };
+}
+function cmpOrdinalOf(n, of) { return T('#{} of {}').replace('{}', n).replace('{}', of); }
+function cmpChartSVG(list) {
+  var all = [];
+  list.forEach(function(e){ e.snaps.forEach(function(s){ if (s.rating != null) all.push(s); }); });
+  var days = all.map(function(s){ return s.day; }).sort();
+  if (!days.length || days[0] === days[days.length - 1]) return '<p class="acc-note" style="margin:8px 0 0">The lines build up day by day: the app reads Google every morning.</p>';
+  var d0 = new Date(days[0] + 'T12:00:00').getTime(), d1 = new Date(days[days.length - 1] + 'T12:00:00').getTime();
+  var vals = all.map(function(s){ return +s.rating; }), lo = Math.max(1, Math.floor((Math.min.apply(null, vals) - 0.1) * 10) / 10), hi = Math.min(5, Math.ceil((Math.max.apply(null, vals) + 0.1) * 10) / 10);
+  if (hi - lo < 0.4) lo = Math.max(1, hi - 0.4);
+  var W = 980, H = 240, L = 34, R = 10, T0 = 12, B = 26, x = function(d){ return L + (W - L - R) * (new Date(d + 'T12:00:00').getTime() - d0) / (d1 - d0); }, y = function(v){ return T0 + (hi - v) / (hi - lo) * (H - T0 - B); }, g = '';
+  [hi, (hi + lo) / 2, lo].forEach(function(v){ g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" class="grid"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + gNum(v, 1) + '</text>'; });
+  list.slice().reverse().forEach(function(e){
+    var pts = e.snaps.filter(function(s){ return s.rating != null; }); if (!pts.length) return;
+    var d = pts.map(function(s, i){ return (i ? 'L' : 'M') + x(s.day).toFixed(1) + ' ' + y(+s.rating).toFixed(1); }).join(' ');
+    g += '<path d="' + d + '" fill="none" stroke="' + e.color + '" stroke-width="' + (e.isUs ? 3.5 : 2) + '" stroke-linejoin="round"' + (e.isUs ? '' : ' opacity=".85"') + '><title>' + esc(e.name) + '</title></path>';
+    if (pts.length === 1) g += '<circle cx="' + x(pts[0].day) + '" cy="' + y(+pts[0].rating) + '" r="3.5" fill="' + e.color + '"/>';
+  });
+  g += '<text x="' + L + '" y="' + (H - 6) + '">' + esc(fmtDay(days[0], true)) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">' + esc(fmtDay(days[days.length - 1], true)) + '</text>';
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="nps-chart" role="img" aria-label="Rating over time">' + g + '</svg>'
+    + '<div class="cmp-legend">' + list.map(function(e){ return '<span><i style="background:' + e.color + '"></i>' + esc(e.name) + '</span>'; }).join('') + '</div>';
+}
+function renderCompare() {
+  var box = document.getElementById('compare-body'); if (!box) return;
+  if (!gRep) { box.innerHTML = '<p class="acc-note"><i class="fas fa-spinner fa-spin"></i> Loading…</p>'; gLoad(); return; }
+  if (gRep.missing) { box.innerHTML = '<div class="acc-card"><p class="acc-note" style="margin:0">To switch this on, run the SQL file supabase/migrations/2026-10-29-z-reputation-platforms.sql in Supabase.</p></div>'; return; }
+  var info = gRep.info || {};
+  if (!info.keySet || !info.place || !info.place.place_id) { box.innerHTML = '<div class="acc-card"><p class="acc-note" style="margin:0">Connect our restaurant on the Google tab first.</p></div>'; return; }
+  var comps = info.competitors || [], max = info.max || 5;
+  var us = cmpEntry(info.place, true, 0), others = comps.map(function(r, i){ return cmpEntry(r, false, i); }), list = [us].concat(others);
+  var h = gRep.cmpError ? '<p class="acc-note ps-warn"><i class="fas fa-triangle-exclamation"></i> <span>' + esc(gRep.cmpError) + '</span></p>' : '';
+  h += '<div class="g-head"><div><h2 class="nps-title">Compared with restaurants nearby</h2><p class="acc-note" style="margin:2px 0 0">Google rating and reviews, read every morning. Up to ' + max + ' restaurants.</p></div>'
+    + '<div class="g-tools"><button class="btn btn-primary btn-sm" id="cmp-add"' + (comps.length >= max ? ' disabled' : '') + '><i class="fas fa-plus"></i> Add a restaurant</button></div></div>';
+  if (gRep.adding) {
+    var res = gRep.cmpResults || [], have = comps.map(function(r){ return r.place_id; }).concat([info.place.place_id]);
+    h += '<div class="acc-card g-setup"><div class="acc-card-title">Add a restaurant to compare (' + comps.length + ' of ' + max + ')</div>'
+      + '<form class="g-find" id="cmp-find"><input type="search" class="input-field" id="cmp-q" placeholder="Name and town, e.g. Restaurante O Paulo Arrifana" value="' + esc(gRep.cmpQ || '') + '" /><button class="btn btn-primary" type="submit"' + (gRep.busy ? ' disabled' : '') + '><i class="fas fa-magnifying-glass"></i> Search</button>'
+      + '<button class="btn btn-secondary" type="button" id="cmp-nearby"' + (gRep.busy ? ' disabled' : '') + '><i class="fas fa-location-dot"></i> Popular nearby</button></form>'
+      + (gRep.busy ? '<p class="acc-note" style="margin:10px 0 0"><i class="fas fa-spinner fa-spin"></i> Asking Google…</p>' : '')
+      + (res.length ? '<div class="g-results">' + res.map(function(p, i){ var added = have.indexOf(p.id) !== -1;
+        return '<div class="g-result"><div><b>' + esc(p.name) + '</b><small>' + esc(p.address || '') + '</small>' + (p.rating != null ? '<small>' + gStars(p.rating) + ' ' + gNum(p.rating, 1) + ' · ' + T('{} reviews').replace('{}', p.count || 0) + '</small>' : '') + '</div>'
+          + (added ? '<span class="acc-note" style="margin:0">' + (p.id === info.place.place_id ? 'Us' : 'Added') + '</span>' : '<button class="btn btn-secondary btn-sm" data-cmp-pick="' + i + '"' + (gRep.busy || comps.length >= max ? ' disabled' : '') + '><i class="fas fa-plus"></i> Add</button>') + '</div>'; }).join('') + '</div>' : '')
+      + '<button class="btn btn-secondary btn-sm" id="cmp-done" style="margin-top:10px">Done</button></div>';
+  }
+  if (!others.length) {
+    box.innerHTML = h + (gRep.adding ? '' : '<div class="acc-card ps-empty"><i class="fas fa-ranking-star"></i><p>Add 3 to 5 restaurants nearby to see how our Google rating compares.</p></div>');
+    return;
+  }
+  var rated = others.filter(function(e){ return e.rating != null; }), avg = rated.length ? rated.reduce(function(a, e){ return a + e.rating; }, 0) / rated.length : null;
+  var paced = others.filter(function(e){ return e.dCount != null; }), avgNew = paced.length ? paced.reduce(function(a, e){ return a + e.dCount; }, 0) / paced.length : null;
+  var ranked = list.filter(function(e){ return e.rating != null; }).sort(function(a, b){ return b.rating - a.rating || (b.count || 0) - (a.count || 0); });
+  var pos = ranked.indexOf(us) + 1, diff = us.rating != null && avg != null ? us.rating - avg : null;
+  var sinceTxt = us.since ? T('since {}').replace('{}', fmtDay(us.since, true)) : T('in 30 days');
+  var dcls = function(d){ return d == null ? 'flat' : d > 0.04 ? 'up' : d < -0.04 ? 'down' : 'flat'; };
+  h += '<div class="nps-cards">'
+    + '<div class="nps-card"><div class="nps-card-top"><span class="nps-ic gold"><i class="fas fa-star"></i></span><span class="nps-label">Our rating vs. the others</span></div><div class="nps-num">' + gNum(us.rating, 1) + '<small> ' + T('vs. {}').replace('{}', gNum(avg, 1)) + '</small></div>'
+    + '<span class="nps-delta ' + dcls(diff) + '">' + (diff == null ? '—' : (diff > 0 ? '+' : '') + gNum(diff, 2)) + ' <small>' + T('vs. their average of {}').replace('{}', gNum(avg, 2)) + '</small></span></div>'
+    + '<div class="nps-card"><div class="nps-card-top"><span class="nps-ic"><i class="fas fa-ranking-star"></i></span><span class="nps-label">Our place</span></div><div class="nps-num cmp-rank">' + (pos ? cmpOrdinalOf(pos, ranked.length) : '—') + '</div><div class="nps-sub">By Google rating (ties: more reviews first)</div></div>'
+    + '<div class="nps-card nps-wide"><div class="nps-card-top"><span class="nps-ic blue"><i class="fas fa-comment-dots"></i></span><span class="nps-label">New reviews</span></div><div class="nps-num">' + (us.dCount == null ? '—' : '+' + us.dCount) + '<small> ' + esc(sinceTxt) + '</small></div>'
+    + '<div class="nps-sub">' + (avgNew == null ? 'The others’ pace shows after a few days' : T('The others: {} on average').replace('{}', '+' + Math.round(avgNew))) + '</div></div></div>';
+  h += '<div class="acc-card acc-scroll"><table class="acc-table cmp-table"><thead><tr><th>#</th><th>Restaurant</th><th>Rating</th><th>Reviews</th><th>Rating change</th><th>New reviews</th><th></th></tr></thead><tbody>'
+    + list.slice().sort(function(a, b){ return (b.rating == null ? -1 : b.rating) - (a.rating == null ? -1 : a.rating) || (b.count || 0) - (a.count || 0); }).map(function(e){
+      var n = ranked.indexOf(e) + 1;
+      return '<tr' + (e.isUs ? ' class="cmp-us"' : '') + '><td>' + (n || '—') + '</td><th><span class="cmp-dot" style="background:' + e.color + '"></span>' + (e.url ? '<a href="' + esc(e.url) + '" target="_blank" rel="noopener">' + esc(e.name) + '</a>' : esc(e.name)) + (e.isUs ? ' <span class="cmp-you">Us</span>' : '') + (e.error ? ' <i class="fas fa-triangle-exclamation" style="color:var(--amber-700)" title="' + esc(e.error) + '"></i>' : '') + '</th>'
+        + '<td><b>' + gNum(e.rating, 1) + '</b> ' + gStars(e.rating) + '</td><td>' + (e.count == null ? '—' : e.count) + '</td>'
+        + '<td><span class="nps-delta ' + dcls(e.dRating) + '">' + (e.dRating == null ? '—' : (e.dRating > 0 ? '+' : '') + gNum(e.dRating, 1)) + '</span></td><td>' + (e.dCount == null ? '—' : '+' + e.dCount) + '</td>'
+        + '<td>' + (e.isUs ? '' : '<button class="ps-del cmp-del" data-cmp-del="' + esc(e.id) + '" aria-label="Remove" title="Remove"><i class="fas fa-xmark"></i></button>') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+  h += '<div class="acc-card"><div class="acc-card-title">Rating over time</div>' + cmpChartSVG(list) + '</div>';
+  h += '<p class="acc-note">Changes are since about 30 days ago; while there is less history, since the first day read. A restaurant you remove keeps its history.</p>';
+  box.innerHTML = h;
+}
+function cmpCall(method, path, body) {
+  gRep.busy = true; gRep.cmpError = ''; renderCompare();
+  return fetch(path, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'Failed'); return j; }); })
+    .finally(function(){ gRep.busy = false; });
+}
+function cmpSearch(q) { gRep.cmpQ = q; cmpCall('POST', '/api/rep/google/search', { q: q }).then(function(j){ gRep.cmpResults = j.places || []; if (!gRep.cmpResults.length) gRep.cmpError = T('Nothing found. Try the name and the town.'); renderCompare(); }).catch(function(e){ gRep.cmpError = e.message; renderCompare(); }); }
+function cmpNearby() { cmpCall('POST', '/api/rep/google/nearby').then(function(j){ gRep.cmpResults = j.places || []; renderCompare(); }).catch(function(e){ gRep.cmpError = e.message; renderCompare(); }); }
+function cmpPick(i) {
+  var p = (gRep.cmpResults || [])[i]; if (!p) return;
+  cmpCall('POST', '/api/rep/google/competitor', { id: p.id, name: p.name, address: p.address }).then(function(){ toast(T('Added: {}').replace('{}', p.name), 'success'); return gLoad(); })
+    .catch(function(e){ gRep.cmpError = e.message; renderCompare(); });
+}
+function cmpRemove(id) {
+  var r = ((gRep.info && gRep.info.competitors) || []).find(function(x){ return x.id === id; }); if (!r) return;
+  if (!confirm(T('Stop comparing with {}?').replace('{}', r.name))) return;
+  cmpCall('DELETE', '/api/rep/google/competitor', { id: id }).then(function(){ return gLoad(); }).catch(function(e){ gRep.cmpError = e.message; renderCompare(); });
 }
 
 function renderAccounting() {
@@ -11315,7 +11436,8 @@ function accNextCell(t, back) {
 }
 document.addEventListener('input', function(e){ var t = e.target; if (t && t.dataset && t.dataset.accCell) t.dataset.accTyped = '1'; });
 document.addEventListener('input', function(e){ if (e.target && e.target.id === 'is-search') { isQuery = e.target.value; isApplySearch(); } });
-document.addEventListener('submit', function(e){ if (e.target && e.target.id === 'g-find') { e.preventDefault(); var q = (document.getElementById('g-q').value || '').trim(); if (q) gSearch(q); } });
+document.addEventListener('submit', function(e){ if (e.target && e.target.id === 'g-find') { e.preventDefault(); var q = (document.getElementById('g-q').value || '').trim(); if (q) gSearch(q); }
+  if (e.target && e.target.id === 'cmp-find') { e.preventDefault(); var cq = (document.getElementById('cmp-q').value || '').trim(); if (cq) cmpSearch(cq); } });
 document.addEventListener('focusin', function(e){
   var t = e.target; if (!t || !t.dataset || !t.dataset.accCell) return;
   delete t.dataset.accTyped; t.dataset.accFresh = '1';
@@ -12400,6 +12522,11 @@ document.addEventListener('click', function(e) {
   if (t.closest('#g-cancel')) { gRep.choosing = false; renderGoogle(); return; }
   el = t.closest('[data-g-pick]'); if (el) { gPick(+el.dataset.gPick); return; }
   el = t.closest('[data-g-filter]'); if (el) { gRep.filter = el.dataset.gFilter; renderGoogle(); return; }
+  if (t.closest('#cmp-add')) { gRep.adding = true; gRep.cmpError = ''; renderCompare(); var cq = document.getElementById('cmp-q'); if (cq) cq.focus(); return; }
+  if (t.closest('#cmp-done')) { gRep.adding = false; gRep.cmpResults = []; renderCompare(); return; }
+  if (t.closest('#cmp-nearby')) { cmpNearby(); return; }
+  el = t.closest('[data-cmp-pick]'); if (el) { cmpPick(+el.dataset.cmpPick); return; }
+  el = t.closest('[data-cmp-del]'); if (el) { cmpRemove(el.dataset.cmpDel); return; }
 
   // Reputation → NPS
   if (t.closest('#btn-nps-share')) { npsShareOpen(); return; }
