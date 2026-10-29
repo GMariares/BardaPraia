@@ -566,10 +566,30 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .nps-done { flex:0 0 auto; min-height:34px; border:1px solid #f1c2bb; background:var(--red-50); color:var(--red); border-radius:8px; padding:4px 10px; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
     .nps-done.is-done { border-color:var(--mint-200); background:var(--mint-50); color:var(--teal-700); }
     @media (max-width: 760px) {
-      .nps-cards { grid-template-columns:1fr 1fr; } .nps-main { grid-column:1 / -1; }
+      .nps-cards { grid-template-columns:1fr 1fr; } .nps-main, .nps-wide { grid-column:1 / -1; }
       .nps-mid { grid-template-columns:1fr; }
       .nps-done span { display:none; }
     }
+    /* Reputation → Google */
+    .g-stars { display:inline-flex; gap:2px; color:#f2a516; font-size:13px; }
+    .nps-card .g-stars { font-size:16px; margin:2px 0 4px; display:flex; }
+    .g-head { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px; }
+    .g-place { display:flex; gap:10px; align-items:center; min-width:0; }
+    .g-place > i { width:38px; height:38px; border-radius:50%; background:#fff; border:var(--rule); display:flex; align-items:center; justify-content:center; color:#4285f4; font-size:18px; flex:0 0 auto; }
+    .g-place b { display:block; font-size:16px; color:var(--slate-900); } .g-place small { display:block; font-size:12.5px; color:var(--slate-500); }
+    .g-tools { display:flex; gap:8px; flex-wrap:wrap; } .g-tools a { text-decoration:none; }
+    .g-find { display:flex; gap:8px; flex-wrap:wrap; } .g-find input { flex:1 1 220px; }
+    .g-results { margin-top:12px; }
+    .g-result { display:flex; gap:10px; align-items:center; justify-content:space-between; padding:10px 0; border-top:1px solid var(--slate-100); }
+    .g-result b { display:block; color:var(--slate-900); } .g-result small { display:block; font-size:12.5px; color:var(--slate-500); margin-top:2px; }
+    .g-avatar { width:40px; height:40px; border-radius:50%; flex:0 0 auto; background:var(--slate-100); color:var(--slate-600); font-weight:800; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .g-avatar img { width:100%; height:100%; object-fit:cover; }
+    .g-rev-top { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:4px; }
+    .g-rev-top a, .g-rev-top b { font-weight:700; color:var(--slate-900); text-decoration:none; font-size:14px; }
+    .g-review .nps-meta a { color:var(--teal-700); }
+    .g-tr { margin:2px 0 4px; } .g-tr summary { font-size:12px; color:var(--teal-700); cursor:pointer; } .g-tr p { color:var(--slate-600); }
+    .g-foot { margin-top:4px; } .link-btn { border:0; background:none; padding:0; font:inherit; color:var(--teal-700); text-decoration:underline; cursor:pointer; }
+    .nps-chart .line.g { stroke:#f2a516; } .nps-chart .area.g { fill:rgba(242,165,22,.12); }
     /* Calendar on my phone */
     .drawer-cal { margin-top:10px; width:100%; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:9px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
     .cal-opts { background:var(--slate-50); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
@@ -1798,7 +1818,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
 
   <!-- ═══ ACCOUNTING ═══ -->
   <section id="section-reputation" class="page-section">
+    <div class="tab-row" style="margin-bottom:14px" role="tablist" aria-label="Reputation">
+      <button class="tab-btn active" data-rep-tab="nps"><i class="fas fa-face-smile"></i> NPS</button>
+      <button class="tab-btn" data-rep-tab="google"><i class="fab fa-google"></i> Google</button>
+    </div>
     <div id="nps-body"></div>
+    <div id="google-body" style="display:none"></div>
   </section>
 
   <section id="section-accounting" class="page-section">
@@ -4355,12 +4380,13 @@ setInterval(checkForUpdate, 30 * 60 * 1000);
 // Opened from a notification ("/?open=requests"): handled once someone is logged in
 var pendingDeepLink = /open=/.test(location.search) ? location.search : '';
 function openDeepLink(url) {
-  var m = /open=(requests|tasks|shifts|reservations|shopping|orders|calendar|clock|payslips|nps)/.exec(url || ''); if (!m) return;
+  var m = /open=(requests|tasks|shifts|reservations|shopping|orders|calendar|clock|payslips|nps|reviews)/.exec(url || ''); if (!m) return;
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
   if (m[1] === 'payslips') { accTab = 'payslips'; showSection('accounting'); return; }
-  if (m[1] === 'nps') { npsFilter = 'todo'; npsRows = null; showSection('reputation'); return; }
+  if (m[1] === 'nps') { repTab = 'nps'; npsFilter = 'todo'; npsRows = null; showSection('reputation'); return; }
+  if (m[1] === 'reviews') { repTab = 'google'; gRep = null; showSection('reputation'); return; }
   if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
   if (m[1] === 'orders') { showSection('dashboard'); var op = document.getElementById('dash-orders-panel'); if (op && op.style.display !== 'none') op.scrollIntoView({ block:'start' }); else { showSection('inventory'); switchInvTab('orders'); } return; }
   if (m[1] === 'clock') { showSection('dashboard'); var ck = /kind=(in|out)/.exec(url || ''); openClockScanner(ck ? ck[1] : 'auto'); return; }
@@ -4491,6 +4517,7 @@ function notifIcon(url) {
   if (/open=orders/.test(u)) return 'fa-truck';
   if (/open=payslips/.test(u)) return 'fa-file-invoice-dollar';
   if (/open=nps/.test(u)) return 'fa-face-frown';
+  if (/open=reviews/.test(u)) return 'fa-star-half-stroke';
   return 'fa-bell';
 }
 function notifWhen(iso) {
@@ -5129,7 +5156,7 @@ function refreshSection(name) {
     }).catch(function(){});
 
   } else if (name === 'reputation') {
-    if (isAdmin) npsLoad();
+    if (isAdmin) { npsLoad(); if (repTab === 'google') gLoad(); }
 
   } else if (name === 'accounting') {
     if (isAdmin) accLoad();
@@ -5242,7 +5269,7 @@ function showSection(name) {
   if (name === 'blackbox')     renderBlackBox();
   if (name === 'finance')      renderFinance();
   if (name === 'accounting')   renderAccounting();
-  if (name === 'reputation')   renderNps();
+  if (name === 'reputation')   renderReputation();
   if (name === 'foodcost')     renderFoodCost();
   if (name === 'users')        renderUsers();
   if (name === 'settings')     renderSettings();
@@ -10618,6 +10645,120 @@ function npsAskReservation(id) {
   (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : Promise.reject()).then(function(){ toast('No phone number: message copied, paste it to the guest', 'success'); }).catch(function(){ prompt('Send this to the guest:', text); });
 }
 
+// ── Reputation → Google ───────────────────────────────────────
+var repTab = 'nps';
+var gRep = null;   // { info:{keySet, place}, snaps:[], reviews:[], missing, error, results, busy, filter }
+function renderReputation() {
+  document.querySelectorAll('[data-rep-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.repTab === repTab); });
+  document.getElementById('nps-body').style.display = repTab === 'nps' ? '' : 'none';
+  document.getElementById('google-body').style.display = repTab === 'google' ? '' : 'none';
+  if (repTab === 'nps') renderNps(); else renderGoogle();
+}
+function gLoad() {
+  if (!isAdmin) return Promise.resolve();
+  var prev = gRep || {};
+  return fetch('/api/rep/google').then(function(r){ return r.json().then(function(j){ if (!r.ok) { var e = new Error(j.error || 'Failed'); e.missing = !!j.missing; throw e; } return j; }); })
+    .then(function(info){
+      return Promise.all([sbFetchAll('rep_snapshots', 'platform=eq.google&order=day.asc'), sbFetchAll('rep_reviews', 'platform=eq.google&order=published_at.desc')])
+        .then(function(res){ gRep = { info: info, snaps: res[0] || [], reviews: res[1] || [], filter: prev.filter || 'all' }; });
+    })
+    .catch(function(e){ gRep = { error: e.message, missing: !!e.missing, info: prev.info, snaps: [], reviews: [] }; })
+    .then(function(){ if (currentSection === 'reputation' && repTab === 'google') renderGoogle(); });
+}
+function gStars(v) {
+  var h = '', n = +v || 0;
+  for (var i = 1; i <= 5; i++) h += '<i class="' + (n >= i - 0.25 ? 'fas fa-star' : n >= i - 0.75 ? 'fas fa-star-half-stroke' : 'far fa-star') + '"></i>';
+  return '<span class="g-stars" aria-label="' + n + ' / 5">' + h + '</span>';
+}
+function gNum(v, d) { return v == null ? '—' : (+v).toFixed(d).replace('.', LANG === 'pt' ? ',' : '.'); }
+// The snapshot closest to N days ago (for the change)
+function gSnapAgo(days) {
+  var want = toDateStr(new Date(Date.now() - days * 864e5)), list = (gRep.snaps || []).filter(function(s){ return s.day <= want; });
+  return list.length ? list[list.length - 1] : null;
+}
+function gChartSVG(snaps) {
+  var pts = snaps.filter(function(s){ return s.rating != null; }).slice(-120);
+  if (pts.length < 2) return '<p class="acc-note" style="margin:8px 0 0">The trend builds up day by day: the app reads Google every morning.</p>';
+  var W = 980, H = 220, L = 34, R = 10, T = 12, B = 26, lo = Math.min.apply(null, pts.map(function(p){ return +p.rating; })), hi = Math.max.apply(null, pts.map(function(p){ return +p.rating; }));
+  lo = Math.max(1, Math.floor((lo - 0.1) * 10) / 10); hi = Math.min(5, Math.ceil((hi + 0.1) * 10) / 10); if (hi - lo < 0.4) { lo = Math.max(1, hi - 0.4); }
+  var y = function(v){ return T + (hi - v) / (hi - lo) * (H - T - B); }, x = function(i){ return L + (W - L - R) * i / (pts.length - 1); }, g = '';
+  [hi, (hi + lo) / 2, lo].forEach(function(v){ g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" class="grid"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + gNum(v, 1) + '</text>'; });
+  var line = pts.map(function(p, i){ return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(+p.rating).toFixed(1); }).join(' ');
+  g += '<path d="' + line + ' L' + x(pts.length - 1).toFixed(1) + ' ' + (H - B) + ' L' + L + ' ' + (H - B) + ' Z" class="area g"/><path d="' + line + '" class="line g"/>';
+  [0, pts.length - 1].forEach(function(i){ g += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="' + (i ? 'end' : 'start') + '">' + esc(fmtDay(pts[i].day, true)) + '</text>'; });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="nps-chart" role="img" aria-label="Google rating over time">' + g + '</svg>';
+}
+function renderGoogle() {
+  var box = document.getElementById('google-body'); if (!box) return;
+  if (!gRep) { box.innerHTML = '<p class="acc-note"><i class="fas fa-spinner fa-spin"></i> Loading…</p>'; gLoad(); return; }
+  if (gRep.missing) { box.innerHTML = '<div class="acc-card"><p class="acc-note" style="margin:0">To switch this on, run the SQL file supabase/migrations/2026-10-29-z-reputation-platforms.sql in Supabase.</p></div>'; return; }
+  var info = gRep.info || {}, place = info.place, h = '';
+  if (gRep.error) h += '<p class="acc-note ps-warn"><i class="fas fa-triangle-exclamation"></i> <span>' + esc(gRep.error) + '</span></p>';
+  if (!info.keySet) {
+    box.innerHTML = h + '<div class="acc-card g-setup"><div class="acc-card-title">Connect Google</div><p class="acc-note">The app reads the Google rating and reviews with a Google Places API key. It is set once, in Cloudflare:</p><ol class="cal-help">'
+      + '<li>Google Cloud console: create a project, turn on billing, enable “Places API (New)”.</li><li>Credentials → Create API key → restrict it to “Places API (New)”.</li>'
+      + '<li>Cloudflare → Workers & Pages → bardapraia → Settings → Variables and Secrets → add the secret GOOGLE_PLACES_KEY.</li><li>Come back here and choose the restaurant.</li></ol></div>';
+    return;
+  }
+  if (!place || !place.place_id || gRep.choosing) {
+    var res = gRep.results || [];
+    box.innerHTML = h + '<div class="acc-card g-setup"><div class="acc-card-title">Find the restaurant on Google</div>'
+      + '<form class="g-find" id="g-find"><input type="search" class="input-field" id="g-q" placeholder="e.g. Bar da Praia Arrifana" value="' + esc(gRep.q || '') + '" /><button class="btn btn-primary" type="submit"' + (gRep.busy ? ' disabled' : '') + '><i class="fas fa-magnifying-glass"></i> Search</button></form>'
+      + (res.length ? '<div class="g-results">' + res.map(function(p, i){ return '<div class="g-result"><div><b>' + esc(p.name) + '</b><small>' + esc(p.address || '') + '</small>' + (p.rating != null ? '<small>' + gStars(p.rating) + ' ' + gNum(p.rating, 1) + ' · ' + (p.count || 0) + ' reviews</small>' : '') + '</div><button class="btn btn-secondary btn-sm" data-g-pick="' + i + '"' + (gRep.busy ? ' disabled' : '') + '>This is us</button></div>'; }).join('') + '</div>' : '')
+      + (place && place.place_id ? '<button class="btn btn-secondary btn-sm" id="g-cancel" style="margin-top:10px">Cancel</button>' : '') + '</div>';
+    return;
+  }
+  // compare with 30 days ago, or with the first day read while there is less history
+  var today = toDateStr(new Date()), early = (gRep.snaps || []).filter(function(s){ return s.day < today; })[0];
+  var ago = gSnapAgo(30) || early, since = ago && !gSnapAgo(30) ? fmtDay(ago.day, true) : '', revs = gRep.reviews || [], f = gRep.filter || 'all';
+  var dRating = ago && ago.rating != null && place.rating != null ? +place.rating - +ago.rating : null, dCount = ago && ago.review_count != null && place.review_count != null ? place.review_count - ago.review_count : null;
+  var delta = function(d, fmt){ return d == null ? '<span class="nps-delta flat">The change shows after a few days</span>' : '<span class="nps-delta ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'flat') + '"><i class="fas fa-arrow-' + (d > 0 ? 'up' : d < 0 ? 'down' : 'right') + '"></i> ' + (d > 0 ? '+' : '') + fmt(d) + ' <small>' + (since ? T('since {}').replace('{}', since) : T('in 30 days')) + '</small></span>'; };
+  h += '<div class="g-head"><div class="g-place"><i class="fab fa-google"></i><div><b>' + esc(place.name || 'Google') + '</b><small>' + esc(place.address || '') + '</small></div></div>'
+    + '<div class="g-tools">' + (place.url ? '<a class="btn btn-secondary btn-sm" href="' + esc(place.url) + '" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Open on Google</a>' : '')
+    + '<button class="btn btn-primary btn-sm" id="g-refresh"' + (gRep.busy ? ' disabled' : '') + '><i class="fas fa-rotate' + (gRep.busy ? ' fa-spin' : '') + '"></i> Refresh now</button></div></div>';
+  if (place.fetch_error) h += '<p class="acc-note ps-warn"><i class="fas fa-triangle-exclamation"></i> <span>Last check failed: ' + esc(place.fetch_error) + '</span></p>';
+  h += '<div class="nps-cards">'
+    + '<div class="nps-card"><div class="nps-card-top"><span class="nps-ic gold"><i class="fas fa-star"></i></span><span class="nps-label">Google rating</span></div><div class="nps-num">' + gNum(place.rating, 1) + '<small> / 5</small></div>' + gStars(place.rating) + delta(dRating, function(d){ return gNum(d, 1); }) + '</div>'
+    + '<div class="nps-card"><div class="nps-card-top"><span class="nps-ic blue"><i class="fas fa-comment-dots"></i></span><span class="nps-label">Reviews on Google</span></div><div class="nps-num">' + (place.review_count == null ? '—' : place.review_count) + '</div>' + delta(dCount, function(d){ return d; }) + '</div>'
+    + '<div class="nps-card nps-wide"><div class="nps-card-top"><span class="nps-ic"><i class="fas fa-box-archive"></i></span><span class="nps-label">Reviews kept in the app</span></div><div class="nps-num">' + revs.length + '</div><div class="nps-sub">Google shows up to 5 per check; new ones are added every day.</div></div></div>';
+  h += '<div class="acc-card"><div class="acc-card-title">Google rating over time</div>' + gChartSVG(gRep.snaps || []) + '</div>';
+  var cnt = function(fn){ return revs.filter(fn).length; };
+  var chips = [['all', 'All', revs.length], ['5', '5★', cnt(function(r){ return +r.rating === 5; })], ['4', '4★', cnt(function(r){ return +r.rating === 4; })], ['3', '3★', cnt(function(r){ return +r.rating === 3; })], ['low', '1–2★', cnt(function(r){ return +r.rating <= 2; })]]
+    .map(function(c){ return '<button class="nps-chip' + (f === c[0] ? ' on' : '') + (c[0] === 'low' && c[2] ? ' warn' : '') + '" data-g-filter="' + c[0] + '">' + c[1] + ' <span>' + c[2] + '</span></button>'; }).join('');
+  var list = revs.filter(function(r){ return f === 'all' || (f === 'low' ? +r.rating <= 2 : +r.rating === +f); });
+  h += '<div class="acc-card nps-list"><div class="nps-list-head"><div class="acc-card-title" style="margin:0">Latest Google reviews</div><div class="nps-chips">' + chips + '</div></div>'
+    + (list.length ? list.slice(0, 200).map(function(r){
+      var orig = r.original_text || r.text, tr = r.original_text && r.text && r.text !== r.original_text ? r.text : '';
+      return '<div class="nps-item g-review"><div class="g-avatar">' + (r.photo_url ? '<img src="' + esc(r.photo_url) + '" alt="" referrerpolicy="no-referrer" loading="lazy" />' : esc(String(r.author || '?').charAt(0))) + '</div><div class="nps-text">'
+        + '<div class="g-rev-top">' + (r.author_url ? '<a href="' + esc(r.author_url) + '" target="_blank" rel="noopener">' + esc(r.author || 'Google user') + '</a>' : '<b>' + esc(r.author || 'Google user') + '</b>') + gStars(r.rating) + '</div>'
+        + (orig ? '<p>' + esc(orig) + '</p>' : '<p class="none">No text, only stars</p>')
+        + (tr ? '<details class="g-tr"><summary>Translation</summary><p>' + esc(tr) + '</p></details>' : '')
+        + '<div class="nps-meta"><span>' + esc(r.published_at ? notifWhen(r.published_at) : '') + '</span>' + (r.url ? ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener">Open on Google</a>' : '') + '</div></div></div>';
+    }).join('') : '<p class="acc-note" style="margin:14px 0 4px">' + (revs.length ? 'Nothing here.' : 'No reviews read yet. Tap Refresh now.') + '</p>') + '</div>';
+  h += '<p class="acc-note g-foot"><span>' + (place.fetched_at ? 'Last read from Google: ' + fmtDay(toDateStr(new Date(place.fetched_at))) + ', ' + String(new Date(place.fetched_at).getHours()).padStart(2, '0') + ':' + String(new Date(place.fetched_at).getMinutes()).padStart(2, '0') : 'Not read yet') + '</span> · <span>Read again every morning</span> · <button class="link-btn" id="g-change">Change place</button></p>';
+  box.innerHTML = h;
+}
+function gCall(path, body) {
+  gRep.busy = true; gRep.error = ''; renderGoogle();
+  return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'Failed'); return j; }); })
+    .finally(function(){ gRep.busy = false; });
+}
+function gSearch(q) {
+  gRep.q = q;
+  gCall('/api/rep/google/search', { q: q }).then(function(j){ gRep.results = j.places || []; if (!gRep.results.length) gRep.error = T('Nothing found. Try the name and the town.'); renderGoogle(); })
+    .catch(function(e){ gRep.error = e.message; renderGoogle(); });
+}
+function gPick(i) {
+  var p = (gRep.results || [])[i]; if (!p) return;
+  gCall('/api/rep/google/place', { id: p.id, name: p.name, address: p.address }).then(function(){ gRep.choosing = false; gRep.results = []; toast('Connected to Google', 'success'); return gLoad(); })
+    .catch(function(e){ gRep.error = e.message; renderGoogle(); });
+}
+function gRefresh() {
+  gCall('/api/rep/google/refresh').then(function(j){ toast(j.new ? j.new + ' new review(s)' : 'Up to date', 'success'); return gLoad(); })
+    .catch(function(e){ gRep.error = e.message; renderGoogle(); });
+}
+
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
   // Accounting is for admins only (wages, margins, every cost); everyone else sees only their own payslips
@@ -11174,6 +11315,7 @@ function accNextCell(t, back) {
 }
 document.addEventListener('input', function(e){ var t = e.target; if (t && t.dataset && t.dataset.accCell) t.dataset.accTyped = '1'; });
 document.addEventListener('input', function(e){ if (e.target && e.target.id === 'is-search') { isQuery = e.target.value; isApplySearch(); } });
+document.addEventListener('submit', function(e){ if (e.target && e.target.id === 'g-find') { e.preventDefault(); var q = (document.getElementById('g-q').value || '').trim(); if (q) gSearch(q); } });
 document.addEventListener('focusin', function(e){
   var t = e.target; if (!t || !t.dataset || !t.dataset.accCell) return;
   delete t.dataset.accTyped; t.dataset.accFresh = '1';
@@ -12250,6 +12392,14 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-is-view]'); if (el) { accItemsView = el.dataset.isView; renderAccounting(); return; }
   if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
   if (t.closest('#btn-is-import-save')) { isSaveImport(); return; }
+
+  // Reputation → tabs, Google
+  el = t.closest('[data-rep-tab]'); if (el) { repTab = el.dataset.repTab; renderReputation(); return; }
+  if (t.closest('#g-refresh')) { gRefresh(); return; }
+  if (t.closest('#g-change')) { gRep.choosing = true; gRep.results = []; renderGoogle(); return; }
+  if (t.closest('#g-cancel')) { gRep.choosing = false; renderGoogle(); return; }
+  el = t.closest('[data-g-pick]'); if (el) { gPick(+el.dataset.gPick); return; }
+  el = t.closest('[data-g-filter]'); if (el) { gRep.filter = el.dataset.gFilter; renderGoogle(); return; }
 
   // Reputation → NPS
   if (t.closest('#btn-nps-share')) { npsShareOpen(); return; }
