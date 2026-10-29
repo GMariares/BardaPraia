@@ -8,6 +8,10 @@
   // every other request (/, /api/*) goes to the Hono worker.
   "assets": {
     "directory": "./public"
+  },
+  // Once a day (06:23 UTC): Reputation → Google reads the rating and the latest reviews
+  "triggers": {
+    "crons": ["23 6 * * *"]
   }
   // Secrets (VAPID_PRIVATE) are set in the Cloudflare dashboard:
   // Workers & Pages → bardapraia → Settings → Variables and Secrets.

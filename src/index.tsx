@@ -10,6 +10,7 @@ type Bindings = {
   VAPID_SUBJECT?: string
   SB_SERVICE_KEY?: string      // secret: Supabase service_role key (server-side user management, locked tables)
   AUTH_EMAIL_DOMAIN?: string   // logins are Supabase Auth users named <username>@<domain>
+  GOOGLE_PLACES_KEY?: string   // secret: Google Places API (New) key, for Reputation → Google
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -41,7 +42,8 @@ function getConfig(env: Bindings | undefined) {
     VAPID_PRIVATE: e.VAPID_PRIVATE || '',
     VAPID_SUBJECT: e.VAPID_SUBJECT || DEFAULTS.VAPID_SUBJECT,
     SB_SERVICE_KEY: e.SB_SERVICE_KEY || '',
-    EMAIL_DOMAIN: e.AUTH_EMAIL_DOMAIN || 'staff.bardapraia.org'
+    EMAIL_DOMAIN: e.AUTH_EMAIL_DOMAIN || 'staff.bardapraia.org',
+    GOOGLE_PLACES_URL: (e as any).GOOGLE_PLACES_URL || 'https://places.googleapis.com/v1/'   // other value only for local tests
   }
 }
 type Cfg = ReturnType<typeof getConfig>
@@ -550,6 +552,105 @@ app.post('/api/feedback', async (c) => {
   return c.json({ ok: true })
 })
 
+// ── Reputation → Google (rating, number of reviews, latest reviews) ─────────
+// Google Places API (New) with the GOOGLE_PLACES_KEY secret. Checked once a day (cron) and on "Refresh now".
+// Google gives the rating, the total number of reviews and up to 5 reviews per check; new reviews are kept,
+// so the list grows day by day. A new review of 3★ or less notifies the admins.
+async function repRows(cfg: Cfg, q: string) {
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/${q}`, { headers: svcHeaders(cfg.SB_SERVICE_KEY) })
+  if (!r.ok) throw new Error((await r.text()).slice(0, 200))
+  const j: any = await r.json(); return Array.isArray(j) ? j : []
+}
+async function repWrite(cfg: Cfg, table: string, rows: any[], merge = true) {
+  if (!rows.length) return
+  const r = await fetch(`${cfg.SB_URL}/rest/v1/${table}?on_conflict=id`, { method: 'POST', headers: { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json', Prefer: (merge ? 'resolution=merge-duplicates,' : '') + 'return=minimal' }, body: JSON.stringify(rows) })
+  if (!r.ok) throw new Error((await r.text()).slice(0, 200))
+}
+function gLisbonDay(d = new Date()) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d) }
+async function gPlaces(cfg: Cfg, key: string, path: string, fields: string, body?: any) {
+  const r = await fetch(cfg.GOOGLE_PLACES_URL + path, { method: body ? 'POST' : 'GET', headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': fields, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+  const j: any = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error('Google: ' + ((j.error && j.error.message) || 'HTTP ' + r.status))
+  return j
+}
+// Read the place from Google and save: platform row, today's snapshot, new reviews (+ alert on low ones)
+async function googleFetch(cfg: Cfg, key: string) {
+  const plat = (await repRows(cfg, 'rep_platforms?id=eq.google&select=*'))[0]
+  if (!plat || !plat.place_id) return { skipped: 'no place chosen' }
+  const H = { ...svcHeaders(cfg.SB_SERVICE_KEY), 'Content-Type': 'application/json' }
+  try {
+    const p = await gPlaces(cfg, key, 'places/' + encodeURIComponent(plat.place_id) + '?languageCode=pt', 'id,displayName,formattedAddress,rating,userRatingCount,googleMapsUri,reviews')
+    const now = new Date().toISOString(), day = gLisbonDay()
+    await repWrite(cfg, 'rep_platforms', [{ id: 'google', place_id: plat.place_id, name: (p.displayName && p.displayName.text) || plat.name, address: p.formattedAddress || plat.address,
+      url: p.googleMapsUri || plat.url, rating: p.rating ?? null, review_count: p.userRatingCount ?? null, fetched_at: now, fetch_error: '', updated_at: now }])
+    await repWrite(cfg, 'rep_snapshots', [{ id: 'google:' + day, platform: 'google', day, rating: p.rating ?? null, review_count: p.userRatingCount ?? null, source: 'auto' }])
+    const revs = (Array.isArray(p.reviews) ? p.reviews : []).map((r: any) => ({
+      id: 'google:' + String(r.name || '').split('/').pop(), platform: 'google',
+      author: (r.authorAttribution && r.authorAttribution.displayName) || '', author_url: (r.authorAttribution && r.authorAttribution.uri) || '',
+      photo_url: (r.authorAttribution && r.authorAttribution.photoUri) || '', rating: r.rating ?? null,
+      text: (r.text && r.text.text) || '', lang: (r.text && r.text.languageCode) || '',
+      original_text: (r.originalText && r.originalText.text) || '', original_lang: (r.originalText && r.originalText.languageCode) || '',
+      published_at: r.publishTime || null, url: r.googleMapsUri || p.googleMapsUri || ''
+    })).filter((r: any) => r.id !== 'google:')
+    let fresh: any[] = []
+    if (revs.length) {
+      const known = new Set((await repRows(cfg, `rep_reviews?select=id&id=in.(${revs.map((r: any) => '"' + r.id.replace(/"/g, '') + '"').join(',')})`)).map((r: any) => r.id))
+      fresh = revs.filter((r: any) => !known.has(r.id))
+      await repWrite(cfg, 'rep_reviews', revs.map((r: any) => known.has(r.id) ? r : { ...r, first_seen: now }))
+    }
+    // the first check fills the list: only reviews that appear after it are news
+    const firstRun = !plat.fetched_at
+    const low = firstRun ? [] : fresh.filter((r: any) => r.rating != null && r.rating <= 3)
+    if (low.length && cfg.VAPID_PRIVATE) {
+      const users: any[] = await repRows(cfg, 'app_users?select=id,roles,active').catch(() => [])
+      const admins = users.filter(u => u.active !== false && Array.isArray(u.roles) && u.roles.indexOf('admin') !== -1).map(u => u.id)
+      for (const r of low) if (admins.length) await pushToUsers(cfg, admins, `New ${r.rating}★ Google review · ${r.author || 'guest'}`, (r.text || r.original_text || 'No text').slice(0, 160), '/?open=reviews', 'bardapraia-review')
+    }
+    return { ok: true, rating: p.rating, count: p.userRatingCount, reviews: revs.length, new: fresh.length }
+  } catch (e: any) {
+    await fetch(`${cfg.SB_URL}/rest/v1/rep_platforms?id=eq.google`, { method: 'PATCH', headers: H, body: JSON.stringify({ fetch_error: String(e.message).slice(0, 300), updated_at: new Date().toISOString() }) }).catch(() => {})
+    throw e
+  }
+}
+function gKey(c: any) { return (c.env && c.env.GOOGLE_PLACES_KEY) || '' }
+app.get('/api/rep/google', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  c.header('Cache-Control', 'no-store')
+  try { return c.json({ keySet: !!gKey(c), place: (await repRows(cfg, 'rep_platforms?id=eq.google&select=*'))[0] || null }) }
+  catch (e: any) { return c.json({ error: e.message, missing: /rep_platforms/.test(e.message) }, 500) }
+})
+// Find the restaurant on Google by name (to choose it once)
+app.post('/api/rep/google/search', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const key = gKey(c); if (!key) return c.json({ error: 'The GOOGLE_PLACES_KEY secret is not set in Cloudflare yet' }, 400)
+  const { q } = await c.req.json().catch(() => ({} as any))
+  if (!q || String(q).trim().length < 3) return c.json({ error: 'Type the restaurant name' }, 400)
+  try {
+    const j = await gPlaces(cfg, key, 'places:searchText', 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount', { textQuery: String(q).slice(0, 120), languageCode: 'pt', regionCode: 'PT', pageSize: 8 })
+    return c.json({ places: (j.places || []).map((p: any) => ({ id: p.id, name: p.displayName && p.displayName.text, address: p.formattedAddress, rating: p.rating ?? null, count: p.userRatingCount ?? null })) })
+  } catch (e: any) { return c.json({ error: e.message }, 502) }
+})
+app.post('/api/rep/google/place', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const key = gKey(c); if (!key) return c.json({ error: 'The GOOGLE_PLACES_KEY secret is not set in Cloudflare yet' }, 400)
+  const { id, name, address } = await c.req.json().catch(() => ({} as any))
+  if (!id || !/^[A-Za-z0-9_-]{10,300}$/.test(String(id))) return c.json({ error: 'Choose a place' }, 400)
+  try {
+    const old = (await repRows(cfg, 'rep_platforms?id=eq.google&select=place_id'))[0]
+    const reset = !old || old.place_id !== id
+    await repWrite(cfg, 'rep_platforms', [{ id: 'google', place_id: id, name: String(name || '').slice(0, 200), address: String(address || '').slice(0, 300), url: '', ...(reset ? { fetched_at: null, rating: null, review_count: null } : {}), fetch_error: '', updated_at: new Date().toISOString() }])
+    return c.json(await googleFetch(cfg, key))
+  } catch (e: any) { return c.json({ error: e.message }, 502) }
+})
+const gLastManual = { at: 0 }
+app.post('/api/rep/google/refresh', async (c) => {
+  const cfg = getConfig(c.env); const a = await requireAdmin(c, cfg); if (a.error) return a.error
+  const key = gKey(c); if (!key) return c.json({ error: 'The GOOGLE_PLACES_KEY secret is not set in Cloudflare yet' }, 400)
+  if (Date.now() - gLastManual.at < 60e3) return c.json({ error: 'Just checked. Try again in a minute.' }, 429)
+  gLastManual.at = Date.now()
+  try { return c.json(await googleFetch(cfg, key)) } catch (e: any) { return c.json({ error: e.message }, 502) }
+})
+
 // Impersonate (admins, for testing): a real session for another staff login, so the app and the
 // database behave exactly as they would for that person. No email is sent; the person stays logged in
 // on their own devices.
@@ -862,4 +963,11 @@ async function hkdf(salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, length:
   return okm.slice(0, length)
 }
 
-export default app
+// Every morning (wrangler.jsonc → triggers): read the Google rating and reviews
+async function scheduled(_event: any, env: Bindings, ctx: any) {
+  const cfg = getConfig(env)
+  if (!env.GOOGLE_PLACES_KEY || !cfg.SB_SERVICE_KEY) return
+  ctx.waitUntil(googleFetch(cfg, env.GOOGLE_PLACES_KEY).then(r => console.log('[Google] ' + JSON.stringify(r))).catch(e => console.log('[Google] failed: ' + e.message)))
+}
+
+export default { fetch: app.fetch, scheduled }

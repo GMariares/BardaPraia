@@ -316,6 +316,20 @@ CREATE TABLE IF NOT EXISTS item_sales (
 );
 CREATE INDEX IF NOT EXISTS item_sales_period ON item_sales (year, month);
 
+-- Reputation: platforms, daily ratings, reviews (policies in migrations/2026-10-29-z-reputation-platforms.sql)
+CREATE TABLE IF NOT EXISTS rep_platforms (
+  id TEXT PRIMARY KEY, place_id TEXT DEFAULT '', name TEXT DEFAULT '', address TEXT DEFAULT '', url TEXT DEFAULT '',
+  rating NUMERIC, review_count INT, fetched_at TIMESTAMPTZ, fetch_error TEXT DEFAULT '', updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS rep_snapshots (
+  id TEXT PRIMARY KEY, platform TEXT NOT NULL, day DATE NOT NULL, rating NUMERIC, review_count INT, source TEXT DEFAULT 'auto'
+);
+CREATE TABLE IF NOT EXISTS rep_reviews (
+  id TEXT PRIMARY KEY, platform TEXT NOT NULL, author TEXT DEFAULT '', author_url TEXT DEFAULT '', photo_url TEXT DEFAULT '',
+  rating NUMERIC, text TEXT DEFAULT '', lang TEXT DEFAULT '', original_text TEXT DEFAULT '', original_lang TEXT DEFAULT '',
+  published_at TIMESTAMPTZ, url TEXT DEFAULT '', first_seen TIMESTAMPTZ DEFAULT now(), handled BOOLEAN NOT NULL DEFAULT false
+);
+
 -- Guest feedback / NPS (policies in migrations/2026-10-27-y-nps.sql)
 CREATE TABLE IF NOT EXISTS nps_responses (
   id TEXT PRIMARY KEY,
