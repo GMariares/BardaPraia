@@ -714,6 +714,57 @@ app.post('/api/rep/google/nearby', async (c) => {
   } catch (e: any) { return c.json({ error: e.message }, 502) }
 })
 
+// ── My page: a person's own pay for a month (Accounting → Wages) ─────────────
+// Staff cannot read Accounting; the server picks out only their own wage lines (matched by name, name on
+// the schedule or username) and, where no amount was typed, their "% of revenue" rules.
+const ME_PARTS = ['payslip', 'ticket', 'cash', 'extras']
+const meNorm = (x: any) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+app.get('/api/me/pay', async (c) => {
+  const cfg = getConfig(c.env); c.header('Cache-Control', 'no-store')
+  const me = await staffFromToken(c, cfg); if (!me) return c.json({ error: 'Not logged in' }, 401)
+  if (!cfg.SB_SERVICE_KEY) return c.json({ error: 'The SB_SERVICE_KEY secret is not set in Cloudflare yet' }, 400)
+  const y = parseInt(c.req.query('y') || '', 10), m = parseInt(c.req.query('m') || '', 10)
+  if (!(y >= 2020 && y <= 2100 && m >= 1 && m <= 12)) return c.json({ error: 'Pick a month' }, 400)
+  const H = svcHeaders(cfg.SB_SERVICE_KEY)
+  const get = async (q: string) => { const r = await fetch(`${cfg.SB_URL}/rest/v1/${q}`, { headers: H }); if (!r.ok) throw new Error((await r.text()).slice(0, 160)); const j: any = await r.json(); return Array.isArray(j) ? j : [] }
+  try {
+    const u = (await get(`app_users?id=eq.${encodeURIComponent(me.appUserId)}&select=name,username,employee`))[0] || {}
+    const names = [u.name, u.employee && u.employee !== '-' ? u.employee : '', u.username].map(meNorm).filter(Boolean)
+    const rows = await get(`acc_entries?year=eq.${y}&month=eq.${m}&kind=eq.wage&select=line,part,amount`)
+    const lines = [...new Set(rows.map((r: any) => String(r.line)))]
+    let line = lines.find(l => names.indexOf(meNorm(l)) !== -1) || ''
+    if (!line) {   // only the first name typed in Accounting: take it when exactly one line has it
+      const first = meNorm(String(u.name || '').split(' ')[0]), hits = lines.filter(l => meNorm(l) === first || meNorm(l).split(' ')[0] === first)
+      if (first && hits.length === 1) line = hits[0]
+    }
+    const parts: Record<string, { v: number, auto: boolean }> = {}
+    let total = 0, any = false
+    // "% of the month's revenue" rules apply where no amount was typed
+    let cfgAcc: any = null, revenue: number | null = null
+    for (const p of ME_PARTS) {
+      const es = line ? rows.filter((r: any) => r.line === line && r.part === p) : []
+      let v = 0, auto = false
+      if (es.length) { v = es.reduce((a: number, r: any) => a + (parseFloat(r.amount) || 0), 0); any = true }
+      else {
+        if (cfgAcc === null) cfgAcc = ((await get('settings?id=eq.config&select=accounting'))[0] || {}).accounting || {}
+        const ym = y * 100 + m
+        const rule = (cfgAcc.wageRules || []).find((r: any) => names.concat(line ? [meNorm(line)] : []).indexOf(meNorm(r.person)) !== -1 && r.part === p && (!r.from || ym >= (+String(r.from).split('-')[0]) * 100 + (+String(r.from).split('-')[1] || 1)))
+        if (rule) {
+          if (revenue === null) {
+            const pad = String(m).padStart(2, '0'), last = new Date(y, m, 0).getDate()
+            const fin = await get(`fin_entries?date=gte.${y}-${pad}-01&date=lte.${y}-${pad}-${last}&select=total_day`)
+            revenue = fin.length ? fin.reduce((a: number, r: any) => a + (parseFloat(r.total_day) || 0), 0)
+              : (await get(`acc_entries?year=eq.${y}&month=eq.${m}&kind=eq.revenue&select=amount`)).reduce((a: number, r: any) => a + (parseFloat(r.amount) || 0), 0)
+          }
+          v = Math.round(revenue * (+rule.pct || 0)) / 100; auto = true; any = any || v > 0
+        }
+      }
+      parts[p] = { v, auto }; total += v
+    }
+    return c.json({ any, total: Math.round(total * 100) / 100, parts })
+  } catch (e: any) { return c.json({ error: e.message }, 500) }
+})
+
 // Impersonate (admins, for testing): a real session for another staff login, so the app and the
 // database behave exactly as they would for that person. No email is sent; the person stays logged in
 // on their own devices.

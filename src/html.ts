@@ -517,6 +517,18 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .sched-on b { display:block; font-size:14px; color:var(--slate-900); } .sched-on small { display:block; font-size:12px; color:var(--slate-500); }
     #user-sched-row { margin-top:8px; }
     .tips-month { width:auto; min-height:34px; padding:4px 30px 4px 10px; font-size:13px; text-transform:none; letter-spacing:0; }
+    /* My page */
+    .me-head { display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom:14px; }
+    .me-nav { display:flex; align-items:center; gap:10px; } .me-nav b { min-width:140px; text-align:center; font-size:15px; color:var(--slate-900); text-transform:capitalize; }
+    .me-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px; margin-bottom:12px; }
+    .me-grid .nps-wide { grid-column:auto; }
+    .me-parts { list-style:none; margin:6px 0 0; padding:0; }
+    .me-parts li { display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px solid var(--slate-100); font-size:13.5px; color:var(--slate-700); }
+    .me-parts li:last-child { border-bottom:0; }
+    .me-parts li small { color:var(--slate-500); } .me-parts b { color:var(--slate-900); font-variant-numeric:tabular-nums; }
+    .me-parts b.up { color:#2e8b57; } .me-parts b.down { color:var(--red); }
+    .me-parts li.tot { border-top:1px solid var(--slate-200); font-weight:700; }
+    .me-parts li.me-dates span { font-size:12px; color:var(--slate-500); }
     /* Closed days */
     .cl-days { display:flex; flex-wrap:wrap; gap:6px; }
     .cl-day { min-width:52px; min-height:40px; border:var(--rule); border-radius:9px; background:var(--panel); font:inherit; font-weight:700; font-size:13px; color:var(--slate-600); cursor:pointer; text-transform:capitalize; }
@@ -1516,6 +1528,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   <nav style="padding:14px 10px;flex:1;overflow-y:auto;">
     <div class="section-label">Floor</div>
     <button class="drawer-item active" id="ditem-dashboard" data-nav="dashboard"><i class="fas fa-home"></i> Home <span class="notif-dot-count" id="ditem-notif-count" style="display:none"></span></button>
+    <button class="drawer-item" id="ditem-me" data-nav="me"><i class="fas fa-id-badge"></i> My page</button>
     <button class="drawer-item" id="ditem-inventory" data-nav="inventory"><i class="fas fa-boxes-stacked"></i> Stock</button>
     <button class="drawer-item" id="ditem-calendar" data-nav="calendar"><i class="fas fa-calendar-days"></i> Calendar</button>
     <button class="drawer-item" id="ditem-tasks" data-nav="tasks"><i class="fas fa-list-check"></i> Tasks</button>
@@ -1856,6 +1869,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
   </section>
 
   <!-- ═══ ACCOUNTING ═══ -->
+  <section id="section-me" class="page-section">
+    <div id="me-body"></div>
+  </section>
+
   <section id="section-reputation" class="page-section">
     <div class="tab-row" style="margin-bottom:14px" role="tablist" aria-label="Reputation">
       <button class="tab-btn active" data-rep-tab="nps"><i class="fas fa-face-smile"></i> NPS</button>
@@ -4434,7 +4451,7 @@ function openDeepLink(url) {
   if (!currentUser) { pendingDeepLink = url; return; }
   try { history.replaceState(null, '', '/'); } catch (e) {}
   if (m[1] === 'tasks') { showSection('tasks'); return; }
-  if (m[1] === 'payslips') { accTab = 'payslips'; showSection('accounting'); return; }
+  if (m[1] === 'payslips') { if (isAdmin) { accTab = 'payslips'; showSection('accounting'); } else showSection('me'); return; }
   if (m[1] === 'nps') { repTab = 'nps'; npsFilter = 'todo'; npsRows = null; showSection('reputation'); return; }
   if (m[1] === 'reviews') { repTab = 'google'; gRep = null; showSection('reputation'); return; }
   if (m[1] === 'shopping') { showSection('inventory'); switchInvTab('shop'); return; }
@@ -5017,7 +5034,8 @@ function updateSessionUI() {
   dshow('ditem-calendar',     true);
   dshow('ditem-shifts',       true);
   dshow('ditem-finance',      isFinance);
-  dshow('ditem-accounting',   isAdmin || isSecure());   // staff: only their own payslips
+  dshow('ditem-accounting',   isAdmin);   // staff see their payslips on My page
+  dshow('ditem-me',           true);      // everyone: their own pay, hours, tips and payslips
   dshow('ditem-reputation',   isAdmin);
   document.querySelectorAll('[data-cal-sync]').forEach(function(b){ b.style.display = isSecure() ? '' : 'none'; });
   var accBadge = document.querySelector('#ditem-accounting .admin-only-badge'); if (accBadge) accBadge.style.display = isAdmin ? '' : 'none';
@@ -5027,7 +5045,7 @@ function updateSessionUI() {
   dshow('ditem-users',        isAdmin);   // Team: the accounts, where the shift team is managed too
   dshow('ditem-settings',     isAdmin);
   var officeLbl = document.getElementById('drawer-office-label');
-  if (officeLbl) officeLbl.style.display = (isFinance || isAdmin || canShiftEdit || canFoodCost() || isSecure()) ? '' : 'none';
+  if (officeLbl) officeLbl.style.display = (isFinance || isAdmin || canShiftEdit || canFoodCost()) ? '' : 'none';
 
   // ── Bottom nav visibility ──────────────────────────────────────
   function bshow(id, visible) {
@@ -5207,6 +5225,9 @@ function refreshSection(name) {
       if (currentSection === name) renderFinance();
     }).catch(function(){});
 
+  } else if (name === 'me') {
+    meLoad();
+
   } else if (name === 'reputation') {
     if (isAdmin) { npsLoad(); if (repTab === 'google' || repTab === 'compare') gLoad(); }
 
@@ -5278,6 +5299,7 @@ function moveBnavMarker() {
 window.addEventListener('resize', function(){ moveBnavMarker(); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ moveBnavMarker(); });
 function showSection(name) {
+  if (name === 'accounting' && currentUser && !isAdmin) name = 'me';   // Accounting is for admins; staff have My page
   // Access control by role
   if (!currentUser) { return; }
   if (name === 'inventory' && currentSection !== 'inventory') { invView = 'home'; invCatFilter = ''; invSupplierFilter = ''; invReorderIds = null; invSearchVal = ''; var isf = document.getElementById('inv-search'); if (isf) isf.value = ''; }
@@ -5305,7 +5327,7 @@ function showSection(name) {
   var di = document.getElementById('ditem-' + navName);
   if (di) di.classList.add('active');
 
-  var titles = {dashboard:'Home',inventory:'Stock',reservations:'Calendar',calendar:'Calendar',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',reputation:'Reputation',foodcost:'Food Cost',users:'Team',settings:'Settings'};
+  var titles = {dashboard:'Home',inventory:'Stock',reservations:'Calendar',calendar:'Calendar',tasks:'Tasks',shifts:'Shifts',blackbox:'Black Box',finance:'Finance',accounting:'Accounting',me:'My page',reputation:'Reputation',foodcost:'Food Cost',users:'Team',settings:'Settings'};
   document.getElementById('topbar-title').textContent = titles[name] || 'Bar da Praia';
   moveBnavMarker();
   currentSection = name;
@@ -5322,6 +5344,7 @@ function showSection(name) {
   if (name === 'finance')      renderFinance();
   if (name === 'accounting')   renderAccounting();
   if (name === 'reputation')   renderReputation();
+  if (name === 'me')           renderMe();
   if (name === 'foodcost')     renderFoodCost();
   if (name === 'users')        renderUsers();
   if (name === 'settings')     renderSettings();
@@ -10178,7 +10201,7 @@ function psLoad() {
     sbCols.payslips = true;
     return psSignShown();
   }).catch(function(){ psState.rows = []; sbCols.payslips = false; })
-    .then(function(){ psState.loading = false; if (currentSection === 'accounting' && accTab === 'payslips') renderAccounting(); });
+    .then(function(){ psState.loading = false; if (currentSection === 'accounting' && accTab === 'payslips') renderAccounting(); if (currentSection === 'me') renderMe(); });
 }
 // The newest payslip of each month for a person, newest month first: the first PS_KEEP are shown
 function psLatest(uid) {
@@ -11056,6 +11079,97 @@ function closuresRemovePeriod(id) {
   var c = closures();
   closuresSave({ weekdays: c.weekdays, periods: c.periods.filter(function(p){ return p.id !== id; }) });
 }
+
+// ── My page: each person's own month (pay, hours, overtime, absences, tips, payslips) ──
+// Replaces what staff saw in Accounting (only their payslips); Accounting itself stays for admins.
+var meYm = '', mePay = {}, meLoading = false;
+function meMonth() { if (!meYm) { var d = new Date(); meYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); } return meYm; }
+function meThisMonth() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function meStep(n) {
+  var p = meMonth().split('-'), d = new Date(+p[0], +p[1] - 1 + n, 1), ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  if (ym > meThisMonth()) return;
+  meYm = ym; renderMe(); mePayLoad(ym);
+}
+function mePayLoad(ym) {
+  if (!isSecure() || (mePay[ym] && mePay[ym].loading)) return;
+  mePay[ym] = { loading: true };
+  fetch('/api/me/pay?y=' + ym.slice(0, 4) + '&m=' + (+ym.slice(5, 7)))
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'Failed'); return j; }); })
+    .then(function(j){ mePay[ym] = { data: j }; }).catch(function(e){ mePay[ym] = { error: e.message }; })
+    .then(function(){ if (currentSection === 'me') renderMe(); });
+}
+// Fresh shifts, absences and tips (all readable by staff), payslips, and this month's pay
+function meLoad() {
+  if (meLoading) return; meLoading = true; mePay = {};
+  Promise.all([
+    sbFetchAll('shifts', 'order=week_start.desc,day.asc,id.asc').catch(function(){ return null; }),
+    sbFetchAll('absences', 'order=date.desc,id.asc').catch(function(){ return null; }),
+    sbFetch('GET', 'settings', null, 'select=week_tips,tip_splits&id=eq.config').catch(function(){ return null; })
+  ]).then(function(res){
+    var db = getDB();
+    if (res[0]) db.shifts = res[0].map(shiftFromRow);
+    if (res[1]) db.absences = res[1].map(function(x){ return { id: x.id, employee: x.employee, date: x.date, weekStart: x.week_start, justified: !!x.justified, createdAt: x.created_at }; });
+    if (res[2] && res[2][0]) { if (res[2][0].week_tips) db.weekTips = res[2][0].week_tips; if (res[2][0].tip_splits) db.tipSplits = res[2][0].tip_splits; }
+    saveDB(db);
+  }).then(function(){ meLoading = false; if (currentSection === 'me') renderMe(); });
+  psLoad();
+  mePayLoad(meMonth());
+}
+function meHours(h) { return (Math.round(h * 10) / 10).toFixed(1).replace('.', LANG === 'pt' ? ',' : '.') + ' h'; }
+function renderMe() {
+  var box = document.getElementById('me-body'); if (!box || !currentUser) return;
+  var ym = meMonth(), y = +ym.slice(0, 4), m = +ym.slice(5, 7), emp = myEmployee(), db = getDB();
+  var inMonth = function(ds){ return ds && ds.slice(0, 7) === ym; };
+  var label = locDate(new Date(y, m - 1, 1), { month: 'long', year: 'numeric' });
+  var h = '<div class="me-head"><div><h2 class="nps-title">' + esc(currentUser.name) + '</h2><p class="acc-note" style="margin:2px 0 0">' + (emp ? T('On the schedule as {}').replace('{}', emp) : 'Not on the shift schedule') + '</p></div>'
+    + '<div class="me-nav"><button type="button" class="btn btn-secondary btn-sm btn-icon" data-me-month="-1" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button><b>' + esc(label) + '</b>'
+    + '<button type="button" class="btn btn-secondary btn-sm btn-icon" data-me-month="1" aria-label="Next month"' + (ym >= meThisMonth() ? ' disabled' : '') + '><i class="fas fa-chevron-right"></i></button></div></div>';
+  // pay (from Accounting → Wages, through the server)
+  var pay = mePay[ym], payBody;
+  if (!isSecure()) payBody = '<p class="acc-note" style="margin:0">Needs the secure login.</p>';
+  else if (!pay || pay.loading) payBody = '<p class="acc-note" style="margin:0"><i class="fas fa-spinner fa-spin"></i> Loading…</p>';
+  else if (pay.error) payBody = '<p class="acc-note" style="margin:0">' + esc(pay.error) + '</p>';
+  else if (!pay.data.any) payBody = '<div class="nps-num">—</div><div class="nps-sub">No pay recorded for this month yet.</div>';
+  else payBody = '<div class="nps-num">' + accEur(pay.data.total) + '</div><ul class="me-parts">' + ACC_WAGE_PARTS.map(function(pp){
+      var x = pay.data.parts[pp[0]] || { v: 0 }; if (!x.v) return '';
+      return '<li><span>' + esc(T(pp[1])) + (x.auto ? ' <small>(' + esc(T('% of revenue')) + ')</small>' : '') + '</span><b>' + accEur(x.v) + '</b></li>';
+    }).join('') + '</ul>';
+  // hours, overtime, late / left early, days off, absences (from the shifts)
+  var st = emp ? (hoursByEmployee(db, function(s){ return s.employee === emp && inMonth(shiftDateStr(s)); })[emp] || null) : null;
+  var daysOff = emp ? (db.shifts || []).filter(function(s){ return s.employee === emp && s.dayOff && inMonth(shiftDateStr(s)); }).length : 0;
+  var abs = emp ? (db.absences || []).filter(function(a){ return a.employee === emp && inMonth(a.date); }) : [];
+  var absJ = abs.filter(function(a){ return a.justified; }).length;
+  var missing = st ? (st.lateMinutes || 0) + (st.earlyMinutes || 0) : 0;
+  // tips: the weeks that start in this month (saved split, else from the schedule)
+  var tipWeeks = [], tipTotal = 0;
+  if (emp) Object.keys(db.weekTips || {}).sort().forEach(function(wk){
+    if (wk.slice(0, 7) !== ym) return;
+    var tot = parseFloat(db.weekTips[wk]); if (!(tot > 0)) return;
+    var split = (db.tipSplits && db.tipSplits[wk]) || computeTipSplit(db, wk, tot), v = split && split.shares ? split.shares[emp] || 0 : 0;
+    if (v > 0) { tipWeeks.push([wk, v]); tipTotal += v; }
+  });
+  var card = function(icon, cls, title, body, wide){ return '<div class="nps-card' + (wide ? ' nps-wide' : '') + '"><div class="nps-card-top"><span class="nps-ic ' + cls + '"><i class="fas ' + icon + '"></i></span><span class="nps-label">' + title + '</span></div>' + body + '</div>'; };
+  h += '<div class="me-grid">'
+    + card('fa-wallet', 'gold', 'Pay', payBody)
+    + card('fa-clock', 'blue', 'Hours worked', emp ? '<div class="nps-num">' + meHours(st ? st.hours : 0) + '</div><div class="nps-sub">' + T('{} days worked').replace('{}', st ? st.days : 0) + '</div>' : '<p class="acc-note" style="margin:0">Not on the shift schedule</p>')
+    + card('fa-scale-unbalanced', '', 'Overtime and missing time', emp ? '<ul class="me-parts"><li><span>Overtime</span><b class="up">+' + esc(fmtMins(st ? st.overtimeMinutes || 0 : 0) || '0') + '</b></li>'
+        + '<li><span>Late</span><b class="down">' + (st && st.lateMinutes ? '−' + esc(fmtMins(st.lateMinutes)) : '—') + '</b></li><li><span>Left early</span><b class="down">' + (st && st.earlyMinutes ? '−' + esc(fmtMins(st.earlyMinutes)) : '—') + '</b></li>'
+        + '<li class="tot"><span>Balance</span><b>' + esc(fmtSignedMins((st ? st.overtimeMinutes || 0 : 0) - missing)) + '</b></li></ul>' : '<p class="acc-note" style="margin:0">—</p>')
+    + card('fa-calendar-xmark', '', 'Days off and absences', emp ? '<ul class="me-parts"><li><span>Days off</span><b>' + daysOff + '</b></li><li><span>Absences</span><b' + (abs.length ? ' class="down"' : '') + '>' + abs.length + '</b></li>'
+        + (abs.length ? '<li><span>' + T('{} justified, {} not').replace('{}', absJ).replace('{}', abs.length - absJ) + '</span><b></b></li>' : '')
+        + (abs.length ? '<li class="me-dates"><span>' + abs.map(function(a){ return esc(fmtDay(a.date, true)); }).join(', ') + '</span></li>' : '') + '</ul>' : '<p class="acc-note" style="margin:0">—</p>')
+    + card('fa-hand-holding-dollar', 'gold', 'Tips', emp ? '<div class="nps-num">' + (tipTotal ? accEur(tipTotal) : '—') + '</div>' + (tipWeeks.length ? '<ul class="me-parts">' + tipWeeks.map(function(t){ return '<li><span>' + T('Week of {}').replace('{}', esc(fmtDay(t[0], true))) + '</span><b>' + accEur(t[1]) + '</b></li>'; }).join('') + '</ul>' : '<div class="nps-sub">No tips for this month yet.</div>') : '<p class="acc-note" style="margin:0">—</p>', true)
+    + '</div>';
+  // payslips: the latest 3 months
+  var slips = psState.rows === null ? null : psLatest(currentUser.id).shown;
+  h += '<div class="acc-card"><div class="acc-card-title">My payslips</div>' + (!isSecure() ? '<p class="acc-note" style="margin:0">Needs the secure login.</p>'
+    : slips === null ? '<p class="acc-note" style="margin:0"><i class="fas fa-spinner fa-spin"></i> Loading…</p>'
+    : sbCols.payslips === false ? '<p class="acc-note" style="margin:0">Payslips are not available yet.</p>'
+    : slips.length ? '<p class="acc-note">Your last ' + PS_KEEP + ' months. Tap one to open it.</p><div class="ps-mine">' + slips.map(function(p){ return psSlipBtn(p, true); }).join('') + '</div>'
+    : '<p class="acc-note" style="margin:0">No payslips yet. They appear here once the office uploads them.</p>') + '</div>';
+  box.innerHTML = h;
+}
+function fmtSignedMins(n) { return n === 0 ? '0' : (n > 0 ? '+' : '−') + fmtMins(Math.abs(n)); }
 
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
@@ -12692,6 +12806,9 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-is-view]'); if (el) { accItemsView = el.dataset.isView; renderAccounting(); return; }
   if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
   if (t.closest('#btn-is-import-save')) { isSaveImport(); return; }
+
+  // My page
+  el = t.closest('[data-me-month]'); if (el) { meStep(+el.dataset.meMonth); return; }
 
   // Settings → Closed days
   el = t.closest('[data-cl-weekday]'); if (el) { closuresToggleWeekday(+el.dataset.clWeekday); return; }
