@@ -510,6 +510,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .is-imp-row { display:grid; grid-template-columns:1fr 64px; gap:6px 10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--slate-100); font-size:13px; }
     .is-imp-row select { grid-column:1 / -1; }
     .is-imp-row.skip { opacity:.55; }
+    /* Account form: works shifts */
+    .sched-box { border:var(--rule); border-radius:10px; padding:10px 12px; margin-bottom:12px; background:var(--slate-50); }
+    .sched-on { display:flex; gap:10px; align-items:flex-start; cursor:pointer; margin-bottom:6px; }
+    .sched-on input { width:20px; height:20px; margin-top:2px; accent-color:var(--teal-600); flex:0 0 auto; }
+    .sched-on b { display:block; font-size:14px; color:var(--slate-900); } .sched-on small { display:block; font-size:12px; color:var(--slate-500); }
+    #user-sched-row { margin-top:8px; }
     /* Closed days */
     .cl-days { display:flex; flex-wrap:wrap; gap:6px; }
     .cl-day { min-width:52px; min-height:40px; border:var(--rule); border-radius:9px; background:var(--panel); font:inherit; font-weight:700; font-size:13px; color:var(--slate-600); cursor:pointer; text-transform:capitalize; }
@@ -2236,14 +2242,10 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <button class="btn btn-primary btn-sm" id="btn-add-user"><i class="fas fa-user-plus"></i> Add person</button>
     </div>
     <div id="users-list"><div class="empty-state"><i class="fas fa-users"></i><p>No users yet.</p></div></div>
-    <div class="dash-panel team-rota" id="team-rota">
-      <h3><i class="fas fa-calendar-week"></i> Names on the shift schedule</h3>
-      <p class="acc-note" id="team-rota-note"></p>
+    <div class="dash-panel team-rota" id="team-rota" style="display:none">
+      <h3><i class="fas fa-calendar-week"></i> On the schedule without an active account</h3>
+      <p class="acc-note" id="team-rota-note">The shift team now comes from the accounts above (“Works shifts”). These names are still on the schedule: create an account for each, or take them off.</p>
       <div id="shifts-employee-list"></div>
-      <div class="team-rota-add">
-        <input type="text" id="shifts-new-employee-name" class="input-field" placeholder="Name as it appears on the schedule" aria-label="New name on the schedule" />
-        <button class="btn btn-primary" id="btn-shifts-add-employee" aria-label="Add to the schedule"><i class="fas fa-plus"></i> Add</button>
-      </div>
     </div>
   </section>
 
@@ -2500,10 +2502,14 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
       <div><label class="label">Name *</label><input type="text" class="input-field" id="user-name" placeholder="Full name" /></div>
       <div><label class="label">Username *</label><input type="text" class="input-field" id="user-username" placeholder="login name" autocapitalize="none" /></div>
     </div>
-    <div style="margin-bottom:12px">
-      <label class="label" for="user-employee">Name on the shift schedule</label>
-      <select class="select-field" id="user-employee"></select>
-      <div style="font-size:12px;color:var(--slate-500);margin-top:4px">Lets this person see their own shifts and ask for changes.</div>
+    <div class="sched-box">
+      <label class="sched-on"><input type="checkbox" id="user-on-schedule" /> <span><b>Works shifts</b><small>Shows on the shift schedule, hours and tips, and sees their own shifts.</small></span></label>
+      <div id="user-sched-row">
+        <label class="label" for="user-employee">Name on the schedule</label>
+        <input type="text" class="input-field" id="user-employee" list="user-sched-names" autocapitalize="characters" placeholder="e.g. JOEZIA" />
+        <datalist id="user-sched-names"></datalist>
+        <div style="font-size:12px;color:var(--slate-500);margin-top:4px">Keep the same name to keep their past shifts, hours and tips together.</div>
+      </div>
     </div>
     <div style="margin-bottom:12px">
       <label class="label" for="user-employee-no">Employee ID (as on the payslip)</label>
@@ -5017,7 +5023,7 @@ function updateSessionUI() {
   dshow('ditem-foodcost',     canFoodCost());
   dshow('ditem-tasks',        true);  // visible to all — filter inside renderTasks handles per-user
   dshow('ditem-blackbox',     isAdmin);
-  dshow('ditem-users',        isAdmin || canShiftEdit);   // Team: admins see logins too, shift managers the rota names
+  dshow('ditem-users',        isAdmin);   // Team: the accounts, where the shift team is managed too
   dshow('ditem-settings',     isAdmin);
   var officeLbl = document.getElementById('drawer-office-label');
   if (officeLbl) officeLbl.style.display = (isFinance || isAdmin || canShiftEdit || canFoodCost() || isSecure()) ? '' : 'none';
@@ -5274,7 +5280,7 @@ function showSection(name) {
   // Access control by role
   if (!currentUser) { return; }
   if (name === 'inventory' && currentSection !== 'inventory') { invView = 'home'; invCatFilter = ''; invSupplierFilter = ''; invReorderIds = null; invSearchVal = ''; var isf = document.getElementById('inv-search'); if (isf) isf.value = ''; }
-  if (name === 'users' && !isAdmin && !(currentUser && hasRole('shift_mgr'))) { toast('Admin or shift manager access required.', 'error'); return; }
+  if (name === 'users' && !isAdmin) { toast('Admin access required.', 'error'); return; }
   if ((name === 'blackbox' || name === 'settings' || name === 'reputation' || (name === 'accounting' && !isSecure())) && !isAdmin) {
     toast('Admin access required.', 'error'); return;
   }
@@ -5373,8 +5379,8 @@ function renderUsers() {
           +(isSelf?'<span style="background:#fdf3e1;color:var(--amber-700);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">You</span>':'')
         +'</div>'
         +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+roleBadges+'</div>'
-        +(function(){ var rn = employeeForUser(u, db); return u.employee === '-' ? '<div class="team-link"><i class="fas fa-calendar-xmark"></i> Not on the shift schedule</div>'
-            : (rn ? '<div class="team-link"><i class="fas fa-calendar-week"></i> On the schedule as <b>' + esc(rn) + '</b></div>' : '<div class="team-link none"><i class="fas fa-link-slash"></i> No name on the schedule linked — edit to pick one</div>'); })()
+        +(function(){ var rn = employeeForUser(u, db); return u.active === false ? '' : u.employee === '-' ? '<div class="team-link"><i class="fas fa-calendar-xmark"></i> Does not work shifts</div>'
+            : (rn ? '<div class="team-link"><i class="fas fa-calendar-week"></i> Works shifts as <b>' + esc(rn) + '</b></div>' : '<div class="team-link none"><i class="fas fa-link-slash"></i> Not on the schedule yet: edit and switch on “Works shifts”</div>'); })()
         +(pushChip?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'+pushChip+'</div>':'')
         +(contractInfo?'<div style="display:flex;gap:10px;flex-wrap:wrap">'+contractInfo+'</div>':'')
         +(u.notes?'<div style="font-size:12px;color:var(--teal-500);margin-top:4px;font-style:italic">'+esc(u.notes)+'</div>':'')
@@ -5473,13 +5479,13 @@ function saveUserModal() {
       insurance:     document.getElementById('user-insurance').value||'',
       clothSize:     document.getElementById('user-cloth-size').value||'',
       notes:         document.getElementById('user-notes').value||'',
-      employee:      document.getElementById('user-employee').value||'',
+      employee:      readUserEmployee(),
       employeeNo:    (document.getElementById('user-employee-no').value||'').trim(),
       active:        active,
       createdAt:     new Date().toISOString()
     };
     db.appUsers.push(newUser);
-    saveDB(db);
+    saveDB(db); scheduleSync(newUser, '');
     closeModal('modal-add-user');
     renderUsers();
     if (isSecure()) { saveUserSecure(newUser, pw, null); return; }
@@ -5512,11 +5518,12 @@ function saveUserModal() {
     existing.insurance     = document.getElementById('user-insurance').value||'';
     existing.clothSize     = document.getElementById('user-cloth-size').value||'';
     existing.notes         = document.getElementById('user-notes').value||'';
-    existing.employee      = document.getElementById('user-employee').value||'';
+    var prevSched = schedNameOf(existing, db);
+    existing.employee      = readUserEmployee();
     existing.employeeNo    = (document.getElementById('user-employee-no').value||'').trim();
     existing.active        = active;
     db.appUsers[idx] = existing;
-    saveDB(db);
+    saveDB(db); scheduleSync(existing, prevSched);
     // If editing self, refresh currentUser
     if (currentUser && currentUser.id === editUserId) {
       currentUser = existing;
@@ -5537,8 +5544,10 @@ function deleteUser(userId) {
   var db = getDB();
   var u = db.appUsers.find(function(x){ return x.id === userId; });
   if (!u) return;
+  var prevSched = schedNameOf(u, db);
   db.appUsers = db.appUsers.filter(function(x){ return x.id !== userId; });
   saveDB(db);
+  scheduleSync(Object.assign({}, u, { active: false }), prevSched);
   renderUsers();
   toast('User deleted.', 'error');
   if (isSecure()) { fetch('/api/users/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: userId }) }).then(function(r){ if (!r.ok) toast('Not deleted on the server', 'error'); loadUsersSecure(); }); return; }
@@ -8345,7 +8354,7 @@ function switchShiftsTab(tab, refresh) {
 function renderMyWeekTab() {
   var el = document.getElementById('my-week-list'); if (!el) return;
   var emp = myEmployee();
-  if (!emp) { el.innerHTML = '<div class="empty-state"><i class="fas fa-link-slash"></i><p>Your login is not linked to a name on the shift schedule yet. Ask a manager to link it in Team.</p></div>'; return; }
+  if (!emp) { el.innerHTML = '<div class="empty-state"><i class="fas fa-link-slash"></i><p>You are not on the shift schedule yet. Ask an admin to switch on “Works shifts” in your account.</p></div>'; return; }
   var db = getDB(), ws = getWeekStart(shiftsWeekOffset), wsStr = toDateStr(ws), absIdx = absenceIndex(db), today = toDateStr(new Date()), total = 0;
   var mine = (db.shifts || []).filter(function(x){ return x.employee === emp && x.weekStart === wsStr; });
   var rows = DAYS.map(function(day, i){
@@ -8993,22 +9002,18 @@ function renderShiftsAttendanceTab() {
 }
 
 // ── Team Members tab ─────────────────────────────────────────────
+// Names still on the schedule that no active account works as (from before the team came from the accounts)
 function renderShiftsTeamTab() {
-  var db = getDB();
-  var el = document.getElementById('shifts-employee-list'); if (!el) return;
-  // who logs in as each name (one person, one record)
-  var loginOf = {};
-  (db.appUsers || []).forEach(function(u){ if (u.active === false || u.id === 'admin_seed') return; var rn = employeeForUser(u, db); if (rn) loginOf[rn] = u.name; });
-  var note = document.getElementById('team-rota-note');
-  if (note) { var unl = db.employees.filter(function(e){ return !loginOf[e]; }).length;
-    note.textContent = 'These are the names the shift schedule, hours and tips use. ' + (isAdmin ? (unl ? unl + ' of them have no login linked; link one by editing the person above.' : 'Every name is linked to a login.') : ''); }
-  el.innerHTML = db.employees.length===0
-    ? '<div class="empty-state" style="padding:16px"><p>No names on the schedule yet.</p></div>'
-    : db.employees.map(function(e){
-        return '<div class="emp-row"><div style="display:flex;align-items:center;gap:10px"><div class="emp-avatar">'+esc(e[0])+'</div><span style="font-size:14px;font-weight:600;color:var(--slate-900)">'+esc(e)+'</span>'
-          +(isAdmin ? (loginOf[e] ? '<span class="team-link" style="margin:0">· '+esc(loginOf[e])+'</span>' : '<span class="team-link none" style="margin:0">· no login</span>') : '')+'</div>'
-          +'<button class="btn btn-danger btn-sm btn-icon" data-remove-emp="'+esc(e)+'" aria-label="Remove '+esc(e)+' from the schedule"><i class="fas fa-trash"></i></button></div>';
-      }).join('');
+  var db = getDB(), panel = document.getElementById('team-rota'), el = document.getElementById('shifts-employee-list'); if (!el || !panel) return;
+  var taken = {};
+  (db.appUsers || []).forEach(function(u){ var rn = schedNameOf(u, db); if (rn) taken[rn] = 1; });
+  var loose = isAdmin ? (db.employees || []).filter(function(e){ return !taken[e]; }) : [];
+  panel.style.display = loose.length ? '' : 'none';
+  el.innerHTML = loose.map(function(e){
+    return '<div class="emp-row"><div style="display:flex;align-items:center;gap:10px;min-width:0"><div class="emp-avatar">'+esc(e[0])+'</div><span style="font-size:14px;font-weight:600;color:var(--slate-900)">'+esc(e)+'</span></div>'
+      +'<div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" data-sched-account="'+esc(e)+'"><i class="fas fa-user-plus"></i> Create account</button>'
+      +'<button class="btn btn-danger btn-sm btn-icon" data-remove-emp="'+esc(e)+'" aria-label="Take '+esc(e)+' off the schedule" title="Take off the schedule"><i class="fas fa-trash"></i></button></div></div>';
+  }).join('');
 }
 
 // ── Absence helpers ──────────────────────────────────────────────
@@ -9188,16 +9193,55 @@ function managerUserIds() {
   return (getDB().appUsers || []).filter(function(u){ return u.active !== false && Array.isArray(u.roles) && (u.roles.indexOf('admin') !== -1 || u.roles.indexOf('shift_mgr') !== -1); }).map(function(u){ return u.id; });
 }
 function canApproveShifts() { return isAdmin || hasRole('shift_mgr'); }
-function fillUserEmployeeSelect(u) {
-  var sel = document.getElementById('user-employee'); if (!sel) return;
-  var db = getDB(), emps = (db.employees || []).slice().sort();
-  var auto = u ? employeeForUser(Object.assign({}, u, { employee:'' }), db) : '';
-  var cur = u ? (u.employee || '') : '';
-  if (cur && cur !== '-' && emps.indexOf(cur) === -1) emps.unshift(cur);
-  sel.innerHTML = '<option value="">' + (auto ? 'Automatic: ' + esc(auto) : 'Automatic (no match)') + '</option>'
-    + '<option value="-">Not on the schedule</option>'
-    + emps.map(function(e){ return '<option value="' + esc(e) + '">' + esc(e) + '</option>'; }).join('');
-  sel.value = cur;
+// Account form: "Works shifts" and the name used on the schedule (accounts are the only place the team is managed)
+function fillUserEmployeeSelect(u, presetName) {
+  var inp = document.getElementById('user-employee'), on = document.getElementById('user-on-schedule'); if (!inp || !on) return;
+  var db = getDB(), cur = u ? employeeForUser(u, db) : '';
+  document.getElementById('user-sched-names').innerHTML = (db.employees || []).slice().sort().map(function(e){ return '<option value="' + esc(e) + '">'; }).join('');
+  on.checked = u ? (u.employee !== '-' && !!cur) : true;
+  inp.value = presetName || cur || '';
+  schedRowShow();
+}
+function schedRowShow() { var on = document.getElementById('user-on-schedule'), row = document.getElementById('user-sched-row'); if (on && row) row.style.display = on.checked ? '' : 'none'; }
+// What the form says: the schedule name, or '-' (not on the schedule)
+function readUserEmployee() {
+  var on = document.getElementById('user-on-schedule'), v = (document.getElementById('user-employee').value || '').trim();
+  if (!on.checked) return '-';
+  return v || (document.getElementById('user-name').value || '').trim().toUpperCase();
+}
+// The person's name on the schedule while the account is active ('' otherwise)
+function schedNameOf(u, db) { return u && u.active !== false && u.employee !== '-' ? employeeForUser(u, db || getDB()) : ''; }
+// After saving / deactivating / deleting an account: the schedule list follows the active accounts, and the
+// person's shifts from today on move to their new name, or go when they no longer work shifts
+function scheduleSync(u, prevName) {
+  var db = getDB(), now = schedNameOf(u, db);
+  if (now && db.employees.indexOf(now) === -1) {
+    db.employees.push(now); db.employees.sort(); saveDB(db);
+    sbFetch('POST', 'employees', { name: now }).catch(function(){ toast('Not added to the schedule. Check the connection.', 'error'); });
+  }
+  if (prevName && prevName !== now) {
+    var others = (db.appUsers || []).some(function(x){ return x.id !== u.id && schedNameOf(x, db) === prevName; });
+    if (!others) {
+      db.employees = db.employees.filter(function(e){ return e !== prevName; }); saveDB(db);
+      sbFetch('DELETE', 'employees', null, 'name=eq.' + encodeURIComponent(prevName)).catch(function(){});
+      scheduleMoveFuture(prevName, now);
+    }
+  }
+  updateAllDropdowns();
+}
+function scheduleMoveFuture(name, newName) {
+  var today = toDateStr(new Date()), fromWs = toDateStr(getWeekStart(0));
+  return sbFetchAll('shifts', 'employee=eq.' + encodeURIComponent(name) + '&week_start=gte.' + fromWs).then(function(rows){
+    var ids = (rows || []).map(shiftFromRow).filter(function(s){ return shiftDateStr(s) >= today; }).map(function(s){ return s.id; });
+    if (!ids.length) return;
+    var q = 'id=in.(' + ids.join(',') + ')';
+    return (newName ? sbFetch('PATCH', 'shifts', { employee: newName }, q) : sbFetch('DELETE', 'shifts', null, q)).then(function(){
+      var db = getDB();
+      db.shifts = newName ? db.shifts.map(function(s){ if (ids.indexOf(s.id) !== -1) s.employee = newName; return s; }) : db.shifts.filter(function(s){ return ids.indexOf(s.id) === -1; });
+      saveDB(db); if (currentSection === 'shifts') renderShifts();
+      toast(newName ? T('{} shifts from today on moved to {}').replace('{}', ids.length).replace('{}', newName) : T('{} shifts from today on removed for {}').replace('{}', ids.length).replace('{}', name), 'success');
+    });
+  }).catch(function(){ toast(T('Could not update the shifts of {} from today on. Check them in Shifts.').replace('{}', name), 'error'); });
 }
 function sendPush(userIds, title, body, url) {
   var me = currentUser ? currentUser.id : '';
@@ -13074,6 +13118,7 @@ document.addEventListener('click', function(e) {
   if (el) { if (el.dataset.toggleJustified) toggleJustified(el.dataset.toggleJustified); return; }
   el = t.closest('[data-remove-absent]');
   if (el) { if (el.dataset.removeAbsent) removeAbsent(el.dataset.removeAbsent); return; }
+  el = t.closest('[data-sched-account]'); if (el) { var sn = el.dataset.schedAccount; openUserModal(null); document.getElementById('user-name').value = sn.charAt(0) + sn.slice(1).toLowerCase(); fillUserEmployeeSelect(null, sn); return; }
   el = t.closest('[data-remove-emp]');
   if (el) { removeEmployee(el.dataset.removeEmp); return; }
   if (t.closest('#btn-add-table-num')) { addTableNum(); return; }
@@ -13219,6 +13264,7 @@ document.addEventListener('change', function(e) {
   if (t.id === 'ev-allday') evSyncTimes();
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
   if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
+  if (t.id === 'user-on-schedule') schedRowShow();
   if (t.dataset && t.dataset.calOpt !== undefined) calSyncOptChanged();
   if (t.id === 'nps-days') { npsDays = +t.value || 30; renderNps(); }
   if (t.id === 'nps-qr-table') npsShareRender();
