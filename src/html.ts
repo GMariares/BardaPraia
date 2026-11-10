@@ -3626,8 +3626,10 @@ function runSecureMigrate() {
 function loadUsersSecure() {
   return fetch('/api/users').then(function(r){ return r.ok ? r.json() : null; }).then(function(rows){
     if (!Array.isArray(rows)) return;
-    var db = getDB(); db.appUsers = rows.map(sbRowToUser); saveDB(db);
+    var db = getDB(); db.appUsers = rows.map(sbRowToUser); applyScheduleTeam(db); saveDB(db);
+    scheduleCleanUp(db);
     if (currentSection === 'users') renderUsers();
+    if (currentSection === 'shifts') renderShifts();
   }).catch(function(){});
 }
 function saveUserSecure(user, password, oldUsername) {
@@ -4023,7 +4025,7 @@ function syncFromSupabase() {
       }
     }),
     sbFetch('GET', 'employees', null, 'order=name.asc').then(function(rows) {
-      if (rows) db.employees = rows.map(function(r){ return r.name; });
+      if (rows) db.employeesAll = db.employees = rows.map(function(r){ return r.name; });
     }).catch(function(){}),   // silent fail
     sbFetch('GET', 'inventory', null, 'order=name.asc').then(function(rows) {
       if (rows) db.inventory = rows.map(function(r){ return {
@@ -4149,6 +4151,7 @@ function syncFromSupabase() {
     }).catch(function(){})   // suppliers table created on migration
   ];
   return Promise.all(promises).then(function() {
+    applyScheduleTeam(db);
     saveDB(db);
     setSbStatus(true, 'Synced · ' + SB_URL.replace('https://',''));
     return db;
@@ -5186,7 +5189,7 @@ function refreshSection(name) {
       if (res[0] && res[0].length) sbCols.section = ('section' in res[0][0]);
       if (res[0]) { db.shifts = res[0].map(shiftFromRow); if (res[0].length) sbCols.split = ('start2' in res[0][0]); }
       if (res[1]) db.absences = res[1].map(function(x){ return {id:x.id,employee:x.employee,date:x.date,weekStart:x.week_start,justified:!!x.justified,createdAt:x.created_at}; });
-      if (res[2]) db.employees = res[2].map(function(x){ return x.name; });
+      if (res[2]) { db.employeesAll = res[2].map(function(x){ return x.name; }); applyScheduleTeam(db); scheduleCleanUp(db); }
       saveDB(db);
       if (currentSection === name) renderShifts();
     }).catch(function(){});
@@ -5265,7 +5268,7 @@ function refreshSection(name) {
       sbGetSettings()
     ]).then(function(res) {
       var db = getDB();
-      if (res[0]) db.employees = res[0].map(function(x){ return x.name; });
+      if (res[0]) { db.employeesAll = res[0].map(function(x){ return x.name; }); applyScheduleTeam(db); }
       if (res[1] && res[1][0]) {
         var r = res[1][0];
         if (r.tables !== undefined) db.tables = r.tables || db.tables;
@@ -5651,7 +5654,7 @@ function addEmployee() {
 }
 function removeEmployee(name) {
   if (!confirm('Remove '+name+' from the shift schedule? Their past shifts, hours and tips are kept.')) return;
-  var db=getDB(); db.employees=db.employees.filter(function(e){return e!==name;});
+  var db=getDB(); db.employees=db.employees.filter(function(e){return e!==name;}); db.employeesAll=(db.employeesAll||[]).filter(function(e){return e!==name;});
   var fromWs=toDateStr(getWeekStart(0));
   var future=db.shifts.filter(function(s){return s.employee===name&&s.weekStart>=fromWs;});
   if (future.length>0 && confirm('Also remove '+name+"'s "+future.length+' shifts from this week onwards? Earlier weeks are kept for hours and tips.')) {
@@ -9251,20 +9254,49 @@ function readUserEmployee() {
   if (!on.checked) return '-';
   return v || (document.getElementById('user-name').value || '').trim().toUpperCase();
 }
+// The schedule leaves out names that only belong to deactivated accounts (also accounts deactivated
+// before the team came from the accounts); a name an active account works as always stays
+function scheduleOffNames(db) {
+  var raw = db.employeesAll || db.employees || [], ctx = { employees: raw }, on = {}, off = {};
+  (db.appUsers || []).forEach(function(u){
+    if (u.id === 'admin_seed' || u.employee === '-') return;
+    var n = employeeForUser(u, ctx); if (!n) return;
+    if (u.active === false) off[n] = 1; else on[n] = 1;
+  });
+  return raw.filter(function(e){ return off[e] && !on[e]; });
+}
+function applyScheduleTeam(db) {
+  if (!db.employeesAll) db.employeesAll = (db.employees || []).slice();
+  var off = scheduleOffNames(db);
+  db.employees = db.employeesAll.filter(function(e){ return off.indexOf(e) === -1; });
+}
+// Admins: take those names off the schedule for good, with their shifts from today on (once per name)
+var scheduleCleaned = {};
+function scheduleCleanUp(db) {
+  if (!isAdmin) return;
+  scheduleOffNames(db).forEach(function(name){
+    if (scheduleCleaned[name]) return; scheduleCleaned[name] = 1;
+    sbFetch('DELETE', 'employees', null, 'name=eq.' + encodeURIComponent(name)).then(function(){
+      var d = getDB(); d.employeesAll = (d.employeesAll || []).filter(function(e){ return e !== name; }); applyScheduleTeam(d); saveDB(d);
+    }).catch(function(){});
+    scheduleMoveFuture(name, '');
+  });
+}
 // The person's name on the schedule while the account is active ('' otherwise)
 function schedNameOf(u, db) { return u && u.active !== false && u.employee !== '-' ? employeeForUser(u, db || getDB()) : ''; }
 // After saving / deactivating / deleting an account: the schedule list follows the active accounts, and the
 // person's shifts from today on move to their new name, or go when they no longer work shifts
 function scheduleSync(u, prevName) {
   var db = getDB(), now = schedNameOf(u, db);
-  if (now && db.employees.indexOf(now) === -1) {
-    db.employees.push(now); db.employees.sort(); saveDB(db);
+  if (!db.employeesAll) db.employeesAll = (db.employees || []).slice();
+  if (now && db.employeesAll.indexOf(now) === -1) {
+    db.employeesAll.push(now); db.employeesAll.sort(); applyScheduleTeam(db); saveDB(db);
     sbFetch('POST', 'employees', { name: now }).catch(function(){ toast('Not added to the schedule. Check the connection.', 'error'); });
   }
   if (prevName && prevName !== now) {
     var others = (db.appUsers || []).some(function(x){ return x.id !== u.id && schedNameOf(x, db) === prevName; });
     if (!others) {
-      db.employees = db.employees.filter(function(e){ return e !== prevName; }); saveDB(db);
+      db.employeesAll = (db.employeesAll || db.employees).filter(function(e){ return e !== prevName; }); applyScheduleTeam(db); saveDB(db);
       sbFetch('DELETE', 'employees', null, 'name=eq.' + encodeURIComponent(prevName)).catch(function(){});
       scheduleMoveFuture(prevName, now);
     }
