@@ -180,6 +180,8 @@ CREATE TABLE IF NOT EXISTS app_users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS employee TEXT DEFAULT '';
+-- closed days (see migrations/2026-11-10-aa-closed-days.sql)
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS closures JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS employee_no TEXT DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS push_subscriptions (
