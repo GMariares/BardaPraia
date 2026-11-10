@@ -516,6 +516,7 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .sched-on input { width:20px; height:20px; margin-top:2px; accent-color:var(--teal-600); flex:0 0 auto; }
     .sched-on b { display:block; font-size:14px; color:var(--slate-900); } .sched-on small { display:block; font-size:12px; color:var(--slate-500); }
     #user-sched-row { margin-top:8px; }
+    .tips-month { width:auto; min-height:34px; padding:4px 30px 4px 10px; font-size:13px; text-transform:none; letter-spacing:0; }
     /* Closed days */
     .cl-days { display:flex; flex-wrap:wrap; gap:6px; }
     .cl-day { min-width:52px; min-height:40px; border:var(--rule); border-radius:9px; background:var(--panel); font:inherit; font-weight:700; font-size:13px; color:var(--slate-600); cursor:pointer; text-transform:capitalize; }
@@ -8775,6 +8776,7 @@ function tipSplitHTML(split, heading) {
     +rows+'</div>';
 }
 
+var TIPS_STAFF_WEEKS_BACK = 2, tipsMonth = '';   // tipsMonth: 'YYYY-MM' the admins' summary shows ('' = this month)
 function renderShiftsTipsTab() {
   var ws = getWeekStart(shiftsWeekOffset);
   var wsStr = toDateStr(ws);
@@ -8794,6 +8796,11 @@ function renderShiftsTipsTab() {
 
   var el = document.getElementById('shifts-tips-result');
   if (!el) return;
+  // staff see this week and up to 2 weeks back; admins and shift managers see every week
+  if (!canShiftEdit && (shiftsWeekOffset < -TIPS_STAFF_WEEKS_BACK || shiftsWeekOffset > 0)) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-lock"></i><p>' + (shiftsWeekOffset > 0 ? 'Tips show once the week is worked.' : 'Tips can be seen up to 2 weeks back.') + '</p></div>';
+    return;
+  }
 
   // ── This week ──
   var weekHTML = '';
@@ -8818,17 +8825,20 @@ function renderShiftsTipsTab() {
     }
   }
 
-  // ── Month & year totals: saved split when there is one, else the current schedule ──
+  // ── Admins: tips of any month (per week and in total) and of its year; saved split when there is one, else the schedule ──
+  if (!isAdmin) { el.innerHTML = weekHTML || '<div class="empty-state"><p>No tips recorded yet for this week.</p></div>'; return; }
   var now = new Date();
-  var curMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  var curYear  = String(now.getFullYear());
+  var curMonth = tipsMonth || (now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
+  var curYear  = curMonth.slice(0, 4);
+  var monthWeeks = Object.keys(db.weekTips||{}).filter(function(wk){ return wk.substring(0,7) === curMonth && parseFloat(db.weekTips[wk]) > 0; }).sort();
+  var empTipsWeek = {};
   var empTipsMonth = {}, empTipsYear = {};
   Object.keys(db.weekTips||{}).forEach(function(wk) {
     var wkTotal = parseFloat(db.weekTips[wk]); if (!wkTotal || wkTotal <= 0) return;
     var split = (db.tipSplits && db.tipSplits[wk]) || computeTipSplit(db, wk, wkTotal);
     if (!split) return;
     Object.keys(split.shares).forEach(function(e) {
-      if (wk.substring(0,7) === curMonth) empTipsMonth[e] = (empTipsMonth[e]||0) + split.shares[e];
+      if (wk.substring(0,7) === curMonth) { empTipsMonth[e] = (empTipsMonth[e]||0) + split.shares[e]; (empTipsWeek[e] = empTipsWeek[e] || {})[wk] = split.shares[e]; }
       if (wk.substring(0,4) === curYear)  empTipsYear[e]  = (empTipsYear[e]||0)  + split.shares[e];
     });
   });
@@ -8837,27 +8847,36 @@ function renderShiftsTipsTab() {
   people.sort(function(a,b){ return a.localeCompare(b); });
   var mTotal = Object.values(empTipsMonth).reduce(function(a,v){return a+v;},0);
   var yTotal = Object.values(empTipsYear).reduce(function(a,v){return a+v;},0);
-  var monthLabel = MONTH_NAMES[now.getMonth()]+' '+curYear;
+  var monthLabel = MONTH_NAMES[+curMonth.slice(5,7)-1]+' '+curYear;
+  // the months that have tips, to pick from
+  var months = {}; months[now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')] = 1;
+  Object.keys(db.weekTips||{}).forEach(function(wk){ if (parseFloat(db.weekTips[wk]) > 0) months[wk.substring(0,7)] = 1; });
+  var monthPick = '<select class="select-field tips-month" id="tips-month" aria-label="Month">' + Object.keys(months).sort().reverse().map(function(m){ return '<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+MONTH_NAMES[+m.slice(5,7)-1]+' '+m.slice(0,4)+'</option>'; }).join('') + '</select>';
+  if (curMonth.substring(0,7) && people.length) people = people.filter(function(e){ return empTipsMonth[e] || empTipsYear[e] || (db.employees||[]).indexOf(e) !== -1; });
+  var wkHead = monthWeeks.map(function(wk){ return '<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--slate-500);white-space:nowrap">'+esc(fmtDay(wk, true))+'</th>'; }).join('');
   var periodRows = people.map(function(e) {
     var mTip = empTipsMonth[e]||0, yTip = empTipsYear[e]||0;
     var left = (db.employees||[]).indexOf(e) === -1 ? ' <span class="badge badge-gray">left</span>' : '';
     return '<tr style="border-bottom:1px solid var(--slate-100)">'
       +'<td style="padding:9px 10px;font-weight:700;color:var(--slate-900);font-size:13px">'+esc(e)+left+'</td>'
+      + monthWeeks.map(function(wk){ var v = (empTipsWeek[e]||{})[wk]; return '<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--slate-700)">'+(v>0?fmtMoney(v):'—')+'</td>'; }).join('')
       +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(mTip>0?fmtMoney(mTip):'—')+'</td>'
       +'<td style="padding:9px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--slate-900)">'+(yTip>0?fmtMoney(yTip):'—')+'</td></tr>';
   }).join('');
   var periodHTML = people.length === 0 ? '' : '<div style="background:var(--panel);border-radius:10px;border:var(--rule);overflow:hidden">'
-    +'<div style="padding:10px 12px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-700);border-bottom:var(--rule)"><i class="fas fa-chart-bar" style="color:var(--teal-600)"></i> Tips by employee</div>'
-    +'<table style="width:100%;border-collapse:collapse"><thead><tr>'
+    +'<div style="padding:10px 12px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-700);border-bottom:var(--rule)"><i class="fas fa-chart-bar" style="color:var(--teal-600)"></i> <span style="flex:1">Tips by employee</span>'+monthPick+'</div>'
+    +'<div class="acc-scroll"><table style="width:100%;border-collapse:collapse"><thead><tr>'
       +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.08em">Employee</th>'
+      + wkHead
       +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.08em">'+monthLabel+'</th>'
       +'<th style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.08em">'+curYear+'</th>'
     +'</tr></thead><tbody>'+periodRows+'</tbody>'
     +'<tfoot><tr style="border-top:var(--rule);background:var(--slate-50)">'
       +'<td style="padding:8px 10px;font-weight:800;font-size:12px;color:var(--slate-700)">TOTAL</td>'
+      + monthWeeks.map(function(wk){ return '<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:12.5px">'+fmtMoney(parseFloat(db.weekTips[wk])||0)+'</td>'; }).join('')
       +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(mTotal>0?fmtMoney(mTotal):'—')+'</td>'
       +'<td style="padding:8px 8px;text-align:right;font-weight:800;font-size:13px">'+(yTotal>0?fmtMoney(yTotal):'—')+'</td>'
-    +'</tr></tfoot></table></div>';
+    +'</tr></tfoot></table></div></div>';
 
   el.innerHTML = weekHTML + periodHTML;
   if (!weekHTML && !periodHTML) el.innerHTML = '<div class="empty-state"><p>No tips recorded yet for this period.</p></div>';
@@ -13265,6 +13284,7 @@ document.addEventListener('change', function(e) {
   if (t.id === 'clock-file' && t.files && t.files[0]) clockPhotoFile(t.files[0]);
   if (t.id === 'is-file' && t.files && t.files[0]) { isReadFile(t.files[0]); t.value = ''; }
   if (t.id === 'user-on-schedule') schedRowShow();
+  if (t.id === 'tips-month') { tipsMonth = t.value; renderShiftsTipsTab(); }
   if (t.dataset && t.dataset.calOpt !== undefined) calSyncOptChanged();
   if (t.id === 'nps-days') { npsDays = +t.value || 30; renderNps(); }
   if (t.id === 'nps-qr-table') npsShareRender();

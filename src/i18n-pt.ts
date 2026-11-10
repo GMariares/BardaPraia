@@ -1287,4 +1287,7 @@ export const PT: Record<string, string> = {
   "Works shifts as {}": "Faz turnos como {}",
   "Not on the schedule yet: edit and switch on “Works shifts”": "Ainda não está nos turnos: edite e ligue “Faz turnos”",
   "You are not on the shift schedule yet. Ask an admin to switch on “Works shifts” in your account.": "Ainda não está nos turnos. Peça a um administrador para ligar “Faz turnos” na sua conta.",
+  "Tips show once the week is worked.": "As gorjetas aparecem depois de a semana ser trabalhada.",
+  "Tips can be seen up to 2 weeks back.": "As gorjetas podem ser vistas até 2 semanas atrás.",
+  "No tips recorded yet for this week.": "Ainda sem gorjetas registadas nesta semana.",
 };
