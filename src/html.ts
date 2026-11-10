@@ -510,6 +510,25 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
     .is-imp-row { display:grid; grid-template-columns:1fr 64px; gap:6px 10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--slate-100); font-size:13px; }
     .is-imp-row select { grid-column:1 / -1; }
     .is-imp-row.skip { opacity:.55; }
+    /* Closed days */
+    .cl-days { display:flex; flex-wrap:wrap; gap:6px; }
+    .cl-day { min-width:52px; min-height:40px; border:var(--rule); border-radius:9px; background:var(--panel); font:inherit; font-weight:700; font-size:13px; color:var(--slate-600); cursor:pointer; text-transform:capitalize; }
+    .cl-day.on { background:var(--slate-800); border-color:var(--slate-800); color:#fff; }
+    .cl-list { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+    .cl-item { display:flex; align-items:center; gap:10px; border:var(--rule); border-radius:10px; padding:8px 10px; background:var(--panel); }
+    .cl-item > i { color:var(--slate-500); } .cl-item > div { flex:1; min-width:0; } .cl-item b { display:block; font-size:13.5px; color:var(--slate-900); } .cl-item small { color:var(--slate-500); font-size:12px; }
+    .cl-item.past { opacity:.6; }
+    .cl-del { border:1px solid var(--slate-200); border-radius:8px; min-height:34px; }
+    .cl-add { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
+    .cl-add label { display:flex; flex-direction:column; gap:3px; font-size:12px; font-weight:700; color:var(--slate-600); }
+    .cl-add label.cl-note { flex:1 1 180px; }
+    .day-closed { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 14px 8px; padding:8px 12px; border-radius:9px; background:var(--slate-800); color:#fff; font-size:13px; }
+    .day-closed b { letter-spacing:.06em; text-transform:uppercase; font-size:12.5px; } .day-closed span { opacity:.8; }
+    .gantt-wrap.is-closed .gantt-timeline { opacity:.45; }
+    .week-sheet th.is-closed, .week-sheet td.is-closed { background:repeating-linear-gradient(135deg, var(--slate-50), var(--slate-50) 6px, var(--slate-100) 6px, var(--slate-100) 12px); }
+    .wk-closed { display:block; margin-top:2px; font-size:9.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#fff; background:var(--slate-800); border-radius:4px; padding:1px 4px; }
+    .mw-closed { color:var(--slate-800) !important; font-weight:700; }
+    .fin-closed-note { align-items:center; gap:8px; background:var(--slate-800); color:#fff; border-radius:var(--radius); padding:10px 14px; margin-bottom:12px; font-size:13px; font-weight:600; }
     /* Reputation → NPS */
     #nps-qr-box img { display:block; width:240px; max-width:100%; image-rendering:pixelated; margin:0 auto 8px; border:var(--rule); border-radius:12px; padding:10px; background:#fff; }
     .nps-head { display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom:14px; }
@@ -1895,6 +1914,8 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           </div>
         </div>
 
+        <!-- Closed on the chosen day -->
+        <div id="fin-closed-note" class="fin-closed-note" style="display:none"><i class="fas fa-door-closed"></i> <span></span></div>
         <!-- Missing days warning -->
         <div id="fin-missing-warning" style="display:none;background:var(--red-50);border:2px solid #b4402f;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px">
           <div style="display:flex;align-items:flex-start;gap:10px">
@@ -2274,6 +2295,12 @@ export function getAppHTML(cfg: { sbUrl: string; sbKey: string; build?: string }
           <input type="text" id="new-table-num" class="input-field" placeholder="Table name/number e.g. T1, VIP, Bar..." style="font-size:14px" />
           <button class="btn btn-primary" id="btn-add-table-num" aria-label="Add table" style="flex-shrink:0"><i class="fas fa-plus"></i></button>
         </div>
+      </div>
+      <!-- Closed days -->
+      <div class="settings-card" id="closures-card">
+        <h3><i class="fas fa-door-closed" style="color:var(--teal-600)"></i> Closed days</h3>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:12px">Days the restaurant is closed: Shifts show RESTAURANT CLOSED, and Finance does not ask for their daily record nor count them in the averages.</p>
+        <div id="closures-editor"></div>
       </div>
       <!-- Areas & sections -->
       <div class="settings-card" id="areas-card">
@@ -3906,6 +3933,7 @@ function syncFromSupabase() {
   sbMissingItems = []; sbDenied = false;
   var db = getDB();
   var promises = [
+    closuresLoad(),
     sbGetSettings().catch(function(){ return null; }).then(function(rows) {
       if (rows && rows[0]) {
         var r = rows[0];
@@ -5123,7 +5151,8 @@ function refreshSection(name) {
       sbFetchAll('absences','order=date.desc,id.asc'),
       sbFetch('GET','employees',null,'order=name.asc'),
       sbFetch('GET','shift_requests',null,'week_start=gte.' + reqCutoff() + '&order=created_at.desc').catch(function(){ return 'missing'; }),
-      sbFetch('GET','settings',null,'select=week_notices&id=eq.config').catch(function(){ return null; })
+      sbFetch('GET','settings',null,'select=week_notices&id=eq.config').catch(function(){ return null; }),
+      closuresLoad()
     ]).then(function(res) {
       var db = getDB();
       if (res[4] && res[4][0] && ('week_notices' in res[4][0])) { sbCols.weekNotices = true; db.weekNotices = res[4][0].week_notices || {}; }
@@ -5151,6 +5180,7 @@ function refreshSection(name) {
     }).catch(function(){});
 
   } else if (name === 'finance') {
+    closuresLoad();
     sbFetch('GET','fin_entries',null,'order=date.desc&limit=365').then(function(rows) {
       if (!rows) return;
       var db = getDB();
@@ -5891,6 +5921,7 @@ function renderSettings() {
   var secCard = document.getElementById('secure-login-card');
   if (secCard) { secCard.style.display = isAdmin ? '' : 'none'; if (isAdmin) { renderSecureCard(); loadAuthStatus().then(renderSecureCard); } }
   renderImpCard();
+  renderClosuresCard();
   var qrCard = document.getElementById('clock-qr-card'); if (qrCard) qrCard.style.display = isAdmin ? '' : 'none';
   if (!isAdmin) {
     settingsLocked.style.display = 'flex';
@@ -6024,7 +6055,7 @@ function checkFinMissingDays(dateStr) {
   while (true) {
     var s = toDateStr(d);
     if (s <= FIN_CHECK_FROM) break;
-    if (!saved[s]) missing.push(s);
+    if (!saved[s] && !isClosedDay(s)) missing.push(s);   // closed days have no record
     d.setDate(d.getDate() - 1);
     if (missing.length >= 10) break; // cap display at 10
   }
@@ -6079,6 +6110,8 @@ function loadFinEntryForDate(dateStr) {
   updateFinDayTotal();
   applyFinLockState(dateStr);
   checkFinMissingDays(dateStr);
+  var cn = document.getElementById('fin-closed-note');
+  if (cn) { var why = closedReason(dateStr); cn.style.display = why ? 'flex' : 'none'; cn.querySelector('span').textContent = why ? T('Restaurant closed on this day ({}). No record needed.').replace('{}', why) : ''; }
 }
 
 function setFinForm(entry) {
@@ -6412,9 +6445,10 @@ function renderFinRecords() {
   var overMonth=0,overYear=0,overMonthCnt=0,overYearCnt=0;
   allEntries.forEach(function(e){
     var td=e.totalDay||0, t=e.t51||0, s=e.surf||0;
-    if(e.date.slice(0,7)===monthStr){ dayMonth+=td; t51Month+=t; surfMonth+=s; cntMonth++; }
-    if(e.date.slice(0,4)===yearStr) { dayYear+=td;  t51Year+=t;  surfYear+=s;  cntYear++; }
-    if(rangeFrom&&rangeTo&&e.date>=rangeFrom&&e.date<=rangeTo){ dayRange+=td; t51Range+=t; surfRange+=s; cntRange++; }
+    var n = isClosedDay(e.date) && !(td||t||s) ? 0 : 1;   // a closed day saved at 0 does not pull the average per day down
+    if(e.date.slice(0,7)===monthStr){ dayMonth+=td; t51Month+=t; surfMonth+=s; cntMonth+=n; }
+    if(e.date.slice(0,4)===yearStr) { dayYear+=td;  t51Year+=t;  surfYear+=s;  cntYear+=n; }
+    if(rangeFrom&&rangeTo&&e.date>=rangeFrom&&e.date<=rangeTo){ dayRange+=td; t51Range+=t; surfRange+=s; cntRange+=n; }
     // cash diff aggregations (only entries that have cash data)
     var cd = e.cashDiff || 0;
     if(Math.abs(cd) >= 0.005) {
@@ -8317,7 +8351,8 @@ function renderMyWeekTab() {
   var rows = DAYS.map(function(day, i){
     var d = new Date(ws); d.setDate(d.getDate() + i); var ds = toDateStr(d);
     var sh = mine.find(function(x){ return x.day === day; }), working = sh && !sh.dayOff && sh.start, body;
-    if (!sh) body = '<span class="mw-off">Not scheduled</span>';
+    if (isClosedDay(ds) && !working) body = '<span class="mw-off mw-closed"><i class="fas fa-door-closed"></i> Restaurant closed</span>';
+    else if (!sh) body = '<span class="mw-off">Not scheduled</span>';
     else if (!working) body = '<span class="mw-off">Day off</span>';
     else {
       total += shiftScheduledHours(sh);
@@ -8543,7 +8578,8 @@ function renderShifts(){
         +absentBtns+'</div>';
     }
 
-    return '<div class="gantt-wrap"'
+    var closedWhy = closedReason(dateStr);
+    return '<div class="gantt-wrap'+(closedWhy?' is-closed':'')+'"'
         +(isToday?' style="border-color:var(--teal-500)"':'')+'>' 
       +'<div class="gantt-day-header">'
         +'<div>'
@@ -8552,6 +8588,7 @@ function renderShifts(){
         +'</div>'
         +(canShiftEdit?'<button class="btn btn-secondary btn-sm" data-add-shift-day="'+esc(day)+'"><i class="fas fa-plus"></i> Add</button>':'')
       +'</div>'
+      +(closedWhy?'<div class="day-closed"><i class="fas fa-door-closed"></i> <b>Restaurant closed</b> <span>'+esc(closedWhy)+'</span></div>':'')
       +'<div class="gantt-timeline">'
         + rulerHTML
         +'<div class="gantt-rows" style="position:relative">'
@@ -10880,6 +10917,83 @@ function cmpRemove(id) {
   cmpCall('DELETE', '/api/rep/google/competitor', { id: id }).then(function(){ return gLoad(); }).catch(function(e){ gRep.cmpError = e.message; renderCompare(); });
 }
 
+// ── Closed days (Settings → Closed days) ──────────────────────
+// settings.closures = { weekdays: [1] (0 = Sunday … 6 = Saturday), periods: [{ id, from, to, note }] }.
+// Shifts show RESTAURANT CLOSED on those days; Finance does not ask for their daily record nor count them in averages.
+function closures() {
+  var c = getDB().closures || {};
+  return { weekdays: Array.isArray(c.weekdays) ? c.weekdays : [], periods: Array.isArray(c.periods) ? c.periods : [] };
+}
+// '' when open; otherwise why it is closed ('weekly' or the period's note / 'period')
+function closedInfo(ds) {
+  if (!ds) return '';
+  var c = closures(), p = c.periods.find(function(x){ return x.from && ds >= x.from && ds <= (x.to || x.from); });
+  if (p) return p.note || 'period';
+  return c.weekdays.indexOf(new Date(ds + 'T12:00:00').getDay()) !== -1 ? 'weekly' : '';
+}
+function isClosedDay(ds) { return !!closedInfo(ds); }
+function closedReason(ds) {
+  var r = closedInfo(ds);
+  if (!r) return '';
+  if (r === 'weekly') return T('Closed every {}').replace('{}', locDate(new Date(ds + 'T12:00:00'), { weekday: 'long' }));
+  return r === 'period' ? T('Closed period') : r;
+}
+function closuresLoad() {
+  return sbFetch('GET', 'settings', null, 'select=closures&id=eq.config').then(function(rows){
+    if (!rows || !rows[0] || !('closures' in rows[0])) return;
+    sbCols.closures = true;
+    var db = getDB(), before = JSON.stringify(db.closures || {});
+    db.closures = rows[0].closures || {}; saveDB(db);
+    if (before !== JSON.stringify(db.closures)) {
+      if (currentSection === 'shifts') renderShifts();
+      if (currentSection === 'finance') renderFinance();
+      if (currentSection === 'settings') renderClosuresCard();
+    }
+  }).catch(function(){ sbCols.closures = false; });
+}
+function closuresSave(c) {
+  var db = getDB(); db.closures = c; saveDB(db); renderClosuresCard();
+  if (sbCols.closures === false) { toast('Run the SQL file supabase/migrations/2026-11-10-aa-closed-days.sql in Supabase first', 'error'); return; }
+  sbFetch('PATCH', 'settings', { closures: c }, 'id=eq.config').then(function(){ toast('Saved', 'success'); }).catch(function(){ toast('Not saved. Check the connection.', 'error'); });
+}
+function renderClosuresCard() {
+  var box = document.getElementById('closures-editor'); if (!box) return;
+  var c = closures(), today = toDateStr(new Date()), order = [1, 2, 3, 4, 5, 6, 0];
+  var h = '<div class="acc-card-title">Closed every week on</div><div class="cl-days">' + order.map(function(d){
+    var ref = new Date(2026, 0, 4 + d);   // 4 Jan 2026 was a Sunday
+    return '<button type="button" class="cl-day' + (c.weekdays.indexOf(d) !== -1 ? ' on' : '') + '" data-cl-weekday="' + d + '" aria-pressed="' + (c.weekdays.indexOf(d) !== -1) + '">' + esc(locDate(ref, { weekday: 'short' })) + '</button>';
+  }).join('') + '</div>';
+  var periods = c.periods.slice().sort(function(a, b){ return a.from < b.from ? -1 : 1; });
+  var past = periods.filter(function(p){ return (p.to || p.from) < today; }).length;
+  h += '<div class="acc-card-title" style="margin-top:14px">Closed periods</div>';
+  h += periods.length ? '<div class="cl-list">' + periods.map(function(p){
+    var to = p.to || p.from, isPast = to < today;
+    return '<div class="cl-item' + (isPast ? ' past' : '') + '"><i class="fas fa-door-closed"></i><div><b>' + esc(fmtDay(p.from)) + (to !== p.from ? ' → ' + esc(fmtDay(to)) : '') + '</b>' + (p.note ? '<small>' + esc(p.note) + '</small>' : '') + '</div>'
+      + '<button type="button" class="ps-del cl-del" data-cl-del="' + esc(p.id) + '" aria-label="Remove" title="Remove"><i class="fas fa-xmark"></i></button></div>';
+  }).join('') + '</div>' : '<p class="acc-note" style="margin:4px 0 8px">No closed periods.</p>';
+  if (past) h += '<p class="acc-note" style="margin:4px 0 8px">Past periods stay, so records and averages keep skipping those days.</p>';
+  h += '<div class="cl-add"><label><span>From</span><input type="date" class="input-field" id="cl-from" value="' + today + '" /></label><label><span>To</span><input type="date" class="input-field" id="cl-to" value="' + today + '" /></label>'
+    + '<label class="cl-note"><span>Note (optional)</span><input type="text" class="input-field" id="cl-note" placeholder="e.g. Winter holidays" maxlength="60" /></label>'
+    + '<button type="button" class="btn btn-primary" id="btn-cl-add"><i class="fas fa-plus"></i> Add period</button></div>';
+  box.innerHTML = h;
+}
+function closuresToggleWeekday(d) {
+  var c = closures(), w = c.weekdays.slice(), i = w.indexOf(d);
+  if (i === -1) w.push(d); else w.splice(i, 1);
+  closuresSave({ weekdays: w.sort(), periods: c.periods });
+}
+function closuresAddPeriod() {
+  var from = document.getElementById('cl-from').value, to = document.getElementById('cl-to').value || from, note = (document.getElementById('cl-note').value || '').trim();
+  if (!from) { toast('Pick the first closed day', 'error'); return; }
+  if (to < from) { toast('The last day is before the first', 'error'); return; }
+  var c = closures();
+  closuresSave({ weekdays: c.weekdays, periods: c.periods.concat([{ id: uid(), from: from, to: to, note: note }]) });
+}
+function closuresRemovePeriod(id) {
+  var c = closures();
+  closuresSave({ weekdays: c.weekdays, periods: c.periods.filter(function(p){ return p.id !== id; }) });
+}
+
 function renderAccounting() {
   var locked = document.getElementById('acc-locked'), content = document.getElementById('acc-content');
   // Accounting is for admins only (wages, margins, every cost); everyone else sees only their own payslips
@@ -11747,7 +11861,8 @@ function weekSheetHTML(db, wsStr) {
   var h = '<table class="week-sheet"><colgroup><col class="wk-label">' + DAYS.map(function(){ return '<col>'; }).join('') + '</colgroup>';
   h += '<thead><tr><th>Area · Section</th>' + DAYS.map(function(d, i){
     var ds = toDateStr(dates[i]);
-    return '<th' + (ds === todayStr ? ' class="is-today"' : '') + '>' + d.slice(0, 3) + '<span class="wk-date">' + dates[i].getDate() + ' ' + MONTH_NAMES[dates[i].getMonth()] + '</span></th>';
+    var cls = [ds === todayStr ? 'is-today' : '', isClosedDay(ds) ? 'is-closed' : ''].filter(Boolean).join(' ');
+    return '<th' + (cls ? ' class="' + cls + '"' : '') + '>' + d.slice(0, 3) + '<span class="wk-date">' + dates[i].getDate() + ' ' + MONTH_NAMES[dates[i].getMonth()] + '</span>' + (isClosedDay(ds) ? '<span class="wk-closed">Closed</span>' : '') + '</th>';
   }).join('') + '</tr></thead><tbody>';
   blocks.forEach(function(b){
     h += '<tr class="wk-area"><td colspan="8"><span class="wk-swatch" style="background:' + areaColor(b.zone) + '"></span>' + esc(b.zone || 'No area') + '</td></tr>';
@@ -11756,7 +11871,7 @@ function weekSheetHTML(db, wsStr) {
       h += '<tr><td class="wk-rowlabel">' + esc(label) + '</td>' + DAYS.map(function(d){
         var list = worked.filter(function(s){ return s.day === d && (s.zone || '') === b.zone && effectiveSection(s, areas) === sec; })
           .sort(function(x, y){ return timeToMins(x.start) - timeToMins(y.start) || x.employee.localeCompare(y.employee); });
-        return '<td>' + list.map(function(s){
+        return '<td' + (isClosedDay(toDateStr(dates[DAYS.indexOf(d)])) ? ' class="is-closed"' : '') + '>' + list.map(function(s){
           var abs = shiftIsAbsent(s, absIdx);
           var tags = (abs ? '<span class="wk-tag abs">absent</span>' : '')
             + (!abs && s.lateMinutes ? '<span class="wk-tag late">late ' + fmtMins(s.lateMinutes) + '</span>' : '')
@@ -12514,6 +12629,11 @@ document.addEventListener('click', function(e) {
   el = t.closest('[data-is-view]'); if (el) { accItemsView = el.dataset.isView; renderAccounting(); return; }
   if (t.closest('#btn-is-import')) { if (!isNeedsSql()) document.getElementById('is-file').click(); return; }
   if (t.closest('#btn-is-import-save')) { isSaveImport(); return; }
+
+  // Settings → Closed days
+  el = t.closest('[data-cl-weekday]'); if (el) { closuresToggleWeekday(+el.dataset.clWeekday); return; }
+  el = t.closest('[data-cl-del]'); if (el) { closuresRemovePeriod(el.dataset.clDel); return; }
+  if (t.closest('#btn-cl-add')) { closuresAddPeriod(); return; }
 
   // Reputation → tabs, Google
   el = t.closest('[data-rep-tab]'); if (el) { repTab = el.dataset.repTab; renderReputation(); return; }
